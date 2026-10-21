@@ -47,7 +47,6 @@ fn is_benign(l: &str) -> bool {
         "timestamp discontinuity",
         "is muxed as a private data stream",
         "deprecated pixel format used",
-        "Non-monotonic DTS", // only at encoder start, timestamps are rebuilt
     ];
     PATTERNS.iter().any(|p| l.contains(p))
 }
