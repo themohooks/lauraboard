@@ -19,7 +19,15 @@ fn deterministic_output() {
     fx.add(vec![prog("a", 10), prog("b", 10), prog("c", 10)]).playlist("main", &["a", "b", "c"]);
     fx.playlists[0].shuffle = true;
     fx.mode = PlanMode::Sequential { playlist: "main".into() };
-    assert_eq!(fx.plan(at(0, 0), at(6, 0)), fx.plan(at(0, 0), at(6, 0)));
+    let strip = |mut r: Rundown| {
+        r.items.iter_mut().for_each(|i| i.uid.clear());
+        r
+    };
+    assert_eq!(strip(fx.plan(at(0, 0), at(6, 0))), strip(fx.plan(at(0, 0), at(6, 0))));
+    // reshuffled cycles never repeat the same item at the boundary
+    let r = fx.plan(at(0, 0), at(12, 0));
+    let ids = ids(&r);
+    assert!(ids.windows(2).all(|w| w[0] != w[1]), "{ids:?}");
 }
 
 #[test]

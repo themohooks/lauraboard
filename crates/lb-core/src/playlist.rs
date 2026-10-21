@@ -56,8 +56,20 @@ impl Playlist {
         self
     }
 
-    /// Playback order of entry indexes for a given cycle.
+    /// Playback order of entry indexes for a given cycle. A reshuffled cycle
+    /// never starts with the entry that ended the previous one.
     pub fn order(&self, seed: u64, cycle: u64) -> Vec<usize> {
+        let mut out = self.raw_order(seed, cycle);
+        if self.shuffle && cycle > 0 && out.len() > 1 {
+            let prev_last = self.raw_order(seed, cycle - 1).last().copied();
+            if prev_last == Some(out[0]) && !self.entries[out[0]].pinned && !self.entries[out[1]].pinned {
+                out.swap(0, 1);
+            }
+        }
+        out
+    }
+
+    fn raw_order(&self, seed: u64, cycle: u64) -> Vec<usize> {
         let active: Vec<usize> = (0..self.entries.len()).filter(|i| !self.entries[*i].disabled).collect();
         if !self.shuffle {
             return active;

@@ -14,16 +14,22 @@ impl<'a, 'h> Planner<'a, 'h>
 where
     'a: 'h,
 {
-    pub(super) fn src_for(&self, b: &'a Block) -> Src<'a> {
+    /// `items_done`: main items of this block instance already aired (when
+    /// continuing a block).
+    pub(super) fn src_for(&self, b: &'a Block, items_done: usize) -> Src<'a> {
         match &b.source {
             BlockSource::Playlist { playlist, restart } => match self.playlist(playlist) {
                 Some(pl) => {
-                    let cursor = if *restart { Cursor::default() } else { self.st.cursors.get(playlist).copied().unwrap_or_default() };
+                    let cursor = if *restart && items_done == 0 {
+                        Cursor::default()
+                    } else {
+                        self.st.cursors.get(playlist).copied().unwrap_or_default()
+                    };
                     Src::Playlist { pl, cursor }
                 }
                 None => Src::Empty,
             },
-            BlockSource::Media { items } => Src::Media { items, pos: 0 },
+            BlockSource::Media { items } => Src::Media { items, pos: items_done.min(items.len()) },
             BlockSource::Category { category, kind } => Src::Category { category, kind: kind.unwrap_or(MediaKind::Program) },
             BlockSource::AdBreak { ad_break } => match self.inp.rules.ad_break(ad_break) {
                 Some(brk) => Src::AdBreak { brk },

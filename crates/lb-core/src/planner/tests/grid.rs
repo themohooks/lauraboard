@@ -161,3 +161,57 @@ fn plans_across_midnight() {
     assert_eq!(morning.start, day().succ_opt().unwrap().and_hms_opt(6, 0, 0).unwrap());
     assert_contiguous(&r);
 }
+
+#[test]
+fn replan_with_prefix_continues_after_block() {
+    let fx = morning_news();
+    let full = fx.plan(at(6, 0), at(7, 15));
+    // engine is playing the first item; keep the rest of the morning block
+    let prefix: Vec<_> = full.items[1..].iter().filter(|i| i.block.as_deref() == Some("morning")).cloned().collect();
+    let key = full.items[0].block_key.clone();
+    let sched = fx.schedules();
+    let input = crate::planner::PlanInput {
+        library: &fx.lib,
+        playlists: &fx.playlists,
+        schedules: &sched,
+        rules: &fx.rules,
+        history: &fx.history,
+        mode: &fx.mode,
+        seed: 7,
+        force_schedule: None,
+    };
+    // the first item ended 2 minutes late
+    let mut req = crate::planner::PlanRequest::new(at(6, 27), at(7, 15));
+    req.prefix = prefix;
+    req.after_block = key;
+    let r = crate::planner::plan_req(&input, &fx.state, &req);
+    assert_eq!(r.items[0].start, at(6, 27));
+    assert_eq!(first_of_block(&r, "news").start, at(7, 0));
+    assert_eq!(r.items.iter().filter(|i| i.media == "news").count(), 1);
+    assert_contiguous(&r);
+}
+
+#[test]
+fn replan_with_late_prefix_drops_optional_fillers() {
+    let fx = morning_news();
+    let full = fx.plan(at(6, 0), at(7, 15));
+    let prefix: Vec<_> = full.items[1..].iter().filter(|i| i.block.as_deref() == Some("morning")).cloned().collect();
+    let sched = fx.schedules();
+    let input = crate::planner::PlanInput {
+        library: &fx.lib,
+        playlists: &fx.playlists,
+        schedules: &sched,
+        rules: &fx.rules,
+        history: &fx.history,
+        mode: &fx.mode,
+        seed: 7,
+        force_schedule: None,
+    };
+    // 9 minutes late: the 10-minute gap fill must shrink
+    let mut req = crate::planner::PlanRequest::new(at(6, 34), at(7, 15));
+    req.prefix = prefix;
+    req.after_block = full.items[0].block_key.clone();
+    let r = crate::planner::plan_req(&input, &fx.state, &req);
+    assert_eq!(first_of_block(&r, "news").start, at(7, 0));
+    assert_contiguous(&r);
+}

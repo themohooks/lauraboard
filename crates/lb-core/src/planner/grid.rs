@@ -38,15 +38,15 @@ where
             return;
         }
         // Continue the given block, else the latest fixed block already started.
-        let start_idx = req
-            .current_block
-            .as_ref()
-            .and_then(|k| insts.iter().position(|i| &i.key == k))
+        let after = req.after_block.as_ref().and_then(|k| insts.iter().position(|i| &i.key == k)).map(|i| i + 1);
+        let start_idx = after
+            .or_else(|| req.current_block.as_ref().and_then(|k| insts.iter().position(|i| &i.key == k)))
             .or_else(|| insts.iter().rposition(|i| i.fixed.is_some_and(|f| f <= from)))
             .unwrap_or(0);
-        let mut t = from;
+        let mut t = self.out.last().map(|i| i.end()).unwrap_or(from);
+        let continuing = after.is_some() || !self.out.is_empty();
         let mut items_done = if req.current_block.is_some() { req.block_items_done } else { 0 };
-        let mut window_start = self.out.len();
+        let mut window_start = 0;
         let mut prev_block: Option<Inst<'a>> = None;
 
         for i in start_idx..insts.len() {
@@ -56,7 +56,7 @@ where
             let inst = insts[i].clone();
             if let Some(fixed) = inst.fixed {
                 // reached a fixed block: make the previous window end at `fixed`
-                if i != start_idx || fixed > t {
+                if i != start_idx || fixed > t || continuing {
                     if let Some(prev) = &prev_block {
                         self.between_blocks(prev, &mut t);
                     }
@@ -86,7 +86,8 @@ where
             return;
         }
         let inst = Inst { key: "sequential:main".into(), block, fixed: None };
-        let t = self.fill_block(&inst, from, None, false, req.block_items_done, until);
+        let start = self.out.last().map(|i| i.end()).unwrap_or(from);
+        let t = self.fill_block(&inst, start, None, false, req.block_items_done, until);
         if t < until && self.out.is_empty() {
             self.slate(t, diff_ms(until, t), None);
         }

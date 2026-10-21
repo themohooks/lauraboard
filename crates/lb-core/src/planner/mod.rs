@@ -35,6 +35,7 @@ mod window;
 
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::sync::atomic::{AtomicU64, Ordering};
 
 use crate::history::{Overlay, PlayHistory};
 use crate::media::Library;
@@ -49,6 +50,9 @@ use context::Planner;
 
 /// Minimum remaining play time for a truncated item to be worth starting.
 pub(crate) const MIN_TRUNCATED_PLAY_MS: Ms = 10_000;
+/// Makes item uids unique across planning passes.
+static PLAN_SEQ: AtomicU64 = AtomicU64::new(1);
+
 /// Safety cap on items per plan.
 pub(crate) const MAX_ITEMS: usize = 50_000;
 
@@ -113,11 +117,16 @@ pub struct PlanRequest {
     pub current_block: Option<String>,
     /// Main items already aired in the current block.
     pub block_items_done: usize,
+    /// Already decided items placed first (retimed from `from`). Used when
+    /// the engine keeps the rest of the current block and replans after it.
+    pub prefix: Vec<RundownItem>,
+    /// Start planning with the block instance following this one.
+    pub after_block: Option<String>,
 }
 
 impl PlanRequest {
     pub fn new(from: WallTime, until: WallTime) -> Self {
-        PlanRequest { from, until, current_block: None, block_items_done: 0 }
+        PlanRequest { from, until, current_block: None, block_items_done: 0, prefix: vec![], after_block: None }
     }
 }
 
@@ -143,8 +152,9 @@ pub fn plan_req(input: &PlanInput, state: &PlanState, req: &PlanRequest) -> Rund
         out: Vec::new(),
         warnings: Vec::new(),
         seq: 0,
-        uid_base: req.from.format("%Y%m%d%H%M%S").to_string(),
+        uid_base: format!("{}-{}", req.from.format("%Y%m%d%H%M%S"), PLAN_SEQ.fetch_add(1, Ordering::Relaxed)),
     };
+    p.push_prefix(req);
     match (input.mode, seq_block.as_ref()) {
         (PlanMode::Sequential { playlist }, Some(b)) => p.plan_sequential(playlist, b, req),
         _ => p.plan_grid(req),

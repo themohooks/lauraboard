@@ -53,7 +53,7 @@ where
         until: WallTime,
     ) -> WallTime {
         let b = inst.block;
-        let src = self.src_for(b);
+        let src = self.src_for(b, items_done);
         match src {
             Src::Empty => {
                 self.warn(WarningKind::EmptySource, Some(t), format!("block '{}' has no valid source", b.id));

@@ -6,12 +6,26 @@ use crate::rules::InsertionRule;
 use crate::rundown::{Origin, RundownItem, WarningKind};
 use crate::{Ms, WallTime};
 
+use super::PlanRequest;
 use super::context::{Inst, Planner};
 
 impl<'a, 'h> Planner<'a, 'h>
 where
     'a: 'h,
 {
+    /// Place already decided items first, retimed sequentially from `from`.
+    pub(super) fn push_prefix(&mut self, req: &PlanRequest) {
+        let mut t = req.from;
+        for it in &req.prefix {
+            let mut it = it.clone();
+            it.start = t;
+            t = it.end();
+            self.hist.planned.record(&it.media, it.start);
+            self.st.commit(&it);
+            self.out.push(it);
+        }
+    }
+
     pub(super) fn item_for(&mut self, m: &'a MediaItem, origin: Origin, t: WallTime) -> RundownItem {
         RundownItem {
             uid: self.uid(),
