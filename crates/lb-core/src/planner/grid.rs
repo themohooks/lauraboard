@@ -70,7 +70,7 @@ where
             let next_is_follow = insts.get(i + 1).is_some_and(|x| x.fixed.is_none());
             let first_idx = self.out.len();
             t = self.fill_block(&inst, t, next_fixed, next_is_follow, items_done, until);
-            if let (Some(f), Some(first)) = (inst.fixed, self.out.get_mut(first_idx)) {
+            if let (Some(f), Some(first)) = (inst.fixed.filter(|f| *f >= from || i != start_idx), self.out.get_mut(first_idx)) {
                 first.fixed_start = Some(f);
             }
             items_done = 0;
@@ -96,7 +96,7 @@ where
     /// Rules with the `between_blocks` trigger.
     pub(super) fn between_blocks(&mut self, prev: &Inst<'a>, t: &mut WallTime) {
         let ctx = self.block_ctx(prev.block, *t);
-        for r in self.firing_rules(|tr| matches!(tr, Trigger::BetweenBlocks), &ctx) {
+        for r in self.firing_rules(|r| matches!(r.trigger, Trigger::BetweenBlocks), &ctx) {
             self.apply_rule(r, t, Some(prev));
         }
     }

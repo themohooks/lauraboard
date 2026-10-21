@@ -119,7 +119,7 @@ where
         }
         if b.rules {
             let ctx = self.block_ctx(b, *t);
-            for r in self.firing_rules(|tr| matches!(tr, Trigger::BlockStart), &ctx) {
+            for r in self.firing_rules(|r| matches!(r.trigger, Trigger::BlockStart), &ctx) {
                 self.apply_rule(r, t, Some(inst));
             }
         }
@@ -130,7 +130,7 @@ where
         let b = inst.block;
         if b.rules {
             let ctx = self.block_ctx(b, *t);
-            for r in self.firing_rules(|tr| matches!(tr, Trigger::BlockEnd), &ctx) {
+            for r in self.firing_rules(|r| matches!(r.trigger, Trigger::BlockEnd), &ctx) {
                 self.apply_rule(r, t, Some(inst));
             }
         }
@@ -229,7 +229,7 @@ where
         }
         let ctx = self.main_ctx(inst, m, cat.map(str::to_string), pl, at);
         self.firing_rules(
-            |tr| matches!(tr, Trigger::BeforeCategory { category } if cat.is_some_and(|c| c.eq_ignore_ascii_case(category))),
+            |r| matches!(&r.trigger, Trigger::BeforeCategory { category } if cat.is_some_and(|c| c.eq_ignore_ascii_case(category))),
             &ctx,
         )
     }
@@ -243,22 +243,22 @@ where
         let cat = b.category.clone().or_else(|| m.category.clone());
         let ctx = self.main_ctx(inst, m, cat.clone(), block_playlist(b), *t);
         let now = *t;
+        // interval checks happen before group selection, so a not-yet-due
+        // rule never suppresses others of its group
+        let last_fired = &self.st.rule_last_fired;
         let rules = self.firing_rules(
-            |tr| match tr {
+            |r| match &r.trigger {
                 Trigger::EveryNItems { n } => *n > 0 && count.is_multiple_of(*n),
                 Trigger::AfterCategory { category } => cat.as_deref().is_some_and(|c| c.eq_ignore_ascii_case(category)),
-                Trigger::EveryMinutes { .. } => true,
+                Trigger::EveryMinutes { minutes } => {
+                    let since = last_fired.get(&r.id).copied().filter(|x| *x >= block_start).unwrap_or(block_start);
+                    diff_ms(now, since) as f64 >= minutes * 60_000.0
+                }
                 _ => false,
             },
             &ctx,
         );
         for r in rules {
-            if let Trigger::EveryMinutes { minutes } = r.trigger {
-                let since = self.st.rule_last_fired.get(&r.id).copied().filter(|x| *x >= block_start).unwrap_or(block_start);
-                if (diff_ms(now, since) as f64) < minutes * 60_000.0 {
-                    continue;
-                }
-            }
             self.apply_rule(r, t, Some(inst));
         }
     }

@@ -31,6 +31,9 @@ pub struct GfxTiming {
     /// Visible duration (open-ended when absent).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub duration: Option<Dur>,
+    /// Show only during the last part of the item (e.g. "next up" plates).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub last: Option<Dur>,
     /// Repeat the (after_start, duration) window with this period.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub every: Option<Dur>,

@@ -110,3 +110,16 @@ fn block_bookends_and_start_rule() {
     let r = fx.plan(at(6, 0), at(6, 10));
     assert_eq!(&ids(&r)[..4], ["intro", "id", "a", "outro"]);
 }
+
+#[test]
+fn not_due_interval_rule_does_not_block_its_group() {
+    let mut fx = with_jingles();
+    let mut every = jingle_rule("every", Trigger::EveryMinutes { minutes: 60.0 }, &["j2"]);
+    every.group = Some("g".into());
+    every.priority = 10;
+    let mut nth = jingle_rule("nth", Trigger::EveryNItems { n: 1 }, &["j1"]);
+    nth.group = Some("g".into());
+    fx.rules.rules.extend([every, nth]);
+    let r = fx.plan(at(10, 0), at(10, 30));
+    assert!(ids(&r).contains(&"j1"), "{:?}", ids(&r));
+}

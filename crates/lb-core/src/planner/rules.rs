@@ -2,7 +2,7 @@
 
 use crate::WallTime;
 use crate::media::{MediaItem, MediaKind};
-use crate::rules::{InsertAction, InsertionRule, SelectMode, Trigger};
+use crate::rules::{InsertAction, InsertionRule, SelectMode};
 use crate::rundown::{Origin, WarningKind};
 
 use super::context::{Inst, MatchCtxOwned, Planner};
@@ -13,10 +13,10 @@ where
 {
     /// Enabled rules with a matching trigger and conditions, ordered by
     /// priority; only the highest of each group survives.
-    pub(super) fn firing_rules(&self, trig: impl Fn(&Trigger) -> bool, ctx: &MatchCtxOwned) -> Vec<&'a InsertionRule> {
+    pub(super) fn firing_rules(&self, trig: impl Fn(&InsertionRule) -> bool, ctx: &MatchCtxOwned) -> Vec<&'a InsertionRule> {
         let mctx = ctx.as_ctx();
         let mut v: Vec<&'a InsertionRule> =
-            self.inp.rules.rules.iter().filter(|r| r.enabled && trig(&r.trigger) && r.conditions.matches(&mctx)).collect();
+            self.inp.rules.rules.iter().filter(|r| r.enabled && trig(r) && r.conditions.matches(&mctx)).collect();
         v.sort_by_key(|r| std::cmp::Reverse(r.priority));
         let mut seen_groups: Vec<&str> = Vec::new();
         v.retain(|r| match &r.group {

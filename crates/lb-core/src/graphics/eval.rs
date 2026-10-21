@@ -60,9 +60,17 @@ fn rule_window(r: &GraphicRule, ctx: &GfxContext) -> Option<(Ms, Option<Ms>)> {
         }
         return None;
     }
-    let item_bound = tm.after_start.is_some() || tm.before_end.is_some() || tm.every.is_some() || tm.duration.is_some();
+    let item_bound =
+        tm.after_start.is_some() || tm.before_end.is_some() || tm.every.is_some() || tm.duration.is_some() || tm.last.is_some();
     if item_bound && ctx.item.is_none() {
         return None;
+    }
+    if let Some(last) = tm.last.map(|d| d.ms()) {
+        let hide_at = tm.before_end.map(|d| d.ms()).unwrap_or(0);
+        if ctx.remaining_ms > last || ctx.remaining_ms <= hide_at {
+            return None;
+        }
+        return Some((last - ctx.remaining_ms, Some(ctx.remaining_ms - hide_at)));
     }
     let start = tm.after_start.map(|d| d.ms()).unwrap_or(0);
     let mut since = ctx.elapsed_ms - start;

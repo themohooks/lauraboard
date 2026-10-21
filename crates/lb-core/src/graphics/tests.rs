@@ -132,3 +132,21 @@ fn templates() {
     assert_eq!(render_template("Now: {title} {unknown}!", &v), "Now: News !");
     assert_eq!(render_template("{oops", &v), "{oops");
 }
+
+#[test]
+fn last_window_for_next_up_plate() {
+    let mut r = rule("next", "n", 0);
+    r.timing.last = Some(Dur::secs(30));
+    r.timing.before_end = Some(Dur::secs(2));
+    let cfg = GraphicsConfig { layers: vec![], elements: vec![el("n", 0)], rules: vec![r] };
+    let manual = HashMap::new();
+    let it = item(MediaKind::Program, "x");
+    let at =
+        |rem| evaluate(&cfg, &GfxContext { now: now(), item: Some(&it), elapsed_ms: 0, remaining_ms: rem, profile: None, manual: &manual });
+    assert!(at(40_000).is_empty());
+    let a = at(20_000);
+    assert_eq!(a.len(), 1);
+    assert_eq!(a[0].shown_ms, 10_000);
+    assert_eq!(a[0].hide_in_ms, Some(18_000));
+    assert!(at(1_000).is_empty());
+}

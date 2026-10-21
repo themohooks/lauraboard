@@ -15,16 +15,19 @@ where
     /// (the remainder, if any, is left for the slate).
     pub(super) fn fill_gap(&mut self, mut t: WallTime, end: WallTime, prev: Option<&Inst<'a>>) -> WallTime {
         let min_fill = self.inp.rules.filler.min_fill.ms();
-        let mut used: Vec<String> = Vec::new();
+        let mut last: Option<String> = None;
         loop {
             let rem = diff_ms(end, t);
             if rem < min_fill {
                 break;
             }
             let mut cands = self.gap_candidates(t, rem);
-            cands.retain(|m| !used.contains(&m.id));
+            // avoid the same item twice in a row when there is a choice
+            if cands.len() > 1 {
+                cands.retain(|m| Some(&m.id) != last.as_ref());
+            }
             let Some(m) = self.best_fit(&cands) else { break };
-            used.push(m.id.clone());
+            last = Some(m.id.clone());
             let mut it = self.item_for(m, Origin::Filler, t);
             it.optional = true;
             it.priority = -100;

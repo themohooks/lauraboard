@@ -193,8 +193,7 @@ mod tests {
 
     #[test]
     fn nvenc_and_no_outputs() {
-        let mut e = EncoderConfig::default();
-        e.video_codec = "h264_nvenc".into();
+        let e = EncoderConfig { video_codec: "h264_nvenc".into(), ..Default::default() };
         let (v, a) = (VideoFormat::default(), AudioFormat::default());
         let mut j = job(&e, &v, &a, &[]);
         j.gfx = None;
