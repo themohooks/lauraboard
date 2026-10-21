@@ -9,6 +9,7 @@ export { Theme, ThemeMode } from "theme/tokens.slint";
 
 export component AppWindow inherits Window {
     in-out property <string> section: "gallery";
+    in-out property <string> gallery-page;
 
     title: "Laurabrod — управление эфиром";
     preferred-width: 1400px;
@@ -19,5 +20,7 @@ export component AppWindow inherits Window {
     default-font-family: Theme.font;
     default-font-size: Theme.body-medium.size;
 
-    if section == "gallery": Gallery { }
+    if section == "gallery": Gallery {
+        page: root.gallery-page;
+    }
 }

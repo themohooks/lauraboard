@@ -19,6 +19,7 @@ impl Platform for Headless {
 }
 
 /// Render `section` in light and dark themes to `<out>/<section>-{light,dark}.png`.
+/// `gallery:<page>` renders one gallery block.
 pub fn snapshot(out: &Path, section: &str, width: u32, height: u32, scale: f32) -> Result<(), String> {
     let window = MinimalSoftwareWindow::new(RepaintBufferType::NewBuffer);
     slint::platform::set_platform(Box::new(Headless(window.clone()))).map_err(|e| e.to_string())?;
@@ -26,7 +27,9 @@ pub fn snapshot(out: &Path, section: &str, width: u32, height: u32, scale: f32) 
     let ui = AppWindow::new().map_err(|e| e.to_string())?;
     window.dispatch_event(WindowEvent::ScaleFactorChanged { scale_factor: scale });
     window.set_size(slint::PhysicalSize::new(width, height));
-    ui.set_section(section.into());
+    let (name, page) = section.split_once(':').unwrap_or((section, ""));
+    ui.set_section(name.into());
+    ui.set_gallery_page(page.into());
     // No time passes between frames here, so animated properties would keep stale values.
     ui.global::<Theme>().set_animations(false);
     ui.show().map_err(|e| e.to_string())?;
@@ -39,7 +42,7 @@ pub fn snapshot(out: &Path, section: &str, width: u32, height: u32, scale: f32) 
         });
         let raw: Vec<u8> = buf.iter().flat_map(|p| [p.r, p.g, p.b]).collect();
         let img = image::RgbImage::from_raw(width, height, raw).ok_or("bad buffer")?;
-        let path = out.join(format!("{section}-{name}.png"));
+        let path = out.join(format!("{}-{name}.png", section.replace(':', "-")));
         img.save(&path).map_err(|e| format!("{}: {e}", path.display()))?;
         println!("{}", path.display());
     }

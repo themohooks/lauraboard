@@ -1,0 +1,52 @@
+// M3 cards. Filled (surface-container-highest) is the default: areas are
+// separated by tone, not by borders. Outlined for secondary content,
+// elevated only for content that floats above the page.
+
+import { Theme } from "../theme/tokens.slint";
+import { Label } from "label.slint";
+
+export enum CardStyle { filled, outlined, elevated, low }
+
+export component Card inherits Rectangle {
+    in property <CardStyle> card-style: CardStyle.filled;
+    in property <length> inset: Theme.sp4;
+    in property <length> gap: Theme.sp3;
+
+    border-radius: Theme.radius-m;
+    background: card-style == CardStyle.filled ? Theme.color.surface-container-highest
+        : card-style == CardStyle.low ? Theme.color.surface-container-low
+        : card-style == CardStyle.elevated ? Theme.color.surface-container-low
+        : Theme.color.surface;
+    border-width: card-style == CardStyle.outlined ? 1px : 0;
+    border-color: Theme.color.outline-variant;
+    drop-shadow-blur: card-style == CardStyle.elevated ? 3px : 0;
+    drop-shadow-offset-y: card-style == CardStyle.elevated ? 1px : 0;
+    drop-shadow-color: Theme.color.shadow.with-alpha(Theme.dark ? 0.6 : 0.2);
+
+    VerticalLayout {
+        padding: root.inset;
+        spacing: root.gap;
+        @children
+    }
+}
+
+// Card header: title + optional subtitle, with room for trailing actions.
+export component CardHeader inherits HorizontalLayout {
+    in property <string> title;
+    in property <string> subtitle;
+    spacing: Theme.sp2;
+    VerticalLayout {
+        horizontal-stretch: 1;
+        alignment: center;
+        Label {
+            text: root.title;
+            type-style: Theme.title-small;
+        }
+        if root.subtitle != "": Label {
+            text: root.subtitle;
+            type-style: Theme.body-small;
+            color: Theme.color.on-surface-variant;
+        }
+    }
+    @children
+}

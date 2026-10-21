@@ -1,0 +1,155 @@
+// Small status visuals: StatusChip (icon + text + tone, never color
+// alone), Badge, KindTag (content type: color dot + icon + name).
+
+import { Theme } from "../theme/tokens.slint";
+import { Icons } from "../theme/icons.slint";
+import { Icon } from "icon.slint";
+import { Label } from "label.slint";
+
+export enum StatusTone { live, preview, success, warning, error, idle, info }
+
+export global Tone {
+    public pure function container(t: StatusTone) -> color {
+        return t == StatusTone.live ? Theme.status.live-container
+            : t == StatusTone.preview ? Theme.status.preview-container
+            : t == StatusTone.success ? Theme.status.success-container
+            : t == StatusTone.warning ? Theme.status.warning-container
+            : t == StatusTone.error ? Theme.color.error-container
+            : t == StatusTone.info ? Theme.color.primary-container
+            : Theme.status.idle-container;
+    }
+    public pure function on-container(t: StatusTone) -> color {
+        return t == StatusTone.live ? Theme.status.on-live-container
+            : t == StatusTone.preview ? Theme.status.on-preview-container
+            : t == StatusTone.success ? Theme.status.on-success-container
+            : t == StatusTone.warning ? Theme.status.on-warning-container
+            : t == StatusTone.error ? Theme.color.on-error-container
+            : t == StatusTone.info ? Theme.color.on-primary-container
+            : Theme.status.on-idle-container;
+    }
+    public pure function strong(t: StatusTone) -> color {
+        return t == StatusTone.live ? Theme.status.live
+            : t == StatusTone.preview ? Theme.status.preview
+            : t == StatusTone.success ? Theme.status.success
+            : t == StatusTone.warning ? Theme.status.warning
+            : t == StatusTone.error ? Theme.color.error
+            : t == StatusTone.info ? Theme.color.primary
+            : Theme.status.idle;
+    }
+    public pure function icon(t: StatusTone) -> image {
+        return t == StatusTone.live ? Icons.sensors
+            : t == StatusTone.preview ? Icons.visibility
+            : t == StatusTone.success ? Icons.check-circle
+            : t == StatusTone.warning ? Icons.warning
+            : t == StatusTone.error ? Icons.error
+            : t == StatusTone.info ? Icons.info
+            : Icons.stop;
+    }
+}
+
+export component StatusChip inherits Rectangle {
+    in property <string> text;
+    in property <StatusTone> tone: StatusTone.idle;
+    in property <image> icon: Tone.icon(tone);
+    in property <bool> strong: false;
+
+    property <color> fg: strong ? (tone == StatusTone.live ? Theme.status.on-live : Theme.color.surface) : Tone.on-container(tone);
+
+    height: Theme.compact ? 24px : 28px;
+    border-radius: Theme.radius-s;
+    background: strong ? Tone.strong(tone) : Tone.container(tone);
+    accessible-role: AccessibleRole.text;
+    accessible-label: text;
+
+    HorizontalLayout {
+        padding-left: Theme.sp2;
+        padding-right: Theme.sp3;
+        spacing: 6px;
+        VerticalLayout {
+            alignment: center;
+            Icon {
+                source: root.icon;
+                size: 16px;
+                tint: root.fg;
+            }
+        }
+        Label {
+            text: root.text;
+            type-style: Theme.label-medium;
+            color: root.fg;
+            min-width: self.preferred-width;
+        }
+    }
+}
+
+export component Badge inherits Rectangle {
+    in property <string> text;
+    in property <color> fill: Theme.color.error;
+    in property <color> ink: Theme.color.on-error;
+    height: text == "" ? 6px : 16px;
+    width: text == "" ? 6px : max(16px, badge-text.preferred-width + 8px);
+    border-radius: self.height / 2;
+    background: fill;
+    badge-text := Label {
+            visible: root.text != "";
+            text: root.text;
+            type-style: Theme.label-small;
+            color: root.ink;
+            horizontal-alignment: center;
+    }
+}
+
+// Content kind marker. `kind` is the media kind id from the API
+// (program, jingle, ad, promo, filler, image, stream; "gap" = empty slot).
+export global Kinds {
+    public pure function color-of(kind: string) -> color {
+        return kind == "program" ? Theme.kind.program
+            : kind == "jingle" ? Theme.kind.jingle
+            : kind == "ad" ? Theme.kind.ad
+            : kind == "promo" ? Theme.kind.promo
+            : kind == "image" ? Theme.kind.image
+            : kind == "stream" ? Theme.kind.stream
+            : kind == "gap" ? Theme.color.error
+            : Theme.kind.filler;
+    }
+    public pure function icon-of(kind: string) -> image {
+        return kind == "program" ? Icons.movie
+            : kind == "jingle" ? Icons.animation
+            : kind == "ad" ? Icons.campaign
+            : kind == "promo" ? Icons.event
+            : kind == "image" ? Icons.image
+            : kind == "stream" ? Icons.stream
+            : kind == "gap" ? Icons.block
+            : Icons.music-note;
+    }
+    public pure function name-of(kind: string) -> string {
+        return kind == "program" ? "Передача"
+            : kind == "jingle" ? "Заставка"
+            : kind == "ad" ? "Реклама"
+            : kind == "promo" ? "Анонс"
+            : kind == "image" ? "Изображение"
+            : kind == "stream" ? "Поток"
+            : kind == "gap" ? "Пустота"
+            : "Заполнение";
+    }
+}
+
+export component KindTag inherits HorizontalLayout {
+    in property <string> kind;
+    in property <bool> show-name: true;
+    spacing: 6px;
+    alignment: start;
+    VerticalLayout {
+        alignment: center;
+        Icon {
+            source: Kinds.icon-of(root.kind);
+            size: 16px;
+            tint: Kinds.color-of(root.kind);
+        }
+    }
+    if root.show-name: Label {
+        text: Kinds.name-of(root.kind);
+        type-style: Theme.label-medium;
+        color: Theme.color.on-surface-variant;
+    }
+}
