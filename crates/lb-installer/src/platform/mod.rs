@@ -24,6 +24,7 @@ pub struct PathChange {
 
 /// Data for the "Apps & features" entry (Windows).
 #[derive(Debug)]
+#[cfg_attr(not(windows), allow(dead_code))]
 pub struct Registration<'a> {
     pub version: &'a str,
     pub dir: &'a std::path::Path,

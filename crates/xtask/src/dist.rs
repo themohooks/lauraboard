@@ -4,10 +4,12 @@
 //!    (that copy is shipped as the uninstaller);
 //! 2. stage the files and pack them with `manifest.json` into a zip;
 //! 3. rebuild `laurabrod-setup` with the zip embedded (`LB_PAYLOAD`);
-//! 4. `target/dist/laurabrod-<version>-<os>-<arch>-setup[.exe]`.
+//! 4. `target/dist/laurabrod-<version>-<os>-<arch>-setup[.exe]`
+//!    (`$CARGO_TARGET_DIR/dist` when that is set).
 //!
-//! Builds for the host OS: run it on Windows for the Windows installer and
-//! on Linux for the Linux one.
+//! Builds for the host OS. `cargo dist --linux` builds the Linux installer
+//! from any OS inside a Docker container (`rust:1-bookworm` with the GUI
+//! libraries) → `target/linux/dist/`.
 
 use std::io::Write;
 use std::path::{Path, PathBuf};
@@ -17,12 +19,44 @@ use zip::write::SimpleFileOptions;
 
 const EXE: &str = std::env::consts::EXE_SUFFIX;
 
-pub fn run() -> Result<(), String> {
+/// Image for `--linux`; the cargo registry is cached in a named volume.
+const LINUX_IMAGE: &str = "rust:1-bookworm";
+const LINUX_DEPS: &str = "libfontconfig-dev libxkbcommon-dev libxkbcommon-x11-dev libwayland-dev libgl1-mesa-dev pkg-config";
+
+pub fn run(args: &[String]) -> Result<(), String> {
+    match args.first().map(String::as_str) {
+        None => build(),
+        Some("--linux") => linux_in_docker(),
+        Some(other) => Err(format!("неизвестный параметр {other} (есть --linux)")),
+    }
+}
+
+fn linux_in_docker() -> Result<(), String> {
+    let root = crate::root();
+    println!("сборка Linux-установщика в Docker ({LINUX_IMAGE})");
+    let script = format!("apt-get update -qq && apt-get install -y -qq {LINUX_DEPS} >/dev/null && cargo dist");
+    let status = Command::new("docker")
+        .args(["run", "--rm", "-v"])
+        .arg(format!("{}:/src", root.display()))
+        .args(["-v", "laurabrod-cargo-registry:/usr/local/cargo/registry", "-w", "/src", "-e", "CARGO_TARGET_DIR=/src/target/linux"])
+        .args([LINUX_IMAGE, "bash", "-c", &script])
+        .env("MSYS_NO_PATHCONV", "1")
+        .status()
+        .map_err(|e| format!("docker: {e} (установлен ли Docker?)"))?;
+    if !status.success() {
+        return Err("сборка в Docker завершилась с ошибкой".into());
+    }
+    println!("    {}", root.join("target").join("linux").join("dist").display());
+    Ok(())
+}
+
+fn build() -> Result<(), String> {
     let root = crate::root();
     let version = app_version(&root)?;
     let (os, arch) = (std::env::consts::OS, std::env::consts::ARCH);
-    let release = root.join("target").join("release");
-    let dist = root.join("target").join("dist");
+    let target = std::env::var_os("CARGO_TARGET_DIR").map(PathBuf::from).unwrap_or_else(|| root.join("target"));
+    let release = target.join("release");
+    let dist = target.join("dist");
     let stage = dist.join("stage");
 
     step(1, &format!("сборка Laurabrod {version} ({os}/{arch})"));

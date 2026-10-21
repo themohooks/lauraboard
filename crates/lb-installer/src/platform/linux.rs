@@ -55,7 +55,10 @@ pub fn menu_shortcut(binary: &Path, icon: &Path) -> Result<Vec<PathBuf>, String>
 
 /// Launcher on the desktop (marked trusted where GNOME supports it).
 pub fn desktop_shortcut(binary: &Path, icon: &Path) -> Result<Vec<PathBuf>, String> {
-    let dir = dirs::desktop_dir().ok_or("нет рабочего стола")?;
+    // without xdg-user-dirs configured, fall back to ~/Desktop if it exists
+    let dir = dirs::desktop_dir()
+        .or_else(|| dirs::home_dir().map(|h| h.join("Desktop")).filter(|d| d.is_dir()))
+        .ok_or("нет рабочего стола")?;
     let entry = dir.join("laurabrod.desktop");
     write(&entry, &desktop_entry(binary, &icon.display().to_string()), true)?;
     quiet("gio", &["set", &entry.display().to_string(), "metadata::trusted", "true"]);
