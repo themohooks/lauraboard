@@ -1,0 +1,59 @@
+// "New playlist" dialog with inline id validation.
+
+import { Theme } from "../../theme/tokens.slint";
+import { Icons } from "../../theme/icons.slint";
+import { Dialog, DialogActions } from "../../components/dialog.slint";
+import { TextField } from "../../components/text-field.slint";
+import { Button, ButtonVariant } from "../../components/button.slint";
+import { Pl } from "../../state/playlists-state.slint";
+
+export component CreatePlaylistDialog inherits Dialog {
+    open: Pl.create-open;
+    title: "Новый плейлист";
+    text: "Идентификатор используется в сетке вещания и не меняется после создания.";
+    has-icon: true;
+    icon: Icons.playlist-add;
+    dismissed => {
+        Pl.create-open = false;
+    }
+
+    TextField {
+        label: "Идентификатор";
+        placeholder: "morning-news";
+        mono: true;
+        text <=> Pl.new-id;
+        error: Pl.new-id-error;
+        supporting: "Латиница, цифры, «-» и «_»";
+        container-color: Theme.color.surface-container-high;
+        edited(t) => {
+            Pl.validate-new-id(t);
+        }
+    }
+    TextField {
+        label: "Название";
+        placeholder: "Утренние новости";
+        text <=> Pl.new-name;
+        container-color: Theme.color.surface-container-high;
+        accepted => {
+            if Pl.new-id != "" && Pl.new-id-error == "" {
+                Pl.create();
+            }
+        }
+    }
+    DialogActions {
+        Button {
+            text: "Отмена";
+            variant: ButtonVariant.text;
+            clicked => {
+                Pl.create-open = false;
+            }
+        }
+        Button {
+            text: "Создать";
+            enabled: Pl.new-id != "" && Pl.new-id-error == "";
+            clicked => {
+                Pl.create();
+            }
+        }
+    }
+}

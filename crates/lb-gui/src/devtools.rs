@@ -76,6 +76,8 @@ pub fn snapshot(out: &Path, section: &str, width: u32, height: u32, scale: f32, 
             let prefs = crate::prefs::UiPrefs { section: name.to_string(), persist: false, ..Default::default() };
             crate::bridge::start(&ui, &opts, prefs);
             pump_for(&jobs, Duration::from_secs(6));
+            prepare_live(name);
+            pump_for(&jobs, Duration::from_secs(2));
             ui.global::<Theme>().set_animations(false);
         }
         None => {
@@ -206,4 +208,15 @@ fn demo_air(ui: &AppWindow) {
         LogRow { at: "09:12:40".into(), level: "warning".into(), text: "[main] 'Новости' decoder restarted".into() },
         LogRow { at: "08:55:02".into(), level: "critical".into(), text: "[main] encoder stopped: rtmp connection reset".into() },
     ]));
+}
+
+/// Put a screen into a representative state for review (live mode).
+fn prepare_live(section: &str) {
+    if section == "playlists" {
+        crate::bridge::with(|c| {
+            if let Some(id) = c.model.playlists.first().map(|p| p.id.clone()) {
+                crate::bridge::playlists::open_id(c, id);
+            }
+        });
+    }
 }

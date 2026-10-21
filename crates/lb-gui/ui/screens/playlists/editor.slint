@@ -1,0 +1,240 @@
+// Playlist editor: name and options, save / revert / undo, filters,
+// summary, and the entry list (drag & drop when not filtered).
+
+import { ListView } from "std-widgets.slint";
+import { Theme } from "../../theme/tokens.slint";
+import { Icons } from "../../theme/icons.slint";
+import { Label } from "../../components/label.slint";
+import { Icon } from "../../components/icon.slint";
+import { TextField } from "../../components/text-field.slint";
+import { SearchField } from "../../components/search-field.slint";
+import { Switch } from "../../components/switch.slint";
+import { Button, ButtonVariant } from "../../components/button.slint";
+import { IconButton } from "../../components/icon-button.slint";
+import { FilterChip } from "../../components/chips.slint";
+import { Select } from "../../components/select.slint";
+import { ListHeader } from "../../components/list-row.slint";
+import { Menu } from "../../components/menu.slint";
+import { EmptyState } from "../../components/feedback.slint";
+import { StatusChip, StatusTone, Kinds } from "../../components/indicators.slint";
+import { Pl } from "../../state/playlists-state.slint";
+import { EntryRowView } from "entry-row.slint";
+
+component KindChip inherits FilterChip {
+    in property <int> index;
+    in property <string> kind;
+    text: Kinds.name-of(kind);
+    dot: Kinds.color-of(kind);
+    selected: Pl.kind-filter == index;
+    toggled(on) => {
+        Pl.kind-filter = on ? root.index : -1;
+        Pl.filter-entries();
+    }
+}
+
+export component PlaylistEditor inherits VerticalLayout {
+    spacing: Theme.sp3;
+
+    if !Pl.has-draft: EmptyState {
+        vertical-stretch: 1;
+        icon: Icons.playlist-play;
+        title: "Выберите плейлист";
+        text: "Слева — список плейлистов канала. Изменения сохраняются кнопкой «Сохранить» (Ctrl+S).";
+    }
+
+    if Pl.has-draft: HorizontalLayout {
+        spacing: Theme.sp3;
+        TextField {
+            horizontal-stretch: 1;
+            label: "Название плейлиста";
+            text <=> Pl.name;
+            edited => {
+                Pl.edited();
+            }
+        }
+        VerticalLayout {
+            alignment: center;
+            IconButton {
+                icon: Icons.undo;
+                enabled: Pl.can-undo;
+                tooltip: "Отменить (Ctrl+Z)";
+                clicked => {
+                    Pl.undo();
+                }
+            }
+        }
+        VerticalLayout {
+            alignment: center;
+            IconButton {
+                icon: Icons.redo;
+                enabled: Pl.can-redo;
+                tooltip: "Повторить (Ctrl+Y)";
+                clicked => {
+                    Pl.redo();
+                }
+            }
+        }
+        VerticalLayout {
+            alignment: center;
+            Button {
+                text: "Сбросить";
+                variant: ButtonVariant.text;
+                enabled: Pl.dirty;
+                tooltip: "Вернуть сохранённую версию";
+                clicked => {
+                    Pl.revert();
+                }
+            }
+        }
+        VerticalLayout {
+            alignment: center;
+            Button {
+                text: "Сохранить";
+                icon: Icons.save;
+                has-icon: true;
+                enabled: Pl.dirty;
+                tooltip: "Ctrl+S";
+                clicked => {
+                    Pl.save();
+                }
+            }
+        }
+        VerticalLayout {
+            alignment: center;
+            more := IconButton {
+                icon: Icons.more-vert;
+                tooltip: "Ещё";
+                clicked => {
+                    menu.open-at(more.width - menu.menu-width, more.height);
+                }
+                menu := Menu {
+                    entries: [
+                        { id: "export", text: "Экспорт в M3U…", icon: Icons.download, has-icon: true, enabled: true },
+                        { id: "clear", text: "Очистить плейлист", icon: Icons.delete, has-icon: true, enabled: Pl.entries.length > 0, divider: true },
+                        { id: "delete", text: "Удалить плейлист", icon: Icons.delete, has-icon: true, enabled: true, danger: true },
+                    ];
+                    activated(id) => {
+                        Pl.menu-action(id);
+                    }
+                }
+            }
+        }
+    }
+
+    if Pl.has-draft: HorizontalLayout {
+        spacing: Theme.sp2;
+        SearchField {
+            width: 220px;
+            placeholder: "Поиск в плейлисте";
+            text <=> Pl.entry-filter;
+            edited => {
+                Pl.filter-entries();
+            }
+        }
+        Select {
+            width: 190px;
+            options: ["Все типы", "Передачи", "Заставки", "Реклама", "Анонсы", "Заполнение", "Изображения", "Потоки"];
+            current-index: Pl.kind-filter + 1;
+            selected(i, _) => {
+                Pl.kind-filter = i - 1;
+                Pl.filter-entries();
+            }
+        }
+        Label {
+            horizontal-stretch: 1;
+            text: Pl.filtered ? "Фильтр включён — перетаскивание недоступно" : "";
+            type-style: Theme.body-small;
+            color: Theme.color.on-surface-variant;
+            vertical-alignment: center;
+        }
+        Button {
+            text: "Добавить";
+            icon: Icons.playlist-add;
+            has-icon: true;
+            variant: ButtonVariant.tonal;
+            tooltip: "Добавить ролики из медиатеки";
+            clicked => {
+                Pl.sheet = Pl.sheet == "add" ? "" : "add";
+            }
+        }
+    }
+
+    if Pl.has-draft: HorizontalLayout {
+        spacing: Theme.sp4;
+        VerticalLayout {
+            alignment: center;
+            Switch {
+                text: "По кругу";
+                checked <=> Pl.looped;
+                toggled => {
+                    Pl.edited();
+                }
+            }
+        }
+        VerticalLayout {
+            alignment: center;
+            Switch {
+                text: "Случайный порядок";
+                checked <=> Pl.shuffle;
+                toggled => {
+                    Pl.edited();
+                }
+            }
+        }
+        VerticalLayout {
+            alignment: center;
+            horizontal-stretch: 1;
+            Label {
+                text: Pl.summary;
+                horizontal-alignment: right;
+                color: Theme.color.on-surface-variant;
+            }
+        }
+        if Pl.missing-count > 0: VerticalLayout {
+            alignment: center;
+            StatusChip {
+            text: "Недоступно: " + Pl.missing-count;
+            tone: StatusTone.error;
+            }
+        }
+        if Pl.dirty: VerticalLayout {
+            alignment: center;
+            StatusChip {
+                text: "Не сохранено";
+                tone: StatusTone.warning;
+                icon: Icons.edit;
+            }
+        }
+    }
+
+    if Pl.has-draft: Rectangle {
+        vertical-stretch: 1;
+        border-radius: Theme.radius-l;
+        background: Theme.color.surface-container-low;
+        clip: true;
+        VerticalLayout {
+            ListHeader {
+                Rectangle { width: 20px; }
+                Label { width: 32px; text: "№"; type-style: Theme.label-small; horizontal-alignment: right; color: Theme.color.on-surface-variant; }
+                Rectangle { width: 64px; }
+                Label { horizontal-stretch: 1; text: "НАЗВАНИЕ"; type-style: Theme.label-small; color: Theme.color.on-surface-variant; }
+                Label { width: 76px; text: "СТАРТ"; type-style: Theme.label-small; horizontal-alignment: right; color: Theme.color.on-surface-variant; }
+                Label { width: 72px; text: "ДЛИТ."; type-style: Theme.label-small; horizontal-alignment: right; color: Theme.color.on-surface-variant; }
+                Rectangle { width: 76px; }
+            }
+            if Pl.entries.length == 0: EmptyState {
+                vertical-stretch: 1;
+                icon: Icons.queue-music;
+                title: Pl.filtered ? "Ничего не найдено" : "Плейлист пуст";
+                text: Pl.filtered ? "Измените условия поиска." : "Нажмите «Добавить», чтобы выбрать ролики из медиатеки.";
+            }
+            if Pl.entries.length > 0: ListView {
+                vertical-stretch: 1;
+                for e in Pl.entries: EntryRowView {
+                    entry: e;
+                    draggable: !Pl.filtered;
+                }
+            }
+        }
+    }
+}

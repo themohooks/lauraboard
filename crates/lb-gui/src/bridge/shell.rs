@@ -63,8 +63,11 @@ pub fn connect(ui: &AppWindow) {
             c.prefs.save();
         })
     });
-    g.on_shortcut(|_name| {
-        // Screens register their handlers as they are migrated.
+    g.on_shortcut(|name| {
+        with(move |c| match c.section().as_str() {
+            "playlists" => super::playlists::shortcut(c, name.as_str()),
+            _ => {}
+        })
     });
 
     // Clock + DPI watch: once a second.
@@ -84,6 +87,10 @@ pub fn navigate(c: &mut Ctx, id: &str) {
     ui.global::<App>().set_section(id.into());
     c.prefs.section = id.to_string();
     c.prefs.save();
+    // documents may have changed elsewhere (CLI, other operator)
+    if matches!(id, "playlists" | "library" | "schedule" | "jingles" | "ads" | "graphics") {
+        c.load_all();
+    }
 }
 
 /// Push preferences into the UI (startup and after settings change).

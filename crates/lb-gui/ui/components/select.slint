@@ -32,7 +32,8 @@ export component Select inherits VerticalLayout {
     min-width: 120px;
 
     field := Rectangle {
-        height: Theme.control-height + (Theme.compact ? 0 : 8px);
+        // a label needs room on the outline; without it match buttons / search
+        height: Theme.control-height + (Theme.compact || root.label == "" ? 0 : 8px);
         border-radius: Theme.radius-xs;
         border-width: focus.has-focus ? 2px : 1px;
         border-color: !root.enabled ? Theme.color.on-surface.with-alpha(Theme.disabled-container)

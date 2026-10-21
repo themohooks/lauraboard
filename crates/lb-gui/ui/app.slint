@@ -13,10 +13,13 @@ import { Pending } from "shell/page.slint";
 import { Gallery } from "screens/gallery/gallery.slint";
 import { AirScreen } from "screens/air/air.slint";
 import { HomeScreen } from "screens/home/home.slint";
+import { PlaylistsScreen } from "screens/playlists/playlists.slint";
+import { CreatePlaylistDialog } from "screens/playlists/create-dialog.slint";
 
 export { Theme, ThemeMode } from "theme/tokens.slint";
 export { App, StatusInfo } from "state/app-state.slint";
 export { Air, NowInfo, NextInfo, QueueRow, MediaPick, GfxRow, LogRow } from "state/air-state.slint";
+export { Pl, PlaylistItem, EntryRow, EntryProps } from "state/playlists-state.slint";
 
 export component AppWindow inherits Window {
     // kept for the snapshot tool; mirrors App.section
@@ -118,7 +121,7 @@ export component AppWindow inherits Window {
                     }
                     if App.section == "home": HomeScreen { }
                     if App.section == "air": AirScreen { }
-                    if App.section == "playlists": Pending { title: "Плейлисты"; }
+                    if App.section == "playlists": PlaylistsScreen { }
                     if App.section == "library": Pending { title: "Медиатека"; }
                     if App.section == "schedule": Pending { title: "Сетка вещания"; }
                     if App.section == "jingles": Pending { title: "Заставки и переходы"; }
@@ -146,6 +149,8 @@ export component AppWindow inherits Window {
             App.toast-action-clicked();
         }
     }
+
+    CreatePlaylistDialog { }
 
     ConfirmDialog {
         open: App.confirm-open;

@@ -7,9 +7,10 @@
 //! already borrowed (a callback fired while Rust was updating the UI).
 //!
 //! One module per area: [`shell`] (window, navigation, status, overlays),
-//! [`air`] (home + on-air), [`thumbs`] (media thumbnails).
+//! [`air`] (home + on-air), [`playlists`], [`thumbs`] (media thumbnails).
 
 pub mod air;
+pub mod playlists;
 pub mod shell;
 pub mod thumbs;
 
@@ -48,6 +49,7 @@ pub struct Ctx {
     pub thumbs: thumbs::Thumbs,
     /// (on-air uid, next uid) the queue was last marked with.
     pub air_marks: (Option<String>, Option<String>),
+    pub pl: playlists::PlaylistsState,
 }
 
 thread_local! {
@@ -101,14 +103,17 @@ pub fn start(ui: &AppWindow, opts: &GuiOptions, prefs: UiPrefs) {
         system_scale: ui.window().scale_factor(),
         thumbs: thumbs::Thumbs::default(),
         air_marks: (None, None),
+        pl: Default::default(),
     };
     ui.global::<App>().set_api_url(api.base.clone().into());
     CTX.with(|c| *c.borrow_mut() = Some(ctx));
     shell::connect(ui);
     air::connect(ui);
+    playlists::connect(ui);
     with(|c| {
         shell::apply_prefs(c);
         air::apply_prefs(c);
+        playlists::apply_prefs(c);
         c.load_channels();
     });
 }
@@ -125,6 +130,11 @@ pub fn stop() {
 impl Ctx {
     pub fn window(&self) -> Option<AppWindow> {
         self.ui.upgrade()
+    }
+
+    /// Id of the open section.
+    pub fn section(&self) -> String {
+        self.window().map(|ui| ui.global::<App>().get_section().to_string()).unwrap_or_default()
     }
 
     /// Apply queued background results.
@@ -164,8 +174,14 @@ impl Ctx {
             Msg::Library(l) => {
                 self.model.library = l;
                 air::media_results(self);
+                playlists::lists_changed(self);
+                playlists::rows_changed(self);
+                playlists::add_results(self);
             }
-            Msg::Playlists(p) => self.model.playlists = p,
+            Msg::Playlists(p) => {
+                self.model.playlists = p;
+                playlists::reloaded(self);
+            }
             Msg::Schedules(s) => {
                 self.model.schedules = s;
                 air::config_changed(self);
@@ -183,6 +199,9 @@ impl Ctx {
             Msg::Thumb(id, f) => {
                 thumbs::arrived(self, id, f);
                 air::status_changed(self);
+                if self.section() == "playlists" {
+                    playlists::rows_changed(self);
+                }
             }
             Msg::Event(v) => {
                 self.model.push_log(LogLine::from_event(&v));
@@ -307,6 +326,11 @@ impl Ctx {
             a(self);
         }
     }
+}
+
+/// Slint list model from a vector.
+pub fn vec_model<T: Clone + 'static>(v: Vec<T>) -> slint::ModelRc<T> {
+    slint::ModelRc::new(slint::VecModel::from(v))
 }
 
 /// JSON command helper.
