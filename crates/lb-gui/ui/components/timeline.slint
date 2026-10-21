@@ -1,0 +1,292 @@
+// Broadcast timeline: time ruler with adaptive ticks, colored segments by
+// content kind, gaps (hatched) and conflicts (error outline + icon), the
+// current-time line, planned lane + thin "actual" (as-run) lane.
+// Ctrl+wheel zooms, wheel pans, drag moves a movable segment (snapped).
+// All times are minutes relative to the day start of the view.
+
+import { Theme } from "../theme/tokens.slint";
+import { Icons } from "../theme/icons.slint";
+import { Icon } from "icon.slint";
+import { Label } from "label.slint";
+import { Kinds } from "indicators.slint";
+
+export struct TimelineSegment {
+    start: float,
+    duration: float,
+    title: string,
+    subtitle: string,
+    kind: string,
+    // 0 = planned lane, 1 = actual (as-run) lane
+    lane: int,
+    gap: bool,
+    conflict: bool,
+    current: bool,
+    selected: bool,
+    movable: bool,
+}
+
+export global TimeFmt {
+    // minutes → "HH:MM" (wraps at 24h)
+    public pure function hm(minutes: float) -> string {
+        let m = mod(round(minutes) + 1440 * 8, 1440);
+        let h = floor(m / 60);
+        let mm = mod(m, 60);
+        return (h < 10 ? "0" : "") + h + ":" + (mm < 10 ? "0" : "") + mm;
+    }
+}
+
+export component Timeline inherits Rectangle {
+    in property <[TimelineSegment]> segments;
+    // visible window
+    in-out property <float> view-start: 0;
+    in-out property <float> view-span: 1440;
+    in property <float> now: -1;
+    in property <float> snap: 5;
+    in property <bool> show-actual: true;
+    callback segment-clicked(int);
+    callback segment-double-clicked(int);
+    callback segment-moved(int, float);
+    callback view-changed(float, float);
+
+    property <length> ruler-height: 24px;
+    property <length> lane-top: ruler-height + 6px;
+    property <length> planned-height: self.height - lane-top - (show-actual ? 20px : 6px);
+    property <float> px-per-min: self.width / 1px / max(view-span, 1);
+    property <float> step: view-span <= 120 ? 10 : view-span <= 360 ? 30 : view-span <= 720 ? 60 : view-span <= 1440 ? 120 : 360;
+    property <float> first-tick: floor(view-start / step) * step;
+    property <int> drag-index: -1;
+    property <float> drag-offset: 0;
+
+    function x-of(minutes: float) -> length {
+        return (minutes - root.view-start) * root.px-per-min * 1px;
+    }
+
+    function zoom(factor: float, anchor-x: length) {
+        let anchor = root.view-start + anchor-x / 1px / root.px-per-min;
+        let span = clamp(root.view-span * factor, 30, 1440 * 7);
+        root.view-start = anchor - (anchor - root.view-start) * span / root.view-span;
+        root.view-span = span;
+        root.view-changed(root.view-start, root.view-span);
+    }
+
+    background: Theme.color.surface-container-low;
+    border-radius: Theme.radius-m;
+    clip: true;
+    accessible-role: groupbox;
+    accessible-label: "Временная шкала";
+
+    // wheel: pan, Ctrl+wheel: zoom (behind segments so clicks reach them)
+    TouchArea {
+        scroll-event(e) => {
+            if e.modifiers.control {
+                root.zoom(e.delta-y > 0 ? 0.8 : 1.25, self.mouse-x);
+            } else {
+                let d = (e.delta-y != 0 ? e.delta-y : e.delta-x) / 1px;
+                root.view-start = root.view-start - d / root.px-per-min;
+                root.view-changed(root.view-start, root.view-span);
+            }
+            accept
+        }
+    }
+
+    // ruler
+    for i in ceil(root.view-span / root.step) + 1: Rectangle {
+        property <float> t: root.first-tick + i * root.step;
+        x: root.x-of(self.t);
+        y: 0;
+        width: 1px;
+        height: root.height;
+        background: Theme.color.outline-variant.with-alpha(0.5);
+        Label {
+            x: 4px;
+            y: 4px;
+            text: TimeFmt.hm(parent.t);
+            type-style: Theme.label-small;
+            mono: true;
+            color: Theme.color.on-surface-variant;
+        }
+    }
+
+    Rectangle {
+        y: root.ruler-height;
+        height: 1px;
+        background: Theme.color.outline-variant;
+    }
+
+    for seg[i] in root.segments: seg-box := Rectangle {
+        property <bool> dragging: root.drag-index == i;
+        property <float> shown-start: self.dragging ? round((seg.start + root.drag-offset) / root.snap) * root.snap : seg.start;
+        x: root.x-of(self.shown-start);
+        y: seg.lane == 0 ? root.lane-top : root.lane-top + root.planned-height + 4px;
+        width: max(2px, seg.duration * root.px-per-min * 1px - 1px);
+        height: seg.lane == 0 ? root.planned-height : 10px;
+        visible: (seg.lane == 0 || root.show-actual) && self.x + self.width > 0 && self.x < root.width;
+        border-radius: seg.lane == 0 ? Theme.radius-xs : 2px;
+        background: seg.gap ? Theme.color.error-container.with-alpha(0.5)
+            : Kinds.color-of(seg.kind).with-alpha(seg.lane == 1 ? 0.9 : (Theme.dark ? 0.35 : 0.25));
+        border-width: seg.selected || seg.conflict || seg.current ? 2px : (seg.gap ? 1px : 0);
+        border-color: seg.conflict || seg.gap ? Theme.color.error
+            : seg.selected ? Theme.color.primary
+            : Theme.status.live;
+        clip: true;
+        accessible-role: list-item;
+        accessible-label: TimeFmt.hm(seg.start) + " " + seg.title;
+
+        // hatching for gaps
+        if seg.gap: Path {
+            width: parent.width;
+            height: parent.height;
+            viewbox-width: self.width / 1px;
+            viewbox-height: self.height / 1px;
+            stroke: Theme.color.error.with-alpha(0.35);
+            stroke-width: 1px;
+            commands: "M0 10 L10 0 M0 20 L20 0 M0 30 L30 0 M0 40 L40 0 M0 50 L50 0 M10 50 L60 0 M20 50 L70 0 M30 50 L80 0 M40 50 L90 0 M50 50 L100 0";
+        }
+
+        if seg.lane == 0 && parent.width > 36px: VerticalLayout {
+            padding-left: 6px;
+            padding-right: 4px;
+            padding-top: 4px;
+            spacing: 0;
+            alignment: start;
+            HorizontalLayout {
+                spacing: 4px;
+                if seg.conflict || seg.gap: Icon {
+                    source: seg.conflict ? Icons.error : Icons.warning;
+                    size: 14px;
+                    tint: Theme.color.error;
+                }
+                Label {
+                    text: seg.gap ? "Пустота" : seg.title;
+                    type-style: Theme.label-medium;
+                    color: Theme.color.on-surface;
+                }
+            }
+            Label {
+                text: TimeFmt.hm(seg-box.shown-start) + "–" + TimeFmt.hm(seg-box.shown-start + seg.duration) + (seg.subtitle != "" ? " · " + seg.subtitle : "");
+                type-style: Theme.label-small;
+                color: Theme.color.on-surface-variant;
+            }
+        }
+
+        // planned item: left kind bar
+        if seg.lane == 0 && !seg.gap: Rectangle {
+            x: 0;
+            width: 3px;
+            background: Kinds.color-of(seg.kind);
+        }
+
+        TouchArea {
+            mouse-cursor: seg.movable ? MouseCursor.grab : MouseCursor.pointer;
+            clicked => {
+                root.segment-clicked(i);
+            }
+            double-clicked => {
+                root.segment-double-clicked(i);
+            }
+            pointer-event(e) => {
+                if e.kind == PointerEventKind.up && root.drag-index == i {
+                    let target = round((seg.start + root.drag-offset) / root.snap) * root.snap;
+                    root.drag-index = -1;
+                    if target != seg.start {
+                        root.segment-moved(i, target);
+                    }
+                }
+            }
+            moved => {
+                if self.pressed && seg.movable {
+                    root.drag-index = i;
+                    root.drag-offset = (self.mouse-x - self.pressed-x) / 1px / root.px-per-min;
+                }
+            }
+        }
+    }
+
+    // current time
+    if root.now >= root.view-start && root.now <= root.view-start + root.view-span: Rectangle {
+        x: root.x-of(root.now) - 1px;
+        width: 2px;
+        background: Theme.status.live;
+        Rectangle {
+            y: root.ruler-height - 5px;
+            x: -4px;
+            width: 10px;
+            height: 10px;
+            border-radius: 5px;
+            background: Theme.status.live;
+        }
+    }
+
+    if root.show-actual: Label {
+        x: parent.width - self.width - 6px;
+        y: parent.height - 18px;
+        text: "факт";
+        type-style: Theme.label-small;
+        color: Theme.color.on-surface-variant;
+    }
+}
+
+// Compact multi-day overview: one row per day, segments without text.
+export struct DayRow {
+    label: string,
+    segments: [TimelineSegment],
+}
+
+export component MultiDayStrip inherits Rectangle {
+    in property <[DayRow]> days;
+    in property <float> now-day: -1;
+    in property <float> now: -1;
+    callback day-clicked(int);
+
+    property <length> label-width: 72px;
+    property <length> row-height: 22px;
+
+    height: days.length * (row-height + 4px) + 24px;
+    background: Theme.color.surface-container-low;
+    border-radius: Theme.radius-m;
+    clip: true;
+
+    for h in 9: Rectangle {
+        x: root.label-width + (root.width - root.label-width - 8px) * h / 8;
+        width: 1px;
+        background: Theme.color.outline-variant.with-alpha(0.5);
+        Label {
+            x: 3px;
+            y: 3px;
+            text: (h * 3 < 10 ? "0" : "") + (h * 3);
+            type-style: Theme.label-small;
+            mono: true;
+            color: Theme.color.on-surface-variant;
+        }
+    }
+
+    for day[d] in root.days: Rectangle {
+        y: 22px + d * (root.row-height + 4px);
+        height: root.row-height;
+        Label {
+            x: 8px;
+            width: root.label-width - 12px;
+            text: day.label;
+            type-style: Theme.label-medium;
+            color: d == root.now-day ? Theme.color.primary : Theme.color.on-surface-variant;
+        }
+        for seg in day.segments: Rectangle {
+            x: root.label-width + (root.width - root.label-width - 8px) * seg.start / 1440;
+            width: max(1px, (root.width - root.label-width - 8px) * seg.duration / 1440 - 1px);
+            border-radius: 2px;
+            background: seg.gap ? Theme.color.error : Kinds.color-of(seg.kind).with-alpha(0.8);
+            border-width: seg.conflict ? 1px : 0;
+            border-color: Theme.color.error;
+        }
+        if d == root.now-day && root.now >= 0: Rectangle {
+            x: root.label-width + (root.width - root.label-width - 8px) * root.now / 1440;
+            width: 2px;
+            background: Theme.status.live;
+        }
+        TouchArea {
+            clicked => {
+                root.day-clicked(d);
+            }
+        }
+    }
+}

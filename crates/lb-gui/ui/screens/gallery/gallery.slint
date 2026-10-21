@@ -9,6 +9,7 @@ import { ButtonsPage } from "buttons-page.slint";
 import { InputsPage } from "inputs-page.slint";
 import { ContainersPage } from "containers-page.slint";
 import { NavPage } from "nav-page.slint";
+import { SpecialPage } from "special-page.slint";
 
 export component Gallery inherits ScrollView {
     // "" = all blocks, otherwise one of: tokens, a, b, c, d, e, f
@@ -23,5 +24,6 @@ export component Gallery inherits ScrollView {
         if root.page == "" || root.page == "c": InputsPage { }
         if root.page == "" || root.page == "d": ContainersPage { }
         if root.page == "" || root.page == "e": NavPage { }
+        if root.page == "" || root.page == "f": SpecialPage { }
     }
 }
