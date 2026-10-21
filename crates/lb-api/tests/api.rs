@@ -1,0 +1,94 @@
+//! API smoke tests against a temporary project (no FFmpeg needed: the
+//! channel is not started).
+
+use std::sync::Arc;
+
+use axum::body::Body;
+use axum::http::{Request, StatusCode};
+use tower::ServiceExt;
+
+use lb_api::{AppState, router};
+use lb_core::config::{ApiToken, Role};
+use lb_core::project::Project;
+use lb_engine::Engine;
+
+fn project(tokens: Vec<ApiToken>) -> tempfile::TempDir {
+    let dir = tempfile::tempdir().unwrap();
+    let mut p = Project::init(dir.path(), "main").unwrap();
+    p.app.api.tokens = tokens;
+    p.save_app().unwrap();
+    let ch = p.channel_mut("main").unwrap();
+    ch.config.autostart = false;
+    ch.library.upsert(lb_core::media::MediaItem::new("a", "media/a.mp4", lb_core::media::MediaKind::Program, lb_core::Dur::secs(60)));
+    ch.save().unwrap();
+    dir
+}
+
+async fn app(dir: &tempfile::TempDir) -> axum::Router {
+    let engine = Arc::new(Engine::start(dir.path()).unwrap());
+    let api = Arc::new(engine.app.api.clone());
+    router(AppState { engine, api })
+}
+
+async fn call(app: &axum::Router, method: &str, uri: &str, token: Option<&str>, body: Option<&str>) -> (StatusCode, String) {
+    let mut req = Request::builder().method(method).uri(uri);
+    if let Some(t) = token {
+        req = req.header("authorization", format!("Bearer {t}"));
+    }
+    if body.is_some() {
+        req = req.header("content-type", "application/json");
+    }
+    let req = req.body(body.map(|b| Body::from(b.to_string())).unwrap_or_else(Body::empty)).unwrap();
+    let res = app.clone().oneshot(req).await.unwrap();
+    let status = res.status();
+    let bytes = axum::body::to_bytes(res.into_body(), 1 << 20).await.unwrap();
+    (status, String::from_utf8_lossy(&bytes).into_owned())
+}
+
+#[tokio::test]
+async fn local_access_without_tokens() {
+    let dir = project(vec![]);
+    let app = app(&dir).await;
+    let (st, body) = call(&app, "GET", "/api/v1/channels", None, None).await;
+    assert_eq!(st, StatusCode::OK, "{body}");
+    assert!(body.contains("\"channel\":\"main\""));
+    let (st, body) = call(&app, "GET", "/api/v1/channels/main/media", None, None).await;
+    assert_eq!(st, StatusCode::OK);
+    assert!(body.contains("media/a.mp4"));
+    let (st, _) = call(&app, "GET", "/api/v1/channels/nope/status", None, None).await;
+    assert_eq!(st, StatusCode::NOT_FOUND);
+}
+
+#[tokio::test]
+async fn roles_are_enforced() {
+    let dir = project(vec![
+        ApiToken { name: "view".into(), token: "v-token".into(), role: Role::Viewer },
+        ApiToken { name: "op".into(), token: "o-token".into(), role: Role::Operator },
+    ]);
+    let app = app(&dir).await;
+    assert_eq!(call(&app, "GET", "/api/v1/channels", None, None).await.0, StatusCode::UNAUTHORIZED);
+    assert_eq!(call(&app, "GET", "/api/v1/channels", Some("bad"), None).await.0, StatusCode::UNAUTHORIZED);
+    assert_eq!(call(&app, "GET", "/api/v1/channels", Some("v-token"), None).await.0, StatusCode::OK);
+    assert_eq!(call(&app, "POST", "/api/v1/channels/main/skip", Some("v-token"), None).await.0, StatusCode::FORBIDDEN);
+    assert_eq!(call(&app, "GET", "/api/v1/channels/main/config", Some("o-token"), None).await.0, StatusCode::FORBIDDEN);
+}
+
+#[tokio::test]
+async fn playlist_crud_and_plan_preview() {
+    let dir = project(vec![]);
+    let app = app(&dir).await;
+    let (st, body) = call(&app, "POST", "/api/v1/channels/main/playlists", None, Some(r#"{"id":"main","entries":[{"media":"a"}]}"#)).await;
+    assert_eq!(st, StatusCode::OK, "{body}");
+    let (st, _) = call(&app, "POST", "/api/v1/channels/main/playlists", None, Some(r#"{"id":"bad","entries":[{"media":"zzz"}]}"#)).await;
+    assert_eq!(st, StatusCode::BAD_REQUEST);
+    let (st, body) = call(&app, "POST", "/api/v1/channels/main/playlists/main/entries", None, Some(r#"{"media":"a","index":0}"#)).await;
+    assert_eq!(st, StatusCode::OK, "{body}");
+    let (_, body) = call(&app, "GET", "/api/v1/channels/main/playlists", None, None).await;
+    assert!(body.contains("\"entries\":2"), "{body}");
+    assert!(dir.path().join("channels/main/playlists/main.json").exists());
+    let (st, body) = call(&app, "GET", "/api/v1/channels/main/plan?hours=2", None, None).await;
+    assert_eq!(st, StatusCode::OK, "{body}");
+    let (st, body) = call(&app, "GET", "/api/v1/channels/main/validate", None, None).await;
+    assert_eq!(st, StatusCode::OK);
+    assert!(body.contains("file not found"), "{body}");
+}
