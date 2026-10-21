@@ -61,7 +61,7 @@ impl Default for UiPrefs {
 }
 
 impl UiPrefs {
-    fn path() -> Option<PathBuf> {
+    pub fn path() -> Option<PathBuf> {
         Some(dirs::config_dir()?.join("laurabrod").join("gui.json"))
     }
 

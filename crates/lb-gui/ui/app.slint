@@ -24,6 +24,7 @@ import { GraphicsScreen } from "screens/graphics/graphics.slint";
 import { LogScreen } from "screens/log/log.slint";
 import { StatsScreen } from "screens/stats/stats.slint";
 import { SourcesScreen } from "screens/sources/sources.slint";
+import { SettingsScreen } from "screens/settings/settings.slint";
 
 export { Theme, ThemeMode } from "theme/tokens.slint";
 export { App, StatusInfo } from "state/app-state.slint";
@@ -37,6 +38,7 @@ export { Gfx, CanvasItem, LayerRow, GRuleRow, VarRow } from "state/graphics-stat
 export { Log } from "state/log-state.slint";
 export { Stats, StatRow, Kpi } from "state/stats-state.slint";
 export { Src, SceneRow, OutRow, StreamRow, Fact } from "state/sources-state.slint";
+export { Settings } from "state/settings-state.slint";
 
 export component AppWindow inherits Window {
     // kept for the snapshot tool; mirrors App.section
@@ -98,6 +100,11 @@ export component AppWindow inherits Window {
                 App.shortcut("redo");
                 return accept;
             }
+            // text inputs consume Delete themselves, so this only fires for selections
+            if e.text == Key.Delete && !e.modifiers.control && !e.modifiers.alt {
+                App.shortcut("delete");
+                return accept;
+            }
             if e.text == Key.F5 {
                 App.refresh();
                 return accept;
@@ -147,7 +154,7 @@ export component AppWindow inherits Window {
                     if App.section == "sources": SourcesScreen { }
                     if App.section == "stats": StatsScreen { }
                     if App.section == "log": LogScreen { }
-                    if App.section == "settings": Pending { title: "Настройки"; }
+                    if App.section == "settings": SettingsScreen { }
                 }
             }
         }

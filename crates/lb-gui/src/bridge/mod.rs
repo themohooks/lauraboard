@@ -18,6 +18,7 @@ pub mod log;
 pub mod playlists;
 pub mod rules;
 pub mod schedule;
+pub mod settings;
 pub mod shell;
 pub mod sources;
 pub mod stats;
@@ -65,6 +66,7 @@ pub struct Ctx {
     pub gfx: graphics::GraphicsState,
     pub log: log::LogState,
     pub stats: stats::StatsState,
+    pub settings: settings::SettingsState,
     /// Channel configuration (admin only; `None` when not available).
     pub channel_config: Option<Value>,
 }
@@ -127,6 +129,7 @@ pub fn start(ui: &AppWindow, opts: &GuiOptions, prefs: UiPrefs) {
         gfx: Default::default(),
         log: Default::default(),
         stats: Default::default(),
+        settings: Default::default(),
         channel_config: None,
     };
     ui.global::<App>().set_api_url(api.base.clone().into());
@@ -141,6 +144,7 @@ pub fn start(ui: &AppWindow, opts: &GuiOptions, prefs: UiPrefs) {
     log::connect(ui);
     stats::connect(ui);
     sources::connect(ui);
+    settings::connect(ui);
     with(|c| {
         shell::apply_prefs(c);
         air::apply_prefs(c);
@@ -265,6 +269,9 @@ impl Ctx {
             Msg::Connection(ok) => {
                 self.model.online = ok;
                 shell::status_changed(self);
+                if self.section() == "settings" {
+                    settings::show(self);
+                }
                 if ok && self.model.channels.is_empty() {
                     self.load_channels();
                 }

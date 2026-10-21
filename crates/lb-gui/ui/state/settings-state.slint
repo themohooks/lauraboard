@@ -1,0 +1,28 @@
+// Data contract of the settings screen (src/bridge/settings.rs).
+
+export global Settings {
+    // 0 system, 1 light, 2 dark
+    in-out property <int> theme;
+    // 80 … 200 %
+    in-out property <int> scale: 100;
+    in-out property <bool> compact;
+    // 0 system, 1 on, 2 off
+    in-out property <int> motion;
+    in property <bool> system-reduce-motion;
+    in-out property <bool> nav-expanded: true;
+
+    in property <string> api-url;
+    in property <bool> online;
+    in property <string> channels;
+    in property <string> server-version;
+    in property <string> app-version;
+    in property <string> prefs-path;
+
+    callback theme-changed(int);
+    callback scale-changed(int);
+    callback compact-changed(bool);
+    callback motion-changed(int);
+    callback nav-changed(bool);
+    callback reset-layout();
+    callback reset-all();
+}

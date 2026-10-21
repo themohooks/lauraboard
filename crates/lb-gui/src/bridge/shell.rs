@@ -113,6 +113,9 @@ pub fn navigate(c: &mut Ctx, id: &str) {
     if id == "sources" {
         super::sources::refresh(c);
     }
+    if id == "settings" {
+        super::settings::opened(c);
+    }
 }
 
 /// Push preferences into the UI (startup and after settings change).
