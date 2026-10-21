@@ -51,10 +51,10 @@ fn parse(s: &str) -> Result<NaiveDate, String> {
 pub fn validate(from: &str, to: &str, today: NaiveDate) -> Result<(NaiveDate, NaiveDate), PeriodErrors> {
     let (f, t) = (parse(from), parse(to));
     let mut e = PeriodErrors { from: f.as_ref().err().cloned(), to: t.as_ref().err().cloned() };
-    let (Ok(f), Ok(t)) = (f, t) else { return Err(e) };
-    if t > today {
+    if t.as_ref().is_ok_and(|t| *t > today) {
         e.to = Some("Дата в будущем".into());
     }
+    let (Ok(f), Ok(t)) = (f, t) else { return Err(e) };
     if f > t {
         e.from = Some("Начало позже конца".into());
     } else if (t - f).num_days() >= MAX_DAYS {
