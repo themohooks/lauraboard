@@ -134,3 +134,31 @@ async fn graphics_render_draws_the_draft() {
     let a = image::load_from_memory(&png).unwrap().to_rgba8().get_pixel(5, 5).0[3];
     assert!(a > 0 && a < 255, "alpha {a}");
 }
+
+#[tokio::test]
+async fn media_thumbnails() {
+    let dir = project(vec![]);
+    let app = app(&dir).await;
+    // missing file and unknown media: no thumbnail
+    assert_eq!(call(&app, "GET", "/api/v1/channels/main/media/a/thumb.jpg", None, None).await.0, StatusCode::NOT_FOUND);
+    assert_eq!(call(&app, "GET", "/api/v1/channels/main/media/zzz/thumb.jpg", None, None).await.0, StatusCode::NOT_FOUND);
+    std::fs::create_dir_all(dir.path().join("media")).unwrap();
+    let ok = std::process::Command::new("ffmpeg")
+        .args(["-hide_banner", "-loglevel", "error", "-y", "-f", "lavfi", "-i", "testsrc=size=640x360:rate=25:duration=2", "-pix_fmt", "yuv420p"])
+        .arg(dir.path().join("media/a.mp4"))
+        .status()
+        .is_ok_and(|s| s.success());
+    if !ok {
+        eprintln!("ffmpeg not available: frame extraction not tested");
+        return;
+    }
+    let req = Request::builder().uri("/api/v1/channels/main/media/a/thumb.jpg?w=160").body(Body::empty()).unwrap();
+    let res = app.clone().oneshot(req).await.unwrap();
+    assert_eq!(res.status(), StatusCode::OK);
+    assert_eq!(res.headers()["content-type"], "image/jpeg");
+    let jpg = axum::body::to_bytes(res.into_body(), 1 << 20).await.unwrap();
+    let img = image::load_from_memory(&jpg).unwrap();
+    assert_eq!((img.width(), img.height()), (160, 90));
+    let cached = std::fs::read_dir(dir.path().join("cache/thumbs/main")).unwrap().count();
+    assert_eq!(cached, 1);
+}

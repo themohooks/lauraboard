@@ -88,7 +88,7 @@ fn active_set(cfg: &GraphicsConfig, only: Option<&[String]>, t_ms: Option<Ms>) -
         .elements
         .iter()
         .filter(|e| match only {
-            Some(ids) => ids.iter().any(|i| *i == e.id),
+            Some(ids) => ids.contains(&e.id),
             None => !children.contains(&e.id.as_str()),
         })
         .map(|e| ActiveGraphic {

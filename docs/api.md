@@ -40,6 +40,7 @@
 | PUT | `/var/{key}` | `{"value": "…"}` — переменная графики (`null` — удалить) |
 | GET, POST | `/media` | список; добавить или заменить элемент (`MediaItem`) |
 | GET, PUT, DELETE | `/media/{media}` | элемент |
+| GET | `/media/{media}/thumb.jpg?w=320` | миниатюра (JPEG, кадр на 10 % длительности, ширина 32…1280). Кэшируется в `<проект>/cache/thumbs/<канал>/`, не более двух ffmpeg одновременно; 404 для потоков, аудио и отсутствующих файлов |
 | POST | `/media/import` | `{"paths": [...], "kind": "ad", "category": "x", "recursive": true}` — импорт с анализом |
 | POST | `/media/check` | перепроверка всех файлов |
 | GET, POST | `/playlists` | список (с длительностями); создать |

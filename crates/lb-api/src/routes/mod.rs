@@ -18,6 +18,7 @@ pub mod playlists;
 pub mod render;
 pub mod reports;
 pub mod status;
+pub mod thumbs;
 
 use axum::Router;
 use axum::routing::{get, post, put};
@@ -46,6 +47,7 @@ pub fn router(state: AppState) -> Router {
         .route("/media", get(library::list).post(library::add))
         .route("/media/import", post(library::import))
         .route("/media/check", post(library::check))
+        .route("/media/{media}/thumb.jpg", get(thumbs::thumb))
         .route("/media/{media}", get(library::get_one).put(library::update).delete(library::remove))
         .route("/playlists", get(playlists::list).post(playlists::create))
         .route("/playlists/{pl}", get(playlists::get_one).put(playlists::replace).delete(playlists::remove))
