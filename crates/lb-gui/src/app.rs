@@ -135,7 +135,7 @@ impl App {
                     None => self.preview = Some(ctx.load_texture("preview", color_image(&f), egui::TextureOptions::LINEAR)),
                 },
                 Msg::Event(v) => self.model.push_log(LogLine::from_event(&v)),
-                Msg::Thumb(..) => {}
+                Msg::Thumb(..) | Msg::Apply(_) => {}
                 Msg::Done(text) => self.toast(text, false),
                 Msg::Error(e) => {
                     self.model.push_log(LogLine {

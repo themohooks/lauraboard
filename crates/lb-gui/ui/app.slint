@@ -15,11 +15,14 @@ import { AirScreen } from "screens/air/air.slint";
 import { HomeScreen } from "screens/home/home.slint";
 import { PlaylistsScreen } from "screens/playlists/playlists.slint";
 import { CreatePlaylistDialog } from "screens/playlists/create-dialog.slint";
+import { LibraryScreen } from "screens/library/library.slint";
+import { ImportDialog } from "screens/library/import-dialog.slint";
 
 export { Theme, ThemeMode } from "theme/tokens.slint";
 export { App, StatusInfo } from "state/app-state.slint";
 export { Air, NowInfo, NextInfo, QueueRow, MediaPick, GfxRow, LogRow } from "state/air-state.slint";
 export { Pl, PlaylistItem, EntryRow, EntryProps } from "state/playlists-state.slint";
+export { Lib, MediaRow, TileLine, MediaEdit } from "state/library-state.slint";
 
 export component AppWindow inherits Window {
     // kept for the snapshot tool; mirrors App.section
@@ -122,7 +125,7 @@ export component AppWindow inherits Window {
                     if App.section == "home": HomeScreen { }
                     if App.section == "air": AirScreen { }
                     if App.section == "playlists": PlaylistsScreen { }
-                    if App.section == "library": Pending { title: "Медиатека"; }
+                    if App.section == "library": LibraryScreen { }
                     if App.section == "schedule": Pending { title: "Сетка вещания"; }
                     if App.section == "jingles": Pending { title: "Заставки и переходы"; }
                     if App.section == "ads": Pending { title: "Реклама и анонсы"; }
@@ -151,6 +154,8 @@ export component AppWindow inherits Window {
     }
 
     CreatePlaylistDialog { }
+
+    ImportDialog { }
 
     ConfirmDialog {
         open: App.confirm-open;

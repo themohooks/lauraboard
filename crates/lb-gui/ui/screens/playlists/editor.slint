@@ -11,7 +11,6 @@ import { SearchField } from "../../components/search-field.slint";
 import { Switch } from "../../components/switch.slint";
 import { Button, ButtonVariant } from "../../components/button.slint";
 import { IconButton } from "../../components/icon-button.slint";
-import { FilterChip } from "../../components/chips.slint";
 import { Select } from "../../components/select.slint";
 import { ListHeader } from "../../components/list-row.slint";
 import { Menu } from "../../components/menu.slint";
@@ -19,18 +18,6 @@ import { EmptyState } from "../../components/feedback.slint";
 import { StatusChip, StatusTone, Kinds } from "../../components/indicators.slint";
 import { Pl } from "../../state/playlists-state.slint";
 import { EntryRowView } from "entry-row.slint";
-
-component KindChip inherits FilterChip {
-    in property <int> index;
-    in property <string> kind;
-    text: Kinds.name-of(kind);
-    dot: Kinds.color-of(kind);
-    selected: Pl.kind-filter == index;
-    toggled(on) => {
-        Pl.kind-filter = on ? root.index : -1;
-        Pl.filter-entries();
-    }
-}
 
 export component PlaylistEditor inherits VerticalLayout {
     spacing: Theme.sp3;

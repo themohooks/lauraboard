@@ -56,15 +56,16 @@ export component SegmentedButton inherits Rectangle {
                     padding-right: Theme.sp3;
                     spacing: Theme.sp2;
                     alignment: center;
+                    // icon-only segments keep their icon; labelled ones show a check when selected
                     if root.selected == i || seg.has-icon: VerticalLayout {
                         alignment: center;
                         Icon {
-                            source: root.selected == i ? Icons.check : seg.icon;
+                            source: root.selected == i && (seg.text != "" || !seg.has-icon) ? Icons.check : seg.icon;
                             size: Theme.icon-small;
                             tint: root.selected == i ? Theme.color.on-secondary-container : Theme.color.on-surface;
                         }
                     }
-                    Label {
+                    if seg.text != "": Label {
                         text: seg.text;
                         type-style: Theme.label-large;
                         color: !root.enabled ? Theme.color.on-surface.with-alpha(Theme.disabled-content)

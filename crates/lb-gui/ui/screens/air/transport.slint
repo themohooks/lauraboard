@@ -16,14 +16,15 @@ import { Air } from "../../state/air-state.slint";
 export component TransportBar inherits Rectangle {
     property <bool> stopped: App.status.state == "stopped" || App.status.state == "error";
     property <bool> live: App.online && !self.stopped;
-    // narrow panel: secondary actions become icon buttons with tooltips
-    // (updated on resize: a binding would loop through the layout)
+    // narrow panel: secondary actions become icon buttons with tooltips.
+    // `compact` is assigned, not bound: a binding would loop through the layout.
+    property <bool> fits-wide: self.width >= 840px;
     property <bool> compact: false;
-    changed width => {
-        self.compact = self.width < 840px;
+    changed fits-wide => {
+        self.compact = !self.fits-wide;
     }
     init => {
-        self.compact = self.width < 840px;
+        self.compact = !self.fits-wide;
     }
 
     border-radius: Theme.radius-l;

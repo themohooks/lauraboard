@@ -212,6 +212,14 @@ fn demo_air(ui: &AppWindow) {
 
 /// Put a screen into a representative state for review (live mode).
 fn prepare_live(section: &str) {
+    if section == "library" && std::env::var("LB_SNAPSHOT_GRID").is_ok() {
+        crate::bridge::with(|c| {
+            if let Some(ui) = c.window() {
+                ui.global::<crate::shell::Lib>().set_grid(true);
+            }
+            crate::bridge::library::refresh(c);
+        });
+    }
     if section == "playlists" {
         crate::bridge::with(|c| {
             if let Some(id) = c.model.playlists.first().map(|p| p.id.clone()) {

@@ -53,4 +53,6 @@ pub enum Msg {
     Done(String),
     Error(String),
     Connection(bool),
+    /// Run on the UI thread with the bridge context (results of multi-step jobs).
+    Apply(Box<dyn FnOnce(&mut crate::bridge::Ctx) + Send>),
 }

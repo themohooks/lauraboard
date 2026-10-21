@@ -66,6 +66,7 @@ pub fn connect(ui: &AppWindow) {
     g.on_shortcut(|name| {
         with(move |c| match c.section().as_str() {
             "playlists" => super::playlists::shortcut(c, name.as_str()),
+            "library" => super::library::shortcut(c, name.as_str()),
             _ => {}
         })
     });

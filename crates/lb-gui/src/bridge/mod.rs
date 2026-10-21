@@ -7,9 +7,10 @@
 //! already borrowed (a callback fired while Rust was updating the UI).
 //!
 //! One module per area: [`shell`] (window, navigation, status, overlays),
-//! [`air`] (home + on-air), [`playlists`], [`thumbs`] (media thumbnails).
+//! [`air`] (home + on-air), [`playlists`], [`library`], [`thumbs`] (media thumbnails).
 
 pub mod air;
+pub mod library;
 pub mod playlists;
 pub mod shell;
 pub mod thumbs;
@@ -50,6 +51,7 @@ pub struct Ctx {
     /// (on-air uid, next uid) the queue was last marked with.
     pub air_marks: (Option<String>, Option<String>),
     pub pl: playlists::PlaylistsState,
+    pub lib: library::LibraryState,
 }
 
 thread_local! {
@@ -104,16 +106,19 @@ pub fn start(ui: &AppWindow, opts: &GuiOptions, prefs: UiPrefs) {
         thumbs: thumbs::Thumbs::default(),
         air_marks: (None, None),
         pl: Default::default(),
+        lib: Default::default(),
     };
     ui.global::<App>().set_api_url(api.base.clone().into());
     CTX.with(|c| *c.borrow_mut() = Some(ctx));
     shell::connect(ui);
     air::connect(ui);
     playlists::connect(ui);
+    library::connect(ui);
     with(|c| {
         shell::apply_prefs(c);
         air::apply_prefs(c);
         playlists::apply_prefs(c);
+        library::apply_prefs(c);
         c.load_channels();
     });
 }
@@ -173,6 +178,8 @@ impl Ctx {
             Msg::Plan(r) => self.model.plan = r,
             Msg::Library(l) => {
                 self.model.library = l;
+                self.lib.loaded = true;
+                library::refresh(self);
                 air::media_results(self);
                 playlists::lists_changed(self);
                 playlists::rows_changed(self);
@@ -181,6 +188,7 @@ impl Ctx {
             Msg::Playlists(p) => {
                 self.model.playlists = p;
                 playlists::reloaded(self);
+                library::refresh(self);
             }
             Msg::Schedules(s) => {
                 self.model.schedules = s;
@@ -197,10 +205,12 @@ impl Ctx {
             Msg::Stats(s) => self.model.stats = s,
             Msg::Preview(f) => shell::preview_changed(self, f),
             Msg::Thumb(id, f) => {
-                thumbs::arrived(self, id, f);
+                thumbs::arrived(self, id.clone(), f);
                 air::status_changed(self);
-                if self.section() == "playlists" {
-                    playlists::rows_changed(self);
+                match self.section().as_str() {
+                    "playlists" => playlists::rows_changed(self),
+                    "library" => library::thumb_arrived(self, &id),
+                    _ => {}
                 }
             }
             Msg::Event(v) => {
@@ -213,6 +223,7 @@ impl Ctx {
                 air::log_changed(self);
                 self.toast(e, true);
             }
+            Msg::Apply(f) => f(self),
             Msg::Connection(ok) => {
                 self.model.online = ok;
                 shell::status_changed(self);

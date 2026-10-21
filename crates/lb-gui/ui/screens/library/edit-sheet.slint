@@ -1,0 +1,120 @@
+// Side sheet for editing media metadata, with inline validation.
+
+import { Theme } from "../../theme/tokens.slint";
+import { Icons } from "../../theme/icons.slint";
+import { Label } from "../../components/label.slint";
+import { SideSheet } from "../../components/side-sheet.slint";
+import { TextField } from "../../components/text-field.slint";
+import { Select } from "../../components/select.slint";
+import { Switch } from "../../components/switch.slint";
+import { Button, ButtonVariant } from "../../components/button.slint";
+import { StatusChip, StatusTone } from "../../components/indicators.slint";
+import { Lib } from "../../state/library-state.slint";
+
+export component MediaEditSheet inherits SideSheet {
+    open: Lib.edit-open;
+    title: "Свойства ролика";
+    sheet-width: 380px;
+    close => {
+        Lib.edit-open = false;
+    }
+
+    Label {
+        text: Lib.edit.id;
+        mono: true;
+        color: Theme.color.on-surface-variant;
+    }
+    if Lib.edit.problem != "": StatusChip {
+        text: Lib.edit.problem;
+        tone: StatusTone.error;
+    }
+    TextField {
+        label: "Название";
+        text <=> Lib.e-title;
+        container-color: Theme.color.surface-container-low;
+    }
+    Select {
+        label: "Тип";
+        options: ["Передача", "Заставка", "Реклама", "Анонс", "Заполнение", "Изображение", "Поток"];
+        current-index <=> Lib.e-kind;
+        container-color: Theme.color.surface-container-low;
+    }
+    TextField {
+        label: "Категория";
+        text <=> Lib.e-category;
+        placeholder: "news, idents…";
+        container-color: Theme.color.surface-container-low;
+    }
+    HorizontalLayout {
+        spacing: Theme.sp3;
+        TextField {
+            label: "Громкость";
+            suffix: "дБ";
+            text <=> Lib.e-volume;
+            error: Lib.e-volume-error;
+            supporting: "от −30 до +20";
+            container-color: Theme.color.surface-container-low;
+            edited => {
+                Lib.validate-edit();
+            }
+        }
+        TextField {
+            label: "Вес";
+            text <=> Lib.e-weight;
+            error: Lib.e-weight-error;
+            supporting: "для случайного выбора";
+            container-color: Theme.color.surface-container-low;
+            edited => {
+                Lib.validate-edit();
+            }
+        }
+    }
+    Switch {
+        text: "Используется в эфире";
+        checked <=> Lib.e-enabled;
+    }
+    VerticalLayout {
+        spacing: 2px;
+        Label {
+            text: "ФАЙЛ";
+            type-style: Theme.label-small;
+            color: Theme.color.on-surface-variant;
+        }
+        Label {
+            text: Lib.edit.path;
+            wrap: word-wrap;
+        }
+    }
+    VerticalLayout {
+        spacing: 2px;
+        Label {
+            text: "ТЕХНИЧЕСКИЕ ДАННЫЕ";
+            type-style: Theme.label-small;
+            color: Theme.color.on-surface-variant;
+        }
+        Label {
+            text: Lib.edit.info;
+            wrap: word-wrap;
+        }
+    }
+    HorizontalLayout {
+        spacing: Theme.sp2;
+        alignment: end;
+        Button {
+            text: "Отмена";
+            variant: ButtonVariant.text;
+            clicked => {
+                Lib.edit-open = false;
+            }
+        }
+        Button {
+            text: "Сохранить";
+            icon: Icons.save;
+            has-icon: true;
+            enabled: Lib.e-volume-error == "" && Lib.e-weight-error == "";
+            clicked => {
+                Lib.save-edit();
+            }
+        }
+    }
+}

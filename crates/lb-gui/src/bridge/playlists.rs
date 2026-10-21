@@ -26,6 +26,11 @@ pub struct PlaylistsState {
 }
 
 impl PlaylistsState {
+    /// A playlist is open in the editor.
+    pub fn is_open(&self) -> bool {
+        self.draft.is_some()
+    }
+
     pub fn dirty(&self) -> bool {
         self.draft.is_some() && self.draft != self.saved
     }
@@ -202,6 +207,12 @@ fn entry_action(c: &mut Ctx, i: usize, action: &str) {
 fn entry_title(c: &Ctx, i: usize) -> String {
     let Some(e) = c.pl.draft.as_ref().and_then(|p| p.entries.get(i)) else { return String::new() };
     c.model.library.iter().find(|m| m.id == e.media).map(|m| m.title.clone()).unwrap_or_else(|| e.media.clone())
+}
+
+/// Append a media item to the open draft (from the library screen).
+pub fn append(c: &mut Ctx, id: &str) {
+    let id = id.to_string();
+    mutate(c, move |p| p.entries.push(PlaylistEntry::new(id)));
 }
 
 fn add_media(c: &mut Ctx, id: String) {
