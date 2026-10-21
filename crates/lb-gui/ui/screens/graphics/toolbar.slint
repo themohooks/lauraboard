@@ -10,8 +10,55 @@ import { Select } from "../../components/select.slint";
 import { Menu } from "../../components/menu.slint";
 import { CircularProgress } from "../../components/feedback.slint";
 import { Gfx } from "../../state/graphics-state.slint";
+import { App } from "../../state/app-state.slint";
 
-export component GfxToolbar inherits HorizontalLayout {
+component LiveTools inherits HorizontalLayout {
+    spacing: Theme.sp1;
+    IconButton {
+        icon: Gfx.anim-playing ? Icons.stop : Icons.animation;
+        toggle: true;
+        selected: Gfx.anim-playing;
+        enabled: Gfx.selected >= 0;
+        tooltip: Gfx.anim-playing ? "Остановить предпросмотр" : "Предпросмотр появления выбранного элемента";
+        clicked => {
+            if Gfx.anim-playing {
+                Gfx.anim-playing = false;
+            } else {
+                Gfx.preview-animation();
+            }
+        }
+    }
+    Rectangle {
+        width: Theme.sp2;
+    }
+    IconButton {
+        icon: Icons.visibility;
+        variant: IconButtonVariant.tonal;
+        tooltip: "Показать в эфире";
+        enabled: Gfx.selected >= 0;
+        clicked => {
+            Gfx.live("show");
+        }
+    }
+    IconButton {
+        icon: Icons.visibility-off;
+        tooltip: "Скрыть в эфире";
+        enabled: Gfx.selected >= 0;
+        clicked => {
+            Gfx.live("hide");
+        }
+    }
+    IconButton {
+        icon: Icons.motion-photos-on;
+        tooltip: "По правилам показа";
+        enabled: Gfx.selected >= 0;
+        clicked => {
+            Gfx.live("auto");
+        }
+    }
+}
+
+component ToolRow inherits HorizontalLayout {
     spacing: Theme.sp1;
 
     add := Button {
@@ -99,46 +146,19 @@ export component GfxToolbar inherits HorizontalLayout {
     Rectangle {
         horizontal-stretch: 1;
     }
-    IconButton {
-        icon: Gfx.anim-playing ? Icons.stop : Icons.animation;
-        toggle: true;
-        selected: Gfx.anim-playing;
-        enabled: Gfx.selected >= 0;
-        tooltip: Gfx.anim-playing ? "Остановить предпросмотр" : "Предпросмотр появления выбранного элемента";
-        clicked => {
-            if Gfx.anim-playing {
-                Gfx.anim-playing = false;
-            } else {
-                Gfx.preview-animation();
-            }
-        }
+    if !App.narrow: LiveTools { }
+}
+
+export component GfxToolbar inherits VerticalLayout {
+    spacing: Theme.sp1;
+    HorizontalLayout {
+        spacing: Theme.sp1;
+        ToolRow { }
     }
-    Rectangle {
-        width: Theme.sp2;
-    }
-    IconButton {
-        icon: Icons.visibility;
-        variant: IconButtonVariant.tonal;
-        tooltip: "Показать в эфире";
-        enabled: Gfx.selected >= 0;
-        clicked => {
-            Gfx.live("show");
-        }
-    }
-    IconButton {
-        icon: Icons.visibility-off;
-        tooltip: "Скрыть в эфире";
-        enabled: Gfx.selected >= 0;
-        clicked => {
-            Gfx.live("hide");
-        }
-    }
-    IconButton {
-        icon: Icons.motion-photos-on;
-        tooltip: "По правилам показа";
-        enabled: Gfx.selected >= 0;
-        clicked => {
-            Gfx.live("auto");
+    if App.narrow: HorizontalLayout {
+        LiveTools { }
+        Rectangle {
+            horizontal-stretch: 1;
         }
     }
 }

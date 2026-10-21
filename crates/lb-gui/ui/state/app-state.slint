@@ -27,6 +27,8 @@ export global App {
     // navigation
     in-out property <string> section: "home";
     in-out property <bool> nav-expanded: true;
+    // window narrower than 1200 px: screens switch to compact layouts
+    in-out property <bool> narrow;
     in property <[NavItem]> nav-items: [
         { id: "home", title: "Главная", icon: Icons.home, icon-active: Icons.home-fill },
         { id: "air", title: "Эфир", icon: Icons.live-tv, icon-active: Icons.live-tv-fill },

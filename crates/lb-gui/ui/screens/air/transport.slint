@@ -18,7 +18,7 @@ export component TransportBar inherits Rectangle {
     property <bool> live: App.online && !self.stopped;
     // narrow panel: secondary actions become icon buttons with tooltips.
     // `compact` is assigned, not bound: a binding would loop through the layout.
-    property <bool> fits-wide: self.width >= 840px;
+    property <bool> fits-wide: self.width >= 880px;
     property <bool> compact: false;
     changed fits-wide => {
         self.compact = !self.fits-wide;

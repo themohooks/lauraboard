@@ -13,6 +13,19 @@ import { SegmentedButton } from "../../components/segmented-button.slint";
 import { StatusChip, StatusTone } from "../../components/indicators.slint";
 import { Menu } from "../../components/menu.slint";
 import { Grid } from "../../state/schedule-state.slint";
+import { App } from "../../state/app-state.slint";
+
+component ModeSwitch inherits VerticalLayout {
+    alignment: center;
+    SegmentedButton {
+        width: 220px;
+        segments: [{ text: "День", icon: Icons.today, has-icon: true }, { text: "Обзор", icon: Icons.view-timeline, has-icon: true }];
+        selected <=> Grid.mode;
+        changed => {
+            Grid.mode-changed();
+        }
+    }
+}
 
 export component GridHeader inherits VerticalLayout {
     spacing: Theme.sp3;
@@ -41,6 +54,8 @@ export component GridHeader inherits VerticalLayout {
         }
         Label {
             horizontal-stretch: 1;
+            min-width: 0;
+            overflow: elide;
             text: Grid.schedule-info;
             color: Theme.color.on-surface-variant;
             vertical-alignment: center;
@@ -154,16 +169,12 @@ export component GridHeader inherits VerticalLayout {
         Rectangle {
             horizontal-stretch: 1;
         }
-        VerticalLayout {
-            alignment: center;
-            SegmentedButton {
-                width: 220px;
-                segments: [{ text: "День", icon: Icons.today, has-icon: true }, { text: "Обзор", icon: Icons.view-timeline, has-icon: true }];
-                selected <=> Grid.mode;
-                changed => {
-                    Grid.mode-changed();
-                }
-            }
+        if !App.narrow: ModeSwitch { }
+    }
+    if App.narrow: HorizontalLayout {
+        ModeSwitch { }
+        Rectangle {
+            horizontal-stretch: 1;
         }
     }
 }

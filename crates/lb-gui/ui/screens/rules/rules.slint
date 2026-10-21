@@ -9,10 +9,20 @@ import { SegmentedButton } from "../../components/segmented-button.slint";
 import { StatusChip, StatusTone } from "../../components/indicators.slint";
 import { Page, PageHeader } from "../../shell/page.slint";
 import { Rules } from "../../state/rules-state.slint";
+import { App } from "../../state/app-state.slint";
 import { RuleList } from "rule-list.slint";
 import { RuleDetail } from "rule-detail.slint";
 import { AdBreaksEditor } from "ad-breaks.slint";
 import { PoliciesEditor, TransitionsEditor } from "policies.slint";
+
+component RuleTabs inherits SegmentedButton {
+    in property <string> scope;
+    width: scope == "ads" ? 440px : 300px;
+    segments: scope == "ads"
+        ? [{ text: "Правила", icon: Icons.rule, has-icon: true }, { text: "Рекламные блоки" }, { text: "Политики" }]
+        : [{ text: "Правила", icon: Icons.rule, has-icon: true }, { text: "Переходы" }];
+    selected <=> Rules.tab;
+}
 
 export component RulesScreen inherits Page {
     in property <string> scope;
@@ -23,12 +33,8 @@ export component RulesScreen inherits Page {
 
         PageHeader {
             title: root.scope == "ads" ? "Реклама и анонсы" : "Заставки и переходы";
-            SegmentedButton {
-                width: root.scope == "ads" ? 440px : 300px;
-                segments: root.scope == "ads"
-                    ? [{ text: "Правила", icon: Icons.rule, has-icon: true }, { text: "Рекламные блоки" }, { text: "Политики" }]
-                    : [{ text: "Правила", icon: Icons.rule, has-icon: true }, { text: "Переходы" }];
-                selected <=> Rules.tab;
+            if !App.narrow: RuleTabs {
+                scope: root.scope;
             }
             if Rules.dirty: VerticalLayout {
                 alignment: center;
@@ -86,7 +92,16 @@ export component RulesScreen inherits Page {
             }
         }
 
-        if Rules.tab == 0: HorizontalLayout {
+        if App.narrow: HorizontalLayout {
+            RuleTabs {
+                scope: root.scope;
+            }
+            Rectangle {
+                horizontal-stretch: 1;
+            }
+        }
+
+        if Rules.tab == 0 && !App.narrow: HorizontalLayout {
             vertical-stretch: 1;
             spacing: Theme.sp4;
             RuleList {
@@ -94,6 +109,31 @@ export component RulesScreen inherits Page {
             }
             RuleDetail {
                 horizontal-stretch: 1;
+            }
+        }
+        // narrow window: list or the selected rule, one at a time
+        if Rules.tab == 0 && App.narrow && Rules.selected < 0: RuleList {
+            vertical-stretch: 1;
+        }
+        if Rules.tab == 0 && App.narrow && Rules.selected >= 0: VerticalLayout {
+            vertical-stretch: 1;
+            spacing: Theme.sp2;
+            HorizontalLayout {
+                Button {
+                    text: "Все правила";
+                    icon: Icons.chevron-left;
+                    has-icon: true;
+                    variant: ButtonVariant.text;
+                    clicked => {
+                        Rules.select(-1);
+                    }
+                }
+                Rectangle {
+                    horizontal-stretch: 1;
+                }
+            }
+            RuleDetail {
+                vertical-stretch: 1;
             }
         }
         if Rules.tab == 1 && root.scope == "ads": AdBreaksEditor {

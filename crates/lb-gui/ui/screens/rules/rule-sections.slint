@@ -324,8 +324,9 @@ export component LimitsSection inherits FormSection {
             }
         }
     }
-    HorizontalLayout {
-        spacing: Theme.sp6;
+    // one per row: side by side they outgrow the form on narrower panels
+    VerticalLayout {
+        spacing: Theme.sp2;
         alignment: start;
         Switch {
             text: "Можно пропустить ради точного времени";

@@ -32,10 +32,13 @@ export component PageHeader inherits HorizontalLayout {
     }
     if root.subtitle != "": VerticalLayout {
         alignment: center;
+        horizontal-stretch: 1;
+        min-width: 0;
         Label {
             text: root.subtitle;
             type-style: Theme.body-medium;
             color: Theme.color.on-surface-variant;
+            overflow: elide;
         }
     }
     Rectangle {

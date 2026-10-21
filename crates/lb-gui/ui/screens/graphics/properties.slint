@@ -11,6 +11,7 @@ import { Slider } from "../../components/slider.slint";
 import { Interactive } from "../../components/interactive.slint";
 import { EmptyState } from "../../components/feedback.slint";
 import { Gfx } from "../../state/graphics-state.slint";
+import { App } from "../../state/app-state.slint";
 import { FormSection } from "../rules/form-parts.slint";
 
 component AnchorGrid inherits Rectangle {
@@ -87,7 +88,7 @@ export component PropertiesPanel inherits Rectangle {
     if Gfx.p-has: sv := ScrollView {
         VerticalLayout {
             width: sv.visible-width;
-            padding: Theme.sp3;
+            padding: App.narrow ? Theme.sp2 : Theme.sp3;
             padding-top: Theme.sp4;
             spacing: Theme.sp3;
             alignment: start;
@@ -114,13 +115,13 @@ export component PropertiesPanel inherits Rectangle {
                         spacing: Theme.sp2;
                         HorizontalLayout {
                             spacing: Theme.sp2;
-                            Field { min-width: 64px; label: "X"; text <=> Gfx.p-x; mono: true; }
-                            Field { min-width: 64px; label: "Y"; text <=> Gfx.p-y; mono: true; }
+                            Field { min-width: 56px; label: "X"; text <=> Gfx.p-x; mono: true; }
+                            Field { min-width: 56px; label: "Y"; text <=> Gfx.p-y; mono: true; }
                         }
                         HorizontalLayout {
                             spacing: Theme.sp2;
-                            Field { min-width: 64px; label: "Ширина"; text <=> Gfx.p-w; placeholder: "авто"; mono: true; }
-                            Field { min-width: 64px; label: "Высота"; text <=> Gfx.p-h; placeholder: "авто"; mono: true; }
+                            Field { min-width: 56px; label: "Ширина"; text <=> Gfx.p-w; placeholder: "авто"; mono: true; }
+                            Field { min-width: 56px; label: "Высота"; text <=> Gfx.p-h; placeholder: "авто"; mono: true; }
                         }
                     }
                 }
@@ -193,9 +194,9 @@ export component PropertiesPanel inherits Rectangle {
                 }
                 if Gfx.p-kind == 5: HorizontalLayout {
                     spacing: Theme.sp2;
-                    Field { min-width: 64px; label: "Ширина"; text <=> Gfx.p-rw; mono: true; }
-                    Field { min-width: 64px; label: "Высота"; text <=> Gfx.p-rh; mono: true; }
-                    Field { min-width: 64px; label: "Скругление"; text <=> Gfx.p-radius; mono: true; }
+                    Field { min-width: 56px; label: "Ширина"; text <=> Gfx.p-rw; mono: true; }
+                    Field { min-width: 56px; label: "Высота"; text <=> Gfx.p-rh; mono: true; }
+                    Field { min-width: 56px; label: "Скругление"; text <=> Gfx.p-radius; mono: true; }
                 }
                 if Gfx.p-kind == 6: Field {
                     label: "Элементы группы (id через запятую)";
@@ -215,13 +216,13 @@ export component PropertiesPanel inherits Rectangle {
                 HorizontalLayout {
                     spacing: Theme.sp2;
                     ColorField { horizontal-stretch: 2; label: "Обводка"; value <=> Gfx.s-outline; swatch: Gfx.sw-s-outline; }
-                    Field { min-width: 64px; horizontal-stretch: 1; label: "Толщина"; text <=> Gfx.s-outline-w; mono: true; }
+                    Field { min-width: 56px; horizontal-stretch: 1; label: "Толщина"; text <=> Gfx.s-outline-w; mono: true; }
                 }
                 HorizontalLayout {
                     spacing: Theme.sp2;
                     ColorField { horizontal-stretch: 2; label: "Тень"; value <=> Gfx.s-shadow; swatch: Gfx.sw-s-shadow; }
-                    Field { min-width: 64px; horizontal-stretch: 1; label: "dx"; text <=> Gfx.s-shadow-x; mono: true; }
-                    Field { min-width: 64px; horizontal-stretch: 1; label: "dy"; text <=> Gfx.s-shadow-y; mono: true; }
+                    Field { min-width: 56px; horizontal-stretch: 1; label: "dx"; text <=> Gfx.s-shadow-x; mono: true; }
+                    Field { min-width: 56px; horizontal-stretch: 1; label: "dy"; text <=> Gfx.s-shadow-y; mono: true; }
                 }
                 ColorField { label: "Подложка"; value <=> Gfx.s-bg; swatch: Gfx.sw-s-bg; }
                 HorizontalLayout {

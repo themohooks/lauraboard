@@ -53,6 +53,7 @@ cargo build --release
 | [docs/install.md](docs/install.md) | Установка и запуск на Windows и Linux, службы |
 | [docs/configuration.md](docs/configuration.md) | Структура проекта и формат всех файлов конфигурации |
 | [docs/planning.md](docs/planning.md) | Как работает планировщик: сетка, правила, точное время |
+| [docs/gui.md](docs/gui.md) | Интерфейс оператора: разделы, клавиши, настройки, отрисовка |
 | [docs/cli.md](docs/cli.md) | Команды и коды завершения |
 | [docs/api.md](docs/api.md) | REST и WebSocket API |
 | [examples/](examples/) | Пример канала (конфигурация демо) |

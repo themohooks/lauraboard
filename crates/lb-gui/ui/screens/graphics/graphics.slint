@@ -10,11 +10,18 @@ import { IconButton } from "../../components/icon-button.slint";
 import { StatusChip, StatusTone } from "../../components/indicators.slint";
 import { Page, PageHeader } from "../../shell/page.slint";
 import { Gfx } from "../../state/graphics-state.slint";
+import { App } from "../../state/app-state.slint";
 import { GfxCanvas } from "canvas.slint";
 import { GfxToolbar } from "toolbar.slint";
 import { LayersPanel } from "layers.slint";
 import { PropertiesPanel } from "properties.slint";
 import { GfxRulesTab, GfxVarsTab, GfxTemplatesTab } from "extra-tabs.slint";
+
+component GfxTabs inherits SegmentedButton {
+    width: 480px;
+    segments: [{ text: "Холст", icon: Icons.branding-watermark, has-icon: true }, { text: "Правила" }, { text: "Переменные" }, { text: "Шаблоны" }];
+    selected <=> Gfx.tab;
+}
 
 export component GraphicsScreen inherits Page {
     VerticalLayout {
@@ -23,11 +30,7 @@ export component GraphicsScreen inherits Page {
 
         PageHeader {
             title: "Экранная графика";
-            SegmentedButton {
-                width: 480px;
-                segments: [{ text: "Холст", icon: Icons.branding-watermark, has-icon: true }, { text: "Правила" }, { text: "Переменные" }, { text: "Шаблоны" }];
-                selected <=> Gfx.tab;
-            }
+            if !App.narrow: GfxTabs { }
             if Gfx.dirty: VerticalLayout {
                 alignment: center;
                 StatusChip {
@@ -84,6 +87,13 @@ export component GraphicsScreen inherits Page {
             }
         }
 
+        if App.narrow: HorizontalLayout {
+            GfxTabs { }
+            Rectangle {
+                horizontal-stretch: 1;
+            }
+        }
+
         if Gfx.tab == 0: HorizontalLayout {
             vertical-stretch: 1;
             spacing: Theme.sp3;
@@ -106,7 +116,7 @@ export component GraphicsScreen inherits Page {
                 }
             }
             PropertiesPanel {
-                width: clamp(root.width * 0.3, 300px, 400px);
+                width: App.narrow ? 300px : clamp(root.width * 0.3, 300px, 400px);
             }
         }
         if Gfx.tab == 1: GfxRulesTab {

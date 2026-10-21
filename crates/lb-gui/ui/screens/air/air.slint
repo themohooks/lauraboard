@@ -22,7 +22,7 @@ component ControlColumn inherits VerticalLayout {
     HorizontalLayout {
         spacing: Theme.sp3;
         vertical-stretch: 1;
-        min-height: root.stacked ? self.width * 9 / 16 : 200px;
+        min-height: root.stacked ? min(self.width * 9 / 16, 360px) : 200px;
         Monitor {
             horizontal-stretch: 3;
             frame: App.preview;
@@ -119,8 +119,9 @@ export component AirScreen inherits Page {
     }
 
     // narrow window: one scrollable column
-    if !App.monitor-fullscreen && root.stacked: ScrollView {
+    if !App.monitor-fullscreen && root.stacked: sv := ScrollView {
         VerticalLayout {
+            width: sv.visible-width;
             padding: Theme.sp4;
             ControlColumn {
                 stacked: true;

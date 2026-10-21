@@ -12,6 +12,7 @@ import { StatusChip, StatusTone } from "../../components/indicators.slint";
 import { CircularProgress } from "../../components/feedback.slint";
 import { Timeline, MultiDayStrip } from "../../components/timeline.slint";
 import { Grid } from "../../state/schedule-state.slint";
+import { App } from "../../state/app-state.slint";
 
 export component TimelinePanel inherits Rectangle {
     border-radius: Theme.radius-l;
@@ -38,7 +39,10 @@ export component TimelinePanel inherits Rectangle {
                 text: Grid.date-label;
                 type-style: Theme.title-medium;
                 vertical-alignment: center;
-                min-width: self.preferred-width;
+                // narrow window: the long date line gives way to the controls
+                min-width: App.narrow ? 120px : self.preferred-width;
+                horizontal-stretch: App.narrow ? 1 : 0;
+                overflow: elide;
             }
             if Grid.mode == 0: VerticalLayout {
                 alignment: center;

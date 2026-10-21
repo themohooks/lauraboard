@@ -44,7 +44,8 @@ pub fn connect(ui: &AppWindow) {
     let g = ui.global::<Rules>();
     g.on_select(|i| {
         with(move |c| {
-            c.rules.selected = Some(i as usize);
+            // -1: back to the list (narrow window)
+            c.rules.selected = usize::try_from(i).ok();
             refresh(c);
         })
     });

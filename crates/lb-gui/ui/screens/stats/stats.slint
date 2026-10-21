@@ -16,6 +16,7 @@ import { KindTag, Kinds, Tone, StatusTone } from "../../components/indicators.sl
 import { EmptyState, LinearProgress } from "../../components/feedback.slint";
 import { Page, PageHeader } from "../../shell/page.slint";
 import { Stats, StatRow, Kpi } from "../../state/stats-state.slint";
+import { App } from "../../state/app-state.slint";
 
 component KpiCard inherits Card {
     in property <Kpi> kpi;
@@ -147,6 +148,53 @@ component StatRowView inherits ListRow {
     }
 }
 
+component PeriodFields inherits HorizontalLayout {
+    spacing: Theme.sp3;
+    alignment: start;
+        TextField {
+            width: 170px;
+            label: "С";
+            text <=> Stats.from;
+            placeholder: "ГГГГ-ММ-ДД";
+            error: Stats.from-error;
+            mono: true;
+            edited => {
+                Stats.edited();
+            }
+            accepted => {
+                Stats.load();
+            }
+        }
+        TextField {
+            width: 170px;
+            label: "По";
+            text <=> Stats.to;
+            placeholder: "ГГГГ-ММ-ДД";
+            error: Stats.to-error;
+            mono: true;
+            edited => {
+                Stats.edited();
+            }
+            accepted => {
+                Stats.load();
+            }
+        }
+        VerticalLayout {
+            alignment: start;
+            padding-top: 8px;
+            Button {
+                text: "Показать";
+                icon: Icons.refresh;
+                has-icon: true;
+                variant: ButtonVariant.tonal;
+                enabled: Stats.from-error == "" && Stats.to-error == "" && !Stats.loading;
+                clicked => {
+                    Stats.load();
+                }
+            }
+        }
+}
+
 export component StatsScreen inherits Page {
     VerticalLayout {
         padding: Theme.sp4;
@@ -199,48 +247,14 @@ export component StatsScreen inherits Page {
                     }
                 }
             }
-            TextField {
-                width: 170px;
-                label: "С";
-                text <=> Stats.from;
-                placeholder: "ГГГГ-ММ-ДД";
-                error: Stats.from-error;
-                mono: true;
-                edited => {
-                    Stats.edited();
-                }
-                accepted => {
-                    Stats.load();
-                }
+            if !App.narrow: PeriodFields { }
+            Rectangle {
+                horizontal-stretch: 1;
             }
-            TextField {
-                width: 170px;
-                label: "По";
-                text <=> Stats.to;
-                placeholder: "ГГГГ-ММ-ДД";
-                error: Stats.to-error;
-                mono: true;
-                edited => {
-                    Stats.edited();
-                }
-                accepted => {
-                    Stats.load();
-                }
-            }
-            VerticalLayout {
-                alignment: start;
-                padding-top: 8px;
-                Button {
-                    text: "Показать";
-                    icon: Icons.refresh;
-                    has-icon: true;
-                    variant: ButtonVariant.tonal;
-                    enabled: Stats.from-error == "" && Stats.to-error == "" && !Stats.loading;
-                    clicked => {
-                        Stats.load();
-                    }
-                }
-            }
+        }
+
+        if App.narrow: HorizontalLayout {
+            PeriodFields { }
             Rectangle {
                 horizontal-stretch: 1;
             }
