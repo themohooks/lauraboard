@@ -4,9 +4,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
-use eframe::egui::{ColorImage, Context};
-
-use super::Msg;
+use super::{Frame, Msg, Wake};
 use super::api::Api;
 use crate::model::StatusView;
 
@@ -28,14 +26,13 @@ impl Drop for Poller {
     }
 }
 
-fn decode_jpeg(bytes: &[u8]) -> Option<ColorImage> {
+pub fn decode_jpeg(bytes: &[u8]) -> Option<Frame> {
     let img = image::load_from_memory_with_format(bytes, image::ImageFormat::Jpeg).ok()?.to_rgba8();
-    let size = [img.width() as usize, img.height() as usize];
-    Some(ColorImage::from_rgba_unmultiplied(size, img.as_raw()))
+    Some(Frame { width: img.width(), height: img.height(), rgba: img.into_raw() })
 }
 
 impl Poller {
-    pub fn start(api: Api, tx: std::sync::mpsc::Sender<Msg>, ctx: Context) -> Self {
+    pub fn start(api: Api, tx: std::sync::mpsc::Sender<Msg>, wake: Wake) -> Self {
         let target = Arc::new(Mutex::new(PollTarget { channel: None, preview: true }));
         let stop = Arc::new(AtomicBool::new(false));
         let (t2, s2) = (target.clone(), stop.clone());
@@ -73,7 +70,7 @@ impl Poller {
                         let _ = tx.send(Msg::Preview(img));
                     }
                 }
-                ctx.request_repaint();
+                wake();
                 std::thread::sleep(Duration::from_millis(if ok { 500 } else { 2000 }));
             }
         });

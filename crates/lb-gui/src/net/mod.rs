@@ -10,7 +10,8 @@ pub mod events;
 pub mod poller;
 pub mod worker;
 
-use eframe::egui::ColorImage;
+use std::sync::Arc;
+
 use serde_json::Value;
 
 use lb_core::graphics::GraphicsConfig;
@@ -21,6 +22,16 @@ use lb_core::rundown::Rundown;
 use lb_core::schedule::ScheduleSet;
 
 use crate::model::StatusView;
+
+/// Wakes the UI thread after a message was queued (toolkit-agnostic).
+pub type Wake = Arc<dyn Fn() + Send + Sync>;
+
+/// A decoded preview frame (RGBA8, unpremultiplied).
+pub struct Frame {
+    pub width: u32,
+    pub height: u32,
+    pub rgba: Vec<u8>,
+}
 
 /// Results delivered to the UI thread.
 pub enum Msg {
@@ -34,7 +45,7 @@ pub enum Msg {
     Rules(RuleSet),
     Graphics(GraphicsConfig),
     Stats(Value),
-    Preview(ColorImage),
+    Preview(Frame),
     Event(Value),
     /// A command / save succeeded (message for the user).
     Done(String),

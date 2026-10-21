@@ -11,7 +11,7 @@ use crate::model::{LogLine, Model};
 use crate::net::api::Api;
 use crate::net::poller::Poller;
 use crate::net::worker::Worker;
-use crate::net::{Msg, events};
+use crate::net::{Msg, Wake, events};
 use crate::views::{self, Tab, Views};
 use crate::widgets::{Confirm, confirm_modal, hms, pill};
 
@@ -30,9 +30,11 @@ pub struct App {
 impl App {
     pub fn new(cc: &eframe::CreationContext<'_>, opts: GuiOptions) -> Self {
         let api = Api::new(&opts.base_url, opts.token.clone());
-        let (worker, rx) = Worker::new(api.clone(), cc.egui_ctx.clone());
-        let poller = Poller::start(api.clone(), worker.sender(), cc.egui_ctx.clone());
-        events::start(&api, worker.sender(), cc.egui_ctx.clone());
+        let ctx = cc.egui_ctx.clone();
+        let wake: Wake = std::sync::Arc::new(move || ctx.request_repaint());
+        let (worker, rx) = Worker::new(api.clone(), wake.clone());
+        let poller = Poller::start(api.clone(), worker.sender(), wake.clone());
+        events::start(&api, worker.sender(), wake);
         cc.egui_ctx.set_visuals(egui::Visuals::dark());
         let app = App {
             worker,
@@ -128,9 +130,9 @@ impl App {
                 Msg::Rules(r) => self.model.rules = r,
                 Msg::Graphics(g) => self.model.graphics = g,
                 Msg::Stats(s) => self.model.stats = s,
-                Msg::Preview(img) => match &mut self.preview {
-                    Some(t) => t.set(img, egui::TextureOptions::LINEAR),
-                    None => self.preview = Some(ctx.load_texture("preview", img, egui::TextureOptions::LINEAR)),
+                Msg::Preview(f) => match &mut self.preview {
+                    Some(t) => t.set(color_image(&f), egui::TextureOptions::LINEAR),
+                    None => self.preview = Some(ctx.load_texture("preview", color_image(&f), egui::TextureOptions::LINEAR)),
                 },
                 Msg::Event(v) => self.model.push_log(LogLine::from_event(&v)),
                 Msg::Done(text) => self.toast(text, false),
@@ -268,4 +270,8 @@ impl eframe::App for App {
 /// Convenience for views: JSON command.
 pub fn cmd(name: &str) -> Value {
     json!({ "cmd": name })
+}
+
+fn color_image(f: &crate::net::Frame) -> egui::ColorImage {
+    egui::ColorImage::from_rgba_unmultiplied([f.width as usize, f.height as usize], &f.rgba)
 }
