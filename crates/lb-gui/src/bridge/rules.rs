@@ -131,6 +131,7 @@ pub fn reloaded(c: &mut Ctx) {
 }
 
 /// Select the first rule of the current scope (review / tooling).
+#[cfg_attr(not(feature = "snapshot"), allow(dead_code))]
 pub fn select_first(c: &mut Ctx) {
     let set = c.rules.draft.clone().unwrap_or_default();
     c.rules.selected = set.rules.iter().position(|r| in_scope(c, r));

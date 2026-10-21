@@ -8,9 +8,11 @@
 //!
 //! One module per area: [`shell`] (window, navigation, status, overlays),
 //! [`air`] (home + on-air), [`playlists`], [`library`], [`schedule`] (grid),
-//! [`rules`] (automation), [`thumbs`] (media thumbnails).
+//! [`rules`] (automation), [`graphics`] (on-screen graphics editor),
+//! [`thumbs`] (media thumbnails).
 
 pub mod air;
+pub mod graphics;
 pub mod library;
 pub mod playlists;
 pub mod rules;
@@ -57,6 +59,9 @@ pub struct Ctx {
     pub lib: library::LibraryState,
     pub grid: schedule::ScheduleState,
     pub rules: rules::RulesState,
+    pub gfx: graphics::GraphicsState,
+    /// Channel configuration (admin only; `None` when not available).
+    pub channel_config: Option<Value>,
 }
 
 thread_local! {
@@ -114,6 +119,8 @@ pub fn start(ui: &AppWindow, opts: &GuiOptions, prefs: UiPrefs) {
         lib: Default::default(),
         grid: Default::default(),
         rules: Default::default(),
+        gfx: Default::default(),
+        channel_config: None,
     };
     ui.global::<App>().set_api_url(api.base.clone().into());
     CTX.with(|c| *c.borrow_mut() = Some(ctx));
@@ -123,6 +130,7 @@ pub fn start(ui: &AppWindow, opts: &GuiOptions, prefs: UiPrefs) {
     library::connect(ui);
     schedule::connect(ui);
     rules::connect(ui);
+    graphics::connect(ui);
     with(|c| {
         shell::apply_prefs(c);
         air::apply_prefs(c);
@@ -214,9 +222,13 @@ impl Ctx {
             Msg::Graphics(g) => {
                 self.model.graphics = g;
                 air::status_changed(self);
+                graphics::reloaded(self);
             }
             Msg::Stats(s) => self.model.stats = s,
-            Msg::Preview(f) => shell::preview_changed(self, f),
+            Msg::Preview(f) => {
+                shell::preview_changed(self, f);
+                graphics::preview_changed(self);
+            }
             Msg::Thumb(id, f) => {
                 thumbs::arrived(self, id.clone(), f);
                 air::status_changed(self);
@@ -277,8 +289,19 @@ impl Ctx {
         self.worker.spawn(move |api| Ok(Msg::Schedules(api.get(&format!("/channels/{c}/schedules"))?)));
         let c = ch.clone();
         self.worker.spawn(move |api| Ok(Msg::Rules(api.get(&format!("/channels/{c}/rules"))?)));
-        let c = ch;
+        let c = ch.clone();
         self.worker.spawn(move |api| Ok(Msg::Graphics(api.get(&format!("/channels/{c}/graphics"))?)));
+        // needs the admin role; without it the GUI falls back to defaults
+        let c = ch;
+        self.worker.spawn(move |api| {
+            let cfg: Option<Value> = api.get(&format!("/channels/{c}/config")).ok();
+            Ok(Msg::Apply(Box::new(move |c: &mut Ctx| {
+                c.channel_config = cfg;
+                if c.section() == "graphics" {
+                    graphics::refresh(c);
+                }
+            })))
+        });
     }
 
     /// Send a channel command (`{"cmd": ...}`).

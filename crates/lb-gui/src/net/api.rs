@@ -71,6 +71,16 @@ impl Api {
         Ok(serde_json::from_slice(&bytes).unwrap_or(Value::Null))
     }
 
+    /// POST returning the raw body (images).
+    pub fn post_bytes<B: Serialize>(&self, path: &str, body: &B) -> Result<Vec<u8>, String> {
+        let json = serde_json::to_string(body).map_err(|e| e.to_string())?;
+        let mut r = self.agent.post(self.url(path)).header("content-type", "application/json");
+        if let Some(t) = &self.token {
+            r = r.header("Authorization", format!("Bearer {t}"));
+        }
+        Self::finish(r.send(json.as_str()))
+    }
+
     pub fn post<B: Serialize>(&self, path: &str, body: &B) -> Result<Value, String> {
         self.send("POST", path, body)
     }

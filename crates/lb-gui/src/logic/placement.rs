@@ -2,7 +2,7 @@
 //! `lb_gfx::layout::place` / `fit_size`), inverse mapping for drag and
 //! resize, snapping to frame edges, centre and the safe area.
 
-use lb_core::graphics::{Anchor, Element, ElementKind, Placement, TextStyle};
+use lb_core::graphics::{Anchor, Element, ElementKind, GraphicsConfig, Placement, TextStyle};
 
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
 pub struct Rect {
@@ -51,40 +51,75 @@ fn text_box(sample: &str, st: &TextStyle) -> (f32, f32) {
     (chars * st.size * 0.55 + 2.0 * st.padding, st.size * 1.25 + 2.0 * st.padding)
 }
 
-/// Approximate natural size (exact sizes come from the server render).
-pub fn natural_size(e: &Element, frame_w: f32) -> (f32, f32) {
+/// Approximate natural size inside `region` (exact sizes come from the
+/// server render).
+fn natural_size(e: &Element, region: Rect) -> (f32, f32) {
     match &e.kind {
         ElementKind::Text { text, style } => text_box(text, style),
-        ElementKind::Ticker { style, width, .. } => (width.unwrap_or(frame_w), text_box("x", style).1),
+        ElementKind::Ticker { style, width, .. } => (width.unwrap_or(region.w - 2.0 * e.placement.x).max(1.0), text_box("x", style).1),
         ElementKind::Clock { format, style } => text_box(&format.replace("%H", "00").replace("%M", "00").replace("%S", "00"), style),
         ElementKind::Countdown { style, prefix, .. } => text_box(&format!("{prefix}00:00:00"), style),
         ElementKind::Rect { width, height, .. } => (*width, *height),
         ElementKind::Image { .. } => (320.0, 180.0),
-        ElementKind::Group { .. } => (400.0, 120.0),
+        // a group without a size fills its region, like the compositor
+        ElementKind::Group { .. } => (region.w, region.h),
     }
 }
 
 /// Element box in the frame.
+#[cfg(test)]
 pub fn rect_of(e: &Element, frame_w: f32, frame_h: f32) -> Rect {
-    let (nw, nh) = natural_size(e, frame_w);
+    rect_in(e, Rect { x: 0.0, y: 0.0, w: frame_w, h: frame_h })
+}
+
+/// Element box inside `region` (the frame, or the box of its group).
+pub fn rect_in(e: &Element, region: Rect) -> Rect {
+    let (nw, nh) = natural_size(e, region);
     let p = &e.placement;
-    let (w, h) = match (p.width, p.height) {
-        (Some(w), Some(h)) => (w, h),
-        (Some(w), None) if nw > 0.0 => (w, nh * w / nw),
-        (None, Some(h)) if nh > 0.0 => (nw * h / nh, h),
+    let (w, h) = match (&e.kind, p.width, p.height) {
+        (ElementKind::Group { .. }, w, h) => (w.unwrap_or(nw), h.unwrap_or(nh)),
+        (ElementKind::Ticker { .. }, _, _) => (nw, nh),
+        (_, Some(w), Some(h)) => (w, h),
+        (_, Some(w), None) if nw > 0.0 => (w, nh * w / nw),
+        (_, None, Some(h)) if nh > 0.0 => (nw * h / nh, h),
         _ => (nw, nh),
     };
     let (fx, fy) = anchor_factors(p.anchor);
     let dx = if fx == 1.0 { -p.x } else { p.x };
     let dy = if fy == 1.0 { -p.y } else { p.y };
-    Rect { x: (frame_w - w) * fx + dx, y: (frame_h - h) * fy + dy, w, h }
+    Rect { x: region.x + (region.w - w) * fx + dx, y: region.y + (region.h - h) * fy + dy, w, h }
+}
+
+/// Region an element is placed in: the box of the group listing it as a
+/// child (groups nest, at most 8 deep like the compositor), else the frame.
+pub fn region_of(cfg: &GraphicsConfig, id: &str, frame_w: f32, frame_h: f32) -> Rect {
+    let frame = Rect { x: 0.0, y: 0.0, w: frame_w, h: frame_h };
+    let mut chain = Vec::new();
+    let mut cur = id;
+    while chain.len() < 8 {
+        let parent = cfg.elements.iter().find(|g| matches!(&g.kind, ElementKind::Group { children } if children.iter().any(|c| c == cur)));
+        match parent {
+            Some(g) if !chain.iter().any(|x: &&Element| x.id == g.id) && g.id != id => {
+                chain.push(g);
+                cur = &g.id;
+            }
+            _ => break,
+        }
+    }
+    chain.iter().rev().fold(frame, |region, g| rect_in(g, region))
 }
 
 /// Placement x/y that puts the box's top-left at `r` for the given anchor.
-pub fn placement_for(mut p: Placement, r: Rect, frame_w: f32, frame_h: f32) -> Placement {
+#[cfg(test)]
+pub fn placement_for(p: Placement, r: Rect, frame_w: f32, frame_h: f32) -> Placement {
+    placement_in(p, r, Rect { x: 0.0, y: 0.0, w: frame_w, h: frame_h })
+}
+
+/// Inverse of [`rect_in`]: placement putting the box at `r` inside `region`.
+pub fn placement_in(mut p: Placement, r: Rect, region: Rect) -> Placement {
     let (fx, fy) = anchor_factors(p.anchor);
-    let base_x = (frame_w - r.w) * fx;
-    let base_y = (frame_h - r.h) * fy;
+    let base_x = region.x + (region.w - r.w) * fx;
+    let base_y = region.y + (region.h - r.h) * fy;
     p.x = if fx == 1.0 { base_x - r.x } else { r.x - base_x };
     p.y = if fy == 1.0 { base_y - r.y } else { r.y - base_y };
     p.x = (p.x * 10.0).round() / 10.0;
@@ -195,5 +230,24 @@ mod tests {
         let r = resize(Rect { x: 10.0, y: 10.0, w: 100.0, h: 100.0 }, 0, 200.0, 0.0, 20.0);
         assert_eq!((r.x, r.w), (90.0, 20.0));
         assert!(valid_color("#FF00aa80") && !valid_color("red"));
+    }
+
+    #[test]
+    fn group_children_are_placed_in_the_group_box() {
+        let mut g = rect_el(Anchor::BottomLeft, 40.0, 60.0);
+        g.id = "grp".into();
+        g.kind = ElementKind::Group { children: vec!["kid".into()] };
+        g.placement.width = Some(600.0);
+        g.placement.height = Some(120.0);
+        let mut kid = rect_el(Anchor::TopRight, 10.0, 20.0);
+        kid.id = "kid".into();
+        let cfg = GraphicsConfig { elements: vec![g.clone(), kid.clone()], ..Default::default() };
+        let region = region_of(&cfg, "kid", 1920.0, 1080.0);
+        assert_eq!(region, Rect { x: 40.0, y: 900.0, w: 600.0, h: 120.0 });
+        assert_eq!(rect_in(&kid, region), Rect { x: 530.0, y: 920.0, w: 100.0, h: 50.0 });
+        assert_eq!(region_of(&cfg, "grp", 1920.0, 1080.0), Rect { x: 0.0, y: 0.0, w: 1920.0, h: 1080.0 });
+        // inverse inside the region
+        let p = placement_in(kid.placement.clone(), Rect { x: 500.0, y: 910.0, w: 100.0, h: 50.0 }, region);
+        assert_eq!((p.x, p.y), (40.0, 10.0));
     }
 }

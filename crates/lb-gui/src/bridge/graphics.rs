@@ -1,0 +1,1102 @@
+//! On-screen graphics editor: canvas (drag / resize with snapping),
+//! layers, properties, exact server render and animation preview, live
+//! control, display rules, template variables, saved design templates.
+
+use std::collections::HashSet;
+use std::path::PathBuf;
+use std::rc::Rc;
+use std::time::{Duration, Instant};
+
+use serde_json::json;
+use slint::{Color, ComponentHandle, Image, Model, Rgba8Pixel, SharedPixelBuffer, SharedString, VecModel};
+
+use lb_core::Dur;
+use lb_core::graphics::{Animation, AnimKind, CountdownTarget, Element, ElementKind, GraphicRule, GraphicsConfig, Placement, TextStyle};
+
+use super::{Ctx, vec_model, with};
+use crate::logic::placement::{self, ANCHORS, Rect};
+use crate::logic::undo::History;
+use crate::net::Msg;
+use crate::shell::{App, AppWindow, CanvasItem, GRuleRow, Gfx, LayerRow, VarRow};
+
+struct Drag {
+    index: usize,
+    handle: i32,
+    start: Rect,
+    /// Frame or the box of the element's group.
+    region: Rect,
+    before: GraphicsConfig,
+}
+
+#[derive(Default)]
+pub struct GraphicsState {
+    saved: Option<GraphicsConfig>,
+    draft: Option<GraphicsConfig>,
+    history: History<GraphicsConfig>,
+    selected: Option<usize>,
+    hidden: HashSet<String>,
+    locked: HashSet<String>,
+    drag: Option<Drag>,
+    items: Rc<VecModel<CanvasItem>>,
+    render_seq: u64,
+    last_edit: Option<(String, Instant)>,
+    templates: Vec<PathBuf>,
+}
+
+impl GraphicsState {
+    pub fn dirty(&self) -> bool {
+        self.draft.is_some() && self.draft != self.saved
+    }
+}
+
+const ANIMS: [AnimKind; 6] = [AnimKind::None, AnimKind::Fade, AnimKind::SlideLeft, AnimKind::SlideRight, AnimKind::SlideUp, AnimKind::SlideDown];
+
+fn s(v: impl Into<SharedString>) -> SharedString {
+    v.into()
+}
+
+/// Output frame size (channel video format; 1920×1080 when unknown).
+fn frame(c: &Ctx) -> (f32, f32) {
+    let v = c.channel_config.as_ref().map(|c| &c["video"]);
+    match v.and_then(|v| Some((v["width"].as_f64()?, v["height"].as_f64()?))) {
+        Some((w, h)) if w > 0.0 && h > 0.0 => (w as f32, h as f32),
+        _ => (1920.0, 1080.0),
+    }
+}
+
+fn kind_id(k: &ElementKind) -> &'static str {
+    match k {
+        ElementKind::Text { .. } => "text",
+        ElementKind::Ticker { .. } => "ticker",
+        ElementKind::Clock { .. } => "clock",
+        ElementKind::Countdown { .. } => "countdown",
+        ElementKind::Image { .. } => "image",
+        ElementKind::Rect { .. } => "rect",
+        ElementKind::Group { .. } => "group",
+    }
+}
+
+fn kind_index(k: &ElementKind) -> i32 {
+    match k {
+        ElementKind::Text { .. } => 0,
+        ElementKind::Ticker { .. } => 1,
+        ElementKind::Clock { .. } => 2,
+        ElementKind::Countdown { .. } => 3,
+        ElementKind::Image { .. } => 4,
+        ElementKind::Rect { .. } => 5,
+        ElementKind::Group { .. } => 6,
+    }
+}
+
+fn label(e: &Element) -> String {
+    if e.name.is_empty() { e.id.clone() } else { e.name.clone() }
+}
+
+/// `#RRGGBB[AA]` → colour for swatches.
+fn color_of(hex: &str) -> Color {
+    if !placement::valid_color(hex) {
+        return Color::from_argb_u8(0, 0, 0, 0);
+    }
+    let h = hex.trim().trim_start_matches('#');
+    let b = |i: usize| u8::from_str_radix(&h[i..i + 2], 16).unwrap_or(0);
+    Color::from_argb_u8(if h.len() == 8 { b(6) } else { 255 }, b(0), b(2), b(4))
+}
+
+pub fn connect(ui: &AppWindow) {
+    let g = ui.global::<Gfx>();
+    g.on_select(|i| {
+        with(move |c| {
+            c.gfx.selected = usize::try_from(i).ok();
+            props(c);
+            if let Some(ui) = c.window() {
+                ui.global::<Gfx>().set_selected(i);
+            }
+        })
+    });
+    g.on_drag_start(|i, h| with(move |c| drag_start(c, i as usize, h)));
+    g.on_drag_move(|i, h, dx, dy| with(move |c| drag_move(c, i as usize, h, dx, dy)));
+    g.on_drag_end(|| with(drag_end));
+    g.on_nudge(|dx, dy| with(move |c| nudge(c, dx, dy)));
+    g.on_props_changed(|| with(props_changed));
+    g.on_add(|k| with(move |c| add(c, k.as_str())));
+    g.on_duplicate(|| with(duplicate));
+    g.on_remove(|| with(remove));
+    g.on_layer_step(|i, d| {
+        with(move |c| {
+            mutate(c, None, |cfg| {
+                if let Some(e) = cfg.elements.get_mut(i as usize) {
+                    e.layer += d;
+                }
+            });
+            refresh(c);
+        })
+    });
+    g.on_toggle_hidden(|i| with(move |c| toggle_flag(c, i as usize, true)));
+    g.on_toggle_locked(|i| with(move |c| toggle_flag(c, i as usize, false)));
+    g.on_live(|a| with(move |c| live(c, a.as_str())));
+    g.on_render(|| with(render));
+    g.on_preview_animation(|| with(preview_animation));
+    g.on_rule_edited(|i, f, v| with(move |c| rule_edited(c, i as usize, f.as_str(), v.as_str())));
+    g.on_rule_add(|| with(rule_add));
+    g.on_rule_remove(|i| {
+        with(move |c| {
+            mutate(c, None, |cfg| {
+                if (i as usize) < cfg.rules.len() {
+                    cfg.rules.remove(i as usize);
+                }
+            });
+            refresh(c);
+            c.toast_with("Правило показа удалено", "Отменить", undo);
+        })
+    });
+    g.on_var_edited(|i, v| with(move |c| var_edited(c, i as usize, v.to_string())));
+    g.on_var_add(|| with(var_add));
+    g.on_var_remove(|i| {
+        with(move |c| {
+            let Some(key) = sorted_vars(c).get(i as usize).map(|(k, _)| k.clone()) else { return };
+            mutate(c, None, |cfg| {
+                cfg.vars.remove(&key);
+            });
+            refresh(c);
+        })
+    });
+    g.on_template_save(|| with(template_save));
+    g.on_template_apply(|i| with(move |c| template_apply(c, i as usize)));
+    g.on_template_delete(|i| with(move |c| template_delete(c, i as usize)));
+    g.on_save(|| with(save));
+    g.on_revert(|| {
+        with(|c| {
+            let saved = c.gfx.saved.clone();
+            mutate(c, None, move |cfg| {
+                if let Some(s) = saved {
+                    *cfg = s;
+                }
+            });
+            refresh(c);
+        })
+    });
+    g.on_undo(|| with(undo));
+    g.on_redo(|| with(redo));
+}
+
+pub fn reloaded(c: &mut Ctx) {
+    let was_dirty = c.gfx.dirty();
+    let changed = c.gfx.saved.as_ref() != Some(&c.model.graphics);
+    c.gfx.saved = Some(c.model.graphics.clone());
+    if !was_dirty {
+        c.gfx.draft = c.gfx.saved.clone();
+    }
+    if c.section() == "graphics" {
+        refresh(c);
+        if changed && !was_dirty {
+            render(c);
+        }
+    }
+}
+
+/// Select element `i` (as a click on the canvas would).
+#[cfg_attr(not(feature = "snapshot"), allow(dead_code))]
+pub fn select(c: &mut Ctx, i: usize) {
+    c.gfx.selected = Some(i);
+    props(c);
+    if let Some(ui) = c.window() {
+        ui.global::<Gfx>().set_selected(i as i32);
+    }
+}
+
+pub fn opened(c: &mut Ctx) {
+    if c.gfx.draft.is_none() {
+        c.gfx.saved = Some(c.model.graphics.clone());
+        c.gfx.draft = c.gfx.saved.clone();
+    }
+    refresh(c);
+    render(c);
+}
+
+fn mutate(c: &mut Ctx, coalesce: Option<&str>, f: impl FnOnce(&mut GraphicsConfig)) {
+    let Some(before) = c.gfx.draft.clone() else { return };
+    let mut after = before.clone();
+    f(&mut after);
+    let merge = match (coalesce, &c.gfx.last_edit) {
+        (Some(k), Some((lk, at))) => k == lk && at.elapsed() < Duration::from_millis(1500),
+        _ => false,
+    };
+    if !merge {
+        c.gfx.history.record(&before, &after);
+    }
+    c.gfx.last_edit = coalesce.map(|k| (k.to_string(), Instant::now()));
+    c.gfx.draft = Some(after);
+    schedule_render(c);
+}
+
+fn flags(c: &mut Ctx) {
+    let Some(ui) = c.window() else { return };
+    let g = ui.global::<Gfx>();
+    g.set_dirty(c.gfx.dirty());
+    g.set_can_undo(c.gfx.history.can_undo());
+    g.set_can_redo(c.gfx.history.can_redo());
+}
+
+fn active(c: &Ctx) -> Vec<String> {
+    c.model.status.graphics.iter().map(|g| g.element.clone()).collect()
+}
+
+fn canvas_item(c: &Ctx, i: usize, e: &Element, on: &[String]) -> CanvasItem {
+    let (fw, fh) = frame(c);
+    let cfg = c.gfx.draft.as_ref();
+    let region = cfg.map(|cfg| placement::region_of(cfg, &e.id, fw, fh)).unwrap_or(Rect { x: 0.0, y: 0.0, w: fw, h: fh });
+    let r = placement::rect_in(e, region);
+    CanvasItem {
+        index: i as i32,
+        name: s(label(e)),
+        kind: s(kind_id(&e.kind)),
+        x: r.x,
+        y: r.y,
+        w: r.w,
+        h: r.h,
+        hidden: c.gfx.hidden.contains(&e.id),
+        locked: c.gfx.locked.contains(&e.id),
+        on_air: on.contains(&e.id),
+    }
+}
+
+/// Everything except the property fields.
+pub fn refresh(c: &mut Ctx) {
+    let Some(ui) = c.window() else { return };
+    let g = ui.global::<Gfx>();
+    let cfg = c.gfx.draft.clone().unwrap_or_default();
+    let (fw, fh) = frame(c);
+    g.set_frame_w(fw);
+    g.set_frame_h(fh);
+    let on = active(c);
+    // drawing order: lower layers first
+    let mut order: Vec<usize> = (0..cfg.elements.len()).collect();
+    order.sort_by_key(|&i| cfg.elements[i].layer);
+    let items: Vec<CanvasItem> = order.iter().map(|&i| canvas_item(c, i, &cfg.elements[i], &on)).collect();
+    c.gfx.items = Rc::new(VecModel::from(items));
+    g.set_items(c.gfx.items.clone().into());
+    g.set_layers(vec_model(
+        order
+            .iter()
+            .rev()
+            .map(|&i| {
+                let e = &cfg.elements[i];
+                LayerRow {
+                    index: i as i32,
+                    name: s(label(e)),
+                    kind: s(kind_id(&e.kind)),
+                    kind_name: s(super::air::element_kind_name(&e.kind)),
+                    layer: e.layer,
+                    hidden: c.gfx.hidden.contains(&e.id),
+                    locked: c.gfx.locked.contains(&e.id),
+                    on_air: on.contains(&e.id),
+                }
+            })
+            .collect(),
+    ));
+    if c.gfx.selected.is_some_and(|i| i >= cfg.elements.len()) {
+        c.gfx.selected = None;
+    }
+    g.set_selected(c.gfx.selected.map(|i| i as i32).unwrap_or(-1));
+    g.set_element_names(vec_model(cfg.elements.iter().map(|e| s(format!("{} ({})", label(e), e.id))).collect()));
+    rules_rows(c);
+    vars_rows(c);
+    templates_list(c);
+    props(c);
+    flags(c);
+}
+
+/// Update one canvas box in place (during drags).
+fn update_item(c: &mut Ctx, index: usize) {
+    let Some(e) = c.gfx.draft.as_ref().and_then(|d| d.elements.get(index)).cloned() else { return };
+    let on = active(c);
+    // a group carries its children along: re-place every row then
+    let all = matches!(e.kind, ElementKind::Group { .. });
+    for r in 0..c.gfx.items.row_count() {
+        let Some(row) = c.gfx.items.row_data(r) else { continue };
+        if row.index == index as i32 {
+            let it = canvas_item(c, index, &e, &on);
+            c.gfx.items.set_row_data(r, it);
+        } else if all && let Some(other) = c.gfx.draft.as_ref().and_then(|d| d.elements.get(row.index as usize)).cloned() {
+            let it = canvas_item(c, row.index as usize, &other, &on);
+            c.gfx.items.set_row_data(r, it);
+        }
+    }
+}
+
+fn fmt_num(v: f32) -> String {
+    if (v - v.round()).abs() < 0.01 { format!("{}", v.round() as i64) } else { format!("{v:.1}") }
+}
+
+fn opt_num(v: Option<f32>) -> String {
+    v.map(fmt_num).unwrap_or_default()
+}
+
+/// Property fields of the selected element.
+fn props(c: &mut Ctx) {
+    let Some(ui) = c.window() else { return };
+    let g = ui.global::<Gfx>();
+    let Some(e) = c.gfx.selected.and_then(|i| c.gfx.draft.as_ref().and_then(|d| d.elements.get(i))).cloned() else {
+        g.set_p_has(false);
+        return;
+    };
+    g.set_p_has(true);
+    g.set_p_id(s(e.id.clone()));
+    g.set_p_name(s(e.name.clone()));
+    g.set_p_kind(kind_index(&e.kind));
+    g.set_p_anchor(ANCHORS.iter().position(|a| *a == e.placement.anchor).unwrap_or(0) as i32);
+    pos_fields(c, &e);
+    g.set_p_opacity(e.opacity);
+    g.set_p_layer(s(e.layer.to_string()));
+    let st = match &e.kind {
+        ElementKind::Text { text, style } => {
+            g.set_p_text(s(text.clone()));
+            Some(style.clone())
+        }
+        ElementKind::Ticker { text, style, speed, width } => {
+            g.set_p_text(s(text.clone()));
+            g.set_p_speed(s(fmt_num(*speed)));
+            g.set_p_twidth(s(opt_num(*width)));
+            Some(style.clone())
+        }
+        ElementKind::Clock { format, style } => {
+            g.set_p_format(s(format.clone()));
+            Some(style.clone())
+        }
+        ElementKind::Countdown { target, style, prefix } => {
+            g.set_p_target(if *target == CountdownTarget::NextProgram { 1 } else { 0 });
+            g.set_p_prefix(s(prefix.clone()));
+            Some(style.clone())
+        }
+        ElementKind::Image { path } => {
+            g.set_p_path(s(path.clone()));
+            None
+        }
+        ElementKind::Rect { color, width, height, radius } => {
+            g.set_p_color(s(color.clone()));
+            g.set_sw_p_color(color_of(color));
+            g.set_p_rw(s(fmt_num(*width)));
+            g.set_p_rh(s(fmt_num(*height)));
+            g.set_p_radius(s(fmt_num(*radius)));
+            None
+        }
+        ElementKind::Group { children } => {
+            g.set_p_children(s(children.join(", ")));
+            None
+        }
+    };
+    if let Some(st) = st {
+        g.set_s_font(s(st.font.clone().unwrap_or_default()));
+        g.set_s_size(s(fmt_num(st.size)));
+        g.set_s_color(s(st.color.clone()));
+        g.set_s_outline(s(st.outline_color.clone().unwrap_or_default()));
+        g.set_s_outline_w(s(fmt_num(st.outline_width)));
+        g.set_s_shadow(s(st.shadow_color.clone().unwrap_or_default()));
+        g.set_s_shadow_x(s(fmt_num(st.shadow_offset.0)));
+        g.set_s_shadow_y(s(fmt_num(st.shadow_offset.1)));
+        g.set_s_bg(s(st.background.clone().unwrap_or_default()));
+        g.set_s_padding(s(fmt_num(st.padding)));
+        g.set_s_corner(s(fmt_num(st.corner_radius)));
+        swatches(c);
+    }
+    g.set_a_in(ANIMS.iter().position(|a| *a == e.animation.anim_in).unwrap_or(0) as i32);
+    g.set_a_out(ANIMS.iter().position(|a| *a == e.animation.anim_out).unwrap_or(0) as i32);
+    g.set_a_ms(s(e.animation.duration.ms().to_string()));
+    g.set_p_profiles(s(e.profiles.join(", ")));
+    g.set_prop_errors(SharedString::new());
+}
+
+fn pos_fields(c: &Ctx, e: &Element) {
+    let Some(ui) = c.window() else { return };
+    let g = ui.global::<Gfx>();
+    g.set_p_x(s(fmt_num(e.placement.x)));
+    g.set_p_y(s(fmt_num(e.placement.y)));
+    g.set_p_w(s(opt_num(e.placement.width)));
+    g.set_p_h(s(opt_num(e.placement.height)));
+}
+
+fn swatches(c: &Ctx) {
+    let Some(ui) = c.window() else { return };
+    let g = ui.global::<Gfx>();
+    g.set_sw_p_color(color_of(&g.get_p_color()));
+    g.set_sw_s_color(color_of(&g.get_s_color()));
+    g.set_sw_s_outline(color_of(&g.get_s_outline()));
+    g.set_sw_s_shadow(color_of(&g.get_s_shadow()));
+    g.set_sw_s_bg(color_of(&g.get_s_bg()));
+}
+
+/// Read the property fields into the selected element.
+fn props_changed(c: &mut Ctx) {
+    let Some(i) = c.gfx.selected else { return };
+    let Some(ui) = c.window() else { return };
+    let g = ui.global::<Gfx>();
+    let Some(mut e) = c.gfx.draft.as_ref().and_then(|d| d.elements.get(i)).cloned() else { return };
+    let errors = std::cell::RefCell::new(Vec::<String>::new());
+    let mut num = |label: &str, v: SharedString, old: f32| -> f32 {
+        match v.trim().replace(',', ".").parse::<f32>() {
+            Ok(x) if x.is_finite() => x,
+            _ => {
+                errors.borrow_mut().push(format!("{label}: нужно число"));
+                old
+            }
+        }
+    };
+    e.name = g.get_p_name().trim().to_string();
+    e.placement.anchor = ANCHORS.get(g.get_p_anchor().max(0) as usize).copied().unwrap_or_default();
+    e.placement.x = num("X", g.get_p_x(), e.placement.x);
+    e.placement.y = num("Y", g.get_p_y(), e.placement.y);
+    e.placement.width = if g.get_p_w().trim().is_empty() { None } else { Some(num("Ширина", g.get_p_w(), e.placement.width.unwrap_or(0.0)).max(1.0)) };
+    e.placement.height = if g.get_p_h().trim().is_empty() { None } else { Some(num("Высота", g.get_p_h(), e.placement.height.unwrap_or(0.0)).max(1.0)) };
+    e.opacity = g.get_p_opacity().clamp(0.0, 1.0);
+    match g.get_p_layer().trim().parse::<i32>() {
+        Ok(l) => e.layer = l,
+        Err(_) => errors.borrow_mut().push("Слой: целое число".into()),
+    }
+    let mut color = |label: &str, v: SharedString, required: bool| -> Option<String> {
+        let t = v.trim().to_string();
+        if t.is_empty() && !required {
+            return None;
+        }
+        if placement::valid_color(&t) {
+            Some(t)
+        } else {
+            errors.borrow_mut().push(format!("{label}: цвет в формате #RRGGBB или #RRGGBBAA"));
+            None
+        }
+    };
+    let style_from = |st: &TextStyle, g: &Gfx, color: &mut dyn FnMut(&str, SharedString, bool) -> Option<String>, num: &mut dyn FnMut(&str, SharedString, f32) -> f32| -> TextStyle {
+        TextStyle {
+            font: Some(g.get_s_font().trim().to_string()).filter(|x| !x.is_empty()),
+            size: num("Размер", g.get_s_size(), st.size).clamp(4.0, 400.0),
+            color: color("Цвет текста", g.get_s_color(), true).unwrap_or_else(|| st.color.clone()),
+            outline_color: color("Обводка", g.get_s_outline(), false),
+            outline_width: num("Толщина обводки", g.get_s_outline_w(), st.outline_width).max(0.0),
+            shadow_color: color("Тень", g.get_s_shadow(), false),
+            shadow_offset: (num("Тень dx", g.get_s_shadow_x(), st.shadow_offset.0), num("Тень dy", g.get_s_shadow_y(), st.shadow_offset.1)),
+            background: color("Подложка", g.get_s_bg(), false),
+            padding: num("Отступ", g.get_s_padding(), st.padding).max(0.0),
+            corner_radius: num("Скругление", g.get_s_corner(), st.corner_radius).max(0.0),
+        }
+    };
+    e.kind = match e.kind.clone() {
+        ElementKind::Text { style, .. } => ElementKind::Text { text: g.get_p_text().to_string(), style: style_from(&style, &g, &mut color, &mut num) },
+        ElementKind::Ticker { style, speed, width, .. } => ElementKind::Ticker {
+            text: g.get_p_text().to_string(),
+            speed: num("Скорость", g.get_p_speed(), speed).clamp(1.0, 2000.0),
+            width: if g.get_p_twidth().trim().is_empty() { None } else { Some(num("Ширина полосы", g.get_p_twidth(), width.unwrap_or(0.0)).max(10.0)) },
+            style: style_from(&style, &g, &mut color, &mut num),
+        },
+        ElementKind::Clock { style, .. } => ElementKind::Clock { format: g.get_p_format().to_string(), style: style_from(&style, &g, &mut color, &mut num) },
+        ElementKind::Countdown { style, .. } => ElementKind::Countdown {
+            target: if g.get_p_target() == 1 { CountdownTarget::NextProgram } else { CountdownTarget::ItemRemaining },
+            prefix: g.get_p_prefix().to_string(),
+            style: style_from(&style, &g, &mut color, &mut num),
+        },
+        ElementKind::Image { .. } => ElementKind::Image { path: g.get_p_path().trim().to_string() },
+        ElementKind::Rect { color: old, width, height, radius } => ElementKind::Rect {
+            color: color("Цвет плашки", g.get_p_color(), true).unwrap_or(old),
+            width: num("Ширина плашки", g.get_p_rw(), width).max(1.0),
+            height: num("Высота плашки", g.get_p_rh(), height).max(1.0),
+            radius: num("Скругление", g.get_p_radius(), radius).max(0.0),
+        },
+        ElementKind::Group { .. } => ElementKind::Group { children: g.get_p_children().split(',').map(|x| x.trim().to_string()).filter(|x| !x.is_empty()).collect() },
+    };
+    e.animation = Animation {
+        anim_in: ANIMS.get(g.get_a_in().max(0) as usize).copied().unwrap_or_default(),
+        anim_out: ANIMS.get(g.get_a_out().max(0) as usize).copied().unwrap_or_default(),
+        duration: match g.get_a_ms().trim().parse::<i64>() {
+            Ok(ms) if (0..=10_000).contains(&ms) => Dur(ms),
+            _ => {
+                errors.borrow_mut().push("Длительность анимации: 0–10000 мс".into());
+                e.animation.duration
+            }
+        },
+    };
+    e.profiles = g.get_p_profiles().split(',').map(|x| x.trim().to_string()).filter(|x| !x.is_empty()).collect();
+    g.set_prop_errors(s(errors.borrow().join(" · ")));
+    swatches(c);
+    mutate(c, Some("props"), move |cfg| cfg.elements[i] = e);
+    update_item(c, i);
+    flags(c);
+}
+
+// ------------------------------------------------------------ canvas edits
+
+fn drag_start(c: &mut Ctx, i: usize, handle: i32) {
+    let (fw, fh) = frame(c);
+    let Some(cfg) = c.gfx.draft.clone() else { return };
+    let Some(e) = cfg.elements.get(i) else { return };
+    if c.gfx.locked.contains(&e.id) {
+        return;
+    }
+    let region = placement::region_of(&cfg, &e.id, fw, fh);
+    let start = placement::rect_in(e, region);
+    c.gfx.selected = Some(i);
+    c.gfx.drag = Some(Drag { index: i, handle, start, region, before: cfg });
+    if let Some(ui) = c.window() {
+        ui.global::<Gfx>().set_selected(i as i32);
+    }
+    props(c);
+}
+
+fn drag_move(c: &mut Ctx, i: usize, handle: i32, dx: f32, dy: f32) {
+    let Some(d) = c.gfx.drag.as_ref() else { return };
+    if d.index != i || d.handle != handle {
+        return;
+    }
+    let (fw, fh) = frame(c);
+    let Some(ui) = c.window() else { return };
+    let g = ui.global::<Gfx>();
+    let snap = g.get_snap();
+    let (mut r, mut vg, mut hg) = (Rect { x: d.start.x + dx, y: d.start.y + dy, ..d.start }, vec![], vec![]);
+    if handle >= 0 {
+        r = placement::resize(d.start, handle, dx, dy, 8.0);
+    } else if snap {
+        let s = placement::snap(r, fw, fh, 8.0);
+        r = s.rect;
+        vg = s.vguides;
+        hg = s.hguides;
+    }
+    let resized = handle >= 0;
+    let region = d.region;
+    if let Some(e) = c.gfx.draft.as_mut().and_then(|d| d.elements.get_mut(i)) {
+        if resized {
+            e.placement.width = Some(r.w.round());
+            e.placement.height = Some(r.h.round());
+        }
+        e.placement = placement::placement_in(e.placement.clone(), r, region);
+    }
+    g.set_vguides(vec_model(vg));
+    g.set_hguides(vec_model(hg));
+    update_item(c, i);
+    if let Some(e) = c.gfx.draft.as_ref().and_then(|d| d.elements.get(i)).cloned() {
+        pos_fields(c, &e);
+    }
+}
+
+fn drag_end(c: &mut Ctx) {
+    let Some(d) = c.gfx.drag.take() else { return };
+    if let Some(after) = c.gfx.draft.clone() {
+        c.gfx.history.record(&d.before, &after);
+    }
+    c.gfx.last_edit = None;
+    if let Some(ui) = c.window() {
+        let g = ui.global::<Gfx>();
+        g.set_vguides(vec_model(Vec::new()));
+        g.set_hguides(vec_model(Vec::new()));
+    }
+    flags(c);
+    schedule_render(c);
+}
+
+fn nudge(c: &mut Ctx, dx: f32, dy: f32) {
+    let Some(i) = c.gfx.selected else { return };
+    let (fw, fh) = frame(c);
+    mutate(c, Some("nudge"), move |cfg| {
+        let Some(id) = cfg.elements.get(i).map(|e| e.id.clone()) else { return };
+        let region = placement::region_of(cfg, &id, fw, fh);
+        if let Some(e) = cfg.elements.get_mut(i) {
+            let r = placement::rect_in(e, region);
+            e.placement = placement::placement_in(e.placement.clone(), Rect { x: r.x + dx, y: r.y + dy, ..r }, region);
+        }
+    });
+    update_item(c, i);
+    if let Some(e) = c.gfx.draft.as_ref().and_then(|d| d.elements.get(i)).cloned() {
+        pos_fields(c, &e);
+    }
+    flags(c);
+}
+
+fn unique_id(cfg: &GraphicsConfig, base: &str) -> String {
+    let mut n = 1;
+    loop {
+        let id = format!("{base}-{n}");
+        if !cfg.elements.iter().any(|e| e.id == id) {
+            return id;
+        }
+        n += 1;
+    }
+}
+
+fn add(c: &mut Ctx, kind: &str) {
+    let cfg = c.gfx.draft.clone().unwrap_or_default();
+    let layer = cfg.elements.iter().map(|e| e.layer).max().unwrap_or(0) + 1;
+    let style = TextStyle { size: 40.0, background: Some("#00000099".into()), ..Default::default() };
+    let (k, name, anchor, x, y) = match kind {
+        "rect" => (ElementKind::Rect { color: "#1E3A8ACC".into(), width: 600.0, height: 90.0, radius: 12.0 }, "Плашка", lb_core::graphics::Anchor::BottomLeft, 96.0, 120.0),
+        "image" => (ElementKind::Image { path: "logo.png".into() }, "Логотип", lb_core::graphics::Anchor::TopRight, 60.0, 50.0),
+        "clock" => (ElementKind::Clock { format: "%H:%M".into(), style: style.clone() }, "Часы", lb_core::graphics::Anchor::TopRight, 60.0, 50.0),
+        "countdown" => (
+            ElementKind::Countdown { target: CountdownTarget::NextProgram, style: style.clone(), prefix: "Через ".into() },
+            "Таймер",
+            lb_core::graphics::Anchor::TopLeft,
+            60.0,
+            50.0,
+        ),
+        "ticker" => (
+            ElementKind::Ticker { text: "{ticker}".into(), style: style.clone(), speed: 120.0, width: None },
+            "Бегущая строка",
+            lb_core::graphics::Anchor::BottomLeft,
+            0.0,
+            40.0,
+        ),
+        _ => (ElementKind::Text { text: "{title}".into(), style }, "Текст", lb_core::graphics::Anchor::BottomLeft, 96.0, 120.0),
+    };
+    let e = Element {
+        id: unique_id(&cfg, kind),
+        name: name.into(),
+        kind: k,
+        placement: Placement { anchor, x, y, width: None, height: None },
+        opacity: 1.0,
+        layer,
+        animation: Animation { anim_in: AnimKind::Fade, anim_out: AnimKind::Fade, duration: Dur(500) },
+        profiles: vec![],
+    };
+    mutate(c, None, |cfg| cfg.elements.push(e));
+    c.gfx.selected = c.gfx.draft.as_ref().map(|d| d.elements.len() - 1);
+    refresh(c);
+}
+
+fn duplicate(c: &mut Ctx) {
+    let Some(i) = c.gfx.selected else { return };
+    let Some(cfg) = c.gfx.draft.clone() else { return };
+    let Some(mut e) = cfg.elements.get(i).cloned() else { return };
+    e.id = unique_id(&cfg, kind_id(&e.kind));
+    e.name = format!("{} (копия)", label(&e));
+    e.placement.x += 24.0;
+    e.placement.y += 24.0;
+    mutate(c, None, |cfg| cfg.elements.push(e));
+    c.gfx.selected = c.gfx.draft.as_ref().map(|d| d.elements.len() - 1);
+    refresh(c);
+}
+
+fn remove(c: &mut Ctx) {
+    let Some(i) = c.gfx.selected else { return };
+    let Some(e) = c.gfx.draft.as_ref().and_then(|d| d.elements.get(i)).cloned() else { return };
+    let used = c.gfx.draft.as_ref().is_some_and(|d| d.rules.iter().any(|r| r.element == e.id));
+    mutate(c, None, |cfg| {
+        cfg.elements.remove(i);
+    });
+    c.gfx.selected = None;
+    refresh(c);
+    c.toast_with(
+        format!("Элемент «{}» удалён{}", label(&e), if used { " — на него ссылаются правила показа" } else { "" }),
+        "Отменить",
+        undo,
+    );
+}
+
+fn toggle_flag(c: &mut Ctx, i: usize, hidden: bool) {
+    let Some(id) = c.gfx.draft.as_ref().and_then(|d| d.elements.get(i)).map(|e| e.id.clone()) else { return };
+    let set = if hidden { &mut c.gfx.hidden } else { &mut c.gfx.locked };
+    if !set.remove(&id) {
+        set.insert(id);
+    }
+    refresh(c);
+}
+
+fn live(c: &mut Ctx, action: &str) {
+    let Some(id) = c.gfx.selected.and_then(|i| c.gfx.draft.as_ref().and_then(|d| d.elements.get(i))).map(|e| e.id.clone()) else { return };
+    if c.gfx.saved.as_ref().is_some_and(|s| !s.elements.iter().any(|e| e.id == id)) {
+        c.toast("Элемент ещё не сохранён — сохраните оформление, чтобы показать его в эфире", true);
+        return;
+    }
+    let body = if action == "auto" { json!({ "cmd": "graphic_auto", "element": id }) } else { json!({ "cmd": "graphic", "element": id, "action": action }) };
+    c.command(body);
+}
+
+// ------------------------------------------------------------ render / animation
+
+fn schedule_render(c: &mut Ctx) {
+    c.gfx.render_seq += 1;
+    let seq = c.gfx.render_seq;
+    slint::Timer::single_shot(Duration::from_millis(700), move || {
+        with(move |c| {
+            if c.gfx.render_seq == seq && c.section() == "graphics" {
+                render(c);
+            }
+        })
+    });
+}
+
+fn png_image(bytes: &[u8]) -> Option<crate::net::Frame> {
+    let img = image::load_from_memory(bytes).ok()?.to_rgba8();
+    Some(crate::net::Frame { width: img.width(), height: img.height(), rgba: img.into_raw() })
+}
+
+fn to_image(f: &crate::net::Frame) -> Option<Image> {
+    (f.rgba.len() == (f.width * f.height * 4) as usize).then(|| Image::from_rgba8(SharedPixelBuffer::<Rgba8Pixel>::clone_from_slice(&f.rgba, f.width, f.height)))
+}
+
+/// Background of the canvas according to the mode.
+pub fn render(c: &mut Ctx) {
+    let Some(ui) = c.window() else { return };
+    let g = ui.global::<Gfx>();
+    match g.get_bg_mode() {
+        1 => {
+            live_background(c);
+            return;
+        }
+        2 => {
+            g.set_has_background(false);
+            g.set_bg_note(SharedString::new());
+            return;
+        }
+        _ => {}
+    }
+    if c.model.ch().is_empty() {
+        return;
+    }
+    let Some(cfg) = c.gfx.draft.clone() else { return };
+    g.set_rendering(true);
+    c.gfx.render_seq += 1;
+    let seq = c.gfx.render_seq;
+    let ch = c.model.ch();
+    let vars = cfg.vars.clone();
+    c.worker.spawn(move |api| {
+        let r = api.post_bytes(&format!("/channels/{ch}/graphics/render"), &json!({ "config": cfg, "vars": vars, "width": 1280 }));
+        let frame = r.as_ref().ok().and_then(|b| png_image(b));
+        let err = r.err();
+        Ok(Msg::Apply(Box::new(move |c: &mut Ctx| {
+            if c.gfx.render_seq != seq {
+                return;
+            }
+            let Some(ui) = c.window() else { return };
+            let g = ui.global::<Gfx>();
+            g.set_rendering(false);
+            match frame.as_ref().and_then(to_image) {
+                Some(img) => {
+                    g.set_background(img);
+                    g.set_has_background(true);
+                    g.set_bg_note(SharedString::new());
+                }
+                None => {
+                    g.set_bg_note(s(format!(
+                        "Точный рендер недоступен ({}) — показан кадр эфира, рамки элементов рассчитаны приблизительно.",
+                        err.unwrap_or_else(|| "пустой ответ".into())
+                    )));
+                    live_background(c);
+                }
+            }
+        })))
+    });
+}
+
+fn live_background(c: &mut Ctx) {
+    let Some(ui) = c.window() else { return };
+    let app = ui.global::<App>();
+    let g = ui.global::<Gfx>();
+    g.set_has_background(app.get_has_preview());
+    if app.get_has_preview() {
+        g.set_background(app.get_preview());
+    }
+}
+
+/// New preview frame arrived: refresh the live background.
+pub fn preview_changed(c: &mut Ctx) {
+    if c.section() == "graphics"
+        && let Some(ui) = c.window()
+        && ui.global::<Gfx>().get_bg_mode() == 1
+    {
+        live_background(c);
+    }
+}
+
+/// In-animation of the selected element as a short frame sequence.
+fn preview_animation(c: &mut Ctx) {
+    let Some(i) = c.gfx.selected else { return };
+    let Some(cfg) = c.gfx.draft.clone() else { return };
+    let Some(e) = cfg.elements.get(i).cloned() else { return };
+    let dur = e.animation.duration.ms().max(100);
+    let mut solo = cfg.clone();
+    solo.elements = vec![e];
+    solo.rules.clear();
+    let ch = c.model.ch();
+    if let Some(ui) = c.window() {
+        ui.global::<Gfx>().set_rendering(true);
+    }
+    c.worker.spawn(move |api| {
+        let steps = 10;
+        let mut frames = Vec::new();
+        let mut err = None;
+        for k in 0..=steps {
+            let t = dur * k / steps;
+            match api.post_bytes(&format!("/channels/{ch}/graphics/render"), &json!({ "config": solo, "vars": solo.vars, "t_ms": t, "width": 960 })) {
+                Ok(b) => frames.extend(png_image(&b)),
+                Err(e) => {
+                    err = Some(e);
+                    break;
+                }
+            }
+        }
+        Ok(Msg::Apply(Box::new(move |c: &mut Ctx| {
+            let Some(ui) = c.window() else { return };
+            let g = ui.global::<Gfx>();
+            g.set_rendering(false);
+            if let Some(e) = err {
+                c.toast(format!("Предпросмотр анимации требует рендера на сервере: {e}"), true);
+                return;
+            }
+            let mut imgs: Vec<Image> = frames.iter().filter_map(to_image).collect();
+            // hold the final frame for a moment before looping
+            if let Some(last) = imgs.last().cloned() {
+                imgs.extend(std::iter::repeat_n(last, 8));
+            }
+            g.set_anim_frames(vec_model(imgs));
+            g.set_anim_index(0);
+            g.set_anim_playing(true);
+        })))
+    });
+}
+
+// ------------------------------------------------------------ display rules
+
+fn dur_txt(d: Option<Dur>) -> String {
+    d.map(|d| d.to_string()).unwrap_or_default()
+}
+
+fn rules_rows(c: &mut Ctx) {
+    let Some(ui) = c.window() else { return };
+    let cfg = c.gfx.draft.clone().unwrap_or_default();
+    let rows: Vec<GRuleRow> = cfg
+        .rules
+        .iter()
+        .enumerate()
+        .map(|(i, r)| GRuleRow {
+            index: i as i32,
+            id: s(r.id.clone()),
+            name: s(if r.name.is_empty() { r.id.clone() } else { r.name.clone() }),
+            enabled: r.enabled,
+            element_index: cfg.elements.iter().position(|e| e.id == r.element).map(|i| i as i32).unwrap_or(-1),
+            priority: s(r.priority.to_string()),
+            after: s(dur_txt(r.timing.after_start)),
+            duration: s(dur_txt(r.timing.duration)),
+            before_end: s(dur_txt(r.timing.before_end)),
+            last: s(dur_txt(r.timing.last)),
+            every: s(dur_txt(r.timing.every)),
+            at: s(r.timing.at.iter().map(|t| t.format("%H:%M").to_string()).collect::<Vec<_>>().join(", ")),
+            categories: s(r.conditions.categories.join(", ")),
+            error: s(if cfg.elements.iter().any(|e| e.id == r.element) { "" } else { "Элемент не найден" }),
+        })
+        .collect();
+    ui.global::<Gfx>().set_rules(vec_model(rows));
+}
+
+fn rule_edited(c: &mut Ctx, i: usize, field: &str, v: &str) {
+    let cfg = c.gfx.draft.clone().unwrap_or_default();
+    let elements: Vec<String> = cfg.elements.iter().map(|e| e.id.clone()).collect();
+    let dur = |v: &str| -> Option<Option<Dur>> { if v.trim().is_empty() { Some(None) } else { v.trim().parse().ok().map(Some) } };
+    let v = v.to_string();
+    let field = field.to_string();
+    let key = format!("rule-{i}-{field}");
+    let mut bad = false;
+    let parsed_dur = dur(&v);
+    let parsed_at: Option<Vec<chrono::NaiveTime>> = v
+        .split(',')
+        .map(|x| x.trim())
+        .filter(|x| !x.is_empty())
+        .map(|x| crate::logic::timeline::parse_time(x).ok().flatten())
+        .collect();
+    match field.as_str() {
+        "after" | "duration" | "before-end" | "last" | "every" => bad = parsed_dur.is_none(),
+        "at" => bad = parsed_at.is_none(),
+        "priority" => bad = v.trim().parse::<i32>().is_err(),
+        _ => {}
+    }
+    if bad {
+        c.toast("Неверное значение: время в формате ЧЧ:ММ:СС, приоритет — целое число", true);
+        return;
+    }
+    mutate(c, Some(&key), move |cfg| {
+        let Some(r) = cfg.rules.get_mut(i) else { return };
+        match field.as_str() {
+            "enabled" => r.enabled = v == "1",
+            "element" => {
+                if let Some(id) = v.parse::<usize>().ok().and_then(|k| elements.get(k)) {
+                    r.element = id.clone();
+                }
+            }
+            "priority" => r.priority = v.trim().parse().unwrap_or(r.priority),
+            "after" => r.timing.after_start = parsed_dur.flatten(),
+            "duration" => r.timing.duration = parsed_dur.flatten(),
+            "before-end" => r.timing.before_end = parsed_dur.flatten(),
+            "last" => r.timing.last = parsed_dur.flatten(),
+            "every" => r.timing.every = parsed_dur.flatten(),
+            "at" => r.timing.at = parsed_at.unwrap_or_default(),
+            "categories" => r.conditions.categories = v.split(',').map(|x| x.trim().to_string()).filter(|x| !x.is_empty()).collect(),
+            _ => {}
+        }
+    });
+    if matches!(c.gfx.last_edit.as_ref(), Some((k, _)) if !k.ends_with("-categories") && !k.ends_with("-at")) || field_is_structural(&key) {
+        rules_rows(c);
+    }
+    flags(c);
+}
+
+fn field_is_structural(key: &str) -> bool {
+    key.ends_with("-enabled") || key.ends_with("-element")
+}
+
+fn rule_add(c: &mut Ctx) {
+    let cfg = c.gfx.draft.clone().unwrap_or_default();
+    let Some(el) = c.gfx.selected.and_then(|i| cfg.elements.get(i)).or(cfg.elements.first()).map(|e| e.id.clone()) else {
+        c.toast("Сначала добавьте элемент графики", true);
+        return;
+    };
+    let mut n = cfg.rules.len() + 1;
+    while cfg.rules.iter().any(|r| r.id == format!("show-{n}")) {
+        n += 1;
+    }
+    let rule: GraphicRule = match serde_json::from_value(json!({ "id": format!("show-{n}"), "name": format!("Показ {n}"), "element": el })) {
+        Ok(r) => r,
+        Err(e) => {
+            c.toast(format!("Не удалось создать правило: {e}"), true);
+            return;
+        }
+    };
+    mutate(c, None, |cfg| cfg.rules.push(rule));
+    refresh(c);
+}
+
+// ------------------------------------------------------------ variables
+
+fn sorted_vars(c: &Ctx) -> Vec<(String, String)> {
+    let mut v: Vec<(String, String)> = c.gfx.draft.as_ref().map(|d| d.vars.iter().map(|(k, v)| (k.clone(), v.clone())).collect()).unwrap_or_default();
+    v.sort();
+    v
+}
+
+fn vars_rows(c: &mut Ctx) {
+    let Some(ui) = c.window() else { return };
+    ui.global::<Gfx>().set_vars(vec_model(sorted_vars(c).into_iter().map(|(k, v)| VarRow { key: s(k), value: s(v) }).collect()));
+}
+
+fn var_edited(c: &mut Ctx, i: usize, value: String) {
+    let Some(key) = sorted_vars(c).get(i).map(|(k, _)| k.clone()) else { return };
+    let k2 = format!("var-{key}");
+    mutate(c, Some(&k2), move |cfg| {
+        cfg.vars.insert(key, value);
+    });
+    flags(c);
+}
+
+fn var_add(c: &mut Ctx) {
+    let Some(ui) = c.window() else { return };
+    let g = ui.global::<Gfx>();
+    let key = g.get_new_key().trim().trim_matches(|ch| ch == '{' || ch == '}').to_string();
+    if key.is_empty() || !key.chars().all(|ch| ch.is_ascii_alphanumeric() || ch == '_') {
+        c.toast("Имя переменной: латиница, цифры и «_»", true);
+        return;
+    }
+    let value = g.get_new_value().to_string();
+    mutate(c, None, |cfg| {
+        cfg.vars.insert(key, value);
+    });
+    g.set_new_key(SharedString::new());
+    g.set_new_value(SharedString::new());
+    refresh(c);
+}
+
+// ------------------------------------------------------------ templates
+
+fn templates_dir() -> Option<PathBuf> {
+    Some(dirs::config_dir()?.join("laurabrod").join("gfx-templates"))
+}
+
+fn templates_list(c: &mut Ctx) {
+    let Some(ui) = c.window() else { return };
+    let mut files: Vec<PathBuf> = templates_dir()
+        .and_then(|d| std::fs::read_dir(d).ok())
+        .map(|it| it.filter_map(|e| e.ok().map(|e| e.path())).filter(|p| p.extension().is_some_and(|x| x == "json")).collect())
+        .unwrap_or_default();
+    files.sort();
+    ui.global::<Gfx>().set_templates(vec_model(files.iter().map(|p| s(p.file_stem().map(|x| x.to_string_lossy().to_string()).unwrap_or_default())).collect()));
+    c.gfx.templates = files;
+}
+
+fn template_save(c: &mut Ctx) {
+    let Some(ui) = c.window() else { return };
+    let name: String = ui.global::<Gfx>().get_template_name().trim().chars().map(|ch| if ch.is_alphanumeric() || ch == '-' || ch == '_' || ch == ' ' { ch } else { '_' }).collect();
+    let (Some(dir), Some(cfg)) = (templates_dir(), c.gfx.draft.clone()) else { return };
+    if name.is_empty() {
+        return;
+    }
+    let path = dir.join(format!("{name}.json"));
+    let result = std::fs::create_dir_all(&dir).and_then(|_| std::fs::write(&path, serde_json::to_vec_pretty(&cfg).unwrap_or_default()));
+    match result {
+        Ok(()) => {
+            c.toast(format!("Шаблон «{name}» сохранён"), false);
+            ui.global::<Gfx>().set_template_name(SharedString::new());
+        }
+        Err(e) => c.toast(format!("Не удалось сохранить шаблон: {e}"), true),
+    }
+    templates_list(c);
+}
+
+fn template_apply(c: &mut Ctx, i: usize) {
+    let Some(path) = c.gfx.templates.get(i).cloned() else { return };
+    let parsed = std::fs::read(&path).map_err(|e| e.to_string()).and_then(|b| serde_json::from_slice::<GraphicsConfig>(&b).map_err(|e| e.to_string()));
+    match parsed {
+        Ok(t) => {
+            let name = path.file_stem().map(|x| x.to_string_lossy().to_string()).unwrap_or_default();
+            c.ask("Применить шаблон?", &format!("Текущее оформление будет заменено шаблоном «{name}». Это можно отменить (Ctrl+Z) до сохранения."), "Применить", move |c| {
+                mutate(c, None, |cfg| *cfg = t);
+                c.gfx.selected = None;
+                refresh(c);
+            });
+        }
+        Err(e) => c.toast(format!("Шаблон повреждён: {e}"), true),
+    }
+}
+
+fn template_delete(c: &mut Ctx, i: usize) {
+    let Some(path) = c.gfx.templates.get(i).cloned() else { return };
+    let name = path.file_stem().map(|x| x.to_string_lossy().to_string()).unwrap_or_default();
+    c.ask("Удалить шаблон?", &format!("Шаблон «{name}» будет удалён с этого компьютера."), "Удалить", move |c| {
+        if let Err(e) = std::fs::remove_file(&path) {
+            c.toast(format!("Не удалось удалить: {e}"), true);
+        }
+        templates_list(c);
+    });
+}
+
+// ------------------------------------------------------------ undo / save
+
+fn undo(c: &mut Ctx) {
+    let Some(cur) = c.gfx.draft.clone() else { return };
+    if let Some(prev) = c.gfx.history.undo(&cur) {
+        c.gfx.draft = Some(prev);
+        c.gfx.last_edit = None;
+        refresh(c);
+        schedule_render(c);
+    }
+}
+
+fn redo(c: &mut Ctx) {
+    let Some(cur) = c.gfx.draft.clone() else { return };
+    if let Some(next) = c.gfx.history.redo(&cur) {
+        c.gfx.draft = Some(next);
+        c.gfx.last_edit = None;
+        refresh(c);
+        schedule_render(c);
+    }
+}
+
+fn save(c: &mut Ctx) {
+    if !c.gfx.dirty() {
+        return;
+    }
+    if let Some(cfg) = c.gfx.draft.clone() {
+        c.save_doc("/graphics", cfg, "Графика");
+    }
+}
+
+pub fn shortcut(c: &mut Ctx, name: &str) {
+    match name {
+        "save" => save(c),
+        "undo" => undo(c),
+        "redo" => redo(c),
+        "delete" => remove(c),
+        _ => {}
+    }
+}

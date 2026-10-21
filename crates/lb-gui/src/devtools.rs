@@ -233,6 +233,17 @@ fn prepare_live(section: &str) {
             }
         });
     }
+    if section == "graphics" {
+        crate::bridge::with(|c| {
+            if let Ok(tab) = std::env::var("LB_SNAPSHOT_TAB")
+                && let Some(ui) = c.window()
+            {
+                ui.global::<crate::shell::Gfx>().set_tab(tab.parse().unwrap_or(0));
+            }
+            let pick = std::env::var("LB_SNAPSHOT_SELECT").ok().and_then(|v| v.parse().ok()).unwrap_or(0);
+            crate::bridge::graphics::select(c, pick);
+        });
+    }
     if section == "playlists" {
         crate::bridge::with(|c| {
             if let Some(id) = c.model.playlists.first().map(|p| p.id.clone()) {
