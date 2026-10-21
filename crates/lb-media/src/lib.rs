@@ -1,14 +1,25 @@
-pub fn add(left: u64, right: u64) -> u64 {
-    left + right
-}
+//! Media engine built on external FFmpeg processes.
+//!
+//! The pipeline (one channel):
+//!
+//! ```text
+//!  decoder (per item) ──mpegts──▶ feeder (engine) ──stdin──▶ encoder ──▶ RTMP / SRT / file / HLS
+//!                                       graphics RGBA frames ──tcp──▶ ┘└──▶ MJPEG preview (stdout)
+//! ```
+//!
+//! * [`args`] — pure, unit-tested builders for ffmpeg command lines
+//! * [`probe`] — ffprobe wrapper
+//! * [`process`] — spawning and supervising ffmpeg processes
+//! * [`progress`] — `-progress` output parser
+//! * [`jpeg`] — splitting an MJPEG byte stream into frames
+//! * [`hw`] — hardware encoder detection
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+pub mod args;
+pub mod error;
+pub mod hw;
+pub mod jpeg;
+pub mod probe;
+pub mod process;
+pub mod progress;
 
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
-    }
-}
+pub use error::{MediaError, Result};
