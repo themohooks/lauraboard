@@ -92,3 +92,17 @@ async fn playlist_crud_and_plan_preview() {
     assert_eq!(st, StatusCode::OK);
     assert!(body.contains("file not found"), "{body}");
 }
+
+#[tokio::test]
+async fn plan_with_draft_documents() {
+    let dir = project(vec![]);
+    let app = app(&dir).await;
+    let (st, body) = call(&app, "POST", "/api/v1/channels/main/plan", None, Some(r#"{"hours":2}"#)).await;
+    assert_eq!(st, StatusCode::OK, "{body}");
+    assert!(body.contains("\"items\""), "{body}");
+    let (st, body) = call(&app, "POST", "/api/v1/channels/main/plan", None, Some(r#"{"from":"2030-01-01T10:00:00","hours":1,"rules":{}}"#)).await;
+    assert_eq!(st, StatusCode::OK, "{body}");
+    // a malformed draft is rejected, never stored
+    let (st, _) = call(&app, "POST", "/api/v1/channels/main/plan", None, Some(r#"{"rules":{"rules":"nope"}}"#)).await;
+    assert!(st.is_client_error());
+}

@@ -34,7 +34,7 @@ pub fn router(state: AppState) -> Router {
         .route("/status", get(status::status))
         .route("/rundown", get(status::rundown))
         .route("/preview.jpg", get(status::preview))
-        .route("/plan", get(status::plan_preview))
+        .route("/plan", get(status::plan_preview).post(status::plan_draft))
         .route("/validate", get(status::validate))
         .route("/command", post(control::command))
         .route("/start", post(control::start))
