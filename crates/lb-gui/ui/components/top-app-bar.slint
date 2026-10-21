@@ -1,0 +1,32 @@
+// M3 small top app bar: title on the left, caller content in the middle
+// (channel, status chips), actions on the right are part of the children.
+
+import { Theme } from "../theme/tokens.slint";
+import { Label } from "label.slint";
+
+export component TopAppBar inherits Rectangle {
+    in property <string> title;
+    in property <string> subtitle;
+    height: Theme.compact ? 52px : 60px;
+    background: Theme.color.surface-container-low;
+
+    HorizontalLayout {
+        padding-left: Theme.sp4;
+        padding-right: Theme.sp3;
+        spacing: Theme.sp4;
+        VerticalLayout {
+            alignment: center;
+            Label {
+                text: root.title;
+                type-style: Theme.title-large;
+                min-width: self.preferred-width;
+            }
+            if root.subtitle != "": Label {
+                text: root.subtitle;
+                type-style: Theme.body-small;
+                color: Theme.color.on-surface-variant;
+            }
+        }
+        @children
+    }
+}

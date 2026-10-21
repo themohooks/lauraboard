@@ -1,0 +1,133 @@
+// M3 basic dialog over a scrim (place it last in the window so it covers
+// everything). Esc / scrim click cancel when `dismissible`. ConfirmDialog is
+// the standard confirmation for risky actions: icon, title, explanation,
+// explicit action name; the danger variant uses the error color.
+
+import { Theme } from "../theme/tokens.slint";
+import { Icons } from "../theme/icons.slint";
+import { Icon } from "icon.slint";
+import { Label } from "label.slint";
+import { Button, ButtonVariant } from "button.slint";
+
+export component Dialog inherits Rectangle {
+    in property <bool> open;
+    in property <string> title;
+    in property <string> text;
+    in property <image> icon;
+    in property <bool> has-icon: false;
+    in property <color> icon-tint: Theme.color.secondary;
+    in property <length> dialog-width: 440px;
+    in property <bool> dismissible: true;
+    callback dismissed();
+
+    visible: open || self.opacity > 0;
+    opacity: open ? 1 : 0;
+    animate opacity { duration: Theme.motion-short; }
+    background: Theme.color.scrim.with-alpha(0.32);
+
+    TouchArea {
+        clicked => {
+            if root.dismissible {
+                root.dismissed();
+            }
+        }
+    }
+
+    keys := FocusScope {
+        key-pressed(e) => {
+            if e.text == Key.Escape && root.dismissible {
+                root.dismissed();
+                return accept;
+            }
+            reject
+        }
+    }
+
+    changed open => {
+        if self.open {
+            keys.focus();
+        }
+    }
+
+    card := Rectangle {
+        width: min(root.dialog-width, root.width - 48px);
+        height: body.preferred-height;
+        y: (root.height - self.height) / 2 + (root.open ? 0 : 16px);
+        animate y { duration: Theme.motion-medium; easing: ease-out; }
+        border-radius: Theme.radius-xl;
+        background: Theme.color.surface-container-high;
+        drop-shadow-blur: 16px;
+        drop-shadow-offset-y: 6px;
+        drop-shadow-color: Theme.color.shadow.with-alpha(0.3);
+        accessible-role: groupbox;
+        accessible-label: root.title;
+
+        // swallow clicks so they do not reach the scrim
+        TouchArea { }
+
+        body := VerticalLayout {
+            padding: Theme.sp6;
+            spacing: Theme.sp4;
+            if root.has-icon: HorizontalLayout {
+                alignment: center;
+                Icon {
+                    source: root.icon;
+                    tint: root.icon-tint;
+                }
+            }
+            Label {
+                text: root.title;
+                type-style: Theme.headline-small;
+                horizontal-alignment: root.has-icon ? center : left;
+                wrap: word-wrap;
+            }
+            if root.text != "": Label {
+                text: root.text;
+                type-style: Theme.body-medium;
+                color: Theme.color.on-surface-variant;
+                wrap: word-wrap;
+            }
+            @children
+        }
+    }
+}
+
+// Right-aligned action row for dialogs.
+export component DialogActions inherits HorizontalLayout {
+    alignment: end;
+    spacing: Theme.sp2;
+    padding-top: Theme.sp2;
+    @children
+}
+
+export component ConfirmDialog inherits Dialog {
+    in property <string> confirm-text: "Подтвердить";
+    in property <string> cancel-text: "Отмена";
+    in property <bool> danger: false;
+    callback confirmed();
+    callback cancelled();
+
+    has-icon: true;
+    icon: danger ? Icons.warning : Icons.info;
+    icon-tint: danger ? Theme.color.error : Theme.color.secondary;
+    dismissed => {
+        root.cancelled();
+    }
+
+    DialogActions {
+        Button {
+            text: root.cancel-text;
+            variant: ButtonVariant.text;
+            clicked => {
+                root.cancelled();
+            }
+        }
+        Button {
+            text: root.confirm-text;
+            variant: root.danger ? ButtonVariant.danger : ButtonVariant.filled;
+            clicked => {
+                root.confirmed();
+            }
+        }
+    }
+}

@@ -1,0 +1,72 @@
+// Drag handle for resizable panes. Bind a pane size to `size`; the handle
+// changes it by dragging (or arrow keys when focused) within [minimum,
+// maximum]. `committed` fires on release so the caller can persist it.
+// `invert` is for panes placed after the handle (right / bottom pane).
+
+import { Theme } from "../theme/tokens.slint";
+
+export component Splitter inherits Rectangle {
+    in property <bool> vertical: true;
+    in property <bool> invert: false;
+    in-out property <length> size;
+    in property <length> minimum: 120px;
+    in property <length> maximum: 1200px;
+    callback committed(length);
+
+    property <length> start-size;
+    property <bool> active: touch.pressed || touch.has-hover || focus.has-focus;
+
+    // fixed thickness across the split direction; the layout stretches the other side
+    min-width: vertical ? 8px : 0;
+    max-width: vertical ? 8px : 100000px;
+    min-height: vertical ? 0 : 8px;
+    max-height: vertical ? 100000px : 8px;
+    accessible-role: slider;
+    accessible-label: "Изменить размер панели";
+    accessible-value: round(size / 1px);
+
+    Rectangle {
+        width: root.vertical ? (root.active ? 4px : 1px) : root.width;
+        height: root.vertical ? root.height : (root.active ? 4px : 1px);
+        border-radius: 2px;
+        background: root.active ? Theme.color.primary.with-alpha(0.6) : Theme.color.outline-variant;
+        animate width, height, background { duration: Theme.motion-short; }
+    }
+
+    touch := TouchArea {
+        mouse-cursor: root.vertical ? MouseCursor.col-resize : MouseCursor.row-resize;
+        pointer-event(e) => {
+            if e.kind == PointerEventKind.down {
+                root.start-size = root.size;
+            }
+            if e.kind == PointerEventKind.up {
+                root.committed(root.size);
+            }
+        }
+        moved => {
+            if self.pressed {
+                let delta = root.vertical ? self.mouse-x - self.pressed-x : self.mouse-y - self.pressed-y;
+                root.size = clamp(root.start-size + (root.invert ? -delta : delta), root.minimum, root.maximum);
+            }
+        }
+    }
+
+    focus := FocusScope {
+        width: 0;
+        height: 0;
+        key-pressed(e) => {
+            let step = 16px;
+            if e.text == Key.RightArrow || e.text == Key.DownArrow {
+                root.size = clamp(root.size + (root.invert ? -step : step), root.minimum, root.maximum);
+                root.committed(root.size);
+                return accept;
+            }
+            if e.text == Key.LeftArrow || e.text == Key.UpArrow {
+                root.size = clamp(root.size - (root.invert ? -step : step), root.minimum, root.maximum);
+                root.committed(root.size);
+                return accept;
+            }
+            reject
+        }
+    }
+}

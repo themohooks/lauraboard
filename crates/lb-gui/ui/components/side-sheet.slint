@@ -1,0 +1,63 @@
+// M3 standard side sheet: a panel docked to the right edge for item
+// properties and secondary tools. Slides in/out; content scrolls.
+
+import { ScrollView } from "std-widgets.slint";
+import { Theme } from "../theme/tokens.slint";
+import { Icons } from "../theme/icons.slint";
+import { Label } from "label.slint";
+import { IconButton } from "icon-button.slint";
+
+export component SideSheet inherits Rectangle {
+    in property <string> title;
+    in property <bool> open;
+    in property <length> sheet-width: 360px;
+    in property <bool> closable: true;
+    callback close();
+
+    width: open ? sheet-width : 0;
+    animate width { duration: Theme.motion-medium; easing: ease-in-out; }
+    background: Theme.color.surface-container-low;
+    clip: true;
+
+    Rectangle {
+        x: 0;
+        width: 1px;
+        background: Theme.color.outline-variant;
+    }
+
+    VerticalLayout {
+        x: 1px;
+        width: root.sheet-width - 1px;
+        HorizontalLayout {
+            padding-left: Theme.sp6;
+            padding-right: Theme.sp3;
+            padding-top: Theme.sp3;
+            padding-bottom: Theme.sp2;
+            spacing: Theme.sp2;
+            Label {
+                horizontal-stretch: 1;
+                text: root.title;
+                type-style: Theme.title-large;
+            }
+            if root.closable: IconButton {
+                icon: Icons.close;
+                tooltip: "Закрыть";
+                clicked => {
+                    root.close();
+                }
+            }
+        }
+        ScrollView {
+            vertical-stretch: 1;
+            VerticalLayout {
+                padding-left: Theme.sp6;
+                padding-right: Theme.sp6;
+                padding-bottom: Theme.sp6;
+                padding-top: Theme.sp2;
+                spacing: Theme.sp4;
+                alignment: start;
+                @children
+            }
+        }
+    }
+}
