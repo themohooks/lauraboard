@@ -111,10 +111,13 @@ fn print_status(s: &Value) {
     }
     let o = &s["output"];
     println!(
-        "encoder   {} {}  {:.0} kbit/s  {:.2}x  fps {:.1}  restarts {}",
+        "encoder   {} {}  {}  {:.2}x  fps {:.1}  restarts {}",
         if o["running"].as_bool().unwrap_or(false) { "running" } else { "DOWN" },
         o["video_codec"].as_str().unwrap_or(""),
-        o["stats"]["bitrate_kbps"].as_f64().unwrap_or(0.0),
+        match o["stats"]["bitrate_kbps"].as_f64().unwrap_or(0.0) {
+            b if b > 0.0 => format!("{b:.0} kbit/s"),
+            _ => "bitrate n/a".to_string(),
+        },
         o["stats"]["speed"].as_f64().unwrap_or(0.0),
         o["stats"]["fps"].as_f64().unwrap_or(0.0),
         o["restarts"].as_u64().unwrap_or(0)

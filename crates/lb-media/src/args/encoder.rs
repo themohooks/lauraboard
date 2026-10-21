@@ -44,7 +44,9 @@ pub fn encoder_args(j: &EncodeJob) -> Vec<String> {
         args.extend(sv(&["-vaapi_device", "/dev/dri/renderD128"]));
     }
     // input 0: intermediate stream (already paced by the decoders)
-    args.extend(sv(&["-fflags", "+genpts+discardcorrupt", "-f", "mpegts", "-i", "pipe:0"]));
+    // items are normalised identically: never rebuild the filter graph on a
+    // stream change (that would reset the frame/sample counters)
+    args.extend(sv(&["-fflags", "+genpts+discardcorrupt", "-reinit_filter", "0", "-f", "mpegts", "-i", "pipe:0"]));
     // input 1: graphics
     if let Some(g) = &j.gfx {
         args.extend(sv(&[
@@ -84,11 +86,15 @@ pub fn encoder_args(j: &EncodeJob) -> Vec<String> {
 
 fn filter_graph(j: &EncodeJob) -> String {
     let mut parts: Vec<String> = Vec::new();
+    // continuous timestamps rebuilt from frame / sample counts: the
+    // concatenated items have discontinuous input timestamps
+    let fps = fps_str(j.video.fps);
+    parts.push(format!("[0:v]setpts=N/({fps}*TB)[vin]"));
     let vbase = if j.gfx.is_some() {
-        parts.push("[0:v][1:v]overlay=x=0:y=0:eof_action=pass:repeatlast=1:format=auto:alpha=premultiplied,format=yuv420p[vmix]".into());
+        parts.push("[vin][1:v]overlay=x=0:y=0:eof_action=pass:repeatlast=1:format=auto,format=yuv420p[vmix]".into());
         "[vmix]"
     } else {
-        parts.push("[0:v]format=yuv420p[vmix]".into());
+        parts.push("[vin]format=yuv420p[vmix]".into());
         "[vmix]"
     };
     let hw_tail = if j.video_codec.ends_with("_vaapi") { ",format=nv12,hwupload" } else { "" };
@@ -102,7 +108,7 @@ fn filter_graph(j: &EncodeJob) -> String {
     }
     let gain = if j.audio.volume_db.abs() > 0.01 { format!("volume={:.2}dB,", j.audio.volume_db) } else { String::new() };
     // async resampling keeps A/V in sync across item boundaries
-    parts.push(format!("[0:a]{gain}aresample=async=1000:first_pts=0[aout]"));
+    parts.push(format!("[0:a]asetpts=N/SR/TB,{gain}anull[aout]"));
     parts.join(";")
 }
 
@@ -180,7 +186,7 @@ mod tests {
         let (e, v, a) = (EncoderConfig::default(), VideoFormat::default(), AudioFormat::default());
         let outs = vec![OutputTarget { name: "yt".into(), url: "rtmp://x/live/key".into(), enabled: true, format: None }];
         let s = encoder_args(&job(&e, &v, &a, &outs)).join(" ");
-        assert!(s.contains("-fflags +genpts+discardcorrupt -f mpegts -i pipe:0"));
+        assert!(s.contains("-fflags +genpts+discardcorrupt -reinit_filter 0 -f mpegts -i pipe:0"));
         assert!(!s.contains("-re "));
         assert!(s.contains("-i tcp://127.0.0.1:40000"));
         assert!(s.contains("overlay=x=0:y=0"));
@@ -200,7 +206,8 @@ mod tests {
         j.preview = None;
         let s = encoder_args(&j).join(" ");
         assert!(s.contains("-c:v h264_nvenc -preset p4 -rc cbr"));
-        assert!(s.contains("[0:v]format=yuv420p[vmix]"));
+        assert!(s.contains("[vin]format=yuv420p[vmix]"));
+        assert!(s.contains("[0:v]setpts=N/(25*TB)[vin]"));
         assert!(s.contains("-f tee [f=null]-"));
         assert_eq!(double_rate("2.5M"), "5M");
     }

@@ -277,6 +277,7 @@ fn graphics(ch: &mut ChannelData) {
             },
             ticker_rule,
         ],
+        vars: [("ticker".to_string(), "Смотрите вечерний кинозал в 20:05".to_string())].into_iter().collect(),
     };
 }
 

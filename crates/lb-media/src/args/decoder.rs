@@ -3,7 +3,7 @@
 use lb_core::config::{AudioFormat, VideoFormat};
 
 use super::filters::{audio_chain, silence_src, video_chain};
-use super::{base_args, fps_str, intermediate_codec_args, secs, sv};
+use super::{base_args, fps_str, frame_align_ms, intermediate_codec_args, secs, sv};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum InputKind {
@@ -37,35 +37,36 @@ pub fn decoder_args(job: &DecodeJob, v: &VideoFormat, a: &AudioFormat, loglevel:
     match job.kind {
         InputKind::File => {
             // real-time pacing per item: the encoder simply follows
-            args.push("-re".into());
+            args.extend(sv(&["-re", "-readrate_initial_burst", "0"]));
             if job.seek_ms > 0 {
                 args.extend(sv(&["-ss", &secs(job.seek_ms)]));
             }
             args.extend(sv(&["-i", &job.input]));
         }
         InputKind::Image => {
-            args.extend(sv(&["-re", "-loop", "1", "-framerate", &fps_str(v.fps), "-i", &job.input]));
+            args.extend(sv(&["-re", "-readrate_initial_burst", "0", "-loop", "1", "-framerate", &fps_str(v.fps), "-i", &job.input]));
         }
         InputKind::Stream => {
             if job.input.starts_with("http") {
                 args.extend(sv(&["-reconnect", "1", "-reconnect_streamed", "1", "-reconnect_delay_max", "5"]));
             }
-            args.extend(sv(&["-re", "-rw_timeout", "10000000", "-i", &job.input]));
+            args.extend(sv(&["-re", "-readrate_initial_burst", "0", "-rw_timeout", "10000000", "-i", &job.input]));
         }
     }
     let audio_from_input = job.has_audio && job.kind != InputKind::Image;
     if !audio_from_input {
         args.extend(sv(&["-f", "lavfi", "-i", &silence_src(a)]));
     }
-    let vf = video_chain(v, job.fade_in_ms, job.fade_out_ms, job.duration_ms);
-    let af = audio_chain(a, job.volume_db, job.fade_in_ms, job.fade_out_ms, job.duration_ms);
+    let dur = if job.duration_ms > 0 { frame_align_ms(job.duration_ms, v.fps) } else { 0 };
+    let vf = video_chain(v, job.fade_in_ms, job.fade_out_ms, dur);
+    let af = audio_chain(a, job.volume_db, job.fade_in_ms, job.fade_out_ms, dur);
     let a_in = if audio_from_input { "0:a:0" } else { "1:a:0" };
     let fc = format!("[0:v:0]{vf}[v];[{a_in}]{af}[a]");
     args.extend(sv(&["-filter_complex", &fc, "-map", "[v]", "-map", "[a]"]));
-    if job.duration_ms > 0 {
-        args.extend(sv(&["-t", &secs(job.duration_ms)]));
+    if dur > 0 {
+        args.extend(sv(&["-t", &secs(dur)]));
     }
-    args.extend(intermediate_codec_args(v.fps));
+    args.extend(intermediate_codec_args(v.fps, a.channels));
     args
 }
 
@@ -93,7 +94,8 @@ mod tests {
     #[test]
     fn file_with_seek_and_audio() {
         let s = joined(&job(InputKind::File, true));
-        assert!(s.contains("-re -ss 1.500 -i media/a.mp4"));
+        assert!(s.contains("-re -readrate_initial_burst 0 -ss 1.500 -i media/a.mp4"));
+        assert!(s.contains("-c:a s302m"));
         assert!(s.contains("[0:a:0]aresample=48000"));
         assert!(!s.contains("anullsrc"));
         assert!(s.contains("-t 60.000"));
@@ -110,7 +112,7 @@ mod tests {
     #[test]
     fn image_is_looped() {
         let s = joined(&job(InputKind::Image, true));
-        assert!(s.contains("-re -loop 1 -framerate 25 -i media/a.mp4"));
+        assert!(s.contains("-re -readrate_initial_burst 0 -loop 1 -framerate 25 -i media/a.mp4"));
         assert!(!s.contains("-ss"));
         assert!(s.contains("anullsrc"));
     }

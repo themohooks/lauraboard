@@ -73,3 +73,23 @@ fn load(path: &Path) -> Option<Pixmap> {
     }
     Pixmap::from_vec(data, IntSize::from_wh(w, h)?)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn keeps_colour_of_semi_transparent_png() {
+        let dir = std::env::temp_dir().join(format!("lbgfx-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let p = dir.join("red.png");
+        image::RgbaImage::from_pixel(4, 4, image::Rgba([0xC0, 0x18, 0x2B, 0xCC])).save(&p).unwrap();
+        let mut c = ImageCache::new(&dir);
+        let pm = c.scaled("red.png", 4, 4).unwrap();
+        let px = pm.pixel(1, 1).unwrap().demultiply();
+        assert!(px.red().abs_diff(0xC0) <= 1 && px.green().abs_diff(0x18) <= 1 && px.alpha() == 0xCC, "{px:?}");
+        let pm2 = c.scaled("red.png", 2, 2).unwrap();
+        let px2 = pm2.pixel(1, 1).unwrap().demultiply();
+        assert!(px2.red() > 0xA0 && px2.green() < 0x40, "{px2:?}");
+    }
+}

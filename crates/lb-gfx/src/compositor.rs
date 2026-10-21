@@ -30,6 +30,8 @@ pub struct Compositor {
     sprites: SpriteFactory,
     /// Whether the last frame was empty (lets callers skip work).
     empty: bool,
+    /// Straight-alpha copy of the canvas handed to the encoder.
+    out: Vec<u8>,
 }
 
 impl Compositor {
@@ -39,6 +41,7 @@ impl Compositor {
             cfg,
             sprites: SpriteFactory::new(FontStore::new(root), ImageCache::new(root)),
             empty: true,
+            out: vec![0; (width.max(1) * height.max(1) * 4) as usize],
         }
     }
 
@@ -56,8 +59,23 @@ impl Compositor {
         self.canvas.height()
     }
 
-    /// Render a frame; returns premultiplied RGBA bytes.
+    /// Render a frame; returns straight (non-premultiplied) RGBA bytes, as
+    /// expected by ffmpeg's `overlay` filter on YUV video.
     pub fn render(&mut self, ctx: &FrameContext) -> &[u8] {
+        let was_empty = self.empty;
+        self.render_premultiplied(ctx);
+        if self.empty {
+            if !was_empty {
+                self.out.fill(0);
+            }
+            return &self.out;
+        }
+        demultiply_into(self.canvas.data(), &mut self.out);
+        &self.out
+    }
+
+    /// Render into the internal premultiplied canvas.
+    fn render_premultiplied(&mut self, ctx: &FrameContext) {
         if !self.empty || !ctx.active.is_empty() {
             self.canvas.fill(tiny_skia::Color::TRANSPARENT);
         }
@@ -70,7 +88,6 @@ impl Compositor {
             }
         }
         self.cfg = cfg;
-        self.canvas.data()
     }
 
     /// Current canvas as straight-alpha RGBA PNG (for thumbnails / tests).
@@ -145,6 +162,23 @@ impl Compositor {
     }
 }
 
+/// Convert premultiplied RGBA to straight alpha.
+fn demultiply_into(src: &[u8], dst: &mut [u8]) {
+    for (s, d) in src.chunks_exact(4).zip(dst.chunks_exact_mut(4)) {
+        let a = s[3] as u32;
+        match a {
+            0 => d.copy_from_slice(&[0, 0, 0, 0]),
+            255 => d.copy_from_slice(s),
+            _ => {
+                d[0] = ((s[0] as u32 * 255 + a / 2) / a).min(255) as u8;
+                d[1] = ((s[1] as u32 * 255 + a / 2) / a).min(255) as u8;
+                d[2] = ((s[2] as u32 * 255 + a / 2) / a).min(255) as u8;
+                d[3] = a as u8;
+            }
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -173,8 +207,20 @@ mod tests {
 
     fn px(c: &Compositor, x: u32, y: u32) -> [u8; 4] {
         let i = ((y * c.width() + x) * 4) as usize;
-        let d = c.canvas.data();
+        let d = &c.out;
         [d[i], d[i + 1], d[i + 2], d[i + 3]]
+    }
+
+    #[test]
+    fn output_is_straight_alpha() {
+        let mut r = rect("a", "#C0182B80", Anchor::TopLeft);
+        r.opacity = 1.0;
+        let cfg = GraphicsConfig { layers: vec![], elements: vec![r], rules: vec![], vars: Default::default() };
+        let mut c = Compositor::new(20, 20, cfg, Path::new("."));
+        let vars = HashMap::new();
+        c.render(&FrameContext { now: now(), active: &[active("a")], vars: &vars, item_remaining_ms: 0, next_program_ms: None });
+        let p = px(&c, 2, 2);
+        assert!(p[0].abs_diff(0xC0) <= 1 && p[1].abs_diff(0x18) <= 1 && p[3] == 0x80, "{p:?}");
     }
 
     #[test]
@@ -183,6 +229,7 @@ mod tests {
             layers: vec![],
             elements: vec![rect("a", "#FF0000", Anchor::TopLeft), rect("b", "#0000FF", Anchor::BottomRight)],
             rules: vec![],
+            vars: Default::default(),
         };
         let mut c = Compositor::new(100, 50, cfg, Path::new("."));
         let vars = HashMap::new();
@@ -209,7 +256,7 @@ mod tests {
             animation: Animation::default(),
             profiles: vec![],
         };
-        let cfg = GraphicsConfig { layers: vec![], elements: vec![group, child], rules: vec![] };
+        let cfg = GraphicsConfig { layers: vec![], elements: vec![group, child], rules: vec![], vars: Default::default() };
         let mut c = Compositor::new(100, 50, cfg, Path::new("."));
         let vars = HashMap::new();
         c.render(&FrameContext { now: now(), active: &[active("g")], vars: &vars, item_remaining_ms: 0, next_program_ms: None });
@@ -232,12 +279,12 @@ mod tests {
             animation: Animation::default(),
             profiles: vec![],
         };
-        let cfg = GraphicsConfig { layers: vec![], elements: vec![el], rules: vec![] };
+        let cfg = GraphicsConfig { layers: vec![], elements: vec![el], rules: vec![], vars: Default::default() };
         let mut c = Compositor::new(300, 100, cfg, Path::new("."));
         let vars = HashMap::new();
         c.render(&FrameContext { now: now(), active: &[active("t")], vars: &vars, item_remaining_ms: 0, next_program_ms: None });
         if c.sprites.fonts.get(None).is_some() {
-            let opaque = c.canvas.data().chunks_exact(4).filter(|p| p[3] == 255).count();
+            let opaque = c.out.chunks_exact(4).filter(|p| p[3] == 255).count();
             assert!(opaque > 100, "clock with background should draw pixels");
         }
     }

@@ -71,6 +71,10 @@ pub struct GraphicsConfig {
     pub elements: Vec<Element>,
     #[serde(default)]
     pub rules: Vec<GraphicRule>,
+    /// Default template variables (e.g. `ticker`); operator values set via
+    /// CLI/API override them.
+    #[serde(default, skip_serializing_if = "std::collections::HashMap::is_empty")]
+    pub vars: std::collections::HashMap<String, String>,
 }
 
 impl GraphicsConfig {

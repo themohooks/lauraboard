@@ -16,32 +16,28 @@ pub mod outputs;
 pub mod slate;
 
 /// Intermediate format between decoders and the encoder: MPEG-TS with
-/// near-lossless MPEG-2 intra-ish video and MP2 audio. Cheap to produce and
-/// tolerant to concatenation (timestamp discontinuities are handled by
-/// ffmpeg's mpegts demuxer).
-pub fn intermediate_codec_args(fps: f64) -> Vec<String> {
+/// high-quality MPEG-2 video and PCM audio (SMPTE 302M). PCM keeps audio
+/// sample-exact so every item has identical audio and video length; the
+/// encoder then rebuilds continuous timestamps from frame/sample counts.
+pub fn intermediate_codec_args(fps: f64, audio_channels: u32) -> Vec<String> {
     let gop = (fps.round() as i64 / 2).max(1);
-    sv(&[
-        "-c:v",
-        "mpeg2video",
-        "-q:v",
-        "2",
-        "-g",
-        &gop.to_string(),
-        "-bf",
-        "0",
-        "-c:a",
-        "mp2",
-        "-b:a",
-        "384k",
-        "-f",
-        "mpegts",
-        "-muxdelay",
-        "0",
-        "-muxpreload",
-        "0",
-        "pipe:1",
-    ])
+    let mut a = sv(&["-c:v", "mpeg2video", "-q:v", "2", "-g", &gop.to_string(), "-bf", "0"]);
+    if audio_channels >= 2 && audio_channels.is_multiple_of(2) {
+        a.extend(sv(&["-c:a", "s302m", "-strict", "-2"]));
+    } else {
+        a.extend(sv(&["-c:a", "mp2", "-b:a", "256k"]));
+    }
+    a.extend(sv(&["-f", "mpegts", "-muxdelay", "0", "-muxpreload", "0", "pipe:1"]));
+    a
+}
+
+/// Round a duration to a whole number of frames.
+pub fn frame_align_ms(ms: i64, fps: f64) -> i64 {
+    if fps <= 0.0 {
+        return ms;
+    }
+    let frames = (ms as f64 * fps / 1000.0).round().max(1.0);
+    (frames * 1000.0 / fps).round() as i64
 }
 
 /// Common leading arguments.

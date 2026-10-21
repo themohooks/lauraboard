@@ -69,7 +69,7 @@ fn rule(id: &str, el: &str, prio: i32) -> GraphicRule {
 fn logo_hidden_on_ads() {
     let mut r = rule("logo", "logo", 0);
     r.conditions.kinds = vec![MediaKind::Program];
-    let cfg = GraphicsConfig { layers: vec![], elements: vec![el("logo", 0)], rules: vec![r] };
+    let cfg = GraphicsConfig { layers: vec![], elements: vec![el("logo", 0)], rules: vec![r], vars: Default::default() };
     let manual = HashMap::new();
     let prog = item(MediaKind::Program, "news");
     let ad = item(MediaKind::Ad, "ads");
@@ -83,7 +83,7 @@ fn timing_after_start_and_before_end() {
     let mut r = rule("lt", "lt", 0);
     r.timing.after_start = Some(Dur::secs(10));
     r.timing.before_end = Some(Dur::secs(30));
-    let cfg = GraphicsConfig { layers: vec![], elements: vec![el("lt", 1)], rules: vec![r] };
+    let cfg = GraphicsConfig { layers: vec![], elements: vec![el("lt", 1)], rules: vec![r], vars: Default::default() };
     let manual = HashMap::new();
     let it = item(MediaKind::Program, "x");
     let at = |e, rem| {
@@ -102,6 +102,7 @@ fn exclusive_layer_and_manual() {
         layers: vec![Layer { id: 5, name: "lower".into(), exclusive: true }],
         elements: vec![el("a", 5), el("b", 5), el("c", 2)],
         rules: vec![rule("ra", "a", 1), rule("rb", "b", 9)],
+        vars: Default::default(),
     };
     let mut manual = HashMap::new();
     let it = item(MediaKind::Program, "x");
@@ -118,7 +119,7 @@ fn absolute_time_rule() {
     let mut r = rule("t", "a", 0);
     r.timing.at = vec![NaiveTime::from_hms_opt(11, 59, 0).unwrap()];
     r.timing.duration = Some(Dur::mins(2));
-    let cfg = GraphicsConfig { layers: vec![], elements: vec![el("a", 0)], rules: vec![r] };
+    let cfg = GraphicsConfig { layers: vec![], elements: vec![el("a", 0)], rules: vec![r], vars: Default::default() };
     let manual = HashMap::new();
     let r = evaluate(&cfg, &GfxContext { now: now(), item: None, elapsed_ms: 0, remaining_ms: 0, profile: None, manual: &manual });
     assert_eq!(r.len(), 1);
@@ -138,7 +139,7 @@ fn last_window_for_next_up_plate() {
     let mut r = rule("next", "n", 0);
     r.timing.last = Some(Dur::secs(30));
     r.timing.before_end = Some(Dur::secs(2));
-    let cfg = GraphicsConfig { layers: vec![], elements: vec![el("n", 0)], rules: vec![r] };
+    let cfg = GraphicsConfig { layers: vec![], elements: vec![el("n", 0)], rules: vec![r], vars: Default::default() };
     let manual = HashMap::new();
     let it = item(MediaKind::Program, "x");
     let at =

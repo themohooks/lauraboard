@@ -14,7 +14,7 @@ pub fn build(
     next_program: Option<&RundownItem>,
     user: &HashMap<String, String>,
 ) -> HashMap<String, String> {
-    let mut v = HashMap::new();
+    let mut v = data.graphics.vars.clone();
     v.insert("channel".into(), data.config.name.clone());
     if let Some(it) = on_air {
         v.insert("title".into(), it.title.clone());

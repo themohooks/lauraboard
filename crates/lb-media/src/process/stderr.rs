@@ -29,10 +29,34 @@ where
             if l.is_empty() {
                 continue;
             }
+            if is_benign(l) {
+                tracing::debug!(target: "ffmpeg", process = %label, "{l}");
+                continue;
+            }
             tracing::warn!(target: "ffmpeg", process = %label, "{l}");
             if let Ok(mut g) = last_error.lock() {
                 *g = Some(l.to_string());
             }
         }
     });
+}
+
+/// Expected messages of the concatenated pipeline that are not problems.
+fn is_benign(l: &str) -> bool {
+    const PATTERNS: &[&str] = &[
+        "timestamp discontinuity",
+        "is muxed as a private data stream",
+        "deprecated pixel format used",
+        "Non-monotonic DTS", // only at encoder start, timestamps are rebuilt
+    ];
+    PATTERNS.iter().any(|p| l.contains(p))
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn benign_patterns() {
+        assert!(super::is_benign("[in#0/mpegts] timestamp discontinuity (stream id=257)"));
+        assert!(!super::is_benign("Connection refused"));
+    }
 }

@@ -5,16 +5,16 @@ use lb_core::config::{AudioFormat, VideoFormat};
 
 use super::color::ffmpeg_color;
 use super::filters::{silence_src, video_chain};
-use super::{base_args, fps_str, intermediate_codec_args, secs, sv};
+use super::{base_args, fps_str, frame_align_ms, intermediate_codec_args, secs, sv};
 
 /// `image` is a resolved path; `None` → solid background colour.
 pub fn slate_args(image: Option<&str>, duration_ms: i64, v: &VideoFormat, a: &AudioFormat, loglevel: &str) -> Vec<String> {
     let mut args = base_args(loglevel);
     match image {
-        Some(img) => args.extend(sv(&["-re", "-loop", "1", "-framerate", &fps_str(v.fps), "-i", img])),
+        Some(img) => args.extend(sv(&["-re", "-readrate_initial_burst", "0", "-loop", "1", "-framerate", &fps_str(v.fps), "-i", img])),
         None => {
             let src = format!("color=c={}:s={}x{}:r={}", ffmpeg_color(&v.background), v.width, v.height, fps_str(v.fps));
-            args.extend(sv(&["-re", "-f", "lavfi", "-i", &src]));
+            args.extend(sv(&["-re", "-readrate_initial_burst", "0", "-f", "lavfi", "-i", &src]));
         }
     }
     args.extend(sv(&["-f", "lavfi", "-i", &silence_src(a)]));
@@ -22,9 +22,9 @@ pub fn slate_args(image: Option<&str>, duration_ms: i64, v: &VideoFormat, a: &Au
     args.extend(sv(&["-filter_complex", &fc, "-map", "[v]", "-map", "1:a:0"]));
     args.extend(sv(&["-ar", &a.sample_rate.to_string(), "-ac", &a.channels.to_string()]));
     if duration_ms > 0 {
-        args.extend(sv(&["-t", &secs(duration_ms)]));
+        args.extend(sv(&["-t", &secs(frame_align_ms(duration_ms, v.fps))]));
     }
-    args.extend(intermediate_codec_args(v.fps));
+    args.extend(intermediate_codec_args(v.fps, a.channels));
     args
 }
 
@@ -42,7 +42,7 @@ mod tests {
     #[test]
     fn image_slate() {
         let s = slate_args(Some("standby.png"), 0, &VideoFormat::default(), &AudioFormat::default(), "error").join(" ");
-        assert!(s.contains("-re -loop 1 -framerate 25 -i standby.png"));
+        assert!(s.contains("-re -readrate_initial_burst 0 -loop 1 -framerate 25 -i standby.png"));
         assert!(!s.contains("-t "));
     }
 }

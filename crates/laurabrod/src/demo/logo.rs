@@ -28,7 +28,7 @@ pub fn write(path: &Path) -> Result<()> {
         animation: Animation::default(),
         profiles: vec![],
     };
-    let cfg = GraphicsConfig { layers: vec![], elements: vec![el], rules: vec![] };
+    let cfg = GraphicsConfig { layers: vec![], elements: vec![el], rules: vec![], vars: Default::default() };
     let mut c = lb_gfx::Compositor::new(240, 80, cfg, Path::new("."));
     let act = vec![lb_core::graphics::ActiveGraphic {
         element: "logo".into(),
