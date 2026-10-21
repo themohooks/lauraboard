@@ -1,0 +1,177 @@
+// M3 checkbox and radio button with optional label; the whole row is the
+// hit target, Space toggles when focused.
+
+import { Theme } from "../theme/tokens.slint";
+import { Icons } from "../theme/icons.slint";
+import { Icon } from "icon.slint";
+import { Label } from "label.slint";
+import { StateLayer } from "state-layer.slint";
+
+export component Checkbox inherits Rectangle {
+    in-out property <bool> checked;
+    in property <bool> indeterminate: false;
+    in property <bool> error: false;
+    in property <string> text;
+    in property <bool> enabled: true;
+    callback toggled(bool);
+
+    function flip() {
+        if root.enabled {
+            root.checked = !root.checked;
+            root.toggled(root.checked);
+        }
+    }
+
+    property <bool> on: checked || indeterminate;
+    property <color> accent: error ? Theme.color.error : Theme.color.primary;
+
+    min-height: Theme.touch-target;
+
+    HorizontalLayout {
+        spacing: Theme.sp1;
+        alignment: start;
+        Rectangle {
+            width: Theme.touch-target;
+            height: Theme.touch-target;
+            StateLayer {
+                width: 40px;
+                height: 40px;
+                border-radius: 20px;
+                tint: root.on ? root.accent : Theme.color.on-surface;
+                hovered: touch.has-hover;
+                pressed: touch.pressed;
+                focused: focus.has-focus;
+                enabled: root.enabled;
+            }
+            Rectangle {
+                width: 18px;
+                height: 18px;
+                border-radius: 2px;
+                background: !root.on ? transparent : root.enabled ? root.accent : Theme.color.on-surface.with-alpha(Theme.disabled-content);
+                border-width: root.on ? 0 : 2px;
+                border-color: !root.enabled ? Theme.color.on-surface.with-alpha(Theme.disabled-content)
+                    : root.error ? Theme.color.error : Theme.color.on-surface-variant;
+                accessible-role: checkbox;
+                accessible-label: root.text;
+                accessible-checked: root.checked;
+                accessible-checkable: true;
+                accessible-action-default => {
+                    root.flip();
+                }
+                if root.checked && !root.indeterminate: Icon {
+                    source: Icons.check;
+                    size: 16px;
+                    tint: root.error ? Theme.color.on-error : Theme.color.on-primary;
+                }
+                if root.indeterminate: Rectangle {
+                    width: 10px;
+                    height: 2px;
+                    background: Theme.color.on-primary;
+                }
+            }
+        }
+
+        if root.text != "": Label {
+            min-width: self.preferred-width;
+            text: root.text;
+            color: root.enabled ? Theme.color.on-surface : Theme.color.on-surface.with-alpha(Theme.disabled-content);
+        }
+    }
+
+    touch := TouchArea {
+        enabled: root.enabled;
+        clicked => {
+            focus.focus();
+            root.flip();
+        }
+    }
+
+    focus := FocusScope {
+        width: 0;
+        height: 0;
+        enabled: root.enabled;
+        key-pressed(e) => {
+            if e.text == " " {
+                root.flip();
+                return accept;
+            }
+            reject
+        }
+    }
+}
+
+export component Radio inherits Rectangle {
+    in property <bool> checked;
+    in property <string> text;
+    in property <bool> enabled: true;
+    callback clicked();
+
+    min-height: Theme.touch-target;
+
+    HorizontalLayout {
+        spacing: Theme.sp1;
+        alignment: start;
+        Rectangle {
+            width: Theme.touch-target;
+            height: Theme.touch-target;
+            StateLayer {
+                width: 40px;
+                height: 40px;
+                border-radius: 20px;
+                tint: root.checked ? Theme.color.primary : Theme.color.on-surface;
+                hovered: touch.has-hover;
+                pressed: touch.pressed;
+                focused: focus.has-focus;
+                enabled: root.enabled;
+            }
+            Rectangle {
+                width: 20px;
+                height: 20px;
+                border-radius: 10px;
+                border-width: 2px;
+                border-color: !root.enabled ? Theme.color.on-surface.with-alpha(Theme.disabled-content)
+                    : root.checked ? Theme.color.primary : Theme.color.on-surface-variant;
+                accessible-role: radio-button;
+                accessible-label: root.text;
+                accessible-checked: root.checked;
+                accessible-checkable: true;
+                accessible-action-default => {
+                    root.clicked();
+                }
+                if root.checked: Rectangle {
+                    width: 10px;
+                    height: 10px;
+                    border-radius: 5px;
+                    background: root.enabled ? Theme.color.primary : Theme.color.on-surface.with-alpha(Theme.disabled-content);
+                }
+            }
+        }
+
+        if root.text != "": Label {
+            min-width: self.preferred-width;
+            text: root.text;
+            color: root.enabled ? Theme.color.on-surface : Theme.color.on-surface.with-alpha(Theme.disabled-content);
+        }
+    }
+
+    touch := TouchArea {
+        enabled: root.enabled;
+        clicked => {
+            focus.focus();
+            root.clicked();
+        }
+    }
+
+    focus := FocusScope {
+        width: 0;
+        height: 0;
+        enabled: root.enabled;
+        key-pressed(e) => {
+            if e.text == " " || e.text == Key.Return {
+                root.clicked();
+                return accept;
+            }
+            reject
+        }
+    }
+}

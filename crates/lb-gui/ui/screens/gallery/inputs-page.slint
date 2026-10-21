@@ -1,0 +1,68 @@
+// Gallery, block C: inputs.
+
+import { Theme } from "../../theme/tokens.slint";
+import { Icons } from "../../theme/icons.slint";
+import { TextField } from "../../components/text-field.slint";
+import { SearchField } from "../../components/search-field.slint";
+import { Select } from "../../components/select.slint";
+import { Switch } from "../../components/switch.slint";
+import { Checkbox, Radio } from "../../components/checkbox.slint";
+import { Slider } from "../../components/slider.slint";
+import { FilterChip, AssistChip, InputChip } from "../../components/chips.slint";
+import { Section } from "section.slint";
+
+export component InputsPage inherits Section {
+    title: "C · Поля ввода и выбор";
+    HorizontalLayout {
+        spacing: Theme.sp4;
+        alignment: start;
+        TextField { width: 220px; label: "Название"; text: "Утренний блок"; supporting: "Видно в рундауне"; }
+        TextField { width: 160px; label: "Начало"; text: "25:61"; error: "Формат ЧЧ:ММ:СС"; mono: true; }
+        TextField { width: 220px; label: "Путь"; placeholder: "C:/media/..."; has-leading: true; leading-icon: Icons.folder-open; }
+        TextField { width: 140px; label: "Громкость"; text: "-3"; suffix: "дБ"; }
+        TextField { width: 160px; label: "Недоступно"; text: "—"; enabled: false; }
+    }
+
+    HorizontalLayout {
+        spacing: Theme.sp4;
+        alignment: start;
+        SearchField { width: 260px; placeholder: "Поиск по медиатеке"; }
+        SearchField { width: 260px; text: "новости"; }
+        Select { width: 220px; label: "Канал"; options: ["main — Основной", "kids — Детский"]; current-index: 0; }
+        Select { width: 220px; label: "При опоздании"; options: ["Не начинать", "Доиграть", "Обрезать"]; }
+    }
+
+    HorizontalLayout {
+        spacing: Theme.sp6;
+        alignment: start;
+        Switch { checked: true; text: "Анимации"; }
+        Switch { checked: false; text: "Компактный режим"; }
+        Switch { checked: true; enabled: false; text: "Недоступно"; }
+        Checkbox { checked: true; text: "по кругу"; }
+        Checkbox { checked: false; text: "случайный порядок"; }
+        Checkbox { indeterminate: true; text: "частично"; }
+        Checkbox { checked: false; error: true; text: "ошибка"; }
+        Radio { checked: true; text: "по очереди"; }
+        Radio { checked: false; text: "случайно"; }
+    }
+
+    HorizontalLayout {
+        spacing: Theme.sp6;
+        alignment: start;
+        Slider { width: 240px; value: 0.65; }
+        Slider { width: 240px; minimum: 1; maximum: 168; step: 1; value: 24; }
+        Slider { width: 160px; value: 0.3; enabled: false; }
+    }
+
+    HorizontalLayout {
+        spacing: Theme.sp2;
+        alignment: start;
+        FilterChip { text: "Передачи"; selected: true; }
+        FilterChip { text: "Реклама"; dot: Theme.kind.ad; }
+        FilterChip { text: "Анонсы"; dot: Theme.kind.promo; }
+        FilterChip { text: "Проблемные"; has-icon: true; icon: Icons.warning; }
+        AssistChip { text: "Добавить в плейлист"; icon: Icons.playlist-add; }
+        InputChip { text: "новости"; }
+        InputChip { text: "утро"; }
+    }
+}

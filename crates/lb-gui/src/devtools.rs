@@ -27,6 +27,8 @@ pub fn snapshot(out: &Path, section: &str, width: u32, height: u32, scale: f32) 
     window.dispatch_event(WindowEvent::ScaleFactorChanged { scale_factor: scale });
     window.set_size(slint::PhysicalSize::new(width, height));
     ui.set_section(section.into());
+    // No time passes between frames here, so animated properties would keep stale values.
+    ui.global::<Theme>().set_animations(false);
     ui.show().map_err(|e| e.to_string())?;
     for (name, mode) in [("light", ThemeMode::Light), ("dark", ThemeMode::Dark)] {
         ui.global::<Theme>().set_mode(mode);
