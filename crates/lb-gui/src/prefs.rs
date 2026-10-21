@@ -39,6 +39,9 @@ pub struct UiPrefs {
     /// Splitter positions by id.
     pub panels: HashMap<String, f32>,
     pub library_grid: bool,
+    /// Written to disk on change (off for headless tools).
+    #[serde(skip)]
+    pub persist: bool,
 }
 
 impl Default for UiPrefs {
@@ -52,6 +55,7 @@ impl Default for UiPrefs {
             section: "home".into(),
             panels: HashMap::new(),
             library_grid: false,
+            persist: true,
         }
     }
 }
@@ -68,6 +72,9 @@ impl UiPrefs {
 
     /// Save atomically (temp file + rename). Errors are ignored: preferences are not critical.
     pub fn save(&self) {
+        if !self.persist {
+            return;
+        }
         let Some(path) = Self::path() else { return };
         let Ok(json) = serde_json::to_vec_pretty(self) else { return };
         if let Some(dir) = path.parent() {

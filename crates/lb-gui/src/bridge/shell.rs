@@ -36,6 +36,7 @@ pub fn connect(ui: &AppWindow) {
             let Some(ch) = c.model.channels.get(i as usize).cloned() else { return };
             c.model.channel = Some(ch.clone());
             c.poller.set_channel(&ch);
+            c.thumbs.clear();
             channels_changed(c);
             c.load_all();
         })

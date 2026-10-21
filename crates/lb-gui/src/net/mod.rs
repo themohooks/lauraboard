@@ -46,6 +46,8 @@ pub enum Msg {
     Graphics(GraphicsConfig),
     Stats(Value),
     Preview(Frame),
+    /// Media thumbnail (`None`: not available for this item).
+    Thumb(String, Option<Frame>),
     Event(Value),
     /// A command / save succeeded (message for the user).
     Done(String),

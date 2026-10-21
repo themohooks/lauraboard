@@ -1,0 +1,130 @@
+// On-air control room: monitors (PGM + next), now/next card, transport,
+// quick actions; resizable queue on the right. F11 shows the program
+// monitor alone.
+
+import { ScrollView } from "std-widgets.slint";
+import { Theme } from "../../theme/tokens.slint";
+import { Monitor, MonitorRole } from "../../components/monitor.slint";
+import { Splitter } from "../../components/splitter.slint";
+import { Label } from "../../components/label.slint";
+import { App } from "../../state/app-state.slint";
+import { Air } from "../../state/air-state.slint";
+import { Page } from "../../shell/page.slint";
+import { NowCard } from "now-card.slint";
+import { TransportBar } from "transport.slint";
+import { QueuePanel } from "queue-panel.slint";
+import { QuickActions } from "quick-actions.slint";
+
+component ControlColumn inherits VerticalLayout {
+    in property <bool> stacked;
+    spacing: Theme.sp3;
+
+    HorizontalLayout {
+        spacing: Theme.sp3;
+        vertical-stretch: 1;
+        min-height: root.stacked ? self.width * 9 / 16 : 200px;
+        Monitor {
+            horizontal-stretch: 3;
+            frame: App.preview;
+            has-frame: App.has-preview;
+            live: App.status.state == "on_air";
+            caption: Air.now.title;
+            timecode: Air.now.remaining;
+            progress: Air.now.has-item ? Air.now.progress : -1;
+            placeholder: App.online ? "Ожидание кадра…" : "Нет связи с сервером";
+            fullscreen => {
+                App.toggle-fullscreen();
+            }
+        }
+        if !root.stacked: VerticalLayout {
+            horizontal-stretch: 1;
+            spacing: Theme.sp2;
+            alignment: start;
+            Monitor {
+                height: self.width * 9 / 16;
+                role: MonitorRole.next;
+                frame: Air.next-thumb;
+                has-frame: Air.has-next-thumb;
+                caption: Air.next.title;
+                placeholder: Air.next.has-item ? "Нет миниатюры" : "Нет следующего";
+            }
+            Label {
+                text: Air.next.title;
+                type-style: Theme.title-small;
+                wrap: word-wrap;
+            }
+            Label {
+                text: Air.next.has-item ? "в " + Air.next.start + " · " + Air.next.duration : "";
+                mono: true;
+                color: Theme.color.on-surface-variant;
+            }
+        }
+    }
+
+    NowCard {
+        compact: root.stacked;
+    }
+    TransportBar { }
+    QuickActions {
+        min-height: 220px;
+        vertical-stretch: 1;
+    }
+    if root.stacked: QueuePanel {
+        min-height: 320px;
+        vertical-stretch: 1;
+        show-block: false;
+    }
+}
+
+export component AirScreen inherits Page {
+    property <bool> stacked: self.width < 1000px;
+
+    if App.monitor-fullscreen: Rectangle {
+        background: #000000;
+        Monitor {
+            frame: App.preview;
+            has-frame: App.has-preview;
+            live: App.status.state == "on_air";
+            caption: Air.now.title;
+            timecode: Air.now.remaining;
+            progress: Air.now.has-item ? Air.now.progress : -1;
+            fullscreen => {
+                App.toggle-fullscreen();
+            }
+        }
+    }
+
+    if !App.monitor-fullscreen && !root.stacked: HorizontalLayout {
+        padding: Theme.sp4;
+        spacing: Theme.sp1;
+
+        ControlColumn {
+            horizontal-stretch: 1;
+            min-width: 420px;
+        }
+
+        Splitter {
+            size <=> Air.side-width;
+            invert: true;
+            minimum: 300px;
+            maximum: 760px;
+            committed(s) => {
+                App.panel-resized("air.queue", s);
+            }
+        }
+
+        QueuePanel {
+            width: Air.side-width;
+        }
+    }
+
+    // narrow window: one scrollable column
+    if !App.monitor-fullscreen && root.stacked: ScrollView {
+        VerticalLayout {
+            padding: Theme.sp4;
+            ControlColumn {
+                stacked: true;
+            }
+        }
+    }
+}

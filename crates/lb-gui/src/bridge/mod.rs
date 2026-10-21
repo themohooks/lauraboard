@@ -6,10 +6,12 @@
 //! UI callbacks go through [`with`], which defers itself if the context is
 //! already borrowed (a callback fired while Rust was updating the UI).
 //!
-//! One module per area: [`shell`] (window, navigation, status, overlays);
-//! screen modules are added next to it.
+//! One module per area: [`shell`] (window, navigation, status, overlays),
+//! [`air`] (home + on-air), [`thumbs`] (media thumbnails).
 
+pub mod air;
 pub mod shell;
+pub mod thumbs;
 
 use std::cell::RefCell;
 use std::sync::Arc;
@@ -43,6 +45,9 @@ pub struct Ctx {
     toast_serial: i32,
     /// Scale factor reported by the OS (before the user's UI scale).
     pub system_scale: f32,
+    pub thumbs: thumbs::Thumbs,
+    /// (on-air uid, next uid) the queue was last marked with.
+    pub air_marks: (Option<String>, Option<String>),
 }
 
 thread_local! {
@@ -94,12 +99,16 @@ pub fn start(ui: &AppWindow, opts: &GuiOptions, prefs: UiPrefs) {
         toast_action: None,
         toast_serial: 0,
         system_scale: ui.window().scale_factor(),
+        thumbs: thumbs::Thumbs::default(),
+        air_marks: (None, None),
     };
     ui.global::<App>().set_api_url(api.base.clone().into());
     CTX.with(|c| *c.borrow_mut() = Some(ctx));
     shell::connect(ui);
+    air::connect(ui);
     with(|c| {
         shell::apply_prefs(c);
+        air::apply_prefs(c);
         c.load_channels();
     });
 }
@@ -139,22 +148,50 @@ impl Ctx {
                 self.load_all();
             }
             Msg::Status(s) => {
+                let schedule_changed = self.model.status.force_schedule != s.force_schedule;
                 self.model.status = *s;
                 shell::status_changed(self);
+                air::status_changed(self);
+                if schedule_changed {
+                    air::config_changed(self);
+                }
             }
-            Msg::Rundown(r) => self.model.rundown = r,
+            Msg::Rundown(r) => {
+                self.model.rundown = r;
+                air::queue_changed(self);
+            }
             Msg::Plan(r) => self.model.plan = r,
-            Msg::Library(l) => self.model.library = l,
+            Msg::Library(l) => {
+                self.model.library = l;
+                air::media_results(self);
+            }
             Msg::Playlists(p) => self.model.playlists = p,
-            Msg::Schedules(s) => self.model.schedules = s,
-            Msg::Rules(r) => self.model.rules = r,
-            Msg::Graphics(g) => self.model.graphics = g,
+            Msg::Schedules(s) => {
+                self.model.schedules = s;
+                air::config_changed(self);
+            }
+            Msg::Rules(r) => {
+                self.model.rules = r;
+                air::config_changed(self);
+            }
+            Msg::Graphics(g) => {
+                self.model.graphics = g;
+                air::status_changed(self);
+            }
             Msg::Stats(s) => self.model.stats = s,
             Msg::Preview(f) => shell::preview_changed(self, f),
-            Msg::Event(v) => self.model.push_log(LogLine::from_event(&v)),
+            Msg::Thumb(id, f) => {
+                thumbs::arrived(self, id, f);
+                air::status_changed(self);
+            }
+            Msg::Event(v) => {
+                self.model.push_log(LogLine::from_event(&v));
+                air::log_changed(self);
+            }
             Msg::Done(text) => self.toast(text, false),
             Msg::Error(e) => {
                 self.model.push_log(LogLine { at: chrono::Local::now().format("%H:%M:%S").to_string(), level: "warning".into(), text: e.clone() });
+                air::log_changed(self);
                 self.toast(e, true);
             }
             Msg::Connection(ok) => {

@@ -1,0 +1,185 @@
+// Transport panel: one prominent start/stop action, secondary skip /
+// restart, schedule pause (manual mode), schedule selection and an
+// overflow menu for rare actions. Risky actions are confirmed in Rust.
+
+import { Theme } from "../../theme/tokens.slint";
+import { Icons } from "../../theme/icons.slint";
+import { Label } from "../../components/label.slint";
+import { ExtendedFab, FabTone } from "../../components/fab.slint";
+import { Button, ButtonVariant } from "../../components/button.slint";
+import { IconButton, IconButtonVariant } from "../../components/icon-button.slint";
+import { Select } from "../../components/select.slint";
+import { Menu } from "../../components/menu.slint";
+import { App } from "../../state/app-state.slint";
+import { Air } from "../../state/air-state.slint";
+
+export component TransportBar inherits Rectangle {
+    property <bool> stopped: App.status.state == "stopped" || App.status.state == "error";
+    property <bool> live: App.online && !self.stopped;
+    // narrow panel: secondary actions become icon buttons with tooltips
+    // (updated on resize: a binding would loop through the layout)
+    property <bool> compact: false;
+    changed width => {
+        self.compact = self.width < 840px;
+    }
+    init => {
+        self.compact = self.width < 840px;
+    }
+
+    border-radius: Theme.radius-l;
+    background: Theme.color.surface-container;
+    min-height: 72px;
+
+    HorizontalLayout {
+        padding: Theme.sp2;
+        padding-left: Theme.sp3;
+        spacing: Theme.sp3;
+        alignment: start;
+
+        VerticalLayout {
+            alignment: center;
+            if root.stopped: ExtendedFab {
+                text: "Начать вещание";
+                icon: Icons.play-arrow;
+                tone: FabTone.live;
+                enabled: App.online;
+                tooltip: "Запустить кодирование и плейаут";
+                clicked => {
+                    Air.transport("start");
+                }
+            }
+            if !root.stopped: Button {
+                height: 56px;
+                text: "Остановить";
+                icon: Icons.stop;
+                has-icon: true;
+                variant: ButtonVariant.outlined;
+                enabled: App.online;
+                tooltip: "Остановить вещание (с подтверждением)";
+                clicked => {
+                    Air.transport("stop");
+                }
+            }
+        }
+
+        if root.compact: VerticalLayout {
+            alignment: center;
+            IconButton {
+                icon: Icons.skip-next;
+                variant: IconButtonVariant.tonal;
+                enabled: root.live;
+                tooltip: "Пропустить — перейти к следующему элементу";
+                clicked => {
+                    Air.transport("skip");
+                }
+            }
+        }
+        if root.compact: VerticalLayout {
+            alignment: center;
+            IconButton {
+                icon: Icons.replay;
+                variant: IconButtonVariant.tonal;
+                enabled: root.live;
+                tooltip: "Сначала — повторить текущий элемент";
+                clicked => {
+                    Air.transport("restart");
+                }
+            }
+        }
+        if !root.compact: VerticalLayout {
+            alignment: center;
+            Button {
+                text: "Пропустить";
+                icon: Icons.skip-next;
+                has-icon: true;
+                variant: ButtonVariant.tonal;
+                enabled: root.live;
+                tooltip: "Перейти к следующему элементу";
+                clicked => {
+                    Air.transport("skip");
+                }
+            }
+        }
+        if !root.compact: VerticalLayout {
+            alignment: center;
+            Button {
+                text: "Сначала";
+                icon: Icons.replay;
+                has-icon: true;
+                variant: ButtonVariant.tonal;
+                enabled: root.live;
+                tooltip: "Повторить текущий элемент с начала";
+                clicked => {
+                    Air.transport("restart");
+                }
+            }
+        }
+        VerticalLayout {
+            alignment: center;
+            Button {
+                text: App.status.manual ? (root.compact ? "К расписанию" : "Вернуться к расписанию") : (root.compact ? "Пауза" : "Пауза расписания");
+                icon: App.status.manual ? Icons.play-arrow : Icons.pause;
+                has-icon: true;
+                variant: App.status.manual ? ButtonVariant.filled : ButtonVariant.outlined;
+                enabled: App.online;
+                tooltip: App.status.manual
+                    ? "Продолжить эфир по сетке"
+                    : "Ручной режим: расписание приостановлено, играет очередь оператора";
+                clicked => {
+                    Air.transport(App.status.manual ? "manual-off" : "manual-on");
+                }
+            }
+        }
+
+        VerticalLayout {
+            horizontal-stretch: 1;
+            min-width: 140px;
+            max-width: 260px;
+            alignment: center;
+            Select {
+                label: "Расписание";
+                options: Air.schedules;
+                current-index: Air.schedule-index;
+                container-color: Theme.color.surface-container;
+                enabled: App.online;
+                selected(i, _) => {
+                    Air.switch-schedule(i);
+                }
+            }
+        }
+
+        VerticalLayout {
+            alignment: center;
+            more := IconButton {
+                icon: Icons.more-vert;
+                tooltip: "Дополнительные действия";
+                clicked => {
+                    menu.open-at(more.width - menu.menu-width, more.height);
+                }
+                menu := Menu {
+                    menu-width: 280px;
+                    entries: [
+                        { id: "clear-queue", text: "Очистить очередь оператора (" + App.status.manual-queue + ")", icon: Icons.delete, has-icon: true, enabled: App.status.manual-queue > 0 },
+                        { id: "ads", text: "Рекламный блок…", icon: Icons.campaign, has-icon: true, enabled: true, divider: true },
+                        { id: "graphics", text: "Графика…", icon: Icons.branding-watermark, has-icon: true, enabled: true },
+                        { id: "ticker", text: "Бегущая строка…", icon: Icons.subtitles, has-icon: true, enabled: true },
+                        { id: "fullscreen", text: "Монитор во весь экран", icon: Icons.fullscreen, has-icon: true, enabled: true, shortcut: "F11", divider: true },
+                    ];
+                    activated(id) => {
+                        if id == "clear-queue" {
+                            Air.transport("clear-queue");
+                        } else if id == "ads" {
+                            Air.quick-tab = 1;
+                        } else if id == "graphics" {
+                            Air.quick-tab = 2;
+                        } else if id == "ticker" {
+                            Air.quick-tab = 3;
+                        } else if id == "fullscreen" {
+                            App.toggle-fullscreen();
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

@@ -28,7 +28,8 @@ export component Button inherits Interactive {
     property <color> ink: root.enabled ? fg : Theme.color.on-surface.with-alpha(Theme.disabled-content);
 
     height: Theme.control-height;
-    min-width: 64px;
+    // never squeeze the label: shrink neighbours instead
+    min-width: max(64px, content.preferred-width);
     state-tint: fg;
     background: !root.enabled && container ? Theme.color.on-surface.with-alpha(Theme.disabled-container) : bg;
     border-width: variant == ButtonVariant.outlined ? 1px : 0;
@@ -41,7 +42,7 @@ export component Button inherits Interactive {
         self.clicked();
     }
 
-    HorizontalLayout {
+    content := HorizontalLayout {
         padding-left: root.has-icon ? Theme.sp4 : (root.variant == ButtonVariant.text ? Theme.sp3 : Theme.sp6);
         padding-right: root.variant == ButtonVariant.text ? Theme.sp3 : Theme.sp6;
         spacing: Theme.sp2;

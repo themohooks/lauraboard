@@ -56,10 +56,10 @@ export component ExtendedFab inherits FabBase {
     in property <string> text;
     in property <string> tooltip;
     height: 56px;
-    min-width: 80px;
+    min-width: max(80px, content.preferred-width);
     accessible-label: text;
     accessible-description: tooltip;
-    HorizontalLayout {
+    content := HorizontalLayout {
         padding-left: Theme.sp4;
         padding-right: Theme.sp5;
         spacing: Theme.sp3;

@@ -1,0 +1,93 @@
+// Playback queue (rundown) panel: summary, plan warnings, virtualized list.
+
+import { ListView } from "std-widgets.slint";
+import { Theme } from "../../theme/tokens.slint";
+import { Icons } from "../../theme/icons.slint";
+import { Label } from "../../components/label.slint";
+import { Icon } from "../../components/icon.slint";
+import { ListHeader } from "../../components/list-row.slint";
+import { EmptyState } from "../../components/feedback.slint";
+import { Air } from "../../state/air-state.slint";
+import { QueueRowView } from "queue-row.slint";
+
+export component QueuePanel inherits Rectangle {
+    in property <bool> show-block: true;
+    border-radius: Theme.radius-l;
+    background: Theme.color.surface-container-low;
+    clip: true;
+
+    VerticalLayout {
+        HorizontalLayout {
+            padding-left: Theme.sp4;
+            padding-right: Theme.sp4;
+            padding-top: Theme.sp3;
+            padding-bottom: Theme.sp2;
+            spacing: Theme.sp2;
+            Label {
+                text: "Очередь эфира";
+                type-style: Theme.title-medium;
+            }
+            Label {
+                horizontal-stretch: 1;
+                text: Air.queue-summary;
+                horizontal-alignment: right;
+                color: Theme.color.on-surface-variant;
+            }
+        }
+
+        if Air.warnings.length > 0: Rectangle {
+            background: Theme.status.warning-container;
+            HorizontalLayout {
+                padding: Theme.sp2;
+                padding-left: Theme.sp4;
+                spacing: Theme.sp2;
+                VerticalLayout {
+                    alignment: start;
+                    Icon {
+                        source: Icons.warning;
+                        size: 18px;
+                        tint: Theme.status.on-warning-container;
+                    }
+                }
+                VerticalLayout {
+                    horizontal-stretch: 1;
+                    for w[i] in Air.warnings: Label {
+                        visible: i < 3;
+                        height: i < 3 ? self.preferred-height : 0;
+                        text: w;
+                        type-style: Theme.body-small;
+                        color: Theme.status.on-warning-container;
+                    }
+                    if Air.warnings.length > 3: Label {
+                        text: "и ещё " + (Air.warnings.length - 3);
+                        type-style: Theme.body-small;
+                        color: Theme.status.on-warning-container;
+                    }
+                }
+            }
+        }
+
+        ListHeader {
+            padding-x: Theme.sp3;
+            Label { width: 64px; text: "НАЧАЛО"; type-style: Theme.label-small; color: Theme.color.on-surface-variant; }
+            Rectangle { width: 16px; }
+            Label { horizontal-stretch: 1; text: "НАЗВАНИЕ"; type-style: Theme.label-small; color: Theme.color.on-surface-variant; }
+            if root.show-block: Label { width: 110px; text: "БЛОК"; type-style: Theme.label-small; color: Theme.color.on-surface-variant; }
+            Label { width: 64px; text: "ДЛИТ."; type-style: Theme.label-small; horizontal-alignment: right; color: Theme.color.on-surface-variant; }
+        }
+
+        if Air.queue.length == 0: EmptyState {
+            vertical-stretch: 1;
+            icon: Icons.queue-music;
+            title: "Очередь пуста";
+            text: "План эфира появится, когда у канала будет расписание или плейлист.";
+        }
+        if Air.queue.length > 0: ListView {
+            vertical-stretch: 1;
+            for row in Air.queue: QueueRowView {
+                item: row;
+                show-block: root.show-block;
+            }
+        }
+    }
+}
