@@ -43,8 +43,8 @@ pub fn encoder_args(j: &EncodeJob) -> Vec<String> {
     if j.video_codec.ends_with("_vaapi") {
         args.extend(sv(&["-vaapi_device", "/dev/dri/renderD128"]));
     }
-    // input 0: intermediate stream, paced in real time
-    args.extend(sv(&["-re", "-fflags", "+genpts+discardcorrupt", "-f", "mpegts", "-i", "pipe:0"]));
+    // input 0: intermediate stream (already paced by the decoders)
+    args.extend(sv(&["-fflags", "+genpts+discardcorrupt", "-f", "mpegts", "-i", "pipe:0"]));
     // input 1: graphics
     if let Some(g) = &j.gfx {
         args.extend(sv(&[
@@ -180,7 +180,8 @@ mod tests {
         let (e, v, a) = (EncoderConfig::default(), VideoFormat::default(), AudioFormat::default());
         let outs = vec![OutputTarget { name: "yt".into(), url: "rtmp://x/live/key".into(), enabled: true, format: None }];
         let s = encoder_args(&job(&e, &v, &a, &outs)).join(" ");
-        assert!(s.contains("-re -fflags +genpts+discardcorrupt -f mpegts -i pipe:0"));
+        assert!(s.contains("-fflags +genpts+discardcorrupt -f mpegts -i pipe:0"));
+        assert!(!s.contains("-re "));
         assert!(s.contains("-i tcp://127.0.0.1:40000"));
         assert!(s.contains("overlay=x=0:y=0"));
         assert!(s.contains("[vprev]fps=5,scale=480:-2[pv]"));

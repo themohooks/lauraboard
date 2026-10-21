@@ -11,10 +11,10 @@ use super::{base_args, fps_str, intermediate_codec_args, secs, sv};
 pub fn slate_args(image: Option<&str>, duration_ms: i64, v: &VideoFormat, a: &AudioFormat, loglevel: &str) -> Vec<String> {
     let mut args = base_args(loglevel);
     match image {
-        Some(img) => args.extend(sv(&["-loop", "1", "-framerate", &fps_str(v.fps), "-i", img])),
+        Some(img) => args.extend(sv(&["-re", "-loop", "1", "-framerate", &fps_str(v.fps), "-i", img])),
         None => {
             let src = format!("color=c={}:s={}x{}:r={}", ffmpeg_color(&v.background), v.width, v.height, fps_str(v.fps));
-            args.extend(sv(&["-f", "lavfi", "-i", &src]));
+            args.extend(sv(&["-re", "-f", "lavfi", "-i", &src]));
         }
     }
     args.extend(sv(&["-f", "lavfi", "-i", &silence_src(a)]));
@@ -42,7 +42,7 @@ mod tests {
     #[test]
     fn image_slate() {
         let s = slate_args(Some("standby.png"), 0, &VideoFormat::default(), &AudioFormat::default(), "error").join(" ");
-        assert!(s.contains("-loop 1 -framerate 25 -i standby.png"));
+        assert!(s.contains("-re -loop 1 -framerate 25 -i standby.png"));
         assert!(!s.contains("-t "));
     }
 }

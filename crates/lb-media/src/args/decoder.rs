@@ -36,19 +36,21 @@ pub fn decoder_args(job: &DecodeJob, v: &VideoFormat, a: &AudioFormat, loglevel:
     let mut args = base_args(loglevel);
     match job.kind {
         InputKind::File => {
+            // real-time pacing per item: the encoder simply follows
+            args.push("-re".into());
             if job.seek_ms > 0 {
                 args.extend(sv(&["-ss", &secs(job.seek_ms)]));
             }
             args.extend(sv(&["-i", &job.input]));
         }
         InputKind::Image => {
-            args.extend(sv(&["-loop", "1", "-framerate", &fps_str(v.fps), "-i", &job.input]));
+            args.extend(sv(&["-re", "-loop", "1", "-framerate", &fps_str(v.fps), "-i", &job.input]));
         }
         InputKind::Stream => {
             if job.input.starts_with("http") {
                 args.extend(sv(&["-reconnect", "1", "-reconnect_streamed", "1", "-reconnect_delay_max", "5"]));
             }
-            args.extend(sv(&["-rw_timeout", "10000000", "-i", &job.input]));
+            args.extend(sv(&["-re", "-rw_timeout", "10000000", "-i", &job.input]));
         }
     }
     let audio_from_input = job.has_audio && job.kind != InputKind::Image;
@@ -91,7 +93,7 @@ mod tests {
     #[test]
     fn file_with_seek_and_audio() {
         let s = joined(&job(InputKind::File, true));
-        assert!(s.contains("-ss 1.500 -i media/a.mp4"));
+        assert!(s.contains("-re -ss 1.500 -i media/a.mp4"));
         assert!(s.contains("[0:a:0]aresample=48000"));
         assert!(!s.contains("anullsrc"));
         assert!(s.contains("-t 60.000"));
@@ -108,7 +110,7 @@ mod tests {
     #[test]
     fn image_is_looped() {
         let s = joined(&job(InputKind::Image, true));
-        assert!(s.contains("-loop 1 -framerate 25 -i media/a.mp4"));
+        assert!(s.contains("-re -loop 1 -framerate 25 -i media/a.mp4"));
         assert!(!s.contains("-ss"));
         assert!(s.contains("anullsrc"));
     }

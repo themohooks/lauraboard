@@ -166,3 +166,21 @@ pub fn plan_req(input: &PlanInput, state: &PlanState, req: &PlanRequest) -> Rund
 
 #[cfg(test)]
 mod tests;
+
+/// Build an unscheduled ad break starting at `at` (manual insertion).
+pub fn ad_break_now(input: &PlanInput, state: &PlanState, ad_break: &str, at: WallTime) -> Vec<RundownItem> {
+    let Some(brk) = input.rules.ad_break(ad_break) else { return vec![] };
+    let mut p = Planner {
+        inp: input,
+        st: state.clone(),
+        hist: Overlay::new(input.history),
+        rng: Rng::derive(input.seed, &[&at.to_string(), ad_break]),
+        out: Vec::new(),
+        warnings: Vec::new(),
+        seq: 0,
+        uid_base: format!("manual-{}-{}", at.format("%Y%m%d%H%M%S"), PLAN_SEQ.fetch_add(1, Ordering::Relaxed)),
+    };
+    let items = p.build_ad_break(brk, at, Some(ad_break), false, 0);
+    p.push_ad_items(items, at, None, false);
+    p.out
+}

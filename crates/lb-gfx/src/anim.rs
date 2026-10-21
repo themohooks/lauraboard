@@ -37,10 +37,11 @@ fn apply(kind: AnimKind, progress: f32, w: f32, h: f32) -> AnimState {
 /// Combine in- and out-animations for an element of size (w, h).
 pub fn state(a: &Animation, shown_ms: i64, hide_in_ms: Option<i64>, w: f32, h: f32) -> AnimState {
     let d = a.duration.ms().max(1) as f32;
-    if let Some(left) = hide_in_ms {
-        if a.anim_out != AnimKind::None && (left as f32) < d {
-            return apply(a.anim_out, left as f32 / d, w, h);
-        }
+    if let Some(left) = hide_in_ms
+        && a.anim_out != AnimKind::None
+        && (left as f32) < d
+    {
+        return apply(a.anim_out, left as f32 / d, w, h);
     }
     if a.anim_in != AnimKind::None && (shown_ms as f32) < d {
         return apply(a.anim_in, shown_ms as f32 / d, w, h);

@@ -98,12 +98,12 @@ pub fn render_text(font: &FontArc, style: &TextStyle, text: &str) -> Option<Pixm
         paint.set_color(sc);
         pm.fill_path(&path, &paint, FillRule::Winding, base.post_translate(sx, sy), None);
     }
-    if outline > 0.0 {
-        if let Some(oc) = style.outline_color.as_deref().and_then(try_parse) {
-            paint.set_color(oc);
-            let stroke = Stroke { width: outline * 2.0, line_join: LineJoin::Round, line_cap: LineCap::Round, ..Default::default() };
-            pm.stroke_path(&path, &paint, &stroke, base, None);
-        }
+    if outline > 0.0
+        && let Some(oc) = style.outline_color.as_deref().and_then(try_parse)
+    {
+        paint.set_color(oc);
+        let stroke = Stroke { width: outline * 2.0, line_join: LineJoin::Round, line_cap: LineCap::Round, ..Default::default() };
+        pm.stroke_path(&path, &paint, &stroke, base, None);
     }
     paint.set_color(parse_color(&style.color));
     pm.fill_path(&path, &paint, FillRule::Winding, base, None);
