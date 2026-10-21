@@ -1,0 +1,54 @@
+// Page scaffolding: Page fades/slides in when a section opens (no motion
+// when animations are off); PageHeader is the compact title row of a
+// working screen; Pending marks a section that is not wired yet.
+
+import { Theme } from "../theme/tokens.slint";
+import { Icons } from "../theme/icons.slint";
+import { Label } from "../components/label.slint";
+import { EmptyState } from "../components/feedback.slint";
+
+export component Page inherits Rectangle {
+    property <bool> appeared: false;
+    init => {
+        self.appeared = true;
+    }
+    opacity: appeared ? 1 : 0;
+    animate opacity { duration: Theme.motion-medium; easing: ease-out; }
+    @children
+}
+
+export component PageHeader inherits HorizontalLayout {
+    in property <string> title;
+    in property <string> subtitle;
+    spacing: Theme.sp3;
+    padding-bottom: Theme.sp2;
+    VerticalLayout {
+        alignment: center;
+        Label {
+            text: root.title;
+            type-style: Theme.title-large;
+            min-width: self.preferred-width;
+        }
+    }
+    if root.subtitle != "": VerticalLayout {
+        alignment: center;
+        Label {
+            text: root.subtitle;
+            type-style: Theme.body-medium;
+            color: Theme.color.on-surface-variant;
+        }
+    }
+    Rectangle {
+        horizontal-stretch: 1;
+    }
+    @children
+}
+
+export component Pending inherits Page {
+    in property <string> title;
+    EmptyState {
+        icon: Icons.tune;
+        title: root.title;
+        text: "Раздел переносится в новый интерфейс.";
+    }
+}

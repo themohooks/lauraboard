@@ -13,8 +13,10 @@
 //!   new one is enabled with `LB_GUI=m3`.
 
 mod app;
+mod bridge;
 #[cfg(feature = "snapshot")]
 pub mod devtools;
+mod fmt;
 mod model;
 mod net;
 mod prefs;

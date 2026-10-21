@@ -1,0 +1,278 @@
+//! Bridge between the API client (`net`, `model`) and the Slint UI.
+//!
+//! All state lives in one [`Ctx`] owned by the UI thread (thread-local).
+//! Background threads only send [`Msg`]s and wake the event loop; the pump
+//! applies them to the model and pushes view data into the Slint globals.
+//! UI callbacks go through [`with`], which defers itself if the context is
+//! already borrowed (a callback fired while Rust was updating the UI).
+//!
+//! One module per area: [`shell`] (window, navigation, status, overlays);
+//! screen modules are added next to it.
+
+pub mod shell;
+
+use std::cell::RefCell;
+use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::mpsc::Receiver;
+
+use serde_json::{Value, json};
+use slint::ComponentHandle;
+
+use crate::GuiOptions;
+use crate::model::{LogLine, Model};
+use crate::net::api::Api;
+use crate::net::poller::Poller;
+use crate::net::worker::Worker;
+use crate::net::{Msg, Wake, events};
+use crate::prefs::UiPrefs;
+use crate::shell::{App, AppWindow};
+
+type Action = Box<dyn FnOnce(&mut Ctx)>;
+
+/// Everything the UI thread knows.
+pub struct Ctx {
+    pub ui: slint::Weak<AppWindow>,
+    pub model: Model,
+    pub worker: Worker,
+    pub poller: Poller,
+    pub prefs: UiPrefs,
+    rx: Receiver<Msg>,
+    pending_confirm: Option<Action>,
+    toast_action: Option<Action>,
+    toast_serial: i32,
+    /// Scale factor reported by the OS (before the user's UI scale).
+    pub system_scale: f32,
+}
+
+thread_local! {
+    static CTX: RefCell<Option<Ctx>> = const { RefCell::new(None) };
+}
+
+/// Run `f` with the context; if it is busy, retry on the next event-loop turn.
+pub fn with(f: impl FnOnce(&mut Ctx) + 'static) {
+    let f = RefCell::new(Some(f));
+    let ran = CTX.with(|c| match c.try_borrow_mut() {
+        Ok(mut g) => {
+            if let (Some(ctx), Some(f)) = (g.as_mut(), f.borrow_mut().take()) {
+                f(ctx);
+            }
+            true
+        }
+        Err(_) => false,
+    });
+    if !ran && let Some(f) = f.into_inner() {
+        slint::Timer::single_shot(std::time::Duration::ZERO, move || with(f));
+    }
+}
+
+/// Create the context and connect everything (called once, on the UI thread).
+pub fn start(ui: &AppWindow, opts: &GuiOptions, prefs: UiPrefs) {
+    let api = Api::new(&opts.base_url, opts.token.clone());
+    // Coalesce wake-ups: one pending pump at a time.
+    let queued = Arc::new(AtomicBool::new(false));
+    let wake: Wake = Arc::new(move || {
+        if !queued.swap(true, Ordering::AcqRel) {
+            let q = queued.clone();
+            let _ = slint::invoke_from_event_loop(move || {
+                q.store(false, Ordering::Release);
+                with(|c| c.pump());
+            });
+        }
+    });
+    let (worker, rx) = Worker::new(api.clone(), wake.clone());
+    let poller = Poller::start(api.clone(), worker.sender(), wake.clone());
+    events::start(&api, worker.sender(), wake);
+    let ctx = Ctx {
+        ui: ui.as_weak(),
+        model: Model { channel: opts.channel.clone(), ..Default::default() },
+        worker,
+        poller,
+        prefs,
+        rx,
+        pending_confirm: None,
+        toast_action: None,
+        toast_serial: 0,
+        system_scale: ui.window().scale_factor(),
+    };
+    ui.global::<App>().set_api_url(api.base.clone().into());
+    CTX.with(|c| *c.borrow_mut() = Some(ctx));
+    shell::connect(ui);
+    with(|c| {
+        shell::apply_prefs(c);
+        c.load_channels();
+    });
+}
+
+/// Save preferences and drop the context (window closed).
+pub fn stop() {
+    CTX.with(|c| {
+        if let Some(ctx) = c.borrow_mut().take() {
+            ctx.prefs.save();
+        }
+    });
+}
+
+impl Ctx {
+    pub fn window(&self) -> Option<AppWindow> {
+        self.ui.upgrade()
+    }
+
+    /// Apply queued background results.
+    fn pump(&mut self) {
+        while let Ok(m) = self.rx.try_recv() {
+            self.apply(m);
+        }
+    }
+
+    fn apply(&mut self, m: Msg) {
+        match m {
+            Msg::Channels(list) => {
+                if self.model.channel.as_ref().is_none_or(|c| !list.contains(c)) {
+                    self.model.channel = list.first().cloned();
+                }
+                self.model.channels = list;
+                if let Some(c) = &self.model.channel {
+                    self.poller.set_channel(c);
+                }
+                shell::channels_changed(self);
+                self.load_all();
+            }
+            Msg::Status(s) => {
+                self.model.status = *s;
+                shell::status_changed(self);
+            }
+            Msg::Rundown(r) => self.model.rundown = r,
+            Msg::Plan(r) => self.model.plan = r,
+            Msg::Library(l) => self.model.library = l,
+            Msg::Playlists(p) => self.model.playlists = p,
+            Msg::Schedules(s) => self.model.schedules = s,
+            Msg::Rules(r) => self.model.rules = r,
+            Msg::Graphics(g) => self.model.graphics = g,
+            Msg::Stats(s) => self.model.stats = s,
+            Msg::Preview(f) => shell::preview_changed(self, f),
+            Msg::Event(v) => self.model.push_log(LogLine::from_event(&v)),
+            Msg::Done(text) => self.toast(text, false),
+            Msg::Error(e) => {
+                self.model.push_log(LogLine { at: chrono::Local::now().format("%H:%M:%S").to_string(), level: "warning".into(), text: e.clone() });
+                self.toast(e, true);
+            }
+            Msg::Connection(ok) => {
+                self.model.online = ok;
+                shell::status_changed(self);
+                if ok && self.model.channels.is_empty() {
+                    self.load_channels();
+                }
+            }
+        }
+    }
+
+    // ------------------------------------------------------------ requests
+
+    pub fn load_channels(&self) {
+        self.worker.spawn(|api| {
+            let list: Vec<Value> = api.get("/channels")?;
+            Ok(Msg::Channels(list.iter().filter_map(|c| c["channel"].as_str().map(str::to_string)).collect()))
+        });
+    }
+
+    /// Reload all editable documents of the channel.
+    pub fn load_all(&self) {
+        let ch = self.model.ch();
+        if ch.is_empty() {
+            return;
+        }
+        let c = ch.clone();
+        self.worker.spawn(move |api| Ok(Msg::Library(api.get(&format!("/channels/{c}/media"))?)));
+        let c = ch.clone();
+        self.worker.spawn(move |api| {
+            let list: Vec<Value> = api.get(&format!("/channels/{c}/playlists"))?;
+            let mut full = Vec::new();
+            for p in list {
+                full.push(api.get(&format!("/channels/{c}/playlists/{}", p["id"].as_str().unwrap_or("")))?);
+            }
+            Ok(Msg::Playlists(full))
+        });
+        let c = ch.clone();
+        self.worker.spawn(move |api| Ok(Msg::Schedules(api.get(&format!("/channels/{c}/schedules"))?)));
+        let c = ch.clone();
+        self.worker.spawn(move |api| Ok(Msg::Rules(api.get(&format!("/channels/{c}/rules"))?)));
+        let c = ch;
+        self.worker.spawn(move |api| Ok(Msg::Graphics(api.get(&format!("/channels/{c}/graphics"))?)));
+    }
+
+    /// Send a channel command (`{"cmd": ...}`).
+    pub fn command(&self, cmd: Value) {
+        let ch = self.model.ch();
+        self.worker.spawn(move |api| {
+            let r = api.post(&format!("/channels/{ch}/command"), &cmd)?;
+            Ok(Msg::Done(r["message"].as_str().unwrap_or("Выполнено").to_string()))
+        });
+    }
+
+    /// Save a whole document with PUT and reload everything afterwards.
+    pub fn save_doc<T: serde::Serialize + Send + 'static>(&self, path: &str, doc: T, what: &'static str) {
+        let ch = self.model.ch();
+        let path = format!("/channels/{ch}{path}");
+        self.worker.spawn(move |api| {
+            api.put(&path, &doc)?;
+            Ok(Msg::Done(format!("{what}: сохранено")))
+        });
+        self.load_all();
+    }
+
+    // ------------------------------------------------------------ overlays
+
+    pub fn toast(&mut self, text: impl Into<String>, error: bool) {
+        self.toast_action = None;
+        self.show_toast(text.into(), error, "");
+    }
+
+    /// Snackbar with an action button (e.g. "Отменить").
+    pub fn toast_with(&mut self, text: impl Into<String>, label: &str, action: impl FnOnce(&mut Ctx) + 'static) {
+        self.toast_action = Some(Box::new(action));
+        self.show_toast(text.into(), false, label);
+    }
+
+    fn show_toast(&mut self, text: String, error: bool, action: &str) {
+        let Some(ui) = self.window() else { return };
+        self.toast_serial += 1;
+        let g = ui.global::<App>();
+        g.set_toast_text(text.into());
+        g.set_toast_error(error);
+        g.set_toast_action(action.into());
+        g.set_toast_serial(self.toast_serial);
+        g.set_toast_shown(true);
+    }
+
+    /// Ask before running a risky action.
+    pub fn ask(&mut self, title: &str, text: &str, action_label: &str, action: impl FnOnce(&mut Ctx) + 'static) {
+        let Some(ui) = self.window() else { return };
+        self.pending_confirm = Some(Box::new(action));
+        let g = ui.global::<App>();
+        g.set_confirm_title(title.into());
+        g.set_confirm_text(text.into());
+        g.set_confirm_action(action_label.into());
+        g.set_confirm_danger(true);
+        g.set_confirm_open(true);
+    }
+
+    fn confirm_result(&mut self, ok: bool) {
+        if let Some(a) = self.pending_confirm.take()
+            && ok
+        {
+            a(self);
+        }
+    }
+
+    fn toast_action_clicked(&mut self) {
+        if let Some(a) = self.toast_action.take() {
+            a(self);
+        }
+    }
+}
+
+/// JSON command helper.
+pub fn cmd(name: &str) -> Value {
+    json!({ "cmd": name })
+}

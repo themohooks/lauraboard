@@ -1,15 +1,31 @@
-// Main window of the Material 3 operator GUI.
+// Main window of the Material 3 operator GUI: app bar, navigation,
+// section host, global overlays (snackbar, confirmation) and shortcuts.
 
 import "../assets/fonts/Roboto.ttf";
 import "../assets/fonts/RobotoMono.ttf";
 import { Theme } from "theme/tokens.slint";
+import { NavRail } from "components/nav-rail.slint";
+import { Snackbar } from "components/snackbar.slint";
+import { ConfirmDialog } from "components/dialog.slint";
+import { App } from "state/app-state.slint";
+import { AppBar } from "shell/app-bar.slint";
+import { Pending } from "shell/page.slint";
 import { Gallery } from "screens/gallery/gallery.slint";
 
 export { Theme, ThemeMode } from "theme/tokens.slint";
+export { App, StatusInfo } from "state/app-state.slint";
 
 export component AppWindow inherits Window {
-    in-out property <string> section: "gallery";
+    // kept for the snapshot tool; mirrors App.section
+    in-out property <string> section <=> App.section;
     in-out property <string> gallery-page;
+
+    // below this width the drawer collapses into a rail; updated on resize
+    // (a plain binding would loop through the window's layout constraints)
+    property <bool> narrow: false;
+    changed width => {
+        self.narrow = self.width < 1200px;
+    }
 
     title: "Laurabrod — управление эфиром";
     preferred-width: 1400px;
@@ -20,7 +36,134 @@ export component AppWindow inherits Window {
     default-font-family: Theme.font;
     default-font-size: Theme.body-medium.size;
 
-    if section == "gallery": Gallery {
-        page: root.gallery-page;
+    function go(id: string) {
+        App.navigate(id);
+    }
+
+    keys := FocusScope {
+        key-pressed(e) => {
+            if e.modifiers.control && !e.modifiers.shift && !e.modifiers.alt {
+                if e.text >= "1" && e.text <= "9" {
+                    let i = e.text.to-float() - 1;
+                    if i < App.nav-items.length {
+                        root.go(App.nav-items[i].id);
+                    }
+                    return accept;
+                }
+                if e.text == "0" {
+                    root.go(App.nav-items[9].id);
+                    return accept;
+                }
+                if e.text == "s" || e.text == "ы" {
+                    App.shortcut("save");
+                    return accept;
+                }
+                if e.text == "z" || e.text == "я" {
+                    App.shortcut("undo");
+                    return accept;
+                }
+                if e.text == "y" || e.text == "н" {
+                    App.shortcut("redo");
+                    return accept;
+                }
+                if e.text == "f" || e.text == "а" {
+                    App.shortcut("search");
+                    return accept;
+                }
+            }
+            if e.modifiers.control && e.modifiers.shift && (e.text == "Z" || e.text == "Я" || e.text == "z") {
+                App.shortcut("redo");
+                return accept;
+            }
+            if e.text == Key.F5 {
+                App.refresh();
+                return accept;
+            }
+            if e.text == Key.F11 {
+                App.toggle-fullscreen();
+                return accept;
+            }
+            if e.text == Key.Escape && App.monitor-fullscreen {
+                App.toggle-fullscreen();
+                return accept;
+            }
+            reject
+        }
+
+        VerticalLayout {
+            AppBar {
+                narrow: root.narrow;
+            }
+            HorizontalLayout {
+                NavRail {
+                    items: App.nav-items;
+                    current: App.section;
+                    expanded: App.nav-expanded && !root.narrow;
+                    navigate(id) => {
+                        root.go(id);
+                    }
+                    expanded-changed(v) => {
+                        App.nav-expanded = v;
+                        App.nav-expanded-changed(v);
+                    }
+                }
+                Rectangle {
+                    horizontal-stretch: 1;
+                    background: Theme.color.surface;
+                    if App.section == "gallery": Gallery {
+                        page: root.gallery-page;
+                    }
+                    if App.section == "home": Pending { title: "Главная"; }
+                    if App.section == "air": Pending { title: "Эфир"; }
+                    if App.section == "playlists": Pending { title: "Плейлисты"; }
+                    if App.section == "library": Pending { title: "Медиатека"; }
+                    if App.section == "schedule": Pending { title: "Сетка вещания"; }
+                    if App.section == "jingles": Pending { title: "Заставки и переходы"; }
+                    if App.section == "ads": Pending { title: "Реклама и анонсы"; }
+                    if App.section == "graphics": Pending { title: "Экранная графика"; }
+                    if App.section == "sources": Pending { title: "Источники и сцены"; }
+                    if App.section == "stats": Pending { title: "Статистика"; }
+                    if App.section == "log": Pending { title: "Журнал событий"; }
+                    if App.section == "settings": Pending { title: "Настройки"; }
+                }
+            }
+        }
+    }
+
+    Snackbar {
+        x: (parent.width - self.width) / 2;
+        y: parent.height - self.height - 24px;
+        shown <=> App.toast-shown;
+        text: App.toast-text;
+        error: App.toast-error;
+        action-text: App.toast-action;
+        serial: App.toast-serial;
+        timeout: App.toast-error ? 8s : 5s;
+        action => {
+            App.toast-action-clicked();
+        }
+    }
+
+    ConfirmDialog {
+        open: App.confirm-open;
+        title: App.confirm-title;
+        text: App.confirm-text;
+        confirm-text: App.confirm-action;
+        danger: App.confirm-danger;
+        confirmed => {
+            App.confirm-open = false;
+            App.confirm-result(true);
+            keys.focus();
+        }
+        cancelled => {
+            App.confirm-open = false;
+            App.confirm-result(false);
+            keys.focus();
+        }
+    }
+
+    init => {
+        self.narrow = self.width < 1200px;
+        keys.focus();
     }
 }
