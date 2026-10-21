@@ -1,0 +1,57 @@
+// M3 icon button: standard / filled / tonal / outlined, optional toggle
+// (`selected`, filled icon variant via `selected-icon`). The tooltip is
+// also its accessible label.
+
+import { Theme } from "../theme/tokens.slint";
+import { Interactive } from "interactive.slint";
+import { Icon } from "icon.slint";
+import { Tooltip } from "tooltip.slint";
+
+export enum IconButtonVariant { standard, filled, tonal, outlined }
+
+export component IconButton inherits Interactive {
+    in property <image> icon;
+    in property <image> selected-icon: icon;
+    in property <IconButtonVariant> variant: IconButtonVariant.standard;
+    in property <bool> toggle: false;
+    in property <bool> selected: false;
+    in property <string> tooltip;
+    in property <color> icon-tint: Theme.color.on-surface-variant;
+
+    property <bool> on: !toggle || selected;
+    property <bool> plain: variant == IconButtonVariant.standard || variant == IconButtonVariant.outlined;
+    property <color> fg: !root.enabled ? Theme.color.on-surface.with-alpha(Theme.disabled-content)
+        : variant == IconButtonVariant.filled ? (on ? Theme.color.on-primary : Theme.color.primary)
+        : variant == IconButtonVariant.tonal ? (on ? Theme.color.on-secondary-container : Theme.color.on-surface-variant)
+        : variant == IconButtonVariant.outlined ? (toggle && selected ? Theme.color.inverse-on-surface : Theme.color.on-surface-variant)
+        : (toggle && selected ? Theme.color.primary : icon-tint);
+
+    width: Theme.touch-target;
+    height: Theme.touch-target;
+    state-tint: fg;
+    background: !root.enabled ? (plain ? transparent : Theme.color.on-surface.with-alpha(Theme.disabled-container))
+        : variant == IconButtonVariant.filled ? (on ? Theme.color.primary : Theme.color.surface-container-highest)
+        : variant == IconButtonVariant.tonal ? (on ? Theme.color.secondary-container : Theme.color.surface-container-highest)
+        : variant == IconButtonVariant.outlined && toggle && selected ? Theme.color.inverse-surface
+        : transparent;
+    border-width: variant == IconButtonVariant.outlined && !(toggle && selected) ? 1px : 0;
+    border-color: Theme.color.outline;
+    accessible-role: button;
+    accessible-label: tooltip;
+    accessible-checked: selected;
+    accessible-checkable: toggle;
+    accessible-action-default => {
+        self.clicked();
+    }
+
+    Icon {
+        source: root.toggle && root.selected ? root.selected-icon : root.icon;
+        tint: root.fg;
+    }
+
+    Tooltip {
+        text: root.tooltip;
+        hovered: root.hovered;
+        anchor-height: root.height;
+    }
+}

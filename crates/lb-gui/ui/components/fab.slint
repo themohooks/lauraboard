@@ -1,0 +1,88 @@
+// M3 floating action button (icon only) and extended FAB (icon + label).
+// The `live` tone is reserved for the main on-air action.
+
+import { Theme } from "../theme/tokens.slint";
+import { Interactive } from "interactive.slint";
+import { Icon } from "icon.slint";
+import { Label } from "label.slint";
+import { Tooltip } from "tooltip.slint";
+
+export enum FabTone { primary, secondary, tertiary, live }
+
+component FabBase inherits Interactive {
+    in property <FabTone> tone: FabTone.primary;
+    out property <color> fg: !root.enabled ? Theme.color.on-surface.with-alpha(Theme.disabled-content)
+        : tone == FabTone.secondary ? Theme.color.on-secondary-container
+        : tone == FabTone.tertiary ? Theme.color.on-tertiary-container
+        : tone == FabTone.live ? Theme.status.on-live
+        : Theme.color.on-primary-container;
+    radius: Theme.radius-l;
+    state-tint: fg;
+    background: !root.enabled ? Theme.color.on-surface.with-alpha(Theme.disabled-container)
+        : tone == FabTone.secondary ? Theme.color.secondary-container
+        : tone == FabTone.tertiary ? Theme.color.tertiary-container
+        : tone == FabTone.live ? Theme.status.live
+        : Theme.color.primary-container;
+    drop-shadow-blur: !root.enabled ? 0 : self.hovered ? 8px : 4px;
+    drop-shadow-offset-y: !root.enabled ? 0 : self.hovered ? 3px : 2px;
+    drop-shadow-color: Theme.color.shadow.with-alpha(Theme.dark ? 0.5 : 0.25);
+    animate drop-shadow-blur, drop-shadow-offset-y { duration: Theme.motion-short; }
+    accessible-role: button;
+    accessible-action-default => {
+        self.clicked();
+    }
+}
+
+export component Fab inherits FabBase {
+    in property <image> icon;
+    in property <string> tooltip;
+    width: 56px;
+    height: 56px;
+    accessible-label: tooltip;
+    Icon {
+        source: root.icon;
+        tint: root.fg;
+    }
+
+    Tooltip {
+        text: root.tooltip;
+        hovered: root.hovered;
+        anchor-height: root.height;
+    }
+}
+
+export component ExtendedFab inherits FabBase {
+    in property <image> icon;
+    in property <string> text;
+    in property <string> tooltip;
+    height: 56px;
+    min-width: 80px;
+    accessible-label: text;
+    accessible-description: tooltip;
+    HorizontalLayout {
+        padding-left: Theme.sp4;
+        padding-right: Theme.sp5;
+        spacing: Theme.sp3;
+        alignment: center;
+        VerticalLayout {
+            alignment: center;
+            Icon {
+                source: root.icon;
+                tint: root.fg;
+            }
+        }
+
+        Label {
+            text: root.text;
+            type-style: Theme.label-large;
+            color: root.fg;
+            overflow: clip;
+        }
+    }
+
+    Tooltip {
+        text: root.tooltip;
+        hovered: root.hovered;
+        anchor-height: root.height;
+    }
+}

@@ -1,0 +1,62 @@
+// Gallery, block B: buttons.
+
+import { Theme } from "../../theme/tokens.slint";
+import { Icons } from "../../theme/icons.slint";
+import { Button, ButtonVariant } from "../../components/button.slint";
+import { IconButton, IconButtonVariant } from "../../components/icon-button.slint";
+import { Fab, ExtendedFab, FabTone } from "../../components/fab.slint";
+import { SegmentedButton } from "../../components/segmented-button.slint";
+import { Section } from "section.slint";
+
+export component ButtonsPage inherits Section {
+    title: "B · Кнопки";
+    HorizontalLayout {
+        spacing: Theme.sp3;
+        alignment: start;
+        Button { text: "Сохранить"; icon: Icons.save; has-icon: true; }
+        Button { text: "Импорт"; variant: ButtonVariant.tonal; icon: Icons.upload; has-icon: true; }
+        Button { text: "Отменить"; variant: ButtonVariant.outlined; }
+        Button { text: "Подробнее"; variant: ButtonVariant.text; }
+        Button { text: "Удалить"; variant: ButtonVariant.danger; icon: Icons.delete; has-icon: true; }
+        Button { text: "Недоступно"; enabled: false; }
+        Button { text: "Недоступно"; variant: ButtonVariant.outlined; enabled: false; }
+    }
+
+    HorizontalLayout {
+        spacing: Theme.sp3;
+        alignment: start;
+        IconButton { icon: Icons.more-vert; tooltip: "Ещё"; }
+        IconButton { icon: Icons.skip-next; variant: IconButtonVariant.filled; tooltip: "Пропустить"; }
+        IconButton { icon: Icons.replay; variant: IconButtonVariant.tonal; tooltip: "Повторить"; }
+        IconButton { icon: Icons.fullscreen; variant: IconButtonVariant.outlined; tooltip: "Во весь экран"; }
+        IconButton { icon: Icons.push-pin; toggle: true; selected: true; tooltip: "Закреплён"; }
+        IconButton { icon: Icons.push-pin; toggle: true; selected: false; tooltip: "Не закреплён"; }
+        IconButton { icon: Icons.view-list; variant: IconButtonVariant.outlined; toggle: true; selected: true; tooltip: "Таблица"; }
+        IconButton { icon: Icons.delete; enabled: false; tooltip: "Удалить"; }
+        IconButton { icon: Icons.delete; variant: IconButtonVariant.filled; enabled: false; tooltip: "Удалить"; }
+    }
+
+    HorizontalLayout {
+        spacing: Theme.sp4;
+        alignment: start;
+        ExtendedFab { text: "Начать вещание"; icon: Icons.play-arrow; tone: FabTone.live; }
+        ExtendedFab { text: "Новое правило"; icon: Icons.add; }
+        Fab { icon: Icons.add; tone: FabTone.secondary; tooltip: "Добавить"; }
+        Fab { icon: Icons.stop; tone: FabTone.tertiary; tooltip: "Стоп"; }
+        Fab { icon: Icons.stop; enabled: false; tooltip: "Стоп"; }
+    }
+
+    HorizontalLayout {
+        spacing: Theme.sp4;
+        alignment: start;
+        SegmentedButton {
+            width: 320px;
+            segments: [{ text: "Таблица" }, { text: "Плитки" }];
+        }
+        SegmentedButton {
+            width: 440px;
+            selected: 1;
+            segments: [{ text: "День", icon: Icons.today, has-icon: true }, { text: "Неделя" }, { text: "Несколько суток" }];
+        }
+    }
+}

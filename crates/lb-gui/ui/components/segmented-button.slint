@@ -1,0 +1,83 @@
+// M3 segmented button (single select): outlined pill split into segments;
+// the selected one is filled with secondary-container and shows a check.
+
+import { Theme } from "../theme/tokens.slint";
+import { Icons } from "../theme/icons.slint";
+import { Interactive } from "interactive.slint";
+import { Icon } from "icon.slint";
+import { Label } from "label.slint";
+
+export struct Segment {
+    text: string,
+    icon: image,
+    has-icon: bool,
+}
+
+export component SegmentedButton inherits Rectangle {
+    in property <[Segment]> segments;
+    in-out property <int> selected: 0;
+    in property <bool> enabled: true;
+    callback changed(int);
+
+    height: Theme.control-height;
+    border-radius: self.height / 2;
+    border-width: 1px;
+    border-color: Theme.color.outline;
+    accessible-role: tab-list;
+
+    HorizontalLayout {
+        for seg[i] in root.segments: Rectangle {
+            horizontal-stretch: 1;
+            // Rounded outer corners: child fills are not clipped to the pill shape.
+            property <length> outer: root.height / 2;
+            Interactive {
+                radius: 0;
+                border-top-left-radius: i == 0 ? parent.outer : 0;
+                border-bottom-left-radius: i == 0 ? parent.outer : 0;
+                border-top-right-radius: i == root.segments.length - 1 ? parent.outer : 0;
+                border-bottom-right-radius: i == root.segments.length - 1 ? parent.outer : 0;
+                enabled: root.enabled;
+                state-tint: root.selected == i ? Theme.color.on-secondary-container : Theme.color.on-surface;
+                background: root.selected == i ? Theme.color.secondary-container : transparent;
+                accessible-role: tab;
+                accessible-label: seg.text;
+                accessible-checked: root.selected == i;
+                accessible-action-default => {
+                    self.clicked();
+                }
+                clicked => {
+                    if root.selected != i {
+                        root.selected = i;
+                        root.changed(i);
+                    }
+                }
+                HorizontalLayout {
+                    padding-left: Theme.sp3;
+                    padding-right: Theme.sp3;
+                    spacing: Theme.sp2;
+                    alignment: center;
+                    if root.selected == i || seg.has-icon: VerticalLayout {
+                        alignment: center;
+                        Icon {
+                            source: root.selected == i ? Icons.check : seg.icon;
+                            size: Theme.icon-small;
+                            tint: root.selected == i ? Theme.color.on-secondary-container : Theme.color.on-surface;
+                        }
+                    }
+                    Label {
+                        text: seg.text;
+                        type-style: Theme.label-large;
+                        color: !root.enabled ? Theme.color.on-surface.with-alpha(Theme.disabled-content)
+                            : root.selected == i ? Theme.color.on-secondary-container : Theme.color.on-surface;
+                    }
+                }
+            }
+
+            if i > 0: Rectangle {
+                x: 0;
+                width: 1px;
+                background: Theme.color.outline;
+            }
+        }
+    }
+}

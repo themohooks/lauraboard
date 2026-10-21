@@ -1,0 +1,49 @@
+// Plain M3 tooltip shown after a short hover delay. Put it inside the
+// hovered element and bind `hovered`; it opens below the element.
+
+import { Theme } from "../theme/tokens.slint";
+import { Label } from "label.slint";
+
+export component Tooltip {
+    in property <string> text;
+    in property <bool> hovered;
+    in property <length> anchor-height;
+    width: 0;
+    height: 0;
+
+    Timer {
+        interval: 600ms;
+        running: root.hovered && root.text != "";
+        triggered => {
+            self.running = false;
+            popup.show();
+        }
+    }
+
+    changed hovered => {
+        if !self.hovered {
+            popup.close();
+        }
+    }
+
+    popup := PopupWindow {
+        x: 0;
+        y: root.anchor-height + 4px;
+        close-policy: no-auto-close;
+        Rectangle {
+            background: Theme.color.inverse-surface;
+            border-radius: Theme.radius-xs;
+            HorizontalLayout {
+                padding-left: Theme.sp2;
+                padding-right: Theme.sp2;
+                padding-top: Theme.sp1;
+                padding-bottom: Theme.sp1;
+                Label {
+                    text: root.text;
+                    type-style: Theme.body-small;
+                    color: Theme.color.inverse-on-surface;
+                }
+            }
+        }
+    }
+}
