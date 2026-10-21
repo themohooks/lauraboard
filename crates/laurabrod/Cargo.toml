@@ -29,6 +29,9 @@ zip = { version = "9.0.5", default-features = false, features = ["deflate"] }
 windows-service = "0.8.1"
 windows-sys = { version = "0.61.2", features = ["Win32_System_Console"] }
 
+[build-dependencies]
+lb-winres = { version = "0.1.0", path = "../lb-winres" }
+
 [dev-dependencies]
 tempfile = "3.27.0"
 

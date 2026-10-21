@@ -26,7 +26,8 @@ fn main() {
     let long_running = matches!(cli.cmd, Cmd::Run { .. }) || is_gui(&cli.cmd);
     let _guard = logging::init(&cli.project, long_running);
     let ctx = ctx::Ctx { root: cli.project.clone(), channel: cli.channel.clone(), token: cli.token.clone(), json: cli.json };
-    let result = if desktop { desktop_start(&ctx).and_then(|()| commands::dispatch(&ctx, cli.cmd)) } else { commands::dispatch(&ctx, cli.cmd) };
+    let result =
+        if desktop { desktop_start(&ctx).and_then(|()| commands::dispatch(&ctx, cli.cmd)) } else { commands::dispatch(&ctx, cli.cmd) };
     let code = match result {
         Ok(()) => exit::Code::Ok,
         Err(e) => {
