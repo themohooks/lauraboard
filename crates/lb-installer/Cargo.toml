@@ -1,0 +1,33 @@
+[package]
+name = "lb-installer"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+description = "Laurabrod installer / uninstaller (Slint, Material 3)"
+
+[[bin]]
+name = "laurabrod-setup"
+path = "src/main.rs"
+
+[dependencies]
+clap = { version = "4.6.7", features = ["derive"] }
+dirs = "7.0.0"
+image = { version = "0.25.10", default-features = false, features = ["png"], optional = true }
+rfd = "0.17.2"
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.154"
+slint = "1.18.1"
+zip = { version = "9.0.5", default-features = false, features = ["deflate"] }
+
+[target.'cfg(windows)'.dependencies]
+mslnk = "0.1.8"
+winreg = "0.56.0"
+windows-sys = { version = "0.61.2", features = ["Win32_Foundation", "Win32_UI_WindowsAndMessaging", "Win32_System_Console"] }
+
+[features]
+# Headless PNG snapshots of every page (`--snapshot <dir>`).
+snapshot = ["dep:image"]
+
+[build-dependencies]
+lb-winres = { version = "0.1.0", path = "../lb-winres" }
+slint-build = "1.18.1"

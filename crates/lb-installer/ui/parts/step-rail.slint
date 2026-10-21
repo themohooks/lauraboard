@@ -1,0 +1,96 @@
+// Left pane of the wizard: product identity and the list of steps
+// (number → check mark when done; the current step is highlighted).
+
+import { Theme } from "@m3/theme/tokens.slint";
+import { Icons } from "@m3/theme/icons.slint";
+import { Icon } from "@m3/components/icon.slint";
+import { Label } from "@m3/components/label.slint";
+
+export struct StepItem {
+    title: string,
+    state: int,     // 0 upcoming, 1 current, 2 done
+}
+
+component StepRow inherits HorizontalLayout {
+    in property <int> number;
+    in property <StepItem> item;
+
+    height: Theme.row-height;
+    spacing: Theme.sp3;
+    accessible-role: list-item;
+    accessible-label: item.title;
+    VerticalLayout {
+        alignment: center;
+        Rectangle {
+            width: 24px;
+            height: 24px;
+            border-radius: 12px;
+            background: root.item.state == 0 ? transparent : Theme.color.primary;
+            border-width: root.item.state == 0 ? 1px : 0;
+            border-color: Theme.color.outline;
+            animate background { duration: Theme.motion-medium; }
+            if root.item.state == 2: Icon {
+                source: Icons.check;
+                size: 16px;
+                tint: Theme.color.on-primary;
+            }
+            if root.item.state != 2: Label {
+                text: root.number;
+                type-style: Theme.label-medium;
+                horizontal-alignment: center;
+                color: root.item.state == 1 ? Theme.color.on-primary : Theme.color.on-surface-variant;
+            }
+        }
+    }
+    Label {
+        text: root.item.title;
+        type-style: root.item.state == 1 ? Theme.title-small : Theme.body-medium;
+        color: root.item.state == 0 ? Theme.color.on-surface-variant : Theme.color.on-surface;
+    }
+}
+
+export component StepRail inherits Rectangle {
+    in property <string> title: "Laurabrod";
+    in property <string> subtitle;
+    in property <[StepItem]> steps;
+    in property <string> footnote;
+
+    width: 248px;
+    background: Theme.color.surface-container;
+
+    VerticalLayout {
+        padding: Theme.sp6;
+        spacing: Theme.sp2;
+
+        Image {
+            source: @image-url("../../../lb-gui/assets/app/laurabrod.svg");
+            width: 56px;
+            height: 56px;
+            accessible-role: image;
+            accessible-label: "Laurabrod";
+        }
+        Rectangle { height: Theme.sp2; }
+        Label {
+            text: root.title;
+            type-style: Theme.headline-small;
+        }
+        Label {
+            text: root.subtitle;
+            type-style: Theme.body-medium;
+            color: Theme.color.on-surface-variant;
+        }
+        Rectangle { height: Theme.sp6; }
+        for item[i] in root.steps: StepRow {
+            number: i + 1;
+            item: item;
+        }
+        Rectangle { vertical-stretch: 1; }
+        Label {
+            text: root.footnote;
+            type-style: Theme.body-small;
+            color: Theme.color.on-surface-variant;
+            wrap: word-wrap;
+            overflow: clip;
+        }
+    }
+}

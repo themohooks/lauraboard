@@ -1,0 +1,78 @@
+// Settings-style row: icon, title, description, switch on the right.
+// The whole row toggles the switch.
+
+import { Theme } from "@m3/theme/tokens.slint";
+import { Icon } from "@m3/components/icon.slint";
+import { Label } from "@m3/components/label.slint";
+import { Switch } from "@m3/components/switch.slint";
+import { StateLayer } from "@m3/components/state-layer.slint";
+
+export component OptionRow inherits Rectangle {
+    in property <image> icon;
+    in property <string> title;
+    in property <string> text;
+    in property <bool> enabled: true;
+    in-out property <bool> checked;
+
+    min-height: Theme.row-height-tall;
+    border-radius: Theme.radius-s;
+    accessible-role: switch;
+    accessible-label: title;
+    accessible-description: text;
+    accessible-checked: checked;
+
+    states := StateLayer {
+        hovered: touch.has-hover;
+        pressed: touch.pressed;
+        enabled: root.enabled;
+        border-radius: root.border-radius;
+    }
+
+    touch := TouchArea {
+        enabled: root.enabled;
+        clicked => {
+            root.checked = !root.checked;
+        }
+    }
+
+    HorizontalLayout {
+        padding-left: Theme.sp3;
+        padding-right: Theme.sp3;
+        padding-top: Theme.sp2;
+        padding-bottom: Theme.sp2;
+        spacing: Theme.sp4;
+        VerticalLayout {
+            alignment: center;
+            Icon {
+                source: root.icon;
+                tint: root.enabled ? Theme.color.on-surface-variant : Theme.color.on-surface.with-alpha(Theme.disabled-content);
+            }
+        }
+        VerticalLayout {
+            horizontal-stretch: 1;
+            alignment: center;
+            spacing: 2px;
+            Label {
+                text: root.title;
+                type-style: Theme.body-large;
+                color: root.enabled ? Theme.color.on-surface : Theme.color.on-surface.with-alpha(Theme.disabled-content);
+            }
+            if root.text != "": Label {
+                text: root.text;
+                type-style: Theme.body-medium;
+                color: Theme.color.on-surface-variant.with-alpha(root.enabled ? 1 : Theme.disabled-content);
+                wrap: word-wrap;
+                overflow: clip;
+            }
+        }
+        VerticalLayout {
+            alignment: center;
+            horizontal-stretch: 0;
+            Switch {
+                width: 52px;
+                checked <=> root.checked;
+                enabled: root.enabled;
+            }
+        }
+    }
+}

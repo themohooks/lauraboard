@@ -1,0 +1,53 @@
+// Uninstall confirmation (and "nothing to remove").
+
+import { Theme } from "@m3/theme/tokens.slint";
+import { Icons } from "@m3/theme/icons.slint";
+import { Card } from "@m3/components/card.slint";
+import { Icon } from "@m3/components/icon.slint";
+import { Label } from "@m3/components/label.slint";
+import { Checkbox } from "@m3/components/checkbox.slint";
+import { Setup, SetupMode } from "../state.slint";
+import { WizardPage } from "../parts/page.slint";
+
+component Fact inherits HorizontalLayout {
+    in property <image> icon;
+    in property <string> text;
+    in property <color> tint: Theme.color.on-surface-variant;
+    spacing: Theme.sp3;
+    Icon {
+        source: root.icon;
+        tint: root.tint;
+    }
+    Label {
+        text: root.text;
+        type-style: Theme.body-medium;
+        wrap: word-wrap;
+        overflow: clip;
+        horizontal-stretch: 1;
+    }
+}
+
+export component RemovePage inherits WizardPage {
+    title: Setup.mode == SetupMode.missing ? "Laurabrod не установлен" : "Удалить Laurabrod \{Setup.installed-version}?";
+    text: Setup.mode == SetupMode.missing
+        ? "Сведения об установке не найдены — удалять нечего. Чтобы установить программу, запустите установщик laurabrod-setup."
+        : "Папка: \{Setup.installed-dir}";
+
+    if Setup.mode == SetupMode.uninstall: Card {
+        card-style: low;
+        Fact {
+            icon: Icons.delete;
+            text: "Будут удалены программа, ярлыки, команда laurabrod и запись в списке приложений.";
+        }
+        Fact {
+            icon: Icons.check-circle;
+            tint: Theme.status.success;
+            text: "Проекты каналов, медиафайлы и журналы эфира не затрагиваются.";
+        }
+    }
+
+    if Setup.mode == SetupMode.uninstall: Checkbox {
+        text: "Удалить также настройки интерфейса";
+        checked <=> Setup.forget-settings;
+    }
+}

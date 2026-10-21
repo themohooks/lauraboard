@@ -1,0 +1,93 @@
+// Shortcuts, PATH and the first channel project.
+
+import { Theme } from "@m3/theme/tokens.slint";
+import { Icons } from "@m3/theme/icons.slint";
+import { Card } from "@m3/components/card.slint";
+import { Label } from "@m3/components/label.slint";
+import { Button, ButtonVariant } from "@m3/components/button.slint";
+import { Checkbox } from "@m3/components/checkbox.slint";
+import { TextField } from "@m3/components/text-field.slint";
+import { Setup } from "../state.slint";
+import { WizardPage } from "../parts/page.slint";
+import { OptionRow } from "../parts/option-row.slint";
+
+export component OptionsPage inherits WizardPage {
+    title: "Параметры";
+    text: "Всё это можно изменить позже: ярлыки — переустановкой, проект — в самой программе.";
+
+    Card {
+        card-style: low;
+        inset: Theme.sp2;
+        gap: 0;
+        OptionRow {
+            icon: Icons.menu;
+            title: Setup.windows ? "Ярлык в меню «Пуск»" : "Значок в меню приложений";
+            checked <=> Setup.menu-shortcut;
+        }
+        OptionRow {
+            icon: Icons.home;
+            title: "Ярлык на рабочем столе";
+            checked <=> Setup.desktop-shortcut;
+        }
+        OptionRow {
+            icon: Icons.input;
+            title: "Команда laurabrod в терминале";
+            text: Setup.windows ? "Папка программы добавляется в PATH пользователя" : "Ссылка в ~/.local/bin";
+            checked <=> Setup.add-to-path;
+        }
+    }
+
+    Card {
+        card-style: low;
+        inset: Theme.sp2;
+        OptionRow {
+            icon: Icons.live-tv;
+            title: "Проект канала";
+            text: "Создать папку проекта и открывать её с ярлыка";
+            checked <=> Setup.create-project;
+        }
+        if Setup.create-project: VerticalLayout {
+            padding-left: Theme.sp3;
+            padding-right: Theme.sp3;
+            padding-top: Theme.sp2;
+            padding-bottom: Theme.sp2;
+            spacing: Theme.sp3;
+            HorizontalLayout {
+                spacing: Theme.sp2;
+                TextField {
+                    label: "Папка проекта";
+                    text <=> Setup.project-dir;
+                    container-color: Theme.color.surface-container-low;
+                    supporting: Setup.project-exists ? "Проект уже есть — он будет открыт как есть" : "";
+                    horizontal-stretch: 1;
+                    edited(t) => {
+                        Setup.project-edited(t);
+                    }
+                }
+                VerticalLayout {
+                    alignment: start;
+                    padding-top: 4px;
+                    Button {
+                        text: "Обзор…";
+                        variant: ButtonVariant.outlined;
+                        clicked => {
+                            Setup.browse-project();
+                        }
+                    }
+                }
+            }
+            Checkbox {
+                text: "Демо-канал: тестовые ролики, сетка, реклама и графика";
+                checked <=> Setup.demo;
+                enabled: Setup.ffmpeg-found && !Setup.project-exists;
+            }
+            if !Setup.ffmpeg-found: Label {
+                text: "Для демо-канала нужен FFmpeg — он генерирует тестовые ролики.";
+                type-style: Theme.body-small;
+                color: Theme.color.on-surface-variant;
+                wrap: word-wrap;
+                overflow: clip;
+            }
+        }
+    }
+}

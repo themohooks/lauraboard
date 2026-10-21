@@ -1,0 +1,35 @@
+// Installation / removal in progress.
+
+import { Theme } from "@m3/theme/tokens.slint";
+import { Label } from "@m3/components/label.slint";
+import { LinearProgress } from "@m3/components/feedback.slint";
+import { Setup, SetupMode } from "../state.slint";
+import { WizardPage } from "../parts/page.slint";
+
+export component ProgressPage inherits WizardPage {
+    title: Setup.mode == SetupMode.uninstall ? "Удаление…" : Setup.installed-version != "" ? "Обновление…" : "Установка…";
+    text: "Это займёт несколько секунд.";
+
+    VerticalLayout {
+        spacing: Theme.sp3;
+        padding-top: Theme.sp6;
+        HorizontalLayout {
+            Label {
+                text: Setup.step;
+                type-style: Theme.body-large;
+                horizontal-stretch: 1;
+            }
+            if !Setup.indeterminate: Label {
+                text: "\{round(Setup.progress * 100)} %";
+                type-style: Theme.label-large;
+                color: Theme.color.on-surface-variant;
+            }
+        }
+        LinearProgress {
+            progress: Setup.progress;
+            indeterminate: Setup.indeterminate;
+            accessible-role: progress-indicator;
+            accessible-label: Setup.step;
+        }
+    }
+}
