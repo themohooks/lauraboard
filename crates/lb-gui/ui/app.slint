@@ -1,14 +1,23 @@
 // Main window of the Material 3 operator GUI.
 
+import "../assets/fonts/Roboto.ttf";
+import "../assets/fonts/RobotoMono.ttf";
+import { Theme } from "theme/tokens.slint";
+import { Gallery } from "screens/gallery/gallery.slint";
+
+export { Theme, ThemeMode } from "theme/tokens.slint";
+
 export component AppWindow inherits Window {
+    in-out property <string> section: "gallery";
+
     title: "Laurabrod — управление эфиром";
     preferred-width: 1400px;
     preferred-height: 860px;
     min-width: 960px;
     min-height: 600px;
+    background: Theme.color.surface;
+    default-font-family: Theme.font;
+    default-font-size: Theme.body-medium.size;
 
-    Text {
-        text: "Laurabrod";
-        font-size: 22px;
-    }
+    if section == "gallery": Gallery { }
 }

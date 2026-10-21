@@ -1,0 +1,15 @@
+// Hidden "Components" section: every design-system block on one page for
+// visual review (see examples/snapshot.rs).
+
+import { ScrollView } from "std-widgets.slint";
+import { Theme } from "../../theme/tokens.slint";
+import { TokensPage } from "tokens-page.slint";
+
+export component Gallery inherits ScrollView {
+    VerticalLayout {
+        padding: Theme.sp6;
+        spacing: Theme.sp6;
+        alignment: start;
+        TokensPage { }
+    }
+}
