@@ -67,6 +67,7 @@ pub fn connect(ui: &AppWindow) {
         with(move |c| match c.section().as_str() {
             "playlists" => super::playlists::shortcut(c, name.as_str()),
             "library" => super::library::shortcut(c, name.as_str()),
+            "schedule" => super::schedule::shortcut(c, name.as_str()),
             _ => {}
         })
     });
@@ -91,6 +92,9 @@ pub fn navigate(c: &mut Ctx, id: &str) {
     // documents may have changed elsewhere (CLI, other operator)
     if matches!(id, "playlists" | "library" | "schedule" | "jingles" | "ads" | "graphics") {
         c.load_all();
+    }
+    if id == "schedule" {
+        super::schedule::opened(c);
     }
 }
 

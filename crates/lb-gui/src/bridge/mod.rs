@@ -7,11 +7,13 @@
 //! already borrowed (a callback fired while Rust was updating the UI).
 //!
 //! One module per area: [`shell`] (window, navigation, status, overlays),
-//! [`air`] (home + on-air), [`playlists`], [`library`], [`thumbs`] (media thumbnails).
+//! [`air`] (home + on-air), [`playlists`], [`library`], [`schedule`] (grid),
+//! [`thumbs`] (media thumbnails).
 
 pub mod air;
 pub mod library;
 pub mod playlists;
+pub mod schedule;
 pub mod shell;
 pub mod thumbs;
 
@@ -52,6 +54,7 @@ pub struct Ctx {
     pub air_marks: (Option<String>, Option<String>),
     pub pl: playlists::PlaylistsState,
     pub lib: library::LibraryState,
+    pub grid: schedule::ScheduleState,
 }
 
 thread_local! {
@@ -107,6 +110,7 @@ pub fn start(ui: &AppWindow, opts: &GuiOptions, prefs: UiPrefs) {
         air_marks: (None, None),
         pl: Default::default(),
         lib: Default::default(),
+        grid: Default::default(),
     };
     ui.global::<App>().set_api_url(api.base.clone().into());
     CTX.with(|c| *c.borrow_mut() = Some(ctx));
@@ -114,6 +118,7 @@ pub fn start(ui: &AppWindow, opts: &GuiOptions, prefs: UiPrefs) {
     air::connect(ui);
     playlists::connect(ui);
     library::connect(ui);
+    schedule::connect(ui);
     with(|c| {
         shell::apply_prefs(c);
         air::apply_prefs(c);
@@ -189,14 +194,17 @@ impl Ctx {
                 self.model.playlists = p;
                 playlists::reloaded(self);
                 library::refresh(self);
+                schedule::refresh(self);
             }
             Msg::Schedules(s) => {
                 self.model.schedules = s;
                 air::config_changed(self);
+                schedule::reloaded(self);
             }
             Msg::Rules(r) => {
                 self.model.rules = r;
                 air::config_changed(self);
+                schedule::refresh(self);
             }
             Msg::Graphics(g) => {
                 self.model.graphics = g;

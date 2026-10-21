@@ -17,12 +17,15 @@ import { PlaylistsScreen } from "screens/playlists/playlists.slint";
 import { CreatePlaylistDialog } from "screens/playlists/create-dialog.slint";
 import { LibraryScreen } from "screens/library/library.slint";
 import { ImportDialog } from "screens/library/import-dialog.slint";
+import { ScheduleScreen } from "screens/schedule/schedule.slint";
 
 export { Theme, ThemeMode } from "theme/tokens.slint";
 export { App, StatusInfo } from "state/app-state.slint";
 export { Air, NowInfo, NextInfo, QueueRow, MediaPick, GfxRow, LogRow } from "state/air-state.slint";
 export { Pl, PlaylistItem, EntryRow, EntryProps } from "state/playlists-state.slint";
 export { Lib, MediaRow, TileLine, MediaEdit } from "state/library-state.slint";
+export { Grid, BlockRow, BlockDetails, DayChip } from "state/schedule-state.slint";
+export { TimelineSegment, DayRow } from "components/timeline.slint";
 
 export component AppWindow inherits Window {
     // kept for the snapshot tool; mirrors App.section
@@ -126,7 +129,7 @@ export component AppWindow inherits Window {
                     if App.section == "air": AirScreen { }
                     if App.section == "playlists": PlaylistsScreen { }
                     if App.section == "library": LibraryScreen { }
-                    if App.section == "schedule": Pending { title: "Сетка вещания"; }
+                    if App.section == "schedule": ScheduleScreen { }
                     if App.section == "jingles": Pending { title: "Заставки и переходы"; }
                     if App.section == "ads": Pending { title: "Реклама и анонсы"; }
                     if App.section == "graphics": Pending { title: "Экранная графика"; }
