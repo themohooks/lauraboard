@@ -85,7 +85,7 @@ pub fn encoder_args(j: &EncodeJob) -> Vec<String> {
 fn filter_graph(j: &EncodeJob) -> String {
     let mut parts: Vec<String> = Vec::new();
     let vbase = if j.gfx.is_some() {
-        parts.push("[0:v][1:v]overlay=x=0:y=0:eof_action=pass:repeatlast=1:format=auto,format=yuv420p[vmix]".into());
+        parts.push("[0:v][1:v]overlay=x=0:y=0:eof_action=pass:repeatlast=1:format=auto:alpha=premultiplied,format=yuv420p[vmix]".into());
         "[vmix]"
     } else {
         parts.push("[0:v]format=yuv420p[vmix]".into());
