@@ -23,6 +23,7 @@ import { RuleWizard } from "screens/rules/wizard.slint";
 import { GraphicsScreen } from "screens/graphics/graphics.slint";
 import { LogScreen } from "screens/log/log.slint";
 import { StatsScreen } from "screens/stats/stats.slint";
+import { SourcesScreen } from "screens/sources/sources.slint";
 
 export { Theme, ThemeMode } from "theme/tokens.slint";
 export { App, StatusInfo } from "state/app-state.slint";
@@ -35,6 +36,7 @@ export { Rules, RuleRow } from "state/rules-state.slint";
 export { Gfx, CanvasItem, LayerRow, GRuleRow, VarRow } from "state/graphics-state.slint";
 export { Log } from "state/log-state.slint";
 export { Stats, StatRow, Kpi } from "state/stats-state.slint";
+export { Src, SceneRow, OutRow, StreamRow, Fact } from "state/sources-state.slint";
 
 export component AppWindow inherits Window {
     // kept for the snapshot tool; mirrors App.section
@@ -142,7 +144,7 @@ export component AppWindow inherits Window {
                     if App.section == "jingles": RulesScreen { scope: "jingles"; }
                     if App.section == "ads": RulesScreen { scope: "ads"; }
                     if App.section == "graphics": GraphicsScreen { }
-                    if App.section == "sources": Pending { title: "Источники и сцены"; }
+                    if App.section == "sources": SourcesScreen { }
                     if App.section == "stats": StatsScreen { }
                     if App.section == "log": LogScreen { }
                     if App.section == "settings": Pending { title: "Настройки"; }

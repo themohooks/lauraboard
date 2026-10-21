@@ -92,7 +92,7 @@ pub fn navigate(c: &mut Ctx, id: &str) {
     c.prefs.section = id.to_string();
     c.prefs.save();
     // documents may have changed elsewhere (CLI, other operator)
-    if matches!(id, "playlists" | "library" | "schedule" | "jingles" | "ads" | "graphics") {
+    if matches!(id, "playlists" | "library" | "schedule" | "jingles" | "ads" | "graphics" | "sources") {
         c.load_all();
     }
     if id == "schedule" {
@@ -109,6 +109,9 @@ pub fn navigate(c: &mut Ctx, id: &str) {
     }
     if id == "stats" {
         super::stats::opened(c);
+    }
+    if id == "sources" {
+        super::sources::refresh(c);
     }
 }
 

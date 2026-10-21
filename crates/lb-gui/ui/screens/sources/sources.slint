@@ -1,0 +1,323 @@
+// Sources & scenes: an honest overview. The playout engine has no scene
+// graph — "scenes" are schedules (switching one changes what airs), the
+// output is a single encoder with its targets, live sources are stream
+// items of the library. Channel settings come from the admin-only config.
+
+import { ScrollView } from "std-widgets.slint";
+import { Theme } from "../../theme/tokens.slint";
+import { Icons } from "../../theme/icons.slint";
+import { Label } from "../../components/label.slint";
+import { Icon } from "../../components/icon.slint";
+import { Card, CardHeader, CardStyle } from "../../components/card.slint";
+import { Button, ButtonVariant } from "../../components/button.slint";
+import { ListRow } from "../../components/list-row.slint";
+import { StatusChip, StatusTone } from "../../components/indicators.slint";
+import { Page, PageHeader } from "../../shell/page.slint";
+import { App } from "../../state/app-state.slint";
+import { Src, SceneRow, OutRow, StreamRow, Fact } from "../../state/sources-state.slint";
+
+component Facts inherits VerticalLayout {
+    in property <[Fact]> facts;
+    spacing: Theme.sp1;
+    for f in root.facts: HorizontalLayout {
+        spacing: Theme.sp3;
+        Label {
+            width: 150px;
+            text: f.label;
+            type-style: Theme.body-medium;
+            color: Theme.color.on-surface-variant;
+        }
+        Label {
+            horizontal-stretch: 1;
+            text: f.value;
+            type-style: Theme.body-medium;
+            wrap: word-wrap;
+        }
+    }
+}
+
+component AdminNote inherits HorizontalLayout {
+    spacing: Theme.sp2;
+    Icon {
+        size: 18px;
+        source: Icons.lock;
+    }
+    Label {
+        horizontal-stretch: 1;
+        text: "Параметры канала доступны с ролью администратора (они содержат ключи трансляции). Редактируются в channels/<канал>/channel.toml или через API.";
+        type-style: Theme.body-small;
+        color: Theme.color.on-surface-variant;
+        wrap: word-wrap;
+    }
+}
+
+component SceneView inherits ListRow {
+    in property <SceneRow> item;
+    height: Theme.compact ? 48px : 56px;
+    current: item.active;
+    accent: Theme.color.primary;
+    divider: true;
+    opacity: item.enabled ? 1 : 0.6;
+    accessible-label: item.name + (item.active ? ", активна" : "");
+    VerticalLayout {
+        alignment: center;
+        Icon {
+            source: item.active ? Icons.radio-button-checked : Icons.calendar-month;
+            tint: item.active ? Theme.color.primary : Theme.color.on-surface-variant;
+        }
+    }
+    VerticalLayout {
+        horizontal-stretch: 1;
+        alignment: center;
+        Label {
+            text: item.name;
+            type-style: Theme.title-small;
+            overflow: elide;
+        }
+        Label {
+            text: item.detail;
+            type-style: Theme.body-small;
+            color: Theme.color.on-surface-variant;
+            overflow: elide;
+        }
+    }
+    if item.active: VerticalLayout {
+        alignment: center;
+        StatusChip {
+            text: "В эфире";
+            tone: StatusTone.success;
+        }
+    }
+    if !item.active: VerticalLayout {
+        alignment: center;
+        Button {
+            text: "Переключить";
+            variant: ButtonVariant.text;
+            enabled: item.enabled || item.index < 0;
+            clicked => {
+                Src.switch-scene(item.index);
+            }
+        }
+    }
+}
+
+component OutputView inherits ListRow {
+    in property <OutRow> item;
+    in property <bool> live;
+    height: Theme.compact ? 48px : 56px;
+    divider: true;
+    opacity: item.enabled ? 1 : 0.6;
+    VerticalLayout {
+        alignment: center;
+        Icon {
+            source: Icons.sensors;
+            tint: live ? Theme.status.live : Theme.color.on-surface-variant;
+        }
+    }
+    VerticalLayout {
+        horizontal-stretch: 1;
+        alignment: center;
+        Label {
+            text: item.name + (item.format != "" ? "  ·  " + item.format : "");
+            type-style: Theme.title-small;
+        }
+        Label {
+            text: item.url;
+            mono: true;
+            type-style: Theme.body-small;
+            color: Theme.color.on-surface-variant;
+            overflow: elide;
+        }
+    }
+    VerticalLayout {
+        alignment: center;
+        StatusChip {
+            text: !item.enabled ? "Выключена" : live ? "Вещает" : "Не активна";
+            tone: !item.enabled ? StatusTone.idle : live ? StatusTone.live : StatusTone.warning;
+        }
+    }
+}
+
+component StreamView inherits ListRow {
+    in property <StreamRow> item;
+    height: Theme.compact ? 44px : 52px;
+    divider: true;
+    opacity: item.enabled ? 1 : 0.6;
+    VerticalLayout {
+        alignment: center;
+        Icon {
+            source: Icons.stream;
+        }
+    }
+    VerticalLayout {
+        horizontal-stretch: 1;
+        alignment: center;
+        Label {
+            text: item.title;
+            overflow: elide;
+        }
+        Label {
+            text: item.url;
+            mono: true;
+            type-style: Theme.body-small;
+            color: Theme.color.on-surface-variant;
+            overflow: elide;
+        }
+    }
+}
+
+export component SourcesScreen inherits Page {
+    sv := ScrollView {
+        VerticalLayout {
+            width: sv.visible-width;
+            padding: Theme.sp4;
+            spacing: Theme.sp3;
+            alignment: start;
+
+            PageHeader {
+                title: "Источники и сцены";
+                subtitle: "Обзор: сцены — это расписания эфира, источник — один выход кодировщика с точками вещания";
+            }
+
+            HorizontalLayout {
+                spacing: Theme.sp3;
+                alignment: stretch;
+
+                Card {
+                    horizontal-stretch: 3;
+                    preferred-width: 0;
+                    min-width: 360px;
+                    card-style: CardStyle.low;
+                    CardHeader {
+                        title: "Сцены";
+                        subtitle: "Переключение меняет программу эфира, как «Расписание» на экране «Эфир»";
+                    }
+                    VerticalLayout {
+                        for s in Src.scenes: SceneView {
+                            item: s;
+                        }
+                    }
+                    if Src.manual: HorizontalLayout {
+                        spacing: Theme.sp2;
+                        Icon {
+                            size: 18px;
+                            source: Icons.warning;
+                            tint: Theme.status.warning;
+                        }
+                        Label {
+                            horizontal-stretch: 1;
+                            text: "Включён ручной режим: расписание на паузе, сцена вступит в силу после его выключения.";
+                            type-style: Theme.body-small;
+                            wrap: word-wrap;
+                        }
+                    }
+                }
+
+                Card {
+                    horizontal-stretch: 2;
+                    preferred-width: 0;
+                    min-width: 320px;
+                    card-style: CardStyle.low;
+                    CardHeader {
+                        title: "Выход кодировщика";
+                        StatusChip {
+                            text: Src.state-text;
+                            tone: Src.running ? StatusTone.live : StatusTone.idle;
+                            strong: Src.running;
+                        }
+                    }
+                    Facts {
+                        facts: Src.encoder;
+                    }
+                    if Src.last-error != "": HorizontalLayout {
+                        spacing: Theme.sp2;
+                        Icon {
+                            size: 18px;
+                            source: Icons.error;
+                            tint: Theme.color.error;
+                        }
+                        Label {
+                            horizontal-stretch: 1;
+                            text: Src.last-error;
+                            type-style: Theme.body-small;
+                            color: Theme.color.error;
+                            wrap: word-wrap;
+                        }
+                    }
+                    if Src.has-config: Facts {
+                        facts: Src.format;
+                    }
+                }
+            }
+
+            HorizontalLayout {
+                spacing: Theme.sp3;
+
+                Card {
+                    horizontal-stretch: 3;
+                    preferred-width: 0;
+                    min-width: 360px;
+                    card-style: CardStyle.low;
+                    CardHeader {
+                        title: "Точки вещания";
+                        subtitle: "Ключи трансляции скрыты";
+                    }
+                    if !Src.has-config && Src.active-targets.length > 0: VerticalLayout {
+                        for t in Src.active-targets: OutputView {
+                            item: { name: t, url: "", format: "", enabled: true };
+                            live: true;
+                        }
+                    }
+                    if Src.has-config: VerticalLayout {
+                        for o in Src.outputs: OutputView {
+                            item: o;
+                            live: Src.running && o.enabled;
+                        }
+                    }
+                    if !Src.has-config: AdminNote { }
+                }
+
+                Card {
+                    horizontal-stretch: 2;
+                    preferred-width: 0;
+                    min-width: 320px;
+                    card-style: CardStyle.low;
+                    CardHeader {
+                        title: "Запись эфира и резерв";
+                    }
+                    if Src.has-config: Facts {
+                        facts: Src.recording;
+                    }
+                    if !Src.has-config: AdminNote { }
+                }
+            }
+
+            Card {
+                card-style: CardStyle.low;
+                CardHeader {
+                    title: "Потоки в медиатеке";
+                    subtitle: "Сетевые источники (http, rtmp, srt, udp…) выходят в эфир как обычные элементы плейлиста";
+                    Button {
+                        text: "Медиатека";
+                        variant: ButtonVariant.text;
+                        icon: Icons.video-library;
+                        has-icon: true;
+                        clicked => {
+                            Src.open-library();
+                        }
+                    }
+                }
+                if Src.streams.length == 0: Label {
+                    text: "Потоков нет. Добавьте URL через импорт в медиатеке (тип «Поток»).";
+                    type-style: Theme.body-medium;
+                    color: Theme.color.on-surface-variant;
+                }
+                VerticalLayout {
+                    for st in Src.streams: StreamView {
+                        item: st;
+                    }
+                }
+            }
+        }
+    }
+}

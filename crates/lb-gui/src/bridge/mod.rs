@@ -19,6 +19,7 @@ pub mod playlists;
 pub mod rules;
 pub mod schedule;
 pub mod shell;
+pub mod sources;
 pub mod stats;
 pub mod thumbs;
 
@@ -139,6 +140,7 @@ pub fn start(ui: &AppWindow, opts: &GuiOptions, prefs: UiPrefs) {
     graphics::connect(ui);
     log::connect(ui);
     stats::connect(ui);
+    sources::connect(ui);
     with(|c| {
         shell::apply_prefs(c);
         air::apply_prefs(c);
@@ -192,6 +194,7 @@ impl Ctx {
                 self.model.status = *s;
                 shell::status_changed(self);
                 air::status_changed(self);
+                sources::refresh(self);
                 if schedule_changed {
                     air::config_changed(self);
                 }
@@ -310,6 +313,7 @@ impl Ctx {
                 if c.section() == "graphics" {
                     graphics::refresh(c);
                 }
+                sources::refresh(c);
             })))
         });
     }
