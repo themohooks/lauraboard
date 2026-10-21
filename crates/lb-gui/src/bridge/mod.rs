@@ -19,6 +19,7 @@ pub mod playlists;
 pub mod rules;
 pub mod schedule;
 pub mod shell;
+pub mod stats;
 pub mod thumbs;
 
 use std::cell::RefCell;
@@ -62,6 +63,7 @@ pub struct Ctx {
     pub rules: rules::RulesState,
     pub gfx: graphics::GraphicsState,
     pub log: log::LogState,
+    pub stats: stats::StatsState,
     /// Channel configuration (admin only; `None` when not available).
     pub channel_config: Option<Value>,
 }
@@ -123,6 +125,7 @@ pub fn start(ui: &AppWindow, opts: &GuiOptions, prefs: UiPrefs) {
         rules: Default::default(),
         gfx: Default::default(),
         log: Default::default(),
+        stats: Default::default(),
         channel_config: None,
     };
     ui.global::<App>().set_api_url(api.base.clone().into());
@@ -135,6 +138,7 @@ pub fn start(ui: &AppWindow, opts: &GuiOptions, prefs: UiPrefs) {
     rules::connect(ui);
     graphics::connect(ui);
     log::connect(ui);
+    stats::connect(ui);
     with(|c| {
         shell::apply_prefs(c);
         air::apply_prefs(c);

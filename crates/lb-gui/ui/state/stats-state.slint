@@ -1,0 +1,49 @@
+// Data contract of the statistics screen (src/bridge/stats.rs).
+
+export struct StatRow {
+    media: string,
+    title: string,
+    kind: string,
+    plays: int,
+    completed: int,
+    interrupted: int,
+    skipped: int,
+    airtime: string,
+    // airtime relative to the largest row (bar), 0..1
+    share: float,
+}
+
+export struct Kpi {
+    label: string,
+    value: string,
+    detail: string,
+    // success, warning, error, info
+    tone: string,
+}
+
+export global Stats {
+    in-out property <string> from;
+    in-out property <string> to;
+    in property <string> from-error;
+    in property <string> to-error;
+    // -1 custom, 0 today, 1 yesterday, 2 seven days, 3 thirty days
+    in-out property <int> preset: 0;
+    in property <string> period-text;
+    in property <bool> loading;
+    in property <bool> has-data;
+    in property <[Kpi]> kpis;
+    // 0 ads, 1 promos, 2 everything
+    in-out property <int> tab;
+    in property <[string]> tab-names: ["Реклама", "Анонсы", "Все ролики"];
+    in property <[StatRow]> rows;
+    in property <int> sort-key: 3;
+    in property <bool> sort-desc: true;
+
+    callback preset-picked(int);
+    callback edited();
+    callback load();
+    callback sort(int);
+    callback tab-changed();
+    // "asrun" or "stats"
+    callback export(string);
+}

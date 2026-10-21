@@ -107,6 +107,9 @@ pub fn navigate(c: &mut Ctx, id: &str) {
     if id == "log" {
         super::log::opened(c);
     }
+    if id == "stats" {
+        super::stats::opened(c);
+    }
 }
 
 /// Push preferences into the UI (startup and after settings change).
@@ -172,6 +175,10 @@ pub fn channels_changed(c: &mut Ctx) {
     let idx = c.model.channel.as_ref().and_then(|ch| c.model.channels.iter().position(|x| x == ch)).map(|i| i as i32).unwrap_or(-1);
     g.set_channel_index(idx);
     status_changed(c);
+    // screens that load per channel on their own
+    if c.section() == "stats" {
+        super::stats::opened(c);
+    }
 }
 
 /// Map the API status to the display struct.
