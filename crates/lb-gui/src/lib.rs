@@ -7,10 +7,17 @@
 //! * [`app`] — window layout, navigation, dialogs
 //! * [`views`] — one module per screen
 //! * [`widgets`] — shared formatting and small widgets
+//! * [`prefs`] / [`sysprefs`] — persisted UI preferences, OS accessibility hints
+//! * [`shell`] — Material 3 interface (Slint, `ui/`); replaces the egui views
+//!   step by step. Until it is complete the egui GUI stays the default and the
+//!   new one is enabled with `LB_GUI=m3`.
 
 mod app;
 mod model;
 mod net;
+mod prefs;
+mod shell;
+mod sysprefs;
 mod views;
 mod widgets;
 
@@ -26,6 +33,9 @@ pub struct GuiOptions {
 
 /// Open the main window (blocks until it is closed).
 pub fn run(opts: GuiOptions) -> Result<(), String> {
+    if std::env::var("LB_GUI").is_ok_and(|v| v == "m3") {
+        return shell::run(opts);
+    }
     let native = eframe::NativeOptions {
         viewport: eframe::egui::ViewportBuilder::default()
             .with_title("Laurabrod — TV playout")

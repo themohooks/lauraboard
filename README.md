@@ -26,7 +26,7 @@
 
 ## Быстрый старт
 
-Требуются Rust ≥ 1.89 и FFmpeg ≥ 6.1 (`ffmpeg` и `ffprobe` в PATH).
+Требуются Rust ≥ 1.92 и FFmpeg ≥ 6.1 (`ffmpeg` и `ffprobe` в PATH).
 
 ```bash
 cargo build --release
