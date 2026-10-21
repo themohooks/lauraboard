@@ -1,0 +1,98 @@
+// Left panel: playlists with search, counts, total duration and problems.
+
+import { ListView } from "std-widgets.slint";
+import { Theme } from "../../theme/tokens.slint";
+import { Icons } from "../../theme/icons.slint";
+import { Label } from "../../components/label.slint";
+import { Icon } from "../../components/icon.slint";
+import { IconButton, IconButtonVariant } from "../../components/icon-button.slint";
+import { SearchField } from "../../components/search-field.slint";
+import { ListRow } from "../../components/list-row.slint";
+import { Badge } from "../../components/indicators.slint";
+import { EmptyState } from "../../components/feedback.slint";
+import { Pl } from "../../state/playlists-state.slint";
+
+export component PlaylistListPanel inherits Rectangle {
+    border-radius: Theme.radius-l;
+    background: Theme.color.surface-container-low;
+    clip: true;
+
+    VerticalLayout {
+        padding: Theme.sp3;
+        spacing: Theme.sp2;
+        HorizontalLayout {
+            padding-left: Theme.sp1;
+            Label {
+                horizontal-stretch: 1;
+                text: "Плейлисты";
+                type-style: Theme.title-medium;
+            }
+            IconButton {
+                icon: Icons.add;
+                variant: IconButtonVariant.tonal;
+                tooltip: "Новый плейлист";
+                clicked => {
+                    Pl.new-id = "";
+                    Pl.new-name = "";
+                    Pl.validate-new-id("");
+                    Pl.create-open = true;
+                }
+            }
+        }
+        SearchField {
+            placeholder: "Найти плейлист";
+            text <=> Pl.list-filter;
+            edited(t) => {
+                Pl.filter-lists(t);
+            }
+        }
+        if Pl.lists.length == 0: EmptyState {
+            vertical-stretch: 1;
+            icon: Icons.playlist-play;
+            title: "Нет плейлистов";
+            text: "Создайте первый плейлист кнопкой «+».";
+        }
+        if Pl.lists.length > 0: ListView {
+            vertical-stretch: 1;
+            for p[i] in Pl.lists: ListRow {
+                height: Theme.row-height-tall;
+                selected: i == Pl.current;
+                radius: Theme.radius-full;
+                focusable: false;
+                clicked => {
+                    Pl.open(i);
+                }
+                VerticalLayout {
+                    horizontal-stretch: 1;
+                    alignment: center;
+                    Label {
+                        text: p.name;
+                        type-style: Theme.label-large;
+                        color: i == Pl.current ? Theme.color.on-secondary-container : Theme.color.on-surface;
+                    }
+                    Label {
+                        text: p.meta;
+                        type-style: Theme.body-small;
+                        color: i == Pl.current ? Theme.color.on-secondary-container : Theme.color.on-surface-variant;
+                    }
+                }
+                if p.problems > 0: VerticalLayout {
+                    alignment: center;
+                    HorizontalLayout {
+                        spacing: 4px;
+                        Icon {
+                            source: Icons.warning;
+                            size: 16px;
+                            tint: Theme.color.error;
+                        }
+                        Label {
+                            text: p.problems;
+                            type-style: Theme.label-medium;
+                            color: Theme.color.error;
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

@@ -1,0 +1,334 @@
+// Statistics: period (presets or typed dates with validation), KPI cards,
+// sortable per-media tables (ads, promos, everything), CSV export.
+
+import { ListView } from "std-widgets.slint";
+import { Theme } from "../../theme/tokens.slint";
+import { Icons } from "../../theme/icons.slint";
+import { Label } from "../../components/label.slint";
+import { Icon } from "../../components/icon.slint";
+import { TextField } from "../../components/text-field.slint";
+import { SegmentedButton } from "../../components/segmented-button.slint";
+import { Button, ButtonVariant } from "../../components/button.slint";
+import { Card, CardStyle } from "../../components/card.slint";
+import { Interactive } from "../../components/interactive.slint";
+import { ListRow, ListHeader } from "../../components/list-row.slint";
+import { KindTag, Kinds, Tone, StatusTone } from "../../components/indicators.slint";
+import { EmptyState, LinearProgress } from "../../components/feedback.slint";
+import { Page, PageHeader } from "../../shell/page.slint";
+import { Stats, StatRow, Kpi } from "../../state/stats-state.slint";
+import { App } from "../../state/app-state.slint";
+
+component KpiCard inherits Card {
+    in property <Kpi> kpi;
+    property <StatusTone> tone: kpi.tone == "success" ? StatusTone.success : kpi.tone == "warning" ? StatusTone.warning : kpi.tone == "error" ? StatusTone.error : StatusTone.info;
+    horizontal-stretch: 1;
+    min-width: 150px;
+    card-style: CardStyle.low;
+    gap: Theme.sp1;
+    HorizontalLayout {
+        spacing: Theme.sp2;
+        Icon {
+            size: 18px;
+            source: Tone.icon(root.tone);
+            tint: Tone.strong(root.tone);
+        }
+        Label {
+            text: kpi.label;
+            type-style: Theme.label-medium;
+            color: Theme.color.on-surface-variant;
+        }
+    }
+    Label {
+        text: kpi.value;
+        type-style: Theme.headline-small;
+        mono: true;
+    }
+    Label {
+        text: kpi.detail;
+        type-style: Theme.body-small;
+        color: Theme.color.on-surface-variant;
+        wrap: word-wrap;
+    }
+}
+
+component SortHeader inherits Interactive {
+    in property <string> text;
+    in property <int> key;
+    in property <bool> right;
+    radius: 0;
+    focusable: false;
+    accessible-role: button;
+    accessible-label: "Сортировать: " + text;
+    clicked => {
+        Stats.sort(root.key);
+    }
+    HorizontalLayout {
+        spacing: 2px;
+        alignment: root.right ? end : start;
+        Label {
+            text: root.text;
+            type-style: Theme.label-small;
+            color: Stats.sort-key == root.key ? Theme.color.primary : Theme.color.on-surface-variant;
+        }
+        if Stats.sort-key == root.key: VerticalLayout {
+            alignment: center;
+            Icon {
+                source: Stats.sort-desc ? Icons.arrow-downward : Icons.arrow-upward;
+                size: 14px;
+                tint: Theme.color.primary;
+            }
+        }
+    }
+}
+
+component Num inherits Label {
+    width: 84px;
+    horizontal-alignment: right;
+    vertical-alignment: center;
+    mono: true;
+    type-style: Theme.body-medium;
+}
+
+component StatRowView inherits ListRow {
+    in property <StatRow> item;
+    height: Theme.compact ? 40px : 48px;
+    divider: true;
+    accessible-label: item.title + ": показов " + item.plays + ", в эфире " + item.airtime;
+    VerticalLayout {
+        horizontal-stretch: 1;
+        alignment: center;
+        Label {
+            text: item.title;
+            overflow: elide;
+        }
+        Label {
+            text: item.media;
+            type-style: Theme.body-small;
+            color: Theme.color.on-surface-variant;
+            overflow: elide;
+        }
+    }
+    VerticalLayout {
+        width: 130px;
+        alignment: center;
+        KindTag {
+            kind: item.kind;
+        }
+    }
+    Num { text: item.plays; }
+    Num { text: item.completed; }
+    Num {
+        text: item.interrupted;
+        color: item.interrupted > 0 ? Theme.status.warning : Theme.color.on-surface;
+    }
+    Num {
+        text: item.skipped;
+        color: item.skipped > 0 ? Theme.color.error : Theme.color.on-surface;
+    }
+    VerticalLayout {
+        width: 150px;
+        alignment: center;
+        spacing: 3px;
+        Label {
+            text: item.airtime;
+            mono: true;
+            horizontal-alignment: right;
+        }
+        Rectangle {
+            height: 4px;
+            border-radius: 2px;
+            background: Theme.color.surface-container-highest;
+            Rectangle {
+                x: 0;
+                width: parent.width * item.share;
+                border-radius: 2px;
+                background: Kinds.color-of(item.kind);
+            }
+        }
+    }
+}
+
+component PeriodFields inherits HorizontalLayout {
+    spacing: Theme.sp3;
+    alignment: start;
+        TextField {
+            width: 170px;
+            label: "С";
+            text <=> Stats.from;
+            placeholder: "ГГГГ-ММ-ДД";
+            error: Stats.from-error;
+            mono: true;
+            edited => {
+                Stats.edited();
+            }
+            accepted => {
+                Stats.load();
+            }
+        }
+        TextField {
+            width: 170px;
+            label: "По";
+            text <=> Stats.to;
+            placeholder: "ГГГГ-ММ-ДД";
+            error: Stats.to-error;
+            mono: true;
+            edited => {
+                Stats.edited();
+            }
+            accepted => {
+                Stats.load();
+            }
+        }
+        VerticalLayout {
+            alignment: start;
+            padding-top: 8px;
+            Button {
+                text: "Показать";
+                icon: Icons.refresh;
+                has-icon: true;
+                variant: ButtonVariant.tonal;
+                enabled: Stats.from-error == "" && Stats.to-error == "" && !Stats.loading;
+                clicked => {
+                    Stats.load();
+                }
+            }
+        }
+}
+
+export component StatsScreen inherits Page {
+    VerticalLayout {
+        padding: Theme.sp4;
+        spacing: Theme.sp3;
+
+        PageHeader {
+            title: "Статистика";
+            subtitle: Stats.period-text;
+            VerticalLayout {
+                alignment: center;
+                Button {
+                    text: "Журнал эфира, CSV";
+                    icon: Icons.download;
+                    has-icon: true;
+                    variant: ButtonVariant.outlined;
+                    enabled: Stats.from-error == "" && Stats.to-error == "";
+                    tooltip: "Каждый выход в эфир за период";
+                    clicked => {
+                        Stats.export("asrun");
+                    }
+                }
+            }
+            VerticalLayout {
+                alignment: center;
+                Button {
+                    text: "Статистика, CSV";
+                    icon: Icons.download;
+                    has-icon: true;
+                    variant: ButtonVariant.outlined;
+                    enabled: Stats.has-data;
+                    tooltip: "Сводка по роликам за период";
+                    clicked => {
+                        Stats.export("stats");
+                    }
+                }
+            }
+        }
+
+        HorizontalLayout {
+            spacing: Theme.sp3;
+            VerticalLayout {
+                alignment: start;
+                padding-top: 8px;
+                SegmentedButton {
+                    width: 420px;
+                    segments: [{ text: "Сегодня" }, { text: "Вчера" }, { text: "7 дней" }, { text: "30 дней" }];
+                    selected <=> Stats.preset;
+                    changed(i) => {
+                        Stats.preset-picked(i);
+                    }
+                }
+            }
+            if !App.narrow: PeriodFields { }
+            Rectangle {
+                horizontal-stretch: 1;
+            }
+        }
+
+        if App.narrow: HorizontalLayout {
+            PeriodFields { }
+            Rectangle {
+                horizontal-stretch: 1;
+            }
+        }
+
+        if Stats.loading: LinearProgress {
+            height: 4px;
+            indeterminate: true;
+        }
+
+        if Stats.has-data: HorizontalLayout {
+            spacing: Theme.sp3;
+            for k in Stats.kpis: KpiCard {
+                kpi: k;
+            }
+        }
+
+        if Stats.has-data: HorizontalLayout {
+            SegmentedButton {
+                width: 480px;
+                segments: [{ text: Stats.tab-names[0] }, { text: Stats.tab-names[1] }, { text: Stats.tab-names[2] }];
+                selected <=> Stats.tab;
+                changed => {
+                    Stats.tab-changed();
+                }
+            }
+            Rectangle {
+                horizontal-stretch: 1;
+            }
+        }
+
+        Rectangle {
+            vertical-stretch: 1;
+            border-radius: Theme.radius-l;
+            background: Theme.color.surface-container-lowest;
+            border-width: 1px;
+            border-color: Theme.color.outline-variant;
+            clip: true;
+
+            if !Stats.has-data && !Stats.loading: EmptyState {
+                icon: Icons.monitoring;
+                title: "Нет данных за период";
+                text: "Статистика строится по журналу эфира. Выберите другой период.";
+            }
+            if Stats.has-data: VerticalLayout {
+                ListHeader {
+                    gap: Theme.sp3;
+                    SortHeader {
+                        horizontal-stretch: 1;
+                        text: "Ролик";
+                        key: 0;
+                    }
+                    SortHeader {
+                        width: 130px;
+                        text: "Тип";
+                        key: 1;
+                    }
+                    SortHeader { width: 84px; text: "Показов"; key: 2; right: true; }
+                    SortHeader { width: 84px; text: "Полностью"; key: 3; right: true; }
+                    SortHeader { width: 84px; text: "Прервано"; key: 4; right: true; }
+                    SortHeader { width: 84px; text: "Пропущено"; key: 5; right: true; }
+                    SortHeader { width: 150px; text: "В эфире"; key: 6; right: true; }
+                }
+                if Stats.rows.length == 0: EmptyState {
+                    icon: Icons.campaign;
+                    title: Stats.tab == 0 ? "Реклама не выходила" : Stats.tab == 1 ? "Анонсы не выходили" : "Ничего не выходило";
+                    text: "За выбранный период в журнале эфира нет таких записей.";
+                }
+                if Stats.rows.length > 0: ListView {
+                    for r in Stats.rows: StatRowView {
+                        item: r;
+                    }
+                }
+            }
+        }
+    }
+}

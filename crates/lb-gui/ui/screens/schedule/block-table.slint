@@ -1,0 +1,233 @@
+// Blocks of the day template with inline editing: start (validated),
+// title, source, late policy, truncation; details open in the side sheet.
+
+import { ScrollView } from "std-widgets.slint";
+import { Theme } from "../../theme/tokens.slint";
+import { Icons } from "../../theme/icons.slint";
+import { Label } from "../../components/label.slint";
+import { Icon } from "../../components/icon.slint";
+import { TextField } from "../../components/text-field.slint";
+import { Select } from "../../components/select.slint";
+import { Checkbox } from "../../components/checkbox.slint";
+import { IconButton } from "../../components/icon-button.slint";
+import { Button, ButtonVariant } from "../../components/button.slint";
+import { ListRow, ListHeader } from "../../components/list-row.slint";
+import { EmptyState } from "../../components/feedback.slint";
+import { Grid, BlockRow } from "../../state/schedule-state.slint";
+
+component BlockRowView inherits ListRow {
+    in property <BlockRow> b;
+    // narrow: late policy / truncation are edited in the side sheet
+    in property <bool> narrow;
+    height: Theme.compact ? 60px : 68px;
+    selected: Grid.selected-block == b.index;
+    focusable: false;
+    clicked => {
+        Grid.block-select(root.b.index);
+    }
+    double-clicked => {
+        Grid.block-select(root.b.index);
+        Grid.details-open = true;
+    }
+
+    VerticalLayout {
+        alignment: center;
+        Icon {
+            source: root.b.fixed ? Icons.schedule : Icons.arrow-downward;
+            size: 18px;
+            tint: root.b.fixed ? Theme.color.primary : Theme.color.on-surface-variant;
+            accessible-description: root.b.fixed ? "фиксированное время" : "следом за предыдущим";
+        }
+    }
+    VerticalLayout {
+        alignment: center;
+        TextField {
+            width: 112px;
+            text: root.b.start;
+            placeholder: "следом";
+            mono: true;
+            error: root.b.start-error;
+            container-color: root.selected ? Theme.color.secondary-container : Theme.color.surface-container-low;
+            edited(t) => {
+                Grid.block-edited(root.b.index, "start", t);
+            }
+        }
+    }
+    VerticalLayout {
+        horizontal-stretch: 1;
+        preferred-width: 0;
+        min-width: 120px;
+        alignment: center;
+        TextField {
+            text: root.b.title;
+            placeholder: root.b.id;
+            container-color: root.selected ? Theme.color.secondary-container : Theme.color.surface-container-low;
+            edited(t) => {
+                Grid.block-edited(root.b.index, "title", t);
+            }
+        }
+    }
+    VerticalLayout {
+        alignment: center;
+        Select {
+            width: 130px;
+            options: ["Плейлист", "Ролики", "Категория", "Реклама"];
+            current-index: root.b.source-type;
+            container-color: root.selected ? Theme.color.secondary-container : Theme.color.surface-container-low;
+            selected(i, _) => {
+                Grid.block-edited(root.b.index, "source-type", i);
+            }
+        }
+    }
+    VerticalLayout {
+        horizontal-stretch: 1;
+        preferred-width: 0;
+        min-width: 120px;
+        alignment: center;
+        if root.b.source-type == 0: Select {
+            options: Grid.playlists;
+            current-index: root.b.source-index;
+            placeholder: "Выберите плейлист";
+            container-color: root.selected ? Theme.color.secondary-container : Theme.color.surface-container-low;
+            selected(i, _) => {
+                Grid.block-edited(root.b.index, "source-index", i);
+            }
+        }
+        if root.b.source-type == 3: Select {
+            options: Grid.ad-breaks;
+            current-index: root.b.source-index;
+            placeholder: "Выберите блок";
+            container-color: root.selected ? Theme.color.secondary-container : Theme.color.surface-container-low;
+            selected(i, _) => {
+                Grid.block-edited(root.b.index, "source-index", i);
+            }
+        }
+        if root.b.source-type == 1 || root.b.source-type == 2: TextField {
+            text: root.b.source-text;
+            placeholder: root.b.source-type == 1 ? "id роликов через запятую" : "категория";
+            container-color: root.selected ? Theme.color.secondary-container : Theme.color.surface-container-low;
+            edited(t) => {
+                Grid.block-edited(root.b.index, "source-text", t);
+            }
+        }
+    }
+    if !root.narrow: VerticalLayout {
+        alignment: center;
+        Select {
+            width: 170px;
+            options: ["Не начинать лишнее", "Доиграть, сдвинуть", "Обрезать"];
+            current-index: root.b.late;
+            container-color: root.selected ? Theme.color.secondary-container : Theme.color.surface-container-low;
+            selected(i, _) => {
+                Grid.block-edited(root.b.index, "late", i);
+            }
+        }
+    }
+    if !root.narrow: VerticalLayout {
+        alignment: center;
+        Checkbox {
+            text: "обрезка";
+            checked: root.b.truncate;
+            toggled(on) => {
+                Grid.block-edited(root.b.index, "truncate", on ? "1" : "0");
+            }
+        }
+    }
+    VerticalLayout {
+        alignment: center;
+        IconButton {
+            icon: Icons.tune;
+            tooltip: "Свойства блока";
+            clicked => {
+                Grid.block-select(root.b.index);
+                Grid.details-open = true;
+            }
+        }
+    }
+    VerticalLayout {
+        alignment: center;
+        IconButton {
+            icon: Icons.delete;
+            tooltip: "Удалить блок";
+            clicked => {
+                Grid.remove-block(root.b.index);
+            }
+        }
+    }
+}
+
+export component BlockTable inherits Rectangle {
+    // assigned on resize (a binding would loop through the layout)
+    property <bool> wide: self.width >= 1000px;
+    property <bool> narrow: false;
+    changed wide => {
+        self.narrow = !self.wide;
+    }
+    init => {
+        self.narrow = !self.wide;
+    }
+    border-radius: Theme.radius-l;
+    background: Theme.color.surface-container-low;
+    clip: true;
+
+    VerticalLayout {
+        HorizontalLayout {
+            padding: Theme.sp3;
+            padding-bottom: Theme.sp2;
+            spacing: Theme.sp2;
+            Label {
+                horizontal-stretch: 1;
+                text: "Блоки шаблона";
+                type-style: Theme.title-medium;
+                vertical-alignment: center;
+            }
+            Button {
+                text: "Блок по времени";
+                variant: ButtonVariant.tonal;
+                icon: Icons.schedule;
+                has-icon: true;
+                enabled: Grid.has-schedule;
+                clicked => {
+                    Grid.add-block(true);
+                }
+            }
+            Button {
+                text: "Блок следом";
+                variant: ButtonVariant.outlined;
+                icon: Icons.add;
+                has-icon: true;
+                enabled: Grid.has-schedule;
+                clicked => {
+                    Grid.add-block(false);
+                }
+            }
+        }
+        ListHeader {
+            Rectangle { width: 18px; }
+            Label { width: 112px; text: "НАЧАЛО"; type-style: Theme.label-small; color: Theme.color.on-surface-variant; }
+            Label { horizontal-stretch: 1; preferred-width: 0; min-width: 120px; text: "НАЗВАНИЕ"; type-style: Theme.label-small; color: Theme.color.on-surface-variant; }
+            Label { width: 130px; text: "ИСТОЧНИК"; type-style: Theme.label-small; color: Theme.color.on-surface-variant; }
+            Label { horizontal-stretch: 1; preferred-width: 0; min-width: 120px; text: ""; }
+            if !root.narrow: Label { width: 170px; text: "ПРИ ОПОЗДАНИИ"; type-style: Theme.label-small; color: Theme.color.on-surface-variant; }
+            if !root.narrow: Rectangle { width: 100px; }
+            Rectangle { width: 80px; }
+        }
+        if Grid.blocks.length == 0: EmptyState {
+            vertical-stretch: 1;
+            icon: Icons.calendar-month;
+            title: Grid.has-schedule ? "В шаблоне нет блоков" : "Нет расписаний";
+            text: Grid.has-schedule ? "Добавьте блок по времени или следом за предыдущим." : "Создайте schedule.toml или импортируйте сетку через CLI: laurabrod schedule import.";
+        }
+        // not virtualized: inline editors must stay bound to their row
+        if Grid.blocks.length > 0: ScrollView {
+            vertical-stretch: 1;
+            VerticalLayout {
+                alignment: start;
+                for b in Grid.blocks: BlockRowView {
+                    b: b;
+                    narrow: root.narrow;
+                }
+            }
+        }
+    }
+}

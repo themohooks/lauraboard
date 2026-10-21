@@ -1,0 +1,16 @@
+// M3 state layer: translucent overlay of the content color that shows
+// hover / focus / pressed / dragged states.
+
+import { Theme } from "../theme/tokens.slint";
+
+export component StateLayer inherits Rectangle {
+    in property <color> tint: Theme.color.on-surface;
+    in property <bool> hovered;
+    in property <bool> pressed;
+    in property <bool> focused;
+    in property <bool> dragged;
+    in property <bool> enabled: true;
+    background: !enabled ? transparent : tint.with-alpha(
+        dragged ? Theme.drag-opacity : pressed ? Theme.pressed-opacity : focused ? Theme.focus-opacity : hovered ? Theme.hover-opacity : 0);
+    animate background { duration: Theme.motion-short; }
+}

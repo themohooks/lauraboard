@@ -8,8 +8,10 @@ use serde::Deserialize;
 
 use lb_core::config::Role;
 use lb_core::planner::{self, PlanInput};
+use lb_core::rules::RuleSet;
 use lb_core::rundown::Rundown;
-use lb_engine::ChannelStatus;
+use lb_core::schedule::ScheduleSet;
+use lb_engine::{ChannelHandle, ChannelStatus};
 use lb_engine::persist::{asrun, state as rstate};
 
 use super::channel;
@@ -74,24 +76,65 @@ pub async fn plan_preview(
 ) -> ApiResult<Json<Rundown>> {
     c.require(Role::Viewer)?;
     let h = channel(&s, &id)?;
-    let from = q.from.unwrap_or_else(|| chrono::Local::now().naive_local());
-    let hours = q.hours.unwrap_or(24).clamp(1, 24 * 14);
-    let r = h.read(|d| {
-        let saved = rstate::load(&d.state_dir());
-        let hist = asrun::load_history(&d.asrun_dir(), from.date(), (d.config.planning.history.ms() / 86_400_000).max(1));
-        let input = PlanInput {
-            library: &d.library,
-            playlists: &d.playlists,
-            schedules: &d.schedules,
-            rules: &d.rules,
-            history: &hist,
-            mode: &d.config.planning.mode,
-            seed: d.config.planning.seed,
-            force_schedule: saved.force_schedule.as_deref(),
-        };
-        planner::plan(&input, &saved.plan, from, lb_core::add_ms(from, hours * 3_600_000))
-    });
-    Ok(Json(r))
+    Ok(Json(plan_with(&h, q.from, q.hours, PlanDraft::default()).await))
+}
+
+/// Unsaved documents substituted for the stored ones when planning.
+#[derive(Deserialize, Default)]
+pub struct PlanDraft {
+    #[serde(default)]
+    pub rules: Option<RuleSet>,
+    #[serde(default)]
+    pub schedules: Option<ScheduleSet>,
+}
+
+#[derive(Deserialize)]
+pub struct PlanBody {
+    #[serde(default)]
+    pub from: Option<lb_core::WallTime>,
+    #[serde(default)]
+    pub hours: Option<i64>,
+    #[serde(flatten)]
+    pub draft: PlanDraft,
+}
+
+/// Plan preview with draft rules and/or schedules (nothing is stored), so
+/// editors can check their changes before saving.
+pub async fn plan_draft(
+    State(s): State<AppState>,
+    c: Caller,
+    Path(id): Path<String>,
+    Json(b): Json<PlanBody>,
+) -> ApiResult<Json<Rundown>> {
+    c.require(Role::Viewer)?;
+    let h = channel(&s, &id)?;
+    Ok(Json(plan_with(&h, b.from, b.hours, b.draft).await))
+}
+
+/// Plan `hours` from `from` (default: now, 24 h, max 14 days) on a blocking
+/// thread so long windows do not stall the API.
+async fn plan_with(h: &ChannelHandle, from: Option<lb_core::WallTime>, hours: Option<i64>, draft: PlanDraft) -> Rundown {
+    let from = from.unwrap_or_else(|| chrono::Local::now().naive_local());
+    let hours = hours.unwrap_or(24).clamp(1, 24 * 14);
+    let h = h.clone();
+    let job = move || {
+        h.read(|d| {
+            let saved = rstate::load(&d.state_dir());
+            let hist = asrun::load_history(&d.asrun_dir(), from.date(), (d.config.planning.history.ms() / 86_400_000).max(1));
+            let input = PlanInput {
+                library: &d.library,
+                playlists: &d.playlists,
+                schedules: draft.schedules.as_ref().unwrap_or(&d.schedules),
+                rules: draft.rules.as_ref().unwrap_or(&d.rules),
+                history: &hist,
+                mode: &d.config.planning.mode,
+                seed: d.config.planning.seed,
+                force_schedule: saved.force_schedule.as_deref(),
+            };
+            planner::plan(&input, &saved.plan, from, lb_core::add_ms(from, hours * 3_600_000))
+        })
+    };
+    tokio::task::spawn_blocking(job).await.unwrap_or_default()
 }
 
 pub async fn validate(State(s): State<AppState>, c: Caller, Path(id): Path<String>) -> ApiResult<Json<lb_core::validate::Report>> {

@@ -92,3 +92,73 @@ async fn playlist_crud_and_plan_preview() {
     assert_eq!(st, StatusCode::OK);
     assert!(body.contains("file not found"), "{body}");
 }
+
+#[tokio::test]
+async fn plan_with_draft_documents() {
+    let dir = project(vec![]);
+    let app = app(&dir).await;
+    let (st, body) = call(&app, "POST", "/api/v1/channels/main/plan", None, Some(r#"{"hours":2}"#)).await;
+    assert_eq!(st, StatusCode::OK, "{body}");
+    assert!(body.contains("\"items\""), "{body}");
+    let (st, body) = call(&app, "POST", "/api/v1/channels/main/plan", None, Some(r#"{"from":"2030-01-01T10:00:00","hours":1,"rules":{}}"#)).await;
+    assert_eq!(st, StatusCode::OK, "{body}");
+    // a malformed draft is rejected, never stored
+    let (st, _) = call(&app, "POST", "/api/v1/channels/main/plan", None, Some(r#"{"rules":{"rules":"nope"}}"#)).await;
+    assert!(st.is_client_error());
+}
+
+async fn call_bytes(app: &axum::Router, method: &str, uri: &str, body: &str) -> (StatusCode, Vec<u8>) {
+    let req = Request::builder().method(method).uri(uri).header("content-type", "application/json").body(Body::from(body.to_string())).unwrap();
+    let res = app.clone().oneshot(req).await.unwrap();
+    let status = res.status();
+    (status, axum::body::to_bytes(res.into_body(), 16 << 20).await.unwrap().to_vec())
+}
+
+#[tokio::test]
+async fn graphics_render_draws_the_draft() {
+    let dir = project(vec![]);
+    let app = app(&dir).await;
+    let cfg = r##"{"config":{"elements":[{"id":"plate","type":"rect","color":"#FF0000","width":200,"height":100,
+        "placement":{"anchor":"top_left","x":0,"y":0}}]},"width":480}"##;
+    let (st, png) = call_bytes(&app, "POST", "/api/v1/channels/main/graphics/render", cfg).await;
+    assert_eq!(st, StatusCode::OK, "{}", String::from_utf8_lossy(&png));
+    let img = image::load_from_memory(&png).unwrap().to_rgba8();
+    assert_eq!(img.width(), 480);
+    // the plate is drawn top-left and the rest of the frame stays transparent
+    assert_eq!(img.get_pixel(5, 5).0, [255, 0, 0, 255]);
+    assert_eq!(img.get_pixel(470, 260).0[3], 0);
+    // half-way through a fade-in the plate is partly transparent
+    let cfg = cfg.replace(r#""width":480"#, r#""width":480,"t_ms":250"#).replace(r#""y":0}"#, r#""y":0},"animation":{"in":"fade","duration":"500ms"}"#);
+    let (st, png) = call_bytes(&app, "POST", "/api/v1/channels/main/graphics/render", &cfg).await;
+    assert_eq!(st, StatusCode::OK, "{}", String::from_utf8_lossy(&png));
+    let a = image::load_from_memory(&png).unwrap().to_rgba8().get_pixel(5, 5).0[3];
+    assert!(a > 0 && a < 255, "alpha {a}");
+}
+
+#[tokio::test]
+async fn media_thumbnails() {
+    let dir = project(vec![]);
+    let app = app(&dir).await;
+    // missing file and unknown media: no thumbnail
+    assert_eq!(call(&app, "GET", "/api/v1/channels/main/media/a/thumb.jpg", None, None).await.0, StatusCode::NOT_FOUND);
+    assert_eq!(call(&app, "GET", "/api/v1/channels/main/media/zzz/thumb.jpg", None, None).await.0, StatusCode::NOT_FOUND);
+    std::fs::create_dir_all(dir.path().join("media")).unwrap();
+    let ok = std::process::Command::new("ffmpeg")
+        .args(["-hide_banner", "-loglevel", "error", "-y", "-f", "lavfi", "-i", "testsrc=size=640x360:rate=25:duration=2", "-pix_fmt", "yuv420p"])
+        .arg(dir.path().join("media/a.mp4"))
+        .status()
+        .is_ok_and(|s| s.success());
+    if !ok {
+        eprintln!("ffmpeg not available: frame extraction not tested");
+        return;
+    }
+    let req = Request::builder().uri("/api/v1/channels/main/media/a/thumb.jpg?w=160").body(Body::empty()).unwrap();
+    let res = app.clone().oneshot(req).await.unwrap();
+    assert_eq!(res.status(), StatusCode::OK);
+    assert_eq!(res.headers()["content-type"], "image/jpeg");
+    let jpg = axum::body::to_bytes(res.into_body(), 1 << 20).await.unwrap();
+    let img = image::load_from_memory(&jpg).unwrap();
+    assert_eq!((img.width(), img.height()), (160, 90));
+    let cached = std::fs::read_dir(dir.path().join("cache/thumbs/main")).unwrap().count();
+    assert_eq!(cached, 1);
+}

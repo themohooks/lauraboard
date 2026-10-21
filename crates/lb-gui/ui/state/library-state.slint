@@ -1,0 +1,92 @@
+// Data contract of the Media library screen (src/bridge/library.rs).
+
+export struct MediaRow {
+    // position in the filtered list
+    row: int,
+    id: string,
+    title: string,
+    kind: string,
+    duration: string,
+    category: string,
+    format: string,
+    problem: string,
+    enabled: bool,
+    checked: bool,
+    thumb: image,
+    has-thumb: bool,
+}
+
+// One line of tiles in the grid view (virtualized by rows).
+export struct TileLine {
+    tiles: [MediaRow],
+}
+
+export struct MediaEdit {
+    id: string,
+    path: string,
+    info: string,
+    problem: string,
+}
+
+export global Lib {
+    in property <[MediaRow]> items;
+    in property <[TileLine]> lines;
+    in-out property <int> columns: 4;
+    in property <string> summary;
+    in property <bool> loading: true;
+
+    // filters / sorting / view
+    in-out property <string> filter;
+    // -1 = all, otherwise kind index (program, jingle, ad, promo, filler, image, stream)
+    in-out property <int> kind-filter: -1;
+    in property <[string]> categories;
+    // 0 = all categories
+    in-out property <int> category-index: 0;
+    in-out property <bool> problems-only;
+    // 0 title, 1 kind, 2 duration, 3 category, 4 id
+    in-out property <int> sort-key: 0;
+    in-out property <bool> sort-desc;
+    in-out property <bool> grid;
+    in property <int> checked-count;
+    in-out property <int> focused: -1;
+    in property <[string]> playlists;
+
+    // edit sheet
+    in-out property <bool> edit-open;
+    in property <MediaEdit> edit;
+    in-out property <string> e-title;
+    in-out property <int> e-kind;
+    in-out property <string> e-category;
+    in-out property <string> e-volume;
+    in-out property <string> e-weight;
+    in-out property <bool> e-enabled;
+    in property <string> e-volume-error;
+    in property <string> e-weight-error;
+
+    // import dialog
+    in-out property <bool> import-open;
+    in-out property <string> import-path;
+    // 0 = auto, then kinds
+    in-out property <int> import-kind;
+    in-out property <string> import-category;
+    in-out property <bool> import-recursive: true;
+    in property <bool> importing;
+    in property <bool> can-browse;
+    in property <bool> checking;
+
+    callback refresh-list();
+    callback sort(int);
+    callback columns-changed(int);
+    callback toggle-check(int);
+    callback check-all(bool);
+    callback open-edit(int);
+    callback validate-edit();
+    callback save-edit();
+    // "edit", "queue", "play-now", "add-to-open-playlist", "toggle", "delete"
+    callback row-action(int, string);
+    // "playlist" (arg = playlist index), "queue", "enable", "disable", "kind" (arg = kind), "delete"
+    callback bulk(string, int);
+    callback browse-import(bool);
+    callback do-import();
+    callback check-files();
+}

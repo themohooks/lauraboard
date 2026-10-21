@@ -1,0 +1,202 @@
+// Library toolbar: search, filters, view mode, import / check; and the
+// bulk action bar shown while items are checked.
+
+import { Theme } from "../../theme/tokens.slint";
+import { Icons } from "../../theme/icons.slint";
+import { Label } from "../../components/label.slint";
+import { SearchField } from "../../components/search-field.slint";
+import { Select } from "../../components/select.slint";
+import { FilterChip } from "../../components/chips.slint";
+import { SegmentedButton } from "../../components/segmented-button.slint";
+import { Button, ButtonVariant } from "../../components/button.slint";
+import { IconButton } from "../../components/icon-button.slint";
+import { CircularProgress } from "../../components/feedback.slint";
+import { Lib } from "../../state/library-state.slint";
+
+export component LibraryToolbar inherits VerticalLayout {
+    spacing: Theme.sp3;
+
+    HorizontalLayout {
+        spacing: Theme.sp2;
+        search := SearchField {
+            horizontal-stretch: 1;
+            min-width: 200px;
+            max-width: 360px;
+            placeholder: "Название, id, категория, тег, путь";
+            text <=> Lib.filter;
+            edited => {
+                Lib.refresh-list();
+            }
+        }
+        Select {
+            width: 170px;
+            options: ["Все типы", "Передачи", "Заставки", "Реклама", "Анонсы", "Заполнение", "Изображения", "Потоки"];
+            current-index: Lib.kind-filter + 1;
+            selected(i, _) => {
+                Lib.kind-filter = i - 1;
+                Lib.refresh-list();
+            }
+        }
+        Select {
+            width: 170px;
+            options: Lib.categories;
+            current-index: Lib.category-index;
+            selected(i, _) => {
+                Lib.category-index = i;
+                Lib.refresh-list();
+            }
+        }
+        VerticalLayout {
+            alignment: center;
+            FilterChip {
+                text: "Проблемные";
+                has-icon: true;
+                icon: Icons.warning;
+                selected <=> Lib.problems-only;
+                toggled => {
+                    Lib.refresh-list();
+                }
+            }
+        }
+        Rectangle {
+            horizontal-stretch: 1;
+        }
+        SegmentedButton {
+            width: 112px;
+            segments: [{ icon: Icons.view-list, has-icon: true }, { icon: Icons.grid-view, has-icon: true }];
+            selected: Lib.grid ? 1 : 0;
+            changed(i) => {
+                Lib.grid = i == 1;
+                Lib.refresh-list();
+            }
+        }
+    }
+
+    HorizontalLayout {
+        spacing: Theme.sp2;
+        if Lib.checked-count == 0: Label {
+            horizontal-stretch: 1;
+            text: Lib.summary;
+            color: Theme.color.on-surface-variant;
+            vertical-alignment: center;
+        }
+        if Lib.checked-count > 0: Rectangle {
+            horizontal-stretch: 1;
+            height: Theme.control-height + 8px;
+            border-radius: Theme.radius-full;
+            background: Theme.color.secondary-container;
+            HorizontalLayout {
+                padding-left: Theme.sp2;
+                padding-right: Theme.sp2;
+                spacing: Theme.sp2;
+                VerticalLayout {
+                    alignment: center;
+                    IconButton {
+                        icon: Icons.close;
+                        tooltip: "Снять выделение";
+                        icon-tint: Theme.color.on-secondary-container;
+                        clicked => {
+                            Lib.check-all(false);
+                        }
+                    }
+                }
+                Label {
+                    text: "Выбрано: " + Lib.checked-count;
+                    type-style: Theme.label-large;
+                    color: Theme.color.on-secondary-container;
+                    min-width: self.preferred-width;
+                }
+                Rectangle {
+                    horizontal-stretch: 1;
+                }
+                VerticalLayout {
+                    alignment: center;
+                    Select {
+                        width: 220px;
+                        placeholder: "В плейлист…";
+                        options: Lib.playlists;
+                        container-color: Theme.color.secondary-container;
+                        selected(i, _) => {
+                            Lib.bulk("playlist", i);
+                        }
+                    }
+                }
+                VerticalLayout {
+                    alignment: center;
+                    Button {
+                        text: "В очередь";
+                        variant: ButtonVariant.text;
+                        icon: Icons.queue-music;
+                        has-icon: true;
+                        clicked => {
+                            Lib.bulk("queue", 0);
+                        }
+                    }
+                }
+                VerticalLayout {
+                    alignment: center;
+                    Button {
+                        text: "Включить";
+                        variant: ButtonVariant.text;
+                        clicked => {
+                            Lib.bulk("enable", 0);
+                        }
+                    }
+                }
+                VerticalLayout {
+                    alignment: center;
+                    Button {
+                        text: "Выключить";
+                        variant: ButtonVariant.text;
+                        clicked => {
+                            Lib.bulk("disable", 0);
+                        }
+                    }
+                }
+                VerticalLayout {
+                    alignment: center;
+                    IconButton {
+                        icon: Icons.delete;
+                        icon-tint: Theme.color.error;
+                        tooltip: "Удалить выбранные из медиатеки";
+                        clicked => {
+                            Lib.bulk("delete", 0);
+                        }
+                    }
+                }
+            }
+        }
+        if Lib.checking: HorizontalLayout {
+            spacing: Theme.sp2;
+            VerticalLayout {
+                alignment: center;
+                CircularProgress {
+                    size: 20px;
+                }
+            }
+            Label {
+                text: "Проверка файлов…";
+                vertical-alignment: center;
+            }
+        }
+        Button {
+            text: "Проверить файлы";
+            variant: ButtonVariant.outlined;
+            icon: Icons.check-circle;
+            has-icon: true;
+            enabled: !Lib.checking;
+            tooltip: "Проверить доступность и читаемость всех файлов";
+            clicked => {
+                Lib.check-files();
+            }
+        }
+        Button {
+            text: "Импорт";
+            icon: Icons.upload;
+            has-icon: true;
+            clicked => {
+                Lib.import-open = true;
+            }
+        }
+    }
+}

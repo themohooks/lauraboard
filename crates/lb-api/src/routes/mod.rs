@@ -7,14 +7,18 @@
 //! | media library | [`library`] |
 //! | playlists | [`playlists`] |
 //! | schedules, rules, graphics, channel config | [`config`] |
+//! | graphics render (draft preview) | [`render`] |
+//! | media thumbnails | [`thumbs`] |
 //! | as-run, statistics, logs | [`reports`] |
 
 pub mod config;
 pub mod control;
 pub mod library;
 pub mod playlists;
+pub mod render;
 pub mod reports;
 pub mod status;
+pub mod thumbs;
 
 use axum::Router;
 use axum::routing::{get, post, put};
@@ -34,7 +38,7 @@ pub fn router(state: AppState) -> Router {
         .route("/status", get(status::status))
         .route("/rundown", get(status::rundown))
         .route("/preview.jpg", get(status::preview))
-        .route("/plan", get(status::plan_preview))
+        .route("/plan", get(status::plan_preview).post(status::plan_draft))
         .route("/validate", get(status::validate))
         .route("/command", post(control::command))
         .route("/start", post(control::start))
@@ -43,6 +47,7 @@ pub fn router(state: AppState) -> Router {
         .route("/media", get(library::list).post(library::add))
         .route("/media/import", post(library::import))
         .route("/media/check", post(library::check))
+        .route("/media/{media}/thumb.jpg", get(thumbs::thumb))
         .route("/media/{media}", get(library::get_one).put(library::update).delete(library::remove))
         .route("/playlists", get(playlists::list).post(playlists::create))
         .route("/playlists/{pl}", get(playlists::get_one).put(playlists::replace).delete(playlists::remove))
@@ -53,6 +58,7 @@ pub fn router(state: AppState) -> Router {
         .route("/schedules", get(config::get_schedules).put(config::put_schedules))
         .route("/rules", get(config::get_rules).put(config::put_rules))
         .route("/graphics", get(config::get_graphics).put(config::put_graphics))
+        .route("/graphics/render", post(render::render))
         .route("/config", get(config::get_config).put(config::put_config))
         .route("/asrun", get(reports::asrun))
         .route("/stats", get(reports::stats));

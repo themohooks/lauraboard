@@ -1,0 +1,142 @@
+// M3 continuous / stepped slider. Drag, click on the track or use the
+// arrow keys; the value label appears above the handle while dragging.
+
+import { Theme } from "../theme/tokens.slint";
+import { Label } from "label.slint";
+import { StateLayer } from "state-layer.slint";
+
+export component Slider inherits Rectangle {
+    in property <float> minimum: 0;
+    in property <float> maximum: 1;
+    in property <float> step: 0;
+    in-out property <float> value;
+    in property <bool> enabled: true;
+    in property <string> value-text: round(value * 100) / 100;
+    callback changed(float);
+
+    property <float> span: max(maximum - minimum, 0.000001);
+    property <float> frac: clamp((value - minimum) / span, 0, 1);
+    property <length> pad: 10px;
+    property <length> usable: self.width - 2 * pad;
+
+    function set-from-x(x: length) {
+        if !root.enabled {
+            return;
+        }
+        let raw = root.minimum + clamp((x - root.pad) / root.usable, 0, 1) * root.span;
+        let snapped = root.step > 0 ? root.minimum + round((raw - root.minimum) / root.step) * root.step : raw;
+        let v = clamp(snapped, root.minimum, root.maximum);
+        if v != root.value {
+            root.value = v;
+            root.changed(v);
+        }
+    }
+
+    function nudge(dir: float) {
+        let s = root.step > 0 ? root.step : root.span / 100;
+        let v = clamp(root.value + dir * s, root.minimum, root.maximum);
+        if v != root.value {
+            root.value = v;
+            root.changed(v);
+        }
+    }
+
+    height: Theme.touch-target;
+    min-width: 120px;
+    accessible-role: slider;
+    accessible-value: root.value-text;
+    accessible-value-minimum: root.minimum;
+    accessible-value-maximum: root.maximum;
+    accessible-value-step: root.step;
+    accessible-action-increment => {
+        root.nudge(1);
+    }
+    accessible-action-decrement => {
+        root.nudge(-1);
+    }
+
+    // inactive track
+    Rectangle {
+        x: root.pad;
+        width: root.usable;
+        height: 4px;
+        border-radius: 2px;
+        background: root.enabled ? Theme.color.secondary-container : Theme.color.on-surface.with-alpha(Theme.disabled-container);
+    }
+
+    // active track
+    Rectangle {
+        x: root.pad;
+        width: root.usable * root.frac;
+        height: 4px;
+        border-radius: 2px;
+        background: root.enabled ? Theme.color.primary : Theme.color.on-surface.with-alpha(Theme.disabled-content);
+    }
+
+    handle := Rectangle {
+        x: root.pad + root.usable * root.frac - 20px;
+        width: 40px;
+        height: 40px;
+        StateLayer {
+            border-radius: 20px;
+            tint: Theme.color.primary;
+            hovered: touch.has-hover;
+            pressed: touch.pressed;
+            focused: focus.has-focus;
+            enabled: root.enabled;
+        }
+        Rectangle {
+            width: 20px;
+            height: 20px;
+            border-radius: 10px;
+            background: root.enabled ? Theme.color.primary : Theme.color.on-surface.with-alpha(Theme.disabled-content);
+            drop-shadow-blur: 2px;
+            drop-shadow-offset-y: 1px;
+            drop-shadow-color: Theme.color.shadow.with-alpha(0.3);
+        }
+        if touch.pressed: Rectangle {
+            y: -30px;
+            height: 26px;
+            width: max(36px, value-label.preferred-width + 16px);
+            border-radius: 13px;
+            background: Theme.color.inverse-surface;
+            value-label := Label {
+                text: root.value-text;
+                type-style: Theme.label-medium;
+                color: Theme.color.inverse-on-surface;
+            }
+        }
+    }
+
+    touch := TouchArea {
+        enabled: root.enabled;
+        pointer-event(e) => {
+            if e.kind == PointerEventKind.down {
+                focus.focus();
+                root.set-from-x(self.mouse-x);
+            }
+        }
+        moved => {
+            if self.pressed {
+                root.set-from-x(self.mouse-x);
+            }
+        }
+    }
+
+    focus := FocusScope {
+        width: 0;
+        height: 0;
+        enabled: root.enabled;
+        key-pressed(e) => {
+            if e.text == Key.RightArrow || e.text == Key.UpArrow {
+                root.nudge(1);
+                return accept;
+            }
+            if e.text == Key.LeftArrow || e.text == Key.DownArrow {
+                root.nudge(-1);
+                return accept;
+            }
+            reject
+        }
+    }
+}

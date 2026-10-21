@@ -1,0 +1,100 @@
+// Import dialog: path / folder / URL on the server, kind, category.
+
+import { Theme } from "../../theme/tokens.slint";
+import { Icons } from "../../theme/icons.slint";
+import { Dialog, DialogActions } from "../../components/dialog.slint";
+import { TextField } from "../../components/text-field.slint";
+import { Select } from "../../components/select.slint";
+import { Switch } from "../../components/switch.slint";
+import { Button, ButtonVariant } from "../../components/button.slint";
+import { IconButton, IconButtonVariant } from "../../components/icon-button.slint";
+import { LinearProgress } from "../../components/feedback.slint";
+import { Lib } from "../../state/library-state.slint";
+
+export component ImportDialog inherits Dialog {
+    open: Lib.import-open;
+    title: "Импорт в медиатеку";
+    text: "Путь указывается на сервере вещания. Папки сканируются целиком, длительность и формат определяются автоматически.";
+    has-icon: true;
+    icon: Icons.upload;
+    dialog-width: 520px;
+    dismissed => {
+        Lib.import-open = false;
+    }
+
+    HorizontalLayout {
+        spacing: Theme.sp2;
+        TextField {
+            horizontal-stretch: 1;
+            label: "Файл, папка или URL";
+            text <=> Lib.import-path;
+            placeholder: "D:/media/news или https://…";
+            has-leading: true;
+            leading-icon: Icons.folder-open;
+            container-color: Theme.color.surface-container-high;
+        }
+        if Lib.can-browse: VerticalLayout {
+            alignment: start;
+            padding-top: 4px;
+            IconButton {
+                icon: Icons.folder-open;
+                variant: IconButtonVariant.tonal;
+                tooltip: "Выбрать папку";
+                clicked => {
+                    Lib.browse-import(true);
+                }
+            }
+        }
+        if Lib.can-browse: VerticalLayout {
+            alignment: start;
+            padding-top: 4px;
+            IconButton {
+                icon: Icons.movie;
+                variant: IconButtonVariant.tonal;
+                tooltip: "Выбрать файл";
+                clicked => {
+                    Lib.browse-import(false);
+                }
+            }
+        }
+    }
+    HorizontalLayout {
+        spacing: Theme.sp3;
+        Select {
+            horizontal-stretch: 1;
+            label: "Тип";
+            options: ["Определить автоматически", "Передача", "Заставка", "Реклама", "Анонс", "Заполнение", "Изображение", "Поток"];
+            current-index <=> Lib.import-kind;
+            container-color: Theme.color.surface-container-high;
+        }
+        TextField {
+            horizontal-stretch: 1;
+            label: "Категория";
+            text <=> Lib.import-category;
+            container-color: Theme.color.surface-container-high;
+        }
+    }
+    Switch {
+        text: "Включая вложенные папки";
+        checked <=> Lib.import-recursive;
+    }
+    if Lib.importing: LinearProgress {
+        indeterminate: true;
+    }
+    DialogActions {
+        Button {
+            text: "Отмена";
+            variant: ButtonVariant.text;
+            clicked => {
+                Lib.import-open = false;
+            }
+        }
+        Button {
+            text: "Импортировать";
+            enabled: Lib.import-path != "" && !Lib.importing;
+            clicked => {
+                Lib.do-import();
+            }
+        }
+    }
+}

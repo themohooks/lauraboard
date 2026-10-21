@@ -1,0 +1,73 @@
+// Gallery, block A: icons, type styles, state layers, focus ring.
+
+import { Theme } from "../../theme/tokens.slint";
+import { Icons } from "../../theme/icons.slint";
+import { Icon } from "../../components/icon.slint";
+import { Label } from "../../components/label.slint";
+import { StateLayer } from "../../components/state-layer.slint";
+import { FocusRing } from "../../components/focus-ring.slint";
+import { Interactive } from "../../components/interactive.slint";
+import { Section } from "section.slint";
+
+component StateDemo inherits Rectangle {
+    in property <string> name;
+    in property <bool> hovered;
+    in property <bool> pressed;
+    in property <bool> focused;
+    width: 120px;
+    height: 40px;
+    border-radius: Theme.radius-full;
+    background: Theme.color.surface-container-high;
+    StateLayer {
+        border-radius: parent.border-radius;
+        tint: Theme.color.on-surface;
+        hovered: root.hovered;
+        pressed: root.pressed;
+        focused: root.focused;
+    }
+    Label {
+        text: name;
+        type-style: Theme.label-large;
+        horizontal-alignment: center;
+    }
+    if focused: FocusRing { radius: root.border-radius; target-width: root.width; target-height: root.height; }
+}
+
+export component BasePage inherits Section {
+    title: "A · Базовые: иконки, типографика, состояния";
+    HorizontalLayout {
+        spacing: Theme.sp4;
+        alignment: start;
+        Icon { source: Icons.sensors; tint: Theme.status.live; }
+        Icon { source: Icons.check-circle; tint: Theme.status.success; }
+        Icon { source: Icons.warning; tint: Theme.status.warning; }
+        Icon { source: Icons.error; tint: Theme.color.error; }
+        Icon { source: Icons.movie; tint: Theme.kind.program; }
+        Icon { source: Icons.campaign; tint: Theme.kind.ad; }
+        Icon { source: Icons.stream; tint: Theme.kind.stream; }
+        Icon { source: Icons.settings; size: Theme.icon-small; }
+    }
+    HorizontalLayout {
+        spacing: Theme.sp6;
+        alignment: start;
+        Label { text: "Заголовок раздела"; type-style: Theme.title-large; }
+        Label { text: "Заголовок карточки"; type-style: Theme.title-small; }
+        Label { text: "Основной текст"; type-style: Theme.body-medium; color: Theme.color.on-surface-variant; }
+        Label { text: "ПОДПИСЬ"; type-style: Theme.label-small; color: Theme.color.on-surface-variant; }
+        Label { text: "00:28:30"; type-style: Theme.title-medium; mono: true; }
+    }
+    HorizontalLayout {
+        spacing: Theme.sp4;
+        alignment: start;
+        StateDemo { name: "обычное"; }
+        StateDemo { name: "наведение"; hovered: true; }
+        StateDemo { name: "нажатие"; pressed: true; }
+        StateDemo { name: "фокус"; focused: true; }
+        Interactive {
+            width: 120px;
+            height: 40px;
+            background: Theme.color.secondary-container;
+            Label { text: "интерактив"; horizontal-alignment: center; color: Theme.color.on-secondary-container; }
+        }
+    }
+}

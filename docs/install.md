@@ -3,8 +3,8 @@
 ## Требования
 
 - **FFmpeg ≥ 6.1** (`ffmpeg` и `ffprobe`). Нужны опция `-readrate_initial_burst` и энкодер `s302m`, они есть в обычных сборках.
-- Для сборки из исходников: **Rust ≥ 1.89** (rustup).
-- Для GUI на Linux: X11 или Wayland и драйвер OpenGL/Vulkan. Для сервера без экрана GUI не нужен: используйте `run` и API.
+- Для сборки из исходников: **Rust ≥ 1.92** (rustup).
+- Для GUI на Linux: X11 или Wayland, OpenGL (или программная отрисовка, см. [gui.md](gui.md#отрисовка)) и xdg-desktop-portal для диалогов выбора файлов. Для сервера без экрана GUI не нужен: используйте `run` и API или соберите программу без GUI.
 
 ## Windows
 
@@ -55,8 +55,9 @@ laurabrod service uninstall --name laurabrod
    ```
 2. Установите зависимости сборки GUI (Debian/Ubuntu):
    ```bash
-   sudo apt install build-essential pkg-config libxkbcommon-dev libgl1-mesa-dev libwayland-dev
+   sudo apt install build-essential pkg-config libfontconfig-dev libxkbcommon-dev libxkbcommon-x11-dev libwayland-dev libgl1-mesa-dev
    ```
+   В Fedora: `sudo dnf install gcc pkgconf fontconfig-devel libxkbcommon-devel libxkbcommon-x11-devel wayland-devel mesa-libGL-devel`.
 3. Соберите программу:
    ```bash
    cargo build --release

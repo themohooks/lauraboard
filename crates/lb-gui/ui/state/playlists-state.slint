@@ -1,0 +1,100 @@
+// Data contract of the Playlists screen (src/bridge/playlists.rs).
+
+import { MediaPick } from "air-state.slint";
+
+export struct PlaylistItem {
+    id: string,
+    name: string,
+    meta: string,
+    problems: int,
+}
+
+export struct EntryRow {
+    // index in the playlist (stable while filtered)
+    index: int,
+    media: string,
+    title: string,
+    kind: string,
+    duration: string,
+    // planned offset from the playlist start
+    offset: string,
+    pinned: bool,
+    disabled: bool,
+    missing: bool,
+    problem: string,
+    thumb: image,
+    has-thumb: bool,
+}
+
+export struct EntryProps {
+    has: bool,
+    index: int,
+    media: string,
+    title: string,
+    kind: string,
+    category: string,
+    duration: string,
+    path: string,
+    pinned: bool,
+    disabled: bool,
+    problem: string,
+}
+
+export global Pl {
+    // list of playlists
+    in property <[PlaylistItem]> lists;
+    in property <int> current: -1;
+    in-out property <string> list-filter;
+    in-out property <length> list-width: 280px;
+
+    // draft of the open playlist
+    in property <bool> has-draft;
+    in-out property <string> name;
+    in-out property <bool> looped;
+    in-out property <bool> shuffle;
+    in property <[EntryRow]> entries;
+    in property <string> summary;
+    in property <int> missing-count;
+    in property <bool> dirty;
+    in property <bool> can-undo;
+    in property <bool> can-redo;
+    in-out property <string> entry-filter;
+    // -1 = all kinds, otherwise index in the kind list (program, jingle, ad, promo, filler, image, stream)
+    in-out property <int> kind-filter: -1;
+    in property <bool> filtered;
+    in-out property <int> selected: -1;
+    in property <EntryProps> props;
+
+    // drag & drop (indices in the playlist)
+    in-out property <int> drag-from: -1;
+    in-out property <int> drag-to: -1;
+
+    // side sheet: "add" (library) or "props" (selected entry)
+    in-out property <string> sheet;
+    in-out property <string> add-filter;
+    in property <[MediaPick]> add-results;
+
+    // create dialog
+    in-out property <bool> create-open;
+    in-out property <string> new-id;
+    in-out property <string> new-name;
+    in property <string> new-id-error;
+
+    callback open(int);
+    callback filter-lists(string);
+    callback edited();
+    callback move(int, int);
+    // "up", "down", "top", "bottom", "duplicate", "pin", "disable", "queue", "remove", "select"
+    callback entry-action(int, string);
+    callback add-media(string);
+    callback search-add(string);
+    callback filter-entries();
+    callback save();
+    callback revert();
+    callback undo();
+    callback redo();
+    callback validate-new-id(string);
+    callback create();
+    // "clear", "delete", "export"
+    callback menu-action(string);
+}

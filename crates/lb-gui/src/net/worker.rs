@@ -1,24 +1,22 @@
 //! Background request execution. Each job runs on its own short-lived
-//! thread and posts a [`Msg`] back; the UI is woken with a repaint.
+//! thread and posts a [`Msg`] back; the UI is woken through [`Wake`].
 
 use std::sync::mpsc::{Receiver, Sender, channel};
 
-use eframe::egui::Context;
-
-use super::Msg;
+use super::{Msg, Wake};
 use super::api::Api;
 
 #[derive(Clone)]
 pub struct Worker {
     api: Api,
     tx: Sender<Msg>,
-    ctx: Context,
+    wake: Wake,
 }
 
 impl Worker {
-    pub fn new(api: Api, ctx: Context) -> (Self, Receiver<Msg>) {
+    pub fn new(api: Api, wake: Wake) -> (Self, Receiver<Msg>) {
         let (tx, rx) = channel();
-        (Worker { api, tx, ctx }, rx)
+        (Worker { api, tx, wake }, rx)
     }
 
     pub fn api(&self) -> &Api {
@@ -31,11 +29,11 @@ impl Worker {
 
     /// Run `job` in the background; errors become [`Msg::Error`].
     pub fn spawn(&self, job: impl FnOnce(&Api) -> Result<Msg, String> + Send + 'static) {
-        let (api, tx, ctx) = (self.api.clone(), self.tx.clone(), self.ctx.clone());
+        let (api, tx, wake) = (self.api.clone(), self.tx.clone(), self.wake.clone());
         std::thread::spawn(move || {
             let msg = job(&api).unwrap_or_else(Msg::Error);
             let _ = tx.send(msg);
-            ctx.request_repaint();
+            wake();
         });
     }
 }

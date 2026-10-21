@@ -1,0 +1,141 @@
+// Data contract of the automation rules screens ("Заставки и переходы",
+// "Реклама и анонсы"), see src/bridge/rules.rs. The rule form is a set of
+// flat properties so every input can bind two-way.
+
+export struct RuleRow {
+    index: int,
+    id: string,
+    name: string,
+    summary: string,
+    kind: string,
+    enabled: bool,
+    priority: int,
+    group: string,
+    problem: string,
+}
+
+export global Rules {
+    // "jingles" or "ads"
+    in-out property <string> scope: "jingles";
+    // tab inside the screen: 0 rules, 1 ad breaks / transitions, 2 policies
+    in-out property <int> tab;
+
+    in property <[RuleRow]> rules;
+    in-out property <int> selected: -1;
+    in-out property <string> search;
+    in property <bool> dirty;
+    in property <bool> can-undo;
+    in property <bool> can-redo;
+    in property <[string]> ad-breaks;
+
+    // ---- rule form (selected rule, or the wizard draft)
+    in property <bool> has-form;
+    in property <string> f-id;
+    in-out property <string> f-name;
+    in-out property <bool> f-enabled;
+    // 0 every N items, 1 every N minutes, 2 block start, 3 block end, 4 between blocks, 5 after category, 6 before category
+    in-out property <int> f-trigger;
+    in-out property <string> f-n;
+    in-out property <string> f-minutes;
+    in-out property <string> f-tcat;
+    // 0 jingle, 1 ad break, 2 promos, 3 media
+    in-out property <int> f-action;
+    in-out property <string> f-jcat;
+    in-out property <string> f-items;
+    in-out property <int> f-ab;
+    in-out property <string> f-pcount;
+    in-out property <string> f-pcat;
+    in-out property <string> f-cats;
+    in-out property <string> f-xcats;
+    in-out property <string> f-blocks;
+    in-out property <string> f-playlists;
+    in-out property <string> f-xmedia;
+    in property <[bool]> f-kinds;
+    in property <[bool]> f-weekdays;
+    in-out property <string> f-from;
+    in-out property <string> f-to;
+    in-out property <bool> f-random;
+    in-out property <bool> f-norepeat;
+    in-out property <float> f-prob: 1;
+    in-out property <string> f-priority;
+    in-out property <string> f-group;
+    in-out property <bool> f-optional;
+    in-out property <bool> f-skipmanual;
+    // validation
+    in property <string> e-n;
+    in property <string> e-minutes;
+    in property <string> e-from;
+    in property <string> e-to;
+    in property <string> e-priority;
+    in property <string> e-pcount;
+    // analysis of the selected rule
+    in property <[string]> problems;
+    in property <[string]> deps;
+    in property <[string]> examples;
+    in property <string> examples-note;
+    in property <[string]> journal;
+    in property <bool> checking;
+
+    // ---- wizard
+    in-out property <bool> wizard-open;
+    in-out property <int> wizard-step;
+
+    // ---- ad breaks
+    in property <[string]> breaks;
+    in-out property <int> break-selected: -1;
+    in property <string> b-id;
+    in-out property <string> b-name;
+    in-out property <string> b-items;
+    in-out property <string> b-category;
+    // 0 listed, 1 random, 2 least played
+    in-out property <int> b-order;
+    in-out property <string> b-duration;
+    in-out property <string> b-max;
+    in-out property <string> b-intro;
+    in-out property <string> b-outro;
+    in-out property <string> b-fill;
+    in property <string> e-b-duration;
+    in property <string> e-b-max;
+    in property <[string]> b-used-by;
+
+    // ---- policies
+    in-out property <string> p-ads-max;
+    in-out property <string> p-ads-interval;
+    in-out property <string> p-promo-lookahead;
+    in-out property <string> p-promo-interval;
+    in-out property <string> p-filler-cats;
+    in-out property <bool> p-filler-promos;
+    in-out property <string> p-filler-min;
+    in-out property <string> p-filler-interval;
+    in property <string> e-policy;
+
+    // ---- transitions
+    in-out property <string> t-fade;
+    in property <[bool]> t-kinds;
+    in property <string> e-fade;
+
+    callback select(int);
+    callback toggle-enabled(int);
+    callback filter();
+    callback form-changed();
+    callback toggle-kind(int);
+    callback toggle-weekday(int);
+    callback new-rule();
+    callback wizard-finish();
+    callback wizard-cancel();
+    callback duplicate();
+    callback remove();
+    callback test-rule();
+    callback load-journal();
+    callback break-select(int);
+    callback break-changed();
+    callback break-add();
+    callback break-remove();
+    callback policy-changed();
+    callback transitions-changed();
+    callback toggle-t-kind(int);
+    callback save();
+    callback revert();
+    callback undo();
+    callback redo();
+}

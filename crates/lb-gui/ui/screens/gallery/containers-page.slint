@@ -1,0 +1,124 @@
+// Gallery, block D: containers and indicators.
+
+import { Theme } from "../../theme/tokens.slint";
+import { Icons } from "../../theme/icons.slint";
+import { Label } from "../../components/label.slint";
+import { Icon } from "../../components/icon.slint";
+import { Card, CardHeader, CardStyle } from "../../components/card.slint";
+import { ListRow, ListHeader } from "../../components/list-row.slint";
+import { StatusChip, StatusTone, Badge, KindTag } from "../../components/indicators.slint";
+import { Thumbnail } from "../../components/thumbnail.slint";
+import { LinearProgress, CircularProgress, Skeleton, EmptyState } from "../../components/feedback.slint";
+import { IconButton } from "../../components/icon-button.slint";
+import { Button, ButtonVariant } from "../../components/button.slint";
+import { Section } from "section.slint";
+
+component DemoRow inherits ListRow {
+    in property <string> time;
+    in property <string> title;
+    in property <string> kind;
+    in property <string> dur;
+    Label { text: root.time; mono: true; width: 72px; color: Theme.color.on-surface-variant; }
+    VerticalLayout {
+        alignment: center;
+        Thumbnail { height: 28px; kind: root.kind; }
+    }
+    KindTag { kind: root.kind; width: 120px; }
+    Label { text: root.title; horizontal-stretch: 1; }
+    Label { text: root.dur; mono: true; width: 72px; horizontal-alignment: right; }
+}
+
+export component ContainersPage inherits Section {
+    title: "D · Контейнеры и индикаторы";
+    HorizontalLayout {
+        spacing: Theme.sp2;
+        alignment: start;
+        StatusChip { text: "В ЭФИРЕ"; tone: StatusTone.live; strong: true; }
+        StatusChip { text: "В ЭФИРЕ"; tone: StatusTone.live; }
+        StatusChip { text: "ДАЛЕЕ"; tone: StatusTone.preview; }
+        StatusChip { text: "Энкодер в норме"; tone: StatusTone.success; }
+        StatusChip { text: "Предупреждений: 3"; tone: StatusTone.warning; }
+        StatusChip { text: "Нет связи"; tone: StatusTone.error; }
+        StatusChip { text: "Остановлен"; tone: StatusTone.idle; }
+        StatusChip { text: "Ручной режим"; tone: StatusTone.info; icon: Icons.front-hand; }
+        VerticalLayout { alignment: center; Badge { text: "12"; } }
+        VerticalLayout { alignment: center; Badge { } }
+    }
+
+    HorizontalLayout {
+        spacing: Theme.sp4;
+        alignment: start;
+        Card {
+            width: 300px;
+            CardHeader {
+                title: "Энкодер";
+                subtitle: "h264 · 1920×1080 · 25 fps";
+                IconButton { icon: Icons.more-vert; tooltip: "Ещё"; }
+            }
+            Label { text: "4 500 кбит/с · 1.00x · потеряно кадров: 0"; color: Theme.color.on-surface-variant; }
+            LinearProgress { progress: 0.62; }
+        }
+        Card {
+            width: 300px;
+            card-style: CardStyle.outlined;
+            CardHeader { title: "Загрузка медиатеки"; subtitle: "Индикатор без процентов"; }
+            LinearProgress { indeterminate: true; }
+            HorizontalLayout {
+                spacing: Theme.sp3;
+                CircularProgress { }
+                Label { text: "Проверка файлов…"; }
+            }
+        }
+        Card {
+            width: 300px;
+            card-style: CardStyle.elevated;
+            CardHeader { title: "Скелетон"; subtitle: "Пока данные загружаются"; }
+            Skeleton { height: 14px; }
+            Skeleton { height: 14px; width: 70%; }
+            Skeleton { height: 14px; width: 40%; }
+        }
+    }
+
+    HorizontalLayout {
+        spacing: Theme.sp4;
+        alignment: start;
+        Thumbnail { height: 72px; kind: "program"; duration: "28:30"; }
+        Thumbnail { height: 72px; kind: "ad"; duration: "0:30"; }
+        Thumbnail { height: 72px; kind: "jingle"; duration: "0:05"; }
+        Thumbnail { height: 72px; kind: "promo"; problem: true; }
+        Thumbnail { height: 72px; kind: "stream"; }
+    }
+
+    Rectangle {
+        width: 760px;
+        height: 5 * Theme.row-height + 32px;
+        border-radius: Theme.radius-m;
+        background: Theme.color.surface-container-low;
+        clip: true;
+        VerticalLayout {
+            ListHeader {
+                Label { text: "НАЧАЛО"; type-style: Theme.label-small; width: 72px; color: Theme.color.on-surface-variant; }
+                Label { text: ""; width: 50px; }
+                Label { text: "ТИП"; type-style: Theme.label-small; width: 120px; color: Theme.color.on-surface-variant; }
+                Label { text: "НАЗВАНИЕ"; type-style: Theme.label-small; horizontal-stretch: 1; color: Theme.color.on-surface-variant; }
+                Label { text: "ДЛИТ."; type-style: Theme.label-small; width: 72px; horizontal-alignment: right; color: Theme.color.on-surface-variant; }
+            }
+            DemoRow { time: "09:00:00"; title: "Утренние новости"; kind: "program"; dur: "00:28:30"; current: true; }
+            DemoRow { time: "09:28:30"; title: "Реклама: блок 1"; kind: "ad"; dur: "00:01:30"; }
+            DemoRow { time: "09:30:00"; title: "Заставка канала"; kind: "jingle"; dur: "00:00:05"; selected: true; }
+            DemoRow { time: "09:30:05"; title: "Анонс: Вечернее шоу"; kind: "promo"; dur: "00:00:20"; }
+            DemoRow { time: "09:30:25"; title: "Нет материала"; kind: "gap"; dur: "00:04:35"; }
+        }
+    }
+
+    Card {
+        width: 420px;
+        card-style: CardStyle.low;
+        EmptyState {
+            icon: Icons.playlist-play;
+            title: "Плейлист пуст";
+            text: "Перетащите ролики из медиатеки или нажмите «Добавить».";
+            Button { text: "Добавить"; variant: ButtonVariant.tonal; icon: Icons.add; has-icon: true; }
+        }
+    }
+}

@@ -1,0 +1,85 @@
+// Gallery: color roles, status / kind colors, type scale, icons.
+
+import { Theme } from "../../theme/tokens.slint";
+import { Icons } from "../../theme/icons.slint";
+
+component Swatch inherits Rectangle {
+    in property <string> name;
+    in property <color> fill;
+    in property <color> ink;
+    width: 120px;
+    height: 44px;
+    border-radius: Theme.radius-s;
+    background: fill;
+    border-width: 1px;
+    border-color: Theme.color.outline-variant;
+    Text {
+        x: 8px;
+        text: name;
+        color: ink;
+        font-size: Theme.label-small.size;
+        font-weight: Theme.label-small.weight;
+    }
+}
+
+component Sample inherits Text {
+    in property <string> label;
+    color: Theme.color.on-surface;
+}
+
+export component TokensPage inherits VerticalLayout {
+    alignment: start;
+    spacing: Theme.sp3;
+    HorizontalLayout {
+        spacing: Theme.sp2;
+        alignment: start;
+        Swatch { name: "primary"; fill: Theme.color.primary; ink: Theme.color.on-primary; }
+        Swatch { name: "primary-cont."; fill: Theme.color.primary-container; ink: Theme.color.on-primary-container; }
+        Swatch { name: "secondary-cont."; fill: Theme.color.secondary-container; ink: Theme.color.on-secondary-container; }
+        Swatch { name: "tertiary-cont."; fill: Theme.color.tertiary-container; ink: Theme.color.on-tertiary-container; }
+        Swatch { name: "error"; fill: Theme.color.error; ink: Theme.color.on-error; }
+        Swatch { name: "error-cont."; fill: Theme.color.error-container; ink: Theme.color.on-error-container; }
+        Swatch { name: "inverse"; fill: Theme.color.inverse-surface; ink: Theme.color.inverse-on-surface; }
+    }
+    HorizontalLayout {
+        spacing: Theme.sp2;
+        alignment: start;
+        Swatch { name: "lowest"; fill: Theme.color.surface-container-lowest; ink: Theme.color.on-surface; }
+        Swatch { name: "low"; fill: Theme.color.surface-container-low; ink: Theme.color.on-surface; }
+        Swatch { name: "container"; fill: Theme.color.surface-container; ink: Theme.color.on-surface; }
+        Swatch { name: "high"; fill: Theme.color.surface-container-high; ink: Theme.color.on-surface; }
+        Swatch { name: "highest"; fill: Theme.color.surface-container-highest; ink: Theme.color.on-surface; }
+        Swatch { name: "outline"; fill: Theme.color.outline; ink: Theme.color.surface; }
+    }
+    HorizontalLayout {
+        spacing: Theme.sp2;
+        alignment: start;
+        Swatch { name: "live"; fill: Theme.status.live-container; ink: Theme.status.on-live-container; }
+        Swatch { name: "preview"; fill: Theme.status.preview-container; ink: Theme.status.on-preview-container; }
+        Swatch { name: "warning"; fill: Theme.status.warning-container; ink: Theme.status.on-warning-container; }
+        Swatch { name: "idle"; fill: Theme.status.idle-container; ink: Theme.status.on-idle-container; }
+        Swatch { name: "program"; fill: Theme.kind.program; ink: Theme.color.surface; }
+        Swatch { name: "jingle"; fill: Theme.kind.jingle; ink: Theme.color.surface; }
+        Swatch { name: "ad"; fill: Theme.kind.ad; ink: Theme.color.surface; }
+        Swatch { name: "promo"; fill: Theme.kind.promo; ink: Theme.color.surface; }
+        Swatch { name: "stream"; fill: Theme.kind.stream; ink: Theme.color.surface; }
+    }
+    Sample { text: "Headline small — Сетка вещания"; font-size: Theme.headline-small.size; font-weight: Theme.headline-small.weight; }
+    Sample { text: "Title large — Монитор эфира"; font-size: Theme.title-large.size; }
+    Sample { text: "Title medium — Сейчас в эфире: Утренние новости"; font-size: Theme.title-medium.size; font-weight: Theme.title-medium.weight; }
+    Sample { text: "Body medium — Длительность 00:28:30, осталось 00:12:04, далее в 09:30:00"; font-size: Theme.body-medium.size; }
+    Sample { text: "Label medium — ПЕРЕДАЧА · РЕКЛАМА · АНОНС"; font-size: Theme.label-medium.size; font-weight: Theme.label-medium.weight; }
+    Sample { text: "09:28:31.240  [main] encoder started (h264)"; font-family: Theme.mono-font; font-size: Theme.body-small.size; }
+    HorizontalLayout {
+        spacing: Theme.sp3;
+        alignment: start;
+        for icon in [Icons.home, Icons.live-tv, Icons.playlist-play, Icons.video-library, Icons.calendar-month, Icons.animation,
+            Icons.campaign, Icons.branding-watermark, Icons.input, Icons.monitoring, Icons.receipt-long, Icons.settings,
+            Icons.home-fill, Icons.live-tv-fill, Icons.play-arrow, Icons.stop, Icons.skip-next, Icons.warning, Icons.error]: Image {
+            source: icon;
+            width: Theme.icon-size;
+            height: Theme.icon-size;
+            colorize: Theme.color.on-surface-variant;
+        }
+    }
+}

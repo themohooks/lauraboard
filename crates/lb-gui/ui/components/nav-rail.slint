@@ -1,0 +1,172 @@
+// Navigation: M3 navigation drawer (expanded, icon + label) that
+// collapses into a rail (icons with tooltips). Active item: filled icon on
+// a secondary-container pill. Keyboard: Up/Down move, Enter opens.
+
+import { Theme } from "../theme/tokens.slint";
+import { Icons } from "../theme/icons.slint";
+import { Icon } from "icon.slint";
+import { Label } from "label.slint";
+import { Interactive } from "interactive.slint";
+import { IconButton } from "icon-button.slint";
+import { Badge } from "indicators.slint";
+import { Tooltip } from "tooltip.slint";
+
+export struct NavItem {
+    id: string,
+    title: string,
+    icon: image,
+    icon-active: image,
+    badge: string,
+    has-badge: bool,
+    // starts a new group (thin divider above)
+    group-start: bool,
+}
+
+export component NavRail inherits Rectangle {
+    in property <[NavItem]> items;
+    in-out property <string> current;
+    in-out property <bool> expanded: true;
+    callback navigate(string);
+    callback expanded-changed(bool);
+
+    property <int> cursor: -1;
+    property <length> item-height: Theme.compact ? 36px : 40px;
+
+    width: expanded ? 232px : 72px;
+    animate width { duration: Theme.motion-medium; easing: ease-in-out; }
+    background: Theme.color.surface-container-low;
+    clip: true;
+    accessible-role: list;
+    accessible-label: "Разделы";
+
+    VerticalLayout {
+        padding-top: Theme.sp2;
+        padding-bottom: Theme.sp2;
+        spacing: 2px;
+
+        HorizontalLayout {
+            padding-left: 16px;
+            padding-bottom: Theme.sp2;
+            alignment: start;
+            IconButton {
+                icon: root.expanded ? Icons.menu-open : Icons.menu;
+                tooltip: root.expanded ? "Свернуть панель" : "Развернуть панель";
+                clicked => {
+                    root.expanded = !root.expanded;
+                    root.expanded-changed(root.expanded);
+                }
+            }
+        }
+
+        Flickable {
+            vertical-stretch: 1;
+            content-height: entries-col.preferred-height;
+            entries-col := VerticalLayout {
+                alignment: start;
+                spacing: 2px;
+                for item[i] in root.items: VerticalLayout {
+                    spacing: 2px;
+                    if item.group-start && i > 0: Rectangle {
+                        height: 9px;
+                        Rectangle {
+                            x: 16px;
+                            width: parent.width - 32px;
+                            height: 1px;
+                            background: Theme.color.outline-variant;
+                        }
+                    }
+                    HorizontalLayout {
+                        padding-left: 12px;
+                        padding-right: 12px;
+                        entry := Interactive {
+                            height: root.item-height;
+                            radius: Theme.radius-full;
+                            focusable: false;
+                            background: item.id == root.current ? Theme.color.secondary-container : transparent;
+                            state-tint: item.id == root.current ? Theme.color.on-secondary-container : Theme.color.on-surface-variant;
+                            accessible-role: tab;
+                            accessible-label: item.title;
+                            accessible-checked: item.id == root.current;
+                            accessible-action-default => {
+                                self.clicked();
+                            }
+                            clicked => {
+                                root.navigate(item.id);
+                            }
+
+                            if i == root.cursor && keys.has-focus: Rectangle {
+                                border-radius: parent.border-radius;
+                                border-width: 2px;
+                                border-color: Theme.color.primary;
+                            }
+
+                            HorizontalLayout {
+                                padding-left: 12px;
+                                padding-right: 12px;
+                                spacing: 12px;
+                                VerticalLayout {
+                                    alignment: center;
+                                    Rectangle {
+                                        width: Theme.icon-size;
+                                        height: Theme.icon-size;
+                                        Icon {
+                                            source: item.id == root.current ? item.icon-active : item.icon;
+                                            tint: item.id == root.current ? Theme.color.on-secondary-container : Theme.color.on-surface-variant;
+                                        }
+                                        if item.has-badge && !root.expanded: Badge {
+                                            x: parent.width - 4px;
+                                            y: -2px;
+                                            text: item.badge;
+                                        }
+                                    }
+                                }
+                                if root.expanded: Label {
+                                    horizontal-stretch: 1;
+                                    text: item.title;
+                                    type-style: Theme.label-large;
+                                    color: item.id == root.current ? Theme.color.on-secondary-container : Theme.color.on-surface-variant;
+                                }
+                                if root.expanded && item.has-badge: VerticalLayout {
+                                    alignment: center;
+                                    Badge {
+                                        text: item.badge;
+                                    }
+                                }
+                            }
+                            if !root.expanded: Tooltip {
+                                text: item.title;
+                                hovered: entry.hovered;
+                                anchor-height: entry.height;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    keys := FocusScope {
+        width: 0;
+        height: 0;
+        focus-changed-event => {
+            if self.has-focus && root.cursor < 0 {
+                root.cursor = 0;
+            }
+        }
+        key-pressed(e) => {
+            if e.text == Key.DownArrow {
+                root.cursor = min(root.cursor + 1, root.items.length - 1);
+                return accept;
+            }
+            if e.text == Key.UpArrow {
+                root.cursor = max(root.cursor - 1, 0);
+                return accept;
+            }
+            if (e.text == Key.Return || e.text == " ") && root.cursor >= 0 {
+                root.navigate(root.items[root.cursor].id);
+                return accept;
+            }
+            reject
+        }
+    }
+}

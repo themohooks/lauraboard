@@ -1,0 +1,22 @@
+// Media library screen: toolbar | table or tiles | edit sheet.
+
+import { Theme } from "../../theme/tokens.slint";
+import { Page, PageHeader } from "../../shell/page.slint";
+import { LibraryToolbar } from "toolbar.slint";
+import { MediaTable } from "media-table.slint";
+import { MediaEditSheet } from "edit-sheet.slint";
+
+export component LibraryScreen inherits Page {
+    HorizontalLayout {
+        VerticalLayout {
+            horizontal-stretch: 1;
+            padding: Theme.sp4;
+            spacing: Theme.sp3;
+            LibraryToolbar { }
+            MediaTable {
+                vertical-stretch: 1;
+            }
+        }
+        MediaEditSheet { }
+    }
+}

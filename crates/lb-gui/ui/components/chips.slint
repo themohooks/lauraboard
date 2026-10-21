@@ -1,0 +1,143 @@
+// M3 chips: FilterChip (toggle, check icon when selected), AssistChip
+// (action with leading icon), InputChip (removable value).
+
+import { Theme } from "../theme/tokens.slint";
+import { Icons } from "../theme/icons.slint";
+import { Interactive } from "interactive.slint";
+import { Icon } from "icon.slint";
+import { Label } from "label.slint";
+
+export component FilterChip inherits Interactive {
+    in property <string> text;
+    in-out property <bool> selected;
+    in property <image> icon;
+    in property <bool> has-icon: false;
+    in property <color> dot: transparent;
+    callback toggled(bool);
+
+    property <color> fg: !root.enabled ? Theme.color.on-surface.with-alpha(Theme.disabled-content)
+        : selected ? Theme.color.on-secondary-container : Theme.color.on-surface-variant;
+
+    height: 32px;
+    radius: Theme.radius-s;
+    state-tint: fg;
+    background: selected ? (root.enabled ? Theme.color.secondary-container : Theme.color.on-surface.with-alpha(Theme.disabled-container)) : transparent;
+    border-width: selected ? 0 : 1px;
+    border-color: root.enabled ? Theme.color.outline-variant : Theme.color.on-surface.with-alpha(Theme.disabled-container);
+    accessible-role: checkbox;
+    accessible-label: text;
+    accessible-checked: selected;
+    accessible-checkable: true;
+    accessible-action-default => {
+        self.clicked();
+    }
+    clicked => {
+        root.selected = !root.selected;
+        root.toggled(root.selected);
+    }
+
+    HorizontalLayout {
+        padding-left: root.selected || root.has-icon || root.dot != transparent ? Theme.sp2 : Theme.sp4;
+        padding-right: Theme.sp4;
+        spacing: Theme.sp2;
+        alignment: center;
+        if root.selected || root.has-icon: VerticalLayout {
+            alignment: center;
+            Icon {
+                source: root.selected ? Icons.check : root.icon;
+                size: Theme.icon-small;
+                tint: root.selected ? root.fg : Theme.color.primary;
+            }
+        }
+        if !root.selected && !root.has-icon && root.dot != transparent: VerticalLayout {
+            alignment: center;
+            Rectangle {
+                width: 10px;
+                height: 10px;
+                border-radius: 5px;
+                background: root.dot;
+            }
+        }
+        Label {
+            text: root.text;
+            type-style: Theme.label-large;
+            color: root.fg;
+            overflow: clip;
+        }
+    }
+}
+
+export component AssistChip inherits Interactive {
+    in property <string> text;
+    in property <image> icon;
+    in property <bool> has-icon: true;
+
+    height: 32px;
+    radius: Theme.radius-s;
+    border-width: 1px;
+    border-color: Theme.color.outline-variant;
+    accessible-role: button;
+    accessible-label: text;
+    accessible-action-default => {
+        self.clicked();
+    }
+
+    HorizontalLayout {
+        padding-left: root.has-icon ? Theme.sp2 : Theme.sp4;
+        padding-right: Theme.sp4;
+        spacing: Theme.sp2;
+        alignment: center;
+        if root.has-icon: VerticalLayout {
+            alignment: center;
+            Icon {
+                source: root.icon;
+                size: Theme.icon-small;
+                tint: Theme.color.primary;
+            }
+        }
+        Label {
+            text: root.text;
+            type-style: Theme.label-large;
+            overflow: clip;
+        }
+    }
+}
+
+export component InputChip inherits Rectangle {
+    in property <string> text;
+    in property <bool> removable: true;
+    callback removed();
+
+    height: 32px;
+    border-radius: Theme.radius-s;
+    border-width: 1px;
+    border-color: Theme.color.outline-variant;
+    accessible-role: list-item;
+    accessible-label: text;
+
+    HorizontalLayout {
+        padding-left: Theme.sp3;
+        padding-right: root.removable ? Theme.sp1 : Theme.sp3;
+        spacing: Theme.sp1;
+        Label {
+            text: root.text;
+            type-style: Theme.label-large;
+            color: Theme.color.on-surface-variant;
+        }
+        if root.removable: Interactive {
+            y: (parent.height - self.height) / 2;
+            width: 24px;
+            height: 24px;
+            focusable: false;
+            accessible-role: button;
+            accessible-label: "Убрать " + root.text;
+            clicked => {
+                root.removed();
+            }
+            Icon {
+                source: Icons.close;
+                size: 16px;
+            }
+        }
+    }
+}

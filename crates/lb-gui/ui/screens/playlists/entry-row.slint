@@ -1,0 +1,178 @@
+// Playlist entry row: drag handle, number, thumbnail, kind, title, planned
+// offset, duration, pin / enable toggles, problem marker; context menu on
+// right click, Alt+Up/Down and Delete from the keyboard.
+
+import { Theme } from "../../theme/tokens.slint";
+import { Icons } from "../../theme/icons.slint";
+import { Label } from "../../components/label.slint";
+import { Icon } from "../../components/icon.slint";
+import { IconButton } from "../../components/icon-button.slint";
+import { ListRow } from "../../components/list-row.slint";
+import { Thumbnail } from "../../components/thumbnail.slint";
+import { KindTag } from "../../components/indicators.slint";
+import { Menu } from "../../components/menu.slint";
+import { Pl, EntryRow } from "../../state/playlists-state.slint";
+
+export component EntryRowView inherits ListRow {
+    in property <EntryRow> entry;
+    in property <bool> draggable: true;
+
+    property <bool> drop-above: Pl.drag-from >= 0 && Pl.drag-to == entry.index && Pl.drag-to < Pl.drag-from;
+    property <bool> drop-below: Pl.drag-from >= 0 && Pl.drag-to == entry.index && Pl.drag-to > Pl.drag-from;
+
+    height: Theme.compact ? 40px : 48px;
+    selected: Pl.selected == entry.index;
+    opacity: entry.disabled ? 0.55 : (Pl.drag-from == entry.index ? 0.6 : 1);
+    accessible-label: (entry.index + 1) + ". " + entry.title;
+    clicked => {
+        Pl.entry-action(entry.index, "select");
+    }
+    double-clicked => {
+        Pl.entry-action(entry.index, "select");
+        Pl.sheet = "props";
+    }
+    right-clicked(p) => {
+        Pl.entry-action(entry.index, "select");
+        menu.open-at(p.x, p.y);
+    }
+
+    // drag handle
+    Rectangle {
+        width: 20px;
+        Icon {
+            source: Icons.drag-indicator;
+            size: 18px;
+            opacity: root.draggable ? 1 : 0.3;
+        }
+        TouchArea {
+            enabled: root.draggable;
+            mouse-cursor: root.draggable ? MouseCursor.grab : MouseCursor.not-allowed;
+            pointer-event(e) => {
+                if e.kind == PointerEventKind.down {
+                    Pl.drag-from = root.entry.index;
+                    Pl.drag-to = root.entry.index;
+                }
+                if e.kind == PointerEventKind.up {
+                    if Pl.drag-from >= 0 && Pl.drag-to != Pl.drag-from {
+                        Pl.move(Pl.drag-from, Pl.drag-to);
+                    }
+                    Pl.drag-from = -1;
+                    Pl.drag-to = -1;
+                }
+            }
+            moved => {
+                if self.pressed {
+                    Pl.drag-to = max(0, root.entry.index + round((self.mouse-y - self.pressed-y) / root.height));
+                }
+            }
+        }
+    }
+    Label {
+        width: 32px;
+        text: root.entry.index + 1;
+        mono: true;
+        type-style: Theme.body-small;
+        horizontal-alignment: right;
+        color: Theme.color.on-surface-variant;
+    }
+    VerticalLayout {
+        alignment: center;
+        Thumbnail {
+            height: root.height - 12px;
+            kind: root.entry.kind;
+            source: root.entry.thumb;
+            has-image: root.entry.has-thumb;
+            problem: root.entry.missing || root.entry.problem != "";
+        }
+    }
+    VerticalLayout {
+        horizontal-stretch: 1;
+        alignment: center;
+        Label {
+            text: root.entry.missing ? "Нет в медиатеке: " + root.entry.media : root.entry.title;
+            color: root.entry.missing ? Theme.color.error : Theme.color.on-surface;
+        }
+        HorizontalLayout {
+            spacing: Theme.sp2;
+            alignment: start;
+            KindTag {
+                kind: root.entry.kind;
+            }
+            if root.entry.problem != "": Label {
+                text: root.entry.problem;
+                type-style: Theme.label-small;
+                color: Theme.color.error;
+            }
+        }
+    }
+    Label {
+        width: 76px;
+        text: root.entry.offset;
+        mono: true;
+        type-style: Theme.body-small;
+        color: Theme.color.on-surface-variant;
+        horizontal-alignment: right;
+    }
+    Label {
+        width: 72px;
+        text: root.entry.duration;
+        mono: true;
+        type-style: Theme.body-small;
+        horizontal-alignment: right;
+    }
+    VerticalLayout {
+        alignment: center;
+        IconButton {
+            width: 32px;
+            height: 32px;
+            icon: Icons.push-pin;
+            toggle: true;
+            selected: root.entry.pinned;
+            focusable: false;
+            tooltip: root.entry.pinned ? "Закреплён (не перемешивается) — открепить" : "Закрепить позицию при перемешивании";
+            clicked => {
+                Pl.entry-action(root.entry.index, "pin");
+            }
+        }
+    }
+    VerticalLayout {
+        alignment: center;
+        IconButton {
+            width: 32px;
+            height: 32px;
+            icon: root.entry.disabled ? Icons.visibility-off : Icons.visibility;
+            focusable: false;
+            tooltip: root.entry.disabled ? "Выключен — включить" : "Выключить без удаления";
+            clicked => {
+                Pl.entry-action(root.entry.index, "disable");
+            }
+        }
+    }
+
+    if root.drop-above || root.drop-below: Rectangle {
+        y: root.drop-above ? 0 : root.height - 2px;
+        height: 2px;
+        background: Theme.color.primary;
+    }
+
+    menu := Menu {
+        entries: [
+            { id: "up", text: "Переместить выше", icon: Icons.arrow-upward, has-icon: true, enabled: root.draggable, shortcut: "Alt+↑" },
+            { id: "down", text: "Переместить ниже", icon: Icons.arrow-downward, has-icon: true, enabled: root.draggable, shortcut: "Alt+↓" },
+            { id: "top", text: "В начало", icon: Icons.vertical-align-top, has-icon: true, enabled: root.draggable },
+            { id: "duplicate", text: "Дублировать", icon: Icons.content-copy, has-icon: true, enabled: true, divider: true },
+            { id: "pin", text: root.entry.pinned ? "Открепить" : "Закрепить", icon: Icons.push-pin, has-icon: true, enabled: true },
+            { id: "disable", text: root.entry.disabled ? "Включить" : "Выключить", icon: Icons.visibility-off, has-icon: true, enabled: true },
+            { id: "queue", text: "В очередь эфира", icon: Icons.queue-music, has-icon: true, enabled: !root.entry.missing, divider: true },
+            { id: "props", text: "Свойства", icon: Icons.tune, has-icon: true, enabled: true },
+            { id: "remove", text: "Удалить из плейлиста", icon: Icons.delete, has-icon: true, enabled: true, danger: true, divider: true, shortcut: "Del" },
+        ];
+        activated(id) => {
+            if id == "props" {
+                Pl.sheet = "props";
+            } else {
+                Pl.entry-action(root.entry.index, id);
+            }
+        }
+    }
+}

@@ -1,0 +1,35 @@
+// Playlists screen: list | splitter | editor | side sheet.
+
+import { Theme } from "../../theme/tokens.slint";
+import { Splitter } from "../../components/splitter.slint";
+import { App } from "../../state/app-state.slint";
+import { Pl } from "../../state/playlists-state.slint";
+import { Page } from "../../shell/page.slint";
+import { PlaylistListPanel } from "list-panel.slint";
+import { PlaylistEditor } from "editor.slint";
+import { PlaylistSheet } from "sheet.slint";
+
+export component PlaylistsScreen inherits Page {
+    HorizontalLayout {
+        padding: Theme.sp4;
+        padding-right: 0;
+        spacing: Theme.sp1;
+        PlaylistListPanel {
+            width: Pl.list-width;
+        }
+        Splitter {
+            size <=> Pl.list-width;
+            minimum: 200px;
+            maximum: 480px;
+            committed(s) => {
+                App.panel-resized("playlists.list", s);
+            }
+        }
+        PlaylistEditor {
+            horizontal-stretch: 1;
+            padding-left: Theme.sp2;
+            padding-right: Theme.sp4;
+        }
+        PlaylistSheet { }
+    }
+}

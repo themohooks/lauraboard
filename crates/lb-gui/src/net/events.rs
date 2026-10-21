@@ -2,13 +2,12 @@
 
 use std::time::Duration;
 
-use eframe::egui::Context;
 use serde_json::Value;
 
-use super::Msg;
+use super::{Msg, Wake};
 use super::api::Api;
 
-pub fn start(api: &Api, tx: std::sync::mpsc::Sender<Msg>, ctx: Context) {
+pub fn start(api: &Api, tx: std::sync::mpsc::Sender<Msg>, wake: Wake) {
     let url = api.ws_url("/events");
     std::thread::spawn(move || {
         loop {
@@ -22,7 +21,7 @@ pub fn start(api: &Api, tx: std::sync::mpsc::Sender<Msg>, ctx: Context) {
                                     if tx.send(Msg::Event(v)).is_err() {
                                         return;
                                     }
-                                    ctx.request_repaint();
+                                    wake();
                                 }
                             }
                         }

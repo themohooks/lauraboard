@@ -1,0 +1,180 @@
+// Grid header: schedule, activation, template, weekday assignment, view
+// mode, undo / save.
+
+import { Theme } from "../../theme/tokens.slint";
+import { Icons } from "../../theme/icons.slint";
+import { Label } from "../../components/label.slint";
+import { Select } from "../../components/select.slint";
+import { Switch } from "../../components/switch.slint";
+import { Button, ButtonVariant } from "../../components/button.slint";
+import { IconButton } from "../../components/icon-button.slint";
+import { FilterChip } from "../../components/chips.slint";
+import { SegmentedButton } from "../../components/segmented-button.slint";
+import { StatusChip, StatusTone } from "../../components/indicators.slint";
+import { Menu } from "../../components/menu.slint";
+import { Grid } from "../../state/schedule-state.slint";
+import { App } from "../../state/app-state.slint";
+
+component ModeSwitch inherits VerticalLayout {
+    alignment: center;
+    SegmentedButton {
+        width: 220px;
+        segments: [{ text: "День", icon: Icons.today, has-icon: true }, { text: "Обзор", icon: Icons.view-timeline, has-icon: true }];
+        selected <=> Grid.mode;
+        changed => {
+            Grid.mode-changed();
+        }
+    }
+}
+
+export component GridHeader inherits VerticalLayout {
+    spacing: Theme.sp3;
+
+    HorizontalLayout {
+        spacing: Theme.sp3;
+        Select {
+            width: 240px;
+            label: "Расписание";
+            options: Grid.schedules;
+            current-index: Grid.schedule-index;
+            selected(i, _) => {
+                Grid.select-schedule(i);
+            }
+        }
+        VerticalLayout {
+            alignment: center;
+            Switch {
+                text: "Активно";
+                checked: Grid.schedule-enabled;
+                enabled: Grid.has-schedule;
+                toggled(on) => {
+                    Grid.set-enabled(on);
+                }
+            }
+        }
+        Label {
+            horizontal-stretch: 1;
+            min-width: 0;
+            overflow: elide;
+            text: Grid.schedule-info;
+            color: Theme.color.on-surface-variant;
+            vertical-alignment: center;
+        }
+        if Grid.dirty: VerticalLayout {
+            alignment: center;
+            StatusChip {
+                text: "Не сохранено";
+                tone: StatusTone.warning;
+                icon: Icons.edit;
+            }
+        }
+        VerticalLayout {
+            alignment: center;
+            IconButton {
+                icon: Icons.undo;
+                enabled: Grid.can-undo;
+                tooltip: "Отменить (Ctrl+Z)";
+                clicked => {
+                    Grid.undo();
+                }
+            }
+        }
+        VerticalLayout {
+            alignment: center;
+            IconButton {
+                icon: Icons.redo;
+                enabled: Grid.can-redo;
+                tooltip: "Повторить (Ctrl+Y)";
+                clicked => {
+                    Grid.redo();
+                }
+            }
+        }
+        VerticalLayout {
+            alignment: center;
+            Button {
+                text: "Сбросить";
+                variant: ButtonVariant.text;
+                enabled: Grid.dirty;
+                clicked => {
+                    Grid.revert();
+                }
+            }
+        }
+        VerticalLayout {
+            alignment: center;
+            Button {
+                text: "Сохранить";
+                icon: Icons.save;
+                has-icon: true;
+                enabled: Grid.dirty;
+                tooltip: "Ctrl+S";
+                clicked => {
+                    Grid.save();
+                }
+            }
+        }
+        VerticalLayout {
+            alignment: center;
+            more := IconButton {
+                icon: Icons.more-vert;
+                tooltip: "Ещё";
+                clicked => {
+                    menu.open-at(more.width - menu.menu-width, more.height);
+                }
+                menu := Menu {
+                    menu-width: 280px;
+                    entries: [
+                        { id: "new-template", text: "Новый шаблон дня", icon: Icons.add, has-icon: true, enabled: Grid.has-schedule },
+                        { id: "duplicate-template", text: "Дублировать шаблон", icon: Icons.content-copy, has-icon: true, enabled: Grid.templates.length > 0 },
+                        { id: "replan", text: "Пересчитать прогноз", icon: Icons.refresh, has-icon: true, enabled: true, divider: true },
+                    ];
+                    activated(id) => {
+                        Grid.menu-action(id);
+                    }
+                }
+            }
+        }
+    }
+
+    HorizontalLayout {
+        spacing: Theme.sp2;
+        Select {
+            width: 220px;
+            label: "Шаблон дня";
+            options: Grid.templates;
+            current-index: Grid.template-index;
+            selected(i, _) => {
+                Grid.select-template(i);
+            }
+        }
+        VerticalLayout {
+            alignment: center;
+            Label {
+                text: "Дни:";
+                color: Theme.color.on-surface-variant;
+            }
+        }
+        for d[i] in Grid.days: VerticalLayout {
+            alignment: center;
+            FilterChip {
+                text: d.label;
+                selected: d.on;
+                accessible-description: d.template != "" ? "сейчас: " + d.template : "без шаблона";
+                toggled => {
+                    Grid.toggle-day(i);
+                }
+            }
+        }
+        Rectangle {
+            horizontal-stretch: 1;
+        }
+        if !App.narrow: ModeSwitch { }
+    }
+    if App.narrow: HorizontalLayout {
+        ModeSwitch { }
+        Rectangle {
+            horizontal-stretch: 1;
+        }
+    }
+}

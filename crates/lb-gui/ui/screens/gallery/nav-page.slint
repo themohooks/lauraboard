@@ -1,0 +1,153 @@
+// Gallery, block E: navigation and overlays.
+
+import { Theme } from "../../theme/tokens.slint";
+import { Icons } from "../../theme/icons.slint";
+import { Label } from "../../components/label.slint";
+import { NavRail, NavItem } from "../../components/nav-rail.slint";
+import { TopAppBar } from "../../components/top-app-bar.slint";
+import { Splitter } from "../../components/splitter.slint";
+import { SideSheet } from "../../components/side-sheet.slint";
+import { Menu, MenuEntry } from "../../components/menu.slint";
+import { ConfirmDialog } from "../../components/dialog.slint";
+import { Snackbar } from "../../components/snackbar.slint";
+import { StatusChip, StatusTone } from "../../components/indicators.slint";
+import { IconButton } from "../../components/icon-button.slint";
+import { TextField } from "../../components/text-field.slint";
+import { Switch } from "../../components/switch.slint";
+import { Section } from "section.slint";
+
+export global DemoNav {
+    out property <[NavItem]> items: [
+        { id: "home", title: "Главная", icon: Icons.home, icon-active: Icons.home-fill },
+        { id: "air", title: "Эфир", icon: Icons.live-tv, icon-active: Icons.live-tv-fill },
+        { id: "playlists", title: "Плейлисты", icon: Icons.playlist-play, icon-active: Icons.playlist-play-fill, group-start: true },
+        { id: "library", title: "Медиатека", icon: Icons.video-library, icon-active: Icons.video-library-fill },
+        { id: "schedule", title: "Сетка вещания", icon: Icons.calendar-month, icon-active: Icons.calendar-month-fill },
+        { id: "jingles", title: "Заставки и переходы", icon: Icons.animation, icon-active: Icons.animation-fill, group-start: true },
+        { id: "ads", title: "Реклама и анонсы", icon: Icons.campaign, icon-active: Icons.campaign-fill },
+        { id: "graphics", title: "Экранная графика", icon: Icons.branding-watermark, icon-active: Icons.branding-watermark-fill },
+        { id: "sources", title: "Источники и сцены", icon: Icons.input, icon-active: Icons.input-fill },
+        { id: "stats", title: "Статистика", icon: Icons.monitoring, icon-active: Icons.monitoring-fill, group-start: true },
+        { id: "log", title: "Журнал событий", icon: Icons.receipt-long, icon-active: Icons.receipt-long-fill, badge: "3", has-badge: true },
+        { id: "settings", title: "Настройки", icon: Icons.settings, icon-active: Icons.settings-fill },
+    ];
+}
+
+component Frame inherits Rectangle {
+    width: 1240px;
+    height: 640px;
+    border-radius: Theme.radius-m;
+    border-width: 1px;
+    border-color: Theme.color.outline-variant;
+    background: Theme.color.surface;
+    clip: true;
+}
+
+export component NavPage inherits Section {
+    title: "E · Навигация и оверлеи";
+    Frame {
+        VerticalLayout {
+            TopAppBar {
+                title: "Laurabrod";
+                subtitle: "main — Основной канал";
+                HorizontalLayout {
+                    horizontal-stretch: 1;
+                    spacing: Theme.sp2;
+                    alignment: start;
+                    VerticalLayout { alignment: center; StatusChip { text: "В ЭФИРЕ"; tone: StatusTone.live; strong: true; } }
+                    VerticalLayout { alignment: center; StatusChip { text: "Энкодер 25 fps"; tone: StatusTone.success; } }
+                }
+                VerticalLayout {
+                    alignment: center;
+                    Label { text: "09:28:31"; type-style: Theme.title-large; mono: true; }
+                }
+                VerticalLayout {
+                    alignment: center;
+                    IconButton {
+                        icon: Icons.more-vert;
+                        tooltip: "Ещё";
+                    }
+                }
+            }
+            HorizontalLayout {
+                NavRail {
+                    items: DemoNav.items;
+                    current: "air";
+                }
+                Rectangle {
+                    horizontal-stretch: 1;
+                    HorizontalLayout {
+                        left := Rectangle {
+                            width: split.size;
+                            background: Theme.color.surface-container-low;
+                            Label { text: "Левая панель (ресайз)"; color: Theme.color.on-surface-variant; }
+                        }
+                        split := Splitter {
+                            size: 260px;
+                        }
+                        Rectangle {
+                            horizontal-stretch: 1;
+                            menu-anchor := Rectangle {
+                                x: 40px;
+                                y: 40px;
+                                width: 1px;
+                                height: 1px;
+                                menu := Menu {
+                                    entries: [
+                                        { id: "up", text: "Переместить вверх", icon: Icons.arrow-upward, has-icon: true, enabled: true, shortcut: "Alt+↑" },
+                                        { id: "dup", text: "Дублировать", icon: Icons.content-copy, has-icon: true, enabled: true },
+                                        { id: "pin", text: "Закрепить", icon: Icons.push-pin, has-icon: true, enabled: false },
+                                        { id: "del", text: "Удалить", icon: Icons.delete, has-icon: true, enabled: true, danger: true, divider: true, shortcut: "Del" },
+                                    ];
+                                }
+                            }
+                        }
+                        SideSheet {
+                            title: "Свойства элемента";
+                            open: true;
+                            sheet-width: 320px;
+                            TextField { label: "Название"; text: "Утренние новости"; container-color: Theme.color.surface-container-low; }
+                            TextField { label: "Громкость"; text: "0"; suffix: "дБ"; container-color: Theme.color.surface-container-low; }
+                            Switch { text: "Закреплён по времени"; checked: true; }
+                        }
+                    }
+                    Snackbar {
+                        x: (parent.width - self.width) / 2;
+                        y: parent.height - self.height - 16px;
+                        shown: true;
+                        text: "Плейлист сохранён";
+                        action-text: "Отменить";
+                    }
+                }
+            }
+        }
+    }
+
+    Frame {
+        height: 420px;
+        HorizontalLayout {
+            NavRail {
+                items: DemoNav.items;
+                current: "schedule";
+                expanded: false;
+            }
+            Rectangle {
+                horizontal-stretch: 1;
+                Snackbar {
+                    x: (parent.width - self.width) / 2;
+                    y: parent.height - self.height - 16px;
+                    shown: true;
+                    error: true;
+                    text: "Не удалось сохранить: 409 сетка изменена на сервере";
+                }
+                ConfirmDialog {
+                    open: true;
+                    danger: true;
+                    title: "Остановить вещание?";
+                    text: "Зрители увидят обрыв трансляции. Состояние эфира будет сохранено.";
+                    confirm-text: "Остановить";
+                }
+            }
+        }
+    }
+}

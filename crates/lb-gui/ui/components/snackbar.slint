@@ -1,0 +1,98 @@
+// M3 snackbar: short message at the bottom center, optional action (e.g.
+// "Отменить"), error variant with an icon. Hides itself after `timeout`.
+
+import { Theme } from "../theme/tokens.slint";
+import { Icons } from "../theme/icons.slint";
+import { Icon } from "icon.slint";
+import { Label } from "label.slint";
+import { Interactive } from "interactive.slint";
+import { IconButton } from "icon-button.slint";
+
+export component Snackbar inherits Rectangle {
+    in-out property <bool> shown;
+    in property <string> text;
+    in property <string> action-text;
+    in property <bool> error: false;
+    in property <duration> timeout: 5s;
+    // bumped by the caller for every new message to restart the timer
+    in property <int> serial;
+    callback action();
+
+    changed serial => {
+        hide-timer.running = false;
+        hide-timer.running = self.shown;
+    }
+
+    hide-timer := Timer {
+        interval: root.timeout;
+        running: root.shown;
+        triggered => {
+            self.running = false;
+            root.shown = false;
+        }
+    }
+
+    width: min(560px, max(288px, row.preferred-width));
+    height: max(48px, row.preferred-height);
+    border-radius: Theme.radius-xs;
+    background: root.error ? Theme.color.error-container : Theme.color.inverse-surface;
+    drop-shadow-blur: 8px;
+    drop-shadow-offset-y: 3px;
+    drop-shadow-color: Theme.color.shadow.with-alpha(0.3);
+    opacity: shown ? 1 : 0;
+    visible: self.opacity > 0;
+    animate opacity { duration: Theme.motion-medium; }
+    accessible-role: AccessibleRole.text;
+    accessible-label: text;
+
+    row := HorizontalLayout {
+        padding-left: Theme.sp4;
+        padding-right: Theme.sp1;
+        padding-top: 6px;
+        padding-bottom: 6px;
+        spacing: Theme.sp2;
+        if root.error: VerticalLayout {
+            alignment: center;
+            Icon {
+                source: Icons.error;
+                size: Theme.icon-small;
+                tint: Theme.color.on-error-container;
+            }
+        }
+        Label {
+            horizontal-stretch: 1;
+            text: root.text;
+            type-style: Theme.body-medium;
+            color: root.error ? Theme.color.on-error-container : Theme.color.inverse-on-surface;
+            wrap: word-wrap;
+            overflow: clip;
+        }
+        if root.action-text != "": Interactive {
+            y: (parent.height - self.height) / 2;
+            height: 36px;
+            width: act.preferred-width + 24px;
+            radius: Theme.radius-full;
+            state-tint: Theme.color.inverse-primary;
+            clicked => {
+                root.shown = false;
+                root.action();
+            }
+            act := Label {
+                text: root.action-text;
+                type-style: Theme.label-large;
+                color: root.error ? Theme.color.error : Theme.color.inverse-primary;
+            }
+        }
+        VerticalLayout {
+            alignment: center;
+            IconButton {
+                icon: Icons.close;
+                tooltip: "Закрыть";
+                icon-tint: root.error ? Theme.color.on-error-container : Theme.color.inverse-on-surface;
+                clicked => {
+                    root.shown = false;
+                }
+            }
+        }
+    }
+}

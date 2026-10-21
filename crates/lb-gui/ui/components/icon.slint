@@ -1,0 +1,13 @@
+// Material Symbols icon tinted with a color role.
+
+import { Theme } from "../theme/tokens.slint";
+
+export component Icon inherits Image {
+    in property <color> tint: Theme.color.on-surface-variant;
+    in property <length> size: Theme.icon-size;
+    width: size;
+    height: size;
+    colorize: tint;
+    image-fit: contain;
+    accessible-role: image;
+}

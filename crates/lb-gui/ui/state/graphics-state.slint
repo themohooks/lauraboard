@@ -1,0 +1,170 @@
+// Data contract of the on-screen graphics editor (src/bridge/graphics.rs).
+// Canvas coordinates are frame pixels; the canvas scales them to fit.
+
+export struct CanvasItem {
+    index: int,
+    name: string,
+    // text, ticker, clock, countdown, image, rect, group
+    kind: string,
+    x: float,
+    y: float,
+    w: float,
+    h: float,
+    hidden: bool,
+    locked: bool,
+    on-air: bool,
+}
+
+export struct LayerRow {
+    index: int,
+    name: string,
+    kind: string,
+    kind-name: string,
+    layer: int,
+    hidden: bool,
+    locked: bool,
+    on-air: bool,
+}
+
+export struct GRuleRow {
+    index: int,
+    id: string,
+    name: string,
+    enabled: bool,
+    element-index: int,
+    priority: string,
+    after: string,
+    duration: string,
+    before-end: string,
+    last: string,
+    every: string,
+    at: string,
+    categories: string,
+    error: string,
+}
+
+export struct VarRow {
+    key: string,
+    value: string,
+}
+
+export global Gfx {
+    // 0 canvas, 1 display rules, 2 variables, 3 templates
+    in-out property <int> tab;
+    in property <bool> dirty;
+    in property <bool> can-undo;
+    in property <bool> can-redo;
+
+    // canvas
+    in property <float> frame-w: 1920;
+    in property <float> frame-h: 1080;
+    in property <[CanvasItem]> items;
+    in-out property <int> selected: -1;
+    in property <[float]> vguides;
+    in property <[float]> hguides;
+    in property <image> background;
+    in property <bool> has-background;
+    // 0 exact render, 1 live air, 2 none
+    in-out property <int> bg-mode;
+    in property <string> bg-note;
+    in property <bool> rendering;
+    in-out property <bool> snap: true;
+    in-out property <bool> safe-area: true;
+    in property <[LayerRow]> layers;
+
+    // properties of the selected element (flat for two-way binding)
+    in property <bool> p-has;
+    in property <string> p-id;
+    in-out property <string> p-name;
+    // 0 text, 1 ticker, 2 clock, 3 countdown, 4 image, 5 rect, 6 group
+    in property <int> p-kind;
+    in-out property <int> p-anchor;
+    in-out property <string> p-x;
+    in-out property <string> p-y;
+    in-out property <string> p-w;
+    in-out property <string> p-h;
+    in-out property <float> p-opacity: 1;
+    in-out property <string> p-layer;
+    in-out property <string> p-text;
+    in-out property <string> p-speed;
+    in-out property <string> p-twidth;
+    in-out property <string> p-format;
+    in-out property <int> p-target;
+    in-out property <string> p-prefix;
+    in-out property <string> p-path;
+    in-out property <string> p-color;
+    in-out property <string> p-rw;
+    in-out property <string> p-rh;
+    in-out property <string> p-radius;
+    in-out property <string> p-children;
+    in-out property <string> s-font;
+    in-out property <string> s-size;
+    in-out property <string> s-color;
+    in-out property <string> s-outline;
+    in-out property <string> s-outline-w;
+    in-out property <string> s-shadow;
+    in-out property <string> s-shadow-x;
+    in-out property <string> s-shadow-y;
+    in-out property <string> s-bg;
+    in-out property <string> s-padding;
+    in-out property <string> s-corner;
+    // 0 none, 1 fade, 2 slide left, 3 slide right, 4 slide up, 5 slide down
+    in-out property <int> a-in;
+    in-out property <int> a-out;
+    in-out property <string> a-ms;
+    in-out property <string> p-profiles;
+    in property <string> prop-errors;
+    in property <color> sw-p-color;
+    in property <color> sw-s-color;
+    in property <color> sw-s-outline;
+    in property <color> sw-s-shadow;
+    in property <color> sw-s-bg;
+
+    // animation preview
+    in property <[image]> anim-frames;
+    in-out property <bool> anim-playing;
+    in-out property <int> anim-index;
+
+    // display rules
+    in property <[GRuleRow]> rules;
+    in property <[string]> element-names;
+
+    // variables
+    in property <[VarRow]> vars;
+    in-out property <string> new-key;
+    in-out property <string> new-value;
+
+    // templates
+    in property <[string]> templates;
+    in-out property <string> template-name;
+
+    callback select(int);
+    callback drag-start(int, int);
+    // element, handle (-1 = move), dx, dy in frame px
+    callback drag-move(int, int, float, float);
+    callback drag-end();
+    callback nudge(float, float);
+    callback props-changed();
+    callback add(string);
+    callback duplicate();
+    callback remove();
+    callback layer-step(int, int);
+    callback toggle-hidden(int);
+    callback toggle-locked(int);
+    callback live(string);
+    callback render();
+    callback preview-animation();
+    callback rule-edited(int, string, string);
+    callback rule-add();
+    callback rule-remove(int);
+    callback var-edited(int, string);
+    callback var-add();
+    callback var-remove(int);
+    callback template-save();
+    callback template-apply(int);
+    callback template-delete(int);
+    callback save();
+    callback revert();
+    callback undo();
+    callback redo();
+}

@@ -1,0 +1,117 @@
+// Structured list of rules: on/off switch, priority, name, "when → what",
+// group and problem markers.
+
+import { ListView } from "std-widgets.slint";
+import { Theme } from "../../theme/tokens.slint";
+import { Icons } from "../../theme/icons.slint";
+import { Label } from "../../components/label.slint";
+import { Icon } from "../../components/icon.slint";
+import { Switch } from "../../components/switch.slint";
+import { SearchField } from "../../components/search-field.slint";
+import { Button, ButtonVariant } from "../../components/button.slint";
+import { ListRow } from "../../components/list-row.slint";
+import { Badge, Kinds } from "../../components/indicators.slint";
+import { EmptyState } from "../../components/feedback.slint";
+import { Rules } from "../../state/rules-state.slint";
+
+export component RuleList inherits Rectangle {
+    border-radius: Theme.radius-l;
+    background: Theme.color.surface-container-low;
+    clip: true;
+
+    VerticalLayout {
+        padding: Theme.sp3;
+        spacing: Theme.sp2;
+        HorizontalLayout {
+            spacing: Theme.sp2;
+            SearchField {
+                horizontal-stretch: 1;
+                placeholder: "Найти правило";
+                text <=> Rules.search;
+                edited => {
+                    Rules.filter();
+                }
+            }
+            Button {
+                text: "Новое правило";
+                icon: Icons.add;
+                has-icon: true;
+                clicked => {
+                    Rules.new-rule();
+                }
+            }
+        }
+        if Rules.rules.length == 0: EmptyState {
+            vertical-stretch: 1;
+            icon: Icons.rule;
+            title: "Правил нет";
+            text: Rules.scope == "ads" ? "Создайте правило показа рекламы или анонсов." : "Создайте правило показа заставок.";
+        }
+        if Rules.rules.length > 0: ListView {
+            vertical-stretch: 1;
+            for r in Rules.rules: ListRow {
+                height: Theme.row-height-tall + 8px;
+                radius: Theme.radius-m;
+                selected: Rules.selected == r.index;
+                focusable: false;
+                opacity: r.enabled ? 1 : 0.6;
+                clicked => {
+                    Rules.select(r.index);
+                }
+                VerticalLayout {
+                    alignment: center;
+                    Switch {
+                        checked: r.enabled;
+                        toggled => {
+                            Rules.toggle-enabled(r.index);
+                        }
+                    }
+                }
+                VerticalLayout {
+                    horizontal-stretch: 1;
+                    alignment: center;
+                    spacing: 2px;
+                    HorizontalLayout {
+                        spacing: Theme.sp2;
+                        Icon {
+                            source: Kinds.icon-of(r.kind);
+                            size: 16px;
+                            tint: Kinds.color-of(r.kind);
+                        }
+                        Label {
+                            horizontal-stretch: 1;
+                            text: r.name;
+                            type-style: Theme.label-large;
+                        }
+                        if r.problem != "": Icon {
+                            source: Icons.warning;
+                            size: 16px;
+                            tint: Theme.color.error;
+                            accessible-description: r.problem;
+                        }
+                    }
+                    Label {
+                        text: r.summary;
+                        type-style: Theme.body-small;
+                        color: Theme.color.on-surface-variant;
+                    }
+                }
+                VerticalLayout {
+                    alignment: center;
+                    spacing: 4px;
+                    Badge {
+                        text: "P" + r.priority;
+                        fill: Theme.color.secondary-container;
+                        ink: Theme.color.on-secondary-container;
+                    }
+                    if r.group != "": Label {
+                        text: r.group;
+                        type-style: Theme.label-small;
+                        color: Theme.color.on-surface-variant;
+                        horizontal-alignment: right;
+                    }
+                }
+            }
+        }
+    }
+}

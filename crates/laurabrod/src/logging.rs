@@ -13,7 +13,7 @@ pub fn init(root: &Path, file_logging: bool) -> Option<WorkerGuard> {
     let app = lb_core::project::files::read_toml_or_default::<lb_core::config::AppConfig>(&root.join(lb_core::project::APP_FILE))
         .unwrap_or_default();
     let filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| {
-        EnvFilter::new(format!("{},ffmpeg=warn,wgpu_hal=off,wgpu_core=warn,naga=warn,egui_wgpu=warn,eframe=warn", app.log.level))
+        EnvFilter::new(format!("{},ffmpeg=warn,wgpu_hal=off,wgpu_core=warn,naga=warn", app.log.level))
     });
     let console = fmt::layer().with_writer(std::io::stderr).with_target(false).compact();
     if !file_logging {

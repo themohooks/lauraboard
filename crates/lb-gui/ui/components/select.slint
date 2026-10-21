@@ -1,0 +1,154 @@
+// M3 outlined dropdown (exposed menu): shows the current option, opens a
+// scrollable menu below; keyboard: Enter/Space/Down open, Up/Down change.
+
+import { ScrollView } from "std-widgets.slint";
+import { Theme } from "../theme/tokens.slint";
+import { Icons } from "../theme/icons.slint";
+import { Icon } from "icon.slint";
+import { Label } from "label.slint";
+import { Interactive } from "interactive.slint";
+
+export component Select inherits VerticalLayout {
+    in property <string> label;
+    in property <[string]> options;
+    in-out property <int> current-index: -1;
+    in property <string> placeholder: "Не выбрано";
+    in property <bool> enabled: true;
+    in property <string> supporting;
+    in property <color> container-color: Theme.color.surface;
+    callback selected(int, string);
+
+    property <string> current: current-index >= 0 && current-index < options.length ? options[current-index] : "";
+    property <length> item-height: Theme.row-height;
+
+    function choose(i: int) {
+        if i >= 0 && i < root.options.length && i != root.current-index {
+            root.current-index = i;
+            root.selected(i, root.options[i]);
+        }
+    }
+
+    spacing: Theme.sp1;
+    min-width: 120px;
+
+    field := Rectangle {
+        // a label needs room on the outline; without it match buttons / search
+        height: Theme.control-height + (Theme.compact || root.label == "" ? 0 : 8px);
+        border-radius: Theme.radius-xs;
+        border-width: focus.has-focus ? 2px : 1px;
+        border-color: !root.enabled ? Theme.color.on-surface.with-alpha(Theme.disabled-container)
+            : focus.has-focus ? Theme.color.primary
+            : touch.has-hover ? Theme.color.on-surface
+            : Theme.color.outline;
+        accessible-role: combobox;
+        accessible-label: root.label;
+        accessible-value: root.current;
+
+        touch := TouchArea {
+            enabled: root.enabled;
+            mouse-cursor: MouseCursor.pointer;
+            clicked => {
+                focus.focus();
+                popup.show();
+            }
+        }
+
+        focus := FocusScope {
+            enabled: root.enabled;
+            key-pressed(e) => {
+                if e.text == " " || e.text == Key.Return {
+                    popup.show();
+                    return accept;
+                }
+                if e.text == Key.DownArrow {
+                    root.choose(root.current-index + 1);
+                    return accept;
+                }
+                if e.text == Key.UpArrow {
+                    root.choose(root.current-index - 1);
+                    return accept;
+                }
+                reject
+            }
+        }
+
+        HorizontalLayout {
+            padding-left: Theme.sp4;
+            padding-right: Theme.sp2;
+            spacing: Theme.sp2;
+            Label {
+                horizontal-stretch: 1;
+                text: root.current != "" ? root.current : root.placeholder;
+                type-style: Theme.body-large;
+                color: !root.enabled ? Theme.color.on-surface.with-alpha(Theme.disabled-content)
+                    : root.current != "" ? Theme.color.on-surface : Theme.color.on-surface-variant;
+            }
+            VerticalLayout {
+                alignment: center;
+                Icon {
+                    source: Icons.expand-more;
+                    tint: root.enabled ? Theme.color.on-surface-variant : Theme.color.on-surface.with-alpha(Theme.disabled-content);
+                }
+            }
+        }
+
+        if root.label != "": Rectangle {
+            x: Theme.sp3 - 4px;
+            y: -label-text.preferred-height / 2;
+            width: label-text.preferred-width + 8px;
+            height: label-text.preferred-height;
+            background: root.container-color;
+            label-text := Label {
+                text: root.label;
+                type-style: Theme.body-small;
+                color: focus.has-focus ? Theme.color.primary : Theme.color.on-surface-variant;
+            }
+        }
+
+        popup := PopupWindow {
+            x: 0;
+            y: field.height + 2px;
+            width: field.width;
+            height: min(root.options.length * root.item-height, 320px) + 16px;
+            Rectangle {
+                background: Theme.color.surface-container;
+                border-radius: Theme.radius-xs;
+                drop-shadow-blur: 8px;
+                drop-shadow-offset-y: 3px;
+                drop-shadow-color: Theme.color.shadow.with-alpha(Theme.dark ? 0.5 : 0.2);
+                ScrollView {
+                    y: 8px;
+                    height: parent.height - 16px;
+                    VerticalLayout {
+                        for opt[i] in root.options: Interactive {
+                            height: root.item-height;
+                            radius: 0;
+                            focusable: false;
+                            background: i == root.current-index ? Theme.color.secondary-container : transparent;
+                            accessible-role: list-item;
+                            accessible-label: opt;
+                            clicked => {
+                                root.choose(i);
+                                popup.close();
+                            }
+                            Label {
+                                x: Theme.sp3;
+                                width: parent.width - 2 * Theme.sp3;
+                                text: opt;
+                                color: i == root.current-index ? Theme.color.on-secondary-container : Theme.color.on-surface;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+    }
+
+    if root.supporting != "": Label {
+        x: Theme.sp4;
+        text: root.supporting;
+        type-style: Theme.body-small;
+        color: Theme.color.on-surface-variant;
+    }
+}

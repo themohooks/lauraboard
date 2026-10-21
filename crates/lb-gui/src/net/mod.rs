@@ -10,7 +10,8 @@ pub mod events;
 pub mod poller;
 pub mod worker;
 
-use eframe::egui::ColorImage;
+use std::sync::Arc;
+
 use serde_json::Value;
 
 use lb_core::graphics::GraphicsConfig;
@@ -22,22 +23,34 @@ use lb_core::schedule::ScheduleSet;
 
 use crate::model::StatusView;
 
+/// Wakes the UI thread after a message was queued (toolkit-agnostic).
+pub type Wake = Arc<dyn Fn() + Send + Sync>;
+
+/// A decoded preview frame (RGBA8, unpremultiplied).
+pub struct Frame {
+    pub width: u32,
+    pub height: u32,
+    pub rgba: Vec<u8>,
+}
+
 /// Results delivered to the UI thread.
 pub enum Msg {
     Channels(Vec<String>),
     Status(Box<StatusView>),
     Rundown(Rundown),
-    Plan(Rundown),
     Library(Vec<MediaItem>),
     Playlists(Vec<Playlist>),
     Schedules(ScheduleSet),
     Rules(RuleSet),
     Graphics(GraphicsConfig),
-    Stats(Value),
-    Preview(ColorImage),
+    Preview(Frame),
+    /// Media thumbnail (`None`: not available for this item).
+    Thumb(String, Option<Frame>),
     Event(Value),
     /// A command / save succeeded (message for the user).
     Done(String),
     Error(String),
     Connection(bool),
+    /// Run on the UI thread with the bridge context (results of multi-step jobs).
+    Apply(Box<dyn FnOnce(&mut crate::bridge::Ctx) + Send>),
 }

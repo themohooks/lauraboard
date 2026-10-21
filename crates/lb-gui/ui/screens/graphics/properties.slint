@@ -1,0 +1,271 @@
+// Properties of the selected element: placement (anchor grid, offsets,
+// size), opacity and layer, content by kind, text style, animation.
+
+import { ScrollView } from "std-widgets.slint";
+import { Theme } from "../../theme/tokens.slint";
+import { Icons } from "../../theme/icons.slint";
+import { Label } from "../../components/label.slint";
+import { TextField } from "../../components/text-field.slint";
+import { Select } from "../../components/select.slint";
+import { Slider } from "../../components/slider.slint";
+import { Interactive } from "../../components/interactive.slint";
+import { EmptyState } from "../../components/feedback.slint";
+import { Gfx } from "../../state/graphics-state.slint";
+import { App } from "../../state/app-state.slint";
+import { FormSection } from "../rules/form-parts.slint";
+
+component AnchorGrid inherits Rectangle {
+    width: 3 * 28px + 2 * 4px;
+    height: self.width;
+    for i in 9: Interactive {
+        x: mod(i, 3) * 32px;
+        y: floor(i / 3) * 32px;
+        width: 28px;
+        height: 28px;
+        radius: Theme.radius-xs;
+        background: Gfx.p-anchor == i ? Theme.color.primary : Theme.color.surface-container-highest;
+        accessible-role: radio-button;
+        accessible-checked: Gfx.p-anchor == i;
+        accessible-label: "Привязка " + (i + 1);
+        clicked => {
+            Gfx.p-anchor = i;
+            Gfx.props-changed();
+        }
+        Rectangle {
+            width: 8px;
+            height: 8px;
+            border-radius: 4px;
+            background: Gfx.p-anchor == i ? Theme.color.on-primary : Theme.color.on-surface-variant;
+        }
+    }
+}
+
+component Field inherits TextField {
+    container-color: Theme.color.surface-container-low;
+    edited => {
+        Gfx.props-changed();
+    }
+}
+
+component ColorField inherits HorizontalLayout {
+    in-out property <string> value;
+    in property <string> label;
+    // parsed colour from Rust (strings cannot be converted in .slint)
+    in property <color> swatch;
+    spacing: Theme.sp2;
+    VerticalLayout {
+        alignment: start;
+        padding-top: 8px;
+        Rectangle {
+            width: 32px;
+            height: 32px;
+            border-radius: Theme.radius-xs;
+            border-width: 1px;
+            border-color: Theme.color.outline;
+            background: root.swatch;
+        }
+    }
+    Field {
+        horizontal-stretch: 1;
+        label: root.label;
+        text <=> root.value;
+        placeholder: "#RRGGBB";
+        mono: true;
+    }
+}
+
+export component PropertiesPanel inherits Rectangle {
+    border-radius: Theme.radius-l;
+    background: Theme.color.surface-container-low;
+    clip: true;
+
+    if !Gfx.p-has: EmptyState {
+        icon: Icons.tune;
+        title: "Выберите элемент";
+        text: "Щёлкните элемент на холсте или в списке слоёв.";
+    }
+
+    if Gfx.p-has: sv := ScrollView {
+        VerticalLayout {
+            width: sv.visible-width;
+            padding: App.narrow ? Theme.sp2 : Theme.sp3;
+            padding-top: Theme.sp4;
+            spacing: Theme.sp3;
+            alignment: start;
+
+            Field {
+                label: "Название";
+                text <=> Gfx.p-name;
+                supporting: "id: " + Gfx.p-id;
+            }
+            if Gfx.prop-errors != "": Label {
+                text: Gfx.prop-errors;
+                type-style: Theme.body-small;
+                color: Theme.color.error;
+                wrap: word-wrap;
+            }
+
+            FormSection {
+                title: "Положение";
+                icon: Icons.my-location;
+                HorizontalLayout {
+                    spacing: Theme.sp3;
+                    AnchorGrid { }
+                    VerticalLayout {
+                        spacing: Theme.sp2;
+                        HorizontalLayout {
+                            spacing: Theme.sp2;
+                            Field { min-width: 56px; label: "X"; text <=> Gfx.p-x; mono: true; }
+                            Field { min-width: 56px; label: "Y"; text <=> Gfx.p-y; mono: true; }
+                        }
+                        HorizontalLayout {
+                            spacing: Theme.sp2;
+                            Field { min-width: 56px; label: "Ширина"; text <=> Gfx.p-w; placeholder: "авто"; mono: true; }
+                            Field { min-width: 56px; label: "Высота"; text <=> Gfx.p-h; placeholder: "авто"; mono: true; }
+                        }
+                    }
+                }
+                HorizontalLayout {
+                    spacing: Theme.sp3;
+                    VerticalLayout {
+                        horizontal-stretch: 1;
+                        Label {
+                            text: "Прозрачность: " + round(Gfx.p-opacity * 100) + "%";
+                            type-style: Theme.label-medium;
+                            color: Theme.color.on-surface-variant;
+                        }
+                        Slider {
+                            minimum: 0;
+                            maximum: 1;
+                            step: 0.05;
+                            value <=> Gfx.p-opacity;
+                            value-text: round(Gfx.p-opacity * 100) + "%";
+                            changed => {
+                                Gfx.props-changed();
+                            }
+                        }
+                    }
+                    Field { width: 90px; label: "Слой"; text <=> Gfx.p-layer; mono: true; }
+                }
+            }
+
+            FormSection {
+                title: "Содержимое";
+                icon: Icons.edit;
+                if Gfx.p-kind <= 1: Field {
+                    label: Gfx.p-kind == 1 ? "Текст бегущей строки" : "Текст";
+                    text <=> Gfx.p-text;
+                    supporting: "переменные: {title} {next_title} {next_start} {block} {channel} {ticker}";
+                }
+                if Gfx.p-kind == 1: HorizontalLayout {
+                    spacing: Theme.sp2;
+                    Field { label: "Скорость, px/с"; text <=> Gfx.p-speed; mono: true; }
+                    Field { label: "Ширина полосы"; text <=> Gfx.p-twidth; placeholder: "весь кадр"; mono: true; }
+                }
+                if Gfx.p-kind == 2: Field {
+                    label: "Формат времени";
+                    text <=> Gfx.p-format;
+                    supporting: "%H:%M, %H:%M:%S, %d.%m";
+                    mono: true;
+                }
+                if Gfx.p-kind == 3: HorizontalLayout {
+                    spacing: Theme.sp2;
+                    Select {
+                        horizontal-stretch: 1;
+                        label: "Отсчёт";
+                        options: ["До конца ролика", "До следующей передачи"];
+                        current-index <=> Gfx.p-target;
+                        container-color: Theme.color.surface-container-low;
+                        selected => {
+                            Gfx.props-changed();
+                        }
+                    }
+                    Field { horizontal-stretch: 1; label: "Префикс"; text <=> Gfx.p-prefix; }
+                }
+                if Gfx.p-kind == 4: Field {
+                    label: "Файл изображения (на сервере)";
+                    text <=> Gfx.p-path;
+                    supporting: "PNG / JPEG / WebP, путь от корня проекта или абсолютный";
+                }
+                if Gfx.p-kind == 5: ColorField {
+                    label: "Цвет плашки";
+                    value <=> Gfx.p-color;
+                    swatch: Gfx.sw-p-color;
+                }
+                if Gfx.p-kind == 5: HorizontalLayout {
+                    spacing: Theme.sp2;
+                    Field { min-width: 56px; label: "Ширина"; text <=> Gfx.p-rw; mono: true; }
+                    Field { min-width: 56px; label: "Высота"; text <=> Gfx.p-rh; mono: true; }
+                    Field { min-width: 56px; label: "Скругление"; text <=> Gfx.p-radius; mono: true; }
+                }
+                if Gfx.p-kind == 6: Field {
+                    label: "Элементы группы (id через запятую)";
+                    text <=> Gfx.p-children;
+                }
+            }
+
+            if Gfx.p-kind <= 3: FormSection {
+                title: "Текст";
+                icon: Icons.format-size;
+                HorizontalLayout {
+                    spacing: Theme.sp2;
+                    Field { horizontal-stretch: 2; label: "Шрифт"; text <=> Gfx.s-font; placeholder: "по умолчанию"; }
+                    Field { horizontal-stretch: 1; label: "Размер"; text <=> Gfx.s-size; mono: true; }
+                }
+                ColorField { label: "Цвет текста"; value <=> Gfx.s-color; swatch: Gfx.sw-s-color; }
+                HorizontalLayout {
+                    spacing: Theme.sp2;
+                    ColorField { horizontal-stretch: 2; label: "Обводка"; value <=> Gfx.s-outline; swatch: Gfx.sw-s-outline; }
+                    Field { min-width: 56px; horizontal-stretch: 1; label: "Толщина"; text <=> Gfx.s-outline-w; mono: true; }
+                }
+                HorizontalLayout {
+                    spacing: Theme.sp2;
+                    ColorField { horizontal-stretch: 2; label: "Тень"; value <=> Gfx.s-shadow; swatch: Gfx.sw-s-shadow; }
+                    Field { min-width: 56px; horizontal-stretch: 1; label: "dx"; text <=> Gfx.s-shadow-x; mono: true; }
+                    Field { min-width: 56px; horizontal-stretch: 1; label: "dy"; text <=> Gfx.s-shadow-y; mono: true; }
+                }
+                ColorField { label: "Подложка"; value <=> Gfx.s-bg; swatch: Gfx.sw-s-bg; }
+                HorizontalLayout {
+                    spacing: Theme.sp2;
+                    Field { label: "Отступ"; text <=> Gfx.s-padding; mono: true; }
+                    Field { label: "Скругление"; text <=> Gfx.s-corner; mono: true; }
+                }
+            }
+
+            FormSection {
+                title: "Анимация";
+                icon: Icons.animation;
+                HorizontalLayout {
+                    spacing: Theme.sp2;
+                    Select {
+                        horizontal-stretch: 1;
+                        label: "Появление";
+                        options: ["Нет", "Растворение", "Слева", "Справа", "Снизу", "Сверху"];
+                        current-index <=> Gfx.a-in;
+                        container-color: Theme.color.surface-container-low;
+                        selected => {
+                            Gfx.props-changed();
+                        }
+                    }
+                    Select {
+                        horizontal-stretch: 1;
+                        label: "Исчезновение";
+                        options: ["Нет", "Растворение", "Влево", "Вправо", "Вверх", "Вниз"];
+                        current-index <=> Gfx.a-out;
+                        container-color: Theme.color.surface-container-low;
+                        selected => {
+                            Gfx.props-changed();
+                        }
+                    }
+                }
+                Field { label: "Длительность, мс"; text <=> Gfx.a-ms; mono: true; }
+            }
+
+            Field {
+                label: "Профили";
+                text <=> Gfx.p-profiles;
+                supporting: "пусто — во всех профилях выхода";
+            }
+        }
+    }
+}

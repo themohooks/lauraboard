@@ -1,0 +1,65 @@
+// One rundown row: start time, kind, title, block, duration; the item on
+// air gets the live accent bar, the next one a preview marker.
+
+import { Theme } from "../../theme/tokens.slint";
+import { Icons } from "../../theme/icons.slint";
+import { Label } from "../../components/label.slint";
+import { Icon } from "../../components/icon.slint";
+import { ListRow } from "../../components/list-row.slint";
+import { Kinds } from "../../components/indicators.slint";
+import { QueueRow } from "../../state/air-state.slint";
+
+export component QueueRowView inherits ListRow {
+    in property <QueueRow> item;
+    in property <bool> show-block: true;
+
+    current: item.current;
+    accent: Theme.status.live;
+    divider: item.block-start;
+    accessible-label: item.start + " " + item.title;
+
+    Label {
+        width: 64px;
+        text: root.item.start;
+        mono: true;
+        type-style: Theme.body-small;
+        color: root.item.block-start ? Theme.color.on-surface : Theme.color.on-surface-variant;
+        font-weight: root.item.block-start ? 600 : 400;
+    }
+    VerticalLayout {
+        alignment: center;
+        Icon {
+            source: root.item.current ? Icons.sensors : root.item.next ? Icons.skip-next : Kinds.icon-of(root.item.kind);
+            size: 16px;
+            tint: root.item.current ? Theme.status.live : root.item.next ? Theme.status.preview : Kinds.color-of(root.item.kind);
+        }
+    }
+    VerticalLayout {
+        horizontal-stretch: 1;
+        alignment: center;
+        Label {
+            text: root.item.kind == "gap" ? "Пустота — нет материала" : root.item.title;
+            type-style: root.item.main ? Theme.label-large : Theme.body-medium;
+            color: root.item.kind == "gap" ? Theme.color.error : Theme.color.on-surface;
+        }
+        if root.item.note != "" && Theme.compact == false: Label {
+            text: root.item.note;
+            type-style: Theme.label-small;
+            color: Theme.color.on-surface-variant;
+        }
+    }
+    if root.show-block: Label {
+        width: 110px;
+        text: root.item.block;
+        type-style: Theme.body-small;
+        color: Theme.color.on-surface-variant;
+    }
+    Label {
+        width: 64px;
+        text: root.item.duration;
+        mono: true;
+        type-style: Theme.body-small;
+        horizontal-alignment: right;
+        color: Theme.color.on-surface-variant;
+    }
+}

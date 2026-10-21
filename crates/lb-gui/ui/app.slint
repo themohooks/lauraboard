@@ -1,0 +1,206 @@
+// Main window of the Material 3 operator GUI: app bar, navigation,
+// section host, global overlays (snackbar, confirmation) and shortcuts.
+
+import "../assets/fonts/Roboto.ttf";
+import "../assets/fonts/RobotoMono.ttf";
+import { Theme } from "theme/tokens.slint";
+import { NavRail } from "components/nav-rail.slint";
+import { Snackbar } from "components/snackbar.slint";
+import { ConfirmDialog } from "components/dialog.slint";
+import { App } from "state/app-state.slint";
+import { AppBar } from "shell/app-bar.slint";
+import { Gallery } from "screens/gallery/gallery.slint";
+import { AirScreen } from "screens/air/air.slint";
+import { HomeScreen } from "screens/home/home.slint";
+import { PlaylistsScreen } from "screens/playlists/playlists.slint";
+import { CreatePlaylistDialog } from "screens/playlists/create-dialog.slint";
+import { LibraryScreen } from "screens/library/library.slint";
+import { ImportDialog } from "screens/library/import-dialog.slint";
+import { ScheduleScreen } from "screens/schedule/schedule.slint";
+import { RulesScreen } from "screens/rules/rules.slint";
+import { RuleWizard } from "screens/rules/wizard.slint";
+import { GraphicsScreen } from "screens/graphics/graphics.slint";
+import { LogScreen } from "screens/log/log.slint";
+import { StatsScreen } from "screens/stats/stats.slint";
+import { SourcesScreen } from "screens/sources/sources.slint";
+import { SettingsScreen } from "screens/settings/settings.slint";
+
+export { Theme, ThemeMode } from "theme/tokens.slint";
+export { App, StatusInfo } from "state/app-state.slint";
+export { Air, NowInfo, NextInfo, QueueRow, MediaPick, GfxRow, LogRow } from "state/air-state.slint";
+export { Pl, PlaylistItem, EntryRow, EntryProps } from "state/playlists-state.slint";
+export { Lib, MediaRow, TileLine, MediaEdit } from "state/library-state.slint";
+export { Grid, BlockRow, BlockDetails, DayChip } from "state/schedule-state.slint";
+export { TimelineSegment, DayRow } from "components/timeline.slint";
+export { Rules, RuleRow } from "state/rules-state.slint";
+export { Gfx, CanvasItem, LayerRow, GRuleRow, VarRow } from "state/graphics-state.slint";
+export { Log } from "state/log-state.slint";
+export { Stats, StatRow, Kpi } from "state/stats-state.slint";
+export { Src, SceneRow, OutRow, StreamRow, Fact } from "state/sources-state.slint";
+export { Settings } from "state/settings-state.slint";
+
+export component AppWindow inherits Window {
+    // kept for the snapshot tool; mirrors App.section
+    in-out property <string> section <=> App.section;
+    in-out property <string> gallery-page;
+
+    // below this width the drawer collapses into a rail; updated on resize
+    // (a plain binding would loop through the window's layout constraints)
+    property <bool> narrow: false;
+    changed width => {
+        self.narrow = self.width < 1200px;
+        App.narrow = self.narrow;
+    }
+
+    title: "Laurabrod — управление эфиром";
+    preferred-width: 1400px;
+    preferred-height: 860px;
+    min-width: 960px;
+    min-height: 600px;
+    background: Theme.color.surface;
+    default-font-family: Theme.font;
+    default-font-size: Theme.body-medium.size;
+
+    function go(id: string) {
+        App.navigate(id);
+    }
+
+    keys := FocusScope {
+        key-pressed(e) => {
+            if e.modifiers.control && !e.modifiers.shift && !e.modifiers.alt {
+                if e.text >= "1" && e.text <= "9" {
+                    let i = e.text.to-float() - 1;
+                    if i < App.nav-items.length {
+                        root.go(App.nav-items[i].id);
+                    }
+                    return accept;
+                }
+                if e.text == "0" {
+                    root.go(App.nav-items[9].id);
+                    return accept;
+                }
+                if e.text == "s" || e.text == "ы" {
+                    App.shortcut("save");
+                    return accept;
+                }
+                if e.text == "z" || e.text == "я" {
+                    App.shortcut("undo");
+                    return accept;
+                }
+                if e.text == "y" || e.text == "н" {
+                    App.shortcut("redo");
+                    return accept;
+                }
+                if e.text == "f" || e.text == "а" {
+                    App.shortcut("search");
+                    return accept;
+                }
+            }
+            if e.modifiers.control && e.modifiers.shift && (e.text == "Z" || e.text == "Я" || e.text == "z") {
+                App.shortcut("redo");
+                return accept;
+            }
+            // text inputs consume Delete themselves, so this only fires for selections
+            if e.text == Key.Delete && !e.modifiers.control && !e.modifiers.alt {
+                App.shortcut("delete");
+                return accept;
+            }
+            if e.text == Key.F5 {
+                App.refresh();
+                return accept;
+            }
+            if e.text == Key.F11 {
+                App.toggle-fullscreen();
+                return accept;
+            }
+            if e.text == Key.Escape && App.monitor-fullscreen {
+                App.toggle-fullscreen();
+                return accept;
+            }
+            reject
+        }
+
+        VerticalLayout {
+            AppBar {
+                narrow: root.narrow;
+            }
+            HorizontalLayout {
+                NavRail {
+                    items: App.nav-items;
+                    current: App.section;
+                    expanded: App.nav-expanded && !root.narrow;
+                    navigate(id) => {
+                        root.go(id);
+                    }
+                    expanded-changed(v) => {
+                        App.nav-expanded = v;
+                        App.nav-expanded-changed(v);
+                    }
+                }
+                Rectangle {
+                    horizontal-stretch: 1;
+                    background: Theme.color.surface;
+                    if App.section == "gallery": Gallery {
+                        page: root.gallery-page;
+                    }
+                    if App.section == "home": HomeScreen { }
+                    if App.section == "air": AirScreen { }
+                    if App.section == "playlists": PlaylistsScreen { }
+                    if App.section == "library": LibraryScreen { }
+                    if App.section == "schedule": ScheduleScreen { }
+                    if App.section == "jingles": RulesScreen { scope: "jingles"; }
+                    if App.section == "ads": RulesScreen { scope: "ads"; }
+                    if App.section == "graphics": GraphicsScreen { }
+                    if App.section == "sources": SourcesScreen { }
+                    if App.section == "stats": StatsScreen { }
+                    if App.section == "log": LogScreen { }
+                    if App.section == "settings": SettingsScreen { }
+                }
+            }
+        }
+    }
+
+    Snackbar {
+        x: (parent.width - self.width) / 2;
+        y: parent.height - self.height - 24px;
+        shown <=> App.toast-shown;
+        text: App.toast-text;
+        error: App.toast-error;
+        action-text: App.toast-action;
+        serial: App.toast-serial;
+        timeout: App.toast-error ? 8s : 5s;
+        action => {
+            App.toast-action-clicked();
+        }
+    }
+
+    CreatePlaylistDialog { }
+
+    ImportDialog { }
+
+    RuleWizard { }
+
+    ConfirmDialog {
+        open: App.confirm-open;
+        title: App.confirm-title;
+        text: App.confirm-text;
+        confirm-text: App.confirm-action;
+        danger: App.confirm-danger;
+        confirmed => {
+            App.confirm-open = false;
+            App.confirm-result(true);
+            keys.focus();
+        }
+        cancelled => {
+            App.confirm-open = false;
+            App.confirm-result(false);
+            keys.focus();
+        }
+    }
+
+    init => {
+        self.narrow = self.width < 1200px;
+        App.narrow = self.narrow;
+        keys.focus();
+    }
+}

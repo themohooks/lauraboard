@@ -1,0 +1,107 @@
+// Side sheet with the less frequent block properties.
+
+import { Theme } from "../../theme/tokens.slint";
+import { Label } from "../../components/label.slint";
+import { SideSheet } from "../../components/side-sheet.slint";
+import { TextField } from "../../components/text-field.slint";
+import { Switch } from "../../components/switch.slint";
+import { Select } from "../../components/select.slint";
+import { Grid } from "../../state/schedule-state.slint";
+
+export component BlockSheet inherits SideSheet {
+    open: Grid.details-open && Grid.details.has;
+    title: "Блок " + Grid.details.id;
+    sheet-width: 360px;
+    close => {
+        Grid.details-open = false;
+    }
+
+    Label {
+        text: "Ограничения";
+        type-style: Theme.title-small;
+    }
+    Select {
+        label: "При опоздании";
+        options: ["Не начинать лишнее", "Доиграть, сдвинуть следующий", "Обрезать в фикс. время"];
+        current-index: Grid.details.late;
+        container-color: Theme.color.surface-container-low;
+        selected(i, _) => {
+            Grid.block-edited(Grid.details.index, "late", i);
+        }
+    }
+    Switch {
+        text: "Разрешить обрезку роликов";
+        checked: Grid.details.truncate;
+        toggled(on) => {
+            Grid.block-edited(Grid.details.index, "truncate", on ? "1" : "0");
+        }
+    }
+    TextField {
+        label: "Максимальная длительность";
+        text: Grid.details.max-duration;
+        placeholder: "например 01:30:00 или 90m";
+        supporting: "Для блоков «следом»; пусто — без ограничения";
+        container-color: Theme.color.surface-container-low;
+        edited(t) => {
+            Grid.block-edited(Grid.details.index, "max-duration", t);
+        }
+    }
+    TextField {
+        label: "Максимум роликов";
+        text: Grid.details.max-items;
+        input-type: number;
+        container-color: Theme.color.surface-container-low;
+        edited(t) => {
+            Grid.block-edited(Grid.details.index, "max-items", t);
+        }
+    }
+    TextField {
+        label: "Категория для шаблонов графики";
+        text: Grid.details.category;
+        container-color: Theme.color.surface-container-low;
+        edited(t) => {
+            Grid.block-edited(Grid.details.index, "category", t);
+        }
+    }
+    Label {
+        text: "Оформление";
+        type-style: Theme.title-small;
+    }
+    TextField {
+        label: "Заставка в начале (id ролика)";
+        text: Grid.details.intro;
+        container-color: Theme.color.surface-container-low;
+        edited(t) => {
+            Grid.block-edited(Grid.details.index, "intro", t);
+        }
+    }
+    TextField {
+        label: "Заставка в конце (id ролика)";
+        text: Grid.details.outro;
+        container-color: Theme.color.surface-container-low;
+        edited(t) => {
+            Grid.block-edited(Grid.details.index, "outro", t);
+        }
+    }
+    Switch {
+        text: "Правила вставок (заставки, реклама)";
+        checked: Grid.details.rules;
+        toggled(on) => {
+            Grid.block-edited(Grid.details.index, "rules", on ? "1" : "0");
+        }
+    }
+    Switch {
+        text: "Заполнять пустоту до следующего блока";
+        checked: Grid.details.fill-gap;
+        toggled(on) => {
+            Grid.block-edited(Grid.details.index, "fill-gap", on ? "1" : "0");
+        }
+    }
+    Switch {
+        text: "Плейлист каждый раз с начала";
+        checked: Grid.details.restart;
+        toggled(on) => {
+            Grid.block-edited(Grid.details.index, "restart", on ? "1" : "0");
+        }
+    }
+}

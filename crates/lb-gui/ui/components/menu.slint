@@ -1,0 +1,103 @@
+// M3 menu used for overflow (⋮) and context menus. Entries come from a
+// model; `open-at(x, y)` shows it at a point relative to the Menu element
+// (place the Menu in the element that receives the click).
+
+import { Theme } from "../theme/tokens.slint";
+import { Icon } from "icon.slint";
+import { Label } from "label.slint";
+import { Interactive } from "interactive.slint";
+
+export struct MenuEntry {
+    id: string,
+    text: string,
+    icon: image,
+    has-icon: bool,
+    shortcut: string,
+    danger: bool,
+    enabled: bool,
+    // thin divider above this entry
+    divider: bool,
+}
+
+export component Menu {
+    in property <[MenuEntry]> entries;
+    in property <length> menu-width: 240px;
+    callback activated(string);
+
+    property <length> px;
+    property <length> py;
+    property <length> item-height: Theme.compact ? 36px : 44px;
+
+    public function open-at(x: length, y: length) {
+        root.px = x;
+        root.py = y;
+        popup.show();
+    }
+
+    width: 0;
+    height: 0;
+
+    popup := PopupWindow {
+        x: root.px;
+        y: root.py;
+        width: root.menu-width;
+        Rectangle {
+            background: Theme.color.surface-container;
+            border-radius: Theme.radius-xs;
+            drop-shadow-blur: 8px;
+            drop-shadow-offset-y: 3px;
+            drop-shadow-color: Theme.color.shadow.with-alpha(Theme.dark ? 0.5 : 0.2);
+            VerticalLayout {
+                padding-top: Theme.sp2;
+                padding-bottom: Theme.sp2;
+                for e in root.entries: VerticalLayout {
+                    if e.divider: Rectangle {
+                        height: 9px;
+                        Rectangle {
+                            height: 1px;
+                            background: Theme.color.outline-variant;
+                        }
+                    }
+                    Interactive {
+                        height: root.item-height;
+                        radius: 0;
+                        focusable: false;
+                        enabled: e.enabled;
+                        accessible-role: button;
+                        accessible-label: e.text;
+                        clicked => {
+                            popup.close();
+                            root.activated(e.id);
+                        }
+                        HorizontalLayout {
+                            padding-left: Theme.sp3;
+                            padding-right: Theme.sp3;
+                            spacing: Theme.sp3;
+                            VerticalLayout {
+                                alignment: center;
+                                Icon {
+                                    source: e.icon;
+                                    opacity: e.has-icon ? 1 : 0;
+                                    tint: !e.enabled ? Theme.color.on-surface.with-alpha(Theme.disabled-content)
+                                        : e.danger ? Theme.color.error : Theme.color.on-surface-variant;
+                                }
+                            }
+                            Label {
+                                horizontal-stretch: 1;
+                                text: e.text;
+                                type-style: Theme.label-large;
+                                color: !e.enabled ? Theme.color.on-surface.with-alpha(Theme.disabled-content)
+                                    : e.danger ? Theme.color.error : Theme.color.on-surface;
+                            }
+                            if e.shortcut != "": Label {
+                                text: e.shortcut;
+                                type-style: Theme.label-medium;
+                                color: Theme.color.on-surface-variant;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

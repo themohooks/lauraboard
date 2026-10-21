@@ -1,0 +1,87 @@
+// Data contract between the Rust bridge (src/bridge) and the shell:
+// state is pushed in by Rust, user intent goes out through callbacks.
+// Screen-specific state lives in ui/state/<screen>.slint.
+
+import { NavItem } from "../components/nav-rail.slint";
+import { Icons } from "../theme/icons.slint";
+
+// Live channel status, already formatted for display.
+export struct StatusInfo {
+    // on_air / stopped / starting / reconnecting / error / offline
+    state: string,
+    state-text: string,
+    manual: bool,
+    encoder-ok: bool,
+    encoder-text: string,
+    encoder-detail: string,
+    plan-warnings: int,
+    last-error: string,
+    clock: string,
+    to-next-program: string,
+    outputs: string,
+    manual-queue: int,
+    force-schedule: string,
+}
+
+export global App {
+    // navigation
+    in-out property <string> section: "home";
+    in-out property <bool> nav-expanded: true;
+    // window narrower than 1200 px: screens switch to compact layouts
+    in-out property <bool> narrow;
+    in property <[NavItem]> nav-items: [
+        { id: "home", title: "Главная", icon: Icons.home, icon-active: Icons.home-fill },
+        { id: "air", title: "Эфир", icon: Icons.live-tv, icon-active: Icons.live-tv-fill },
+        { id: "playlists", title: "Плейлисты", icon: Icons.playlist-play, icon-active: Icons.playlist-play-fill, group-start: true },
+        { id: "library", title: "Медиатека", icon: Icons.video-library, icon-active: Icons.video-library-fill },
+        { id: "schedule", title: "Сетка вещания", icon: Icons.calendar-month, icon-active: Icons.calendar-month-fill },
+        { id: "jingles", title: "Заставки и переходы", icon: Icons.animation, icon-active: Icons.animation-fill, group-start: true },
+        { id: "ads", title: "Реклама и анонсы", icon: Icons.campaign, icon-active: Icons.campaign-fill },
+        { id: "graphics", title: "Экранная графика", icon: Icons.branding-watermark, icon-active: Icons.branding-watermark-fill },
+        { id: "sources", title: "Источники и сцены", icon: Icons.input, icon-active: Icons.input-fill },
+        { id: "stats", title: "Статистика", icon: Icons.monitoring, icon-active: Icons.monitoring-fill, group-start: true },
+        { id: "log", title: "Журнал событий", icon: Icons.receipt-long, icon-active: Icons.receipt-long-fill },
+        { id: "settings", title: "Настройки", icon: Icons.settings, icon-active: Icons.settings-fill },
+    ];
+    callback navigate(string);
+    callback nav-expanded-changed(bool);
+
+    // connection / channel
+    in property <string> project: "Laurabrod";
+    in property <[string]> channels;
+    in property <int> channel-index: -1;
+    in property <string> channel-name;
+    in property <bool> online;
+    in property <string> api-url;
+    callback select-channel(int);
+    callback refresh();
+
+    // live status
+    in property <StatusInfo> status: { state: "offline", state-text: "НЕТ СВЯЗИ" };
+    in property <image> preview;
+    in property <bool> has-preview;
+
+    // snackbar
+    in-out property <bool> toast-shown;
+    in property <string> toast-text;
+    in property <bool> toast-error;
+    in property <string> toast-action;
+    in property <int> toast-serial;
+    callback toast-action-clicked();
+
+    // confirmation of risky actions
+    in-out property <bool> confirm-open;
+    in property <string> confirm-title;
+    in property <string> confirm-text;
+    in property <string> confirm-action: "Подтвердить";
+    in property <bool> confirm-danger: true;
+    callback confirm-result(bool);
+
+    // window
+    in-out property <bool> monitor-fullscreen;
+    callback toggle-fullscreen();
+    // global shortcuts that screens handle: "save", "undo", "redo", "search", "delete"
+    callback shortcut(string);
+    // splitter positions are persisted by id
+    callback panel-resized(string, length);
+}

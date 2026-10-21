@@ -1,18 +1,26 @@
-//! Operator GUI (egui). It is a pure API client: everything goes through the
-//! HTTP/WebSocket API, so the GUI can control a local or remote instance and
-//! never blocks playout.
+//! Operator GUI (Slint, Material 3). It is a pure API client: everything
+//! goes through the HTTP/WebSocket API, so the GUI can control a local or
+//! remote instance and never blocks playout.
 //!
+//! * [`shell`] — window setup; the interface itself lives in `ui/` (`.slint`)
+//! * [`bridge`] — one controller per screen: server data → UI models,
+//!   UI callbacks → API requests
+//! * [`logic`] — pure, unit-tested helpers (timeline, placement, rules, …)
 //! * [`net`] — background requests, polling and the event stream
 //! * [`model`] — client-side cache of server data
-//! * [`app`] — window layout, navigation, dialogs
-//! * [`views`] — one module per screen
-//! * [`widgets`] — shared formatting and small widgets
+//! * [`fmt`] — shared formatting
+//! * [`prefs`] / [`sysprefs`] — persisted UI preferences, OS accessibility hints
 
-mod app;
+mod bridge;
+#[cfg(feature = "snapshot")]
+pub mod devtools;
+mod fmt;
+mod logic;
 mod model;
 mod net;
-mod views;
-mod widgets;
+mod prefs;
+mod shell;
+mod sysprefs;
 
 /// How to reach the API.
 #[derive(Debug, Clone)]
@@ -26,12 +34,5 @@ pub struct GuiOptions {
 
 /// Open the main window (blocks until it is closed).
 pub fn run(opts: GuiOptions) -> Result<(), String> {
-    let native = eframe::NativeOptions {
-        viewport: eframe::egui::ViewportBuilder::default()
-            .with_title("Laurabrod — TV playout")
-            .with_inner_size([1400.0, 860.0])
-            .with_min_inner_size([960.0, 600.0]),
-        ..Default::default()
-    };
-    eframe::run_native("Laurabrod", native, Box::new(move |cc| Ok(Box::new(app::App::new(cc, opts))))).map_err(|e| e.to_string())
+    shell::run(opts)
 }

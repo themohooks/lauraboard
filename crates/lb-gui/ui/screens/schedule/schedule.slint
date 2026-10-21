@@ -1,0 +1,28 @@
+// Broadcast grid screen: header, timeline / multi-day overview, blocks of
+// the day template, block properties sheet.
+
+import { Theme } from "../../theme/tokens.slint";
+import { Page } from "../../shell/page.slint";
+import { GridHeader } from "header.slint";
+import { TimelinePanel } from "timeline-panel.slint";
+import { BlockTable } from "block-table.slint";
+import { BlockSheet } from "block-sheet.slint";
+
+export component ScheduleScreen inherits Page {
+    HorizontalLayout {
+        VerticalLayout {
+            horizontal-stretch: 1;
+            padding: Theme.sp4;
+            spacing: Theme.sp3;
+            GridHeader { }
+            TimelinePanel {
+                vertical-stretch: 0;
+            }
+            BlockTable {
+                vertical-stretch: 1;
+                min-height: 200px;
+            }
+        }
+        BlockSheet { }
+    }
+}

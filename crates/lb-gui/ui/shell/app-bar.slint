@@ -1,0 +1,106 @@
+// Top app bar of the main window: project, channel switcher, on-air
+// state, manual mode, encoder health, plan warnings, clock, refresh.
+
+import { Theme } from "../theme/tokens.slint";
+import { Icons } from "../theme/icons.slint";
+import { Label } from "../components/label.slint";
+import { TopAppBar } from "../components/top-app-bar.slint";
+import { Select } from "../components/select.slint";
+import { StatusChip, StatusTone } from "../components/indicators.slint";
+import { IconButton } from "../components/icon-button.slint";
+import { TimeDisplay } from "../components/monitor.slint";
+import { App } from "../state/app-state.slint";
+
+export global StateTone {
+    public pure function of(state: string) -> StatusTone {
+        return state == "on_air" ? StatusTone.live
+            : state == "starting" ? StatusTone.info
+            : state == "reconnecting" ? StatusTone.warning
+            : state == "error" || state == "offline" ? StatusTone.error
+            : StatusTone.idle;
+    }
+}
+
+export component AppBar inherits TopAppBar {
+    in property <bool> narrow: false;
+    title: App.project;
+    subtitle: App.channel-name;
+
+    if App.channels.length > 1: VerticalLayout {
+        alignment: center;
+        Select {
+            width: 200px;
+            label: "Канал";
+            options: App.channels;
+            current-index: App.channel-index;
+            container-color: Theme.color.surface-container-low;
+            selected(i, _) => {
+                App.select-channel(i);
+            }
+        }
+    }
+
+    HorizontalLayout {
+        horizontal-stretch: 1;
+        spacing: Theme.sp2;
+        alignment: start;
+        VerticalLayout {
+            alignment: center;
+            StatusChip {
+                text: App.status.state-text;
+                tone: StateTone.of(App.status.state);
+                strong: App.status.state == "on_air";
+            }
+        }
+        if App.status.manual: VerticalLayout {
+            alignment: center;
+            StatusChip {
+                text: "Ручной режим";
+                tone: StatusTone.info;
+                icon: Icons.front-hand;
+            }
+        }
+        if App.online && !root.narrow: VerticalLayout {
+            alignment: center;
+            StatusChip {
+                text: App.status.encoder-text;
+                tone: App.status.encoder-ok ? StatusTone.success : StatusTone.error;
+                icon: App.status.encoder-ok ? Icons.speed : Icons.error;
+            }
+        }
+        if App.status.plan-warnings > 0: VerticalLayout {
+            alignment: center;
+            StatusChip {
+                text: "План: " + App.status.plan-warnings;
+                tone: StatusTone.warning;
+            }
+        }
+    }
+
+    if App.status.to-next-program != "" && !root.narrow: VerticalLayout {
+        alignment: center;
+        TimeDisplay {
+            label: "ДО СЛЕД. ПЕРЕДАЧИ";
+            value: App.status.to-next-program;
+        }
+    }
+    VerticalLayout {
+        alignment: center;
+        Label {
+            text: App.status.clock;
+            type-style: Theme.title-large;
+            mono: true;
+            min-width: self.preferred-width;
+        }
+    }
+    VerticalLayout {
+        alignment: center;
+        IconButton {
+            icon: Icons.refresh;
+            tooltip: "Обновить данные (F5)";
+            clicked => {
+                App.refresh();
+            }
+        }
+    }
+}

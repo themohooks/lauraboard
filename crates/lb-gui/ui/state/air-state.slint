@@ -1,0 +1,105 @@
+// Data contract of the Home and On-Air screens (filled by src/bridge/air.rs).
+
+import { MenuEntry } from "../components/menu.slint";
+
+export struct NowInfo {
+    has-item: bool,
+    title: string,
+    kind: string,
+    block: string,
+    elapsed: string,
+    remaining: string,
+    duration: string,
+    progress: float,
+    deviation: string,
+    deviation-warn: bool,
+    started: string,
+    ends: string,
+}
+
+export struct NextInfo {
+    has-item: bool,
+    title: string,
+    kind: string,
+    start: string,
+    duration: string,
+    media: string,
+    program-title: string,
+    program-start: string,
+    program-in: string,
+}
+
+// One row of the queue / rundown.
+export struct QueueRow {
+    start: string,
+    end: string,
+    duration: string,
+    title: string,
+    kind: string,
+    block: string,
+    note: string,
+    // block boundary: first item of a new block
+    block-start: bool,
+    current: bool,
+    next: bool,
+    main: bool,
+}
+
+export struct MediaPick {
+    id: string,
+    title: string,
+    kind: string,
+    duration: string,
+}
+
+export struct GfxRow {
+    id: string,
+    name: string,
+    kind: string,
+    layer: string,
+    on: bool,
+}
+
+export struct LogRow {
+    at: string,
+    // info / warning / critical
+    level: string,
+    text: string,
+}
+
+export global Air {
+    in property <NowInfo> now;
+    in property <NextInfo> next;
+    in property <image> next-thumb;
+    in property <bool> has-next-thumb;
+    in property <[QueueRow]> queue;
+    in property <string> queue-summary;
+    in property <[string]> warnings;
+
+    // quick actions
+    in-out property <string> media-filter;
+    in property <[MediaPick]> media-results;
+    in property <[string]> ad-breaks;
+    in property <[string]> schedules;
+    in property <int> schedule-index;
+    in property <[GfxRow]> graphics;
+    in-out property <string> ticker;
+    in-out property <int> quick-tab: 0;
+
+    // home
+    in property <[LogRow]> recent-events;
+
+    // layout
+    in-out property <length> side-width: 420px;
+
+    // "start", "stop", "skip", "restart", "manual-on", "manual-off", "clear-queue"
+    callback transport(string);
+    callback search-media(string);
+    callback play-now(string);
+    callback queue-media(string);
+    callback ad-break(int, bool);
+    callback switch-schedule(int);
+    // element id, "show" / "hide" / "auto"
+    callback graphic(string, string);
+    callback apply-ticker(string);
+}

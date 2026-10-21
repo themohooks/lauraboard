@@ -1,0 +1,146 @@
+// Right side sheet of the playlist editor: "add from library" or the
+// properties of the selected entry.
+
+import { ListView } from "std-widgets.slint";
+import { Theme } from "../../theme/tokens.slint";
+import { Icons } from "../../theme/icons.slint";
+import { Label } from "../../components/label.slint";
+import { SideSheet } from "../../components/side-sheet.slint";
+import { SearchField } from "../../components/search-field.slint";
+import { Switch } from "../../components/switch.slint";
+import { Button, ButtonVariant } from "../../components/button.slint";
+import { IconButton } from "../../components/icon-button.slint";
+import { ListRow } from "../../components/list-row.slint";
+import { KindTag, StatusChip, StatusTone } from "../../components/indicators.slint";
+import { Pl } from "../../state/playlists-state.slint";
+
+component Prop inherits VerticalLayout {
+    in property <string> label;
+    in property <string> value;
+    in property <bool> mono;
+    spacing: 2px;
+    Label {
+        text: root.label;
+        type-style: Theme.label-small;
+        color: Theme.color.on-surface-variant;
+    }
+    Label {
+        text: root.value == "" ? "—" : root.value;
+        mono: root.mono;
+        wrap: word-wrap;
+    }
+}
+
+export component PlaylistSheet inherits SideSheet {
+    open: Pl.has-draft && (Pl.sheet == "add" || (Pl.sheet == "props" && Pl.props.has));
+    title: Pl.sheet == "add" ? "Добавить из медиатеки" : "Свойства элемента";
+    sheet-width: 380px;
+    close => {
+        Pl.sheet = "";
+    }
+
+    if Pl.sheet == "add": SearchField {
+        placeholder: "Название, id, категория";
+        text <=> Pl.add-filter;
+        edited(t) => {
+            Pl.search-add(t);
+        }
+    }
+    if Pl.sheet == "add": Label {
+        text: "Нажмите «+», чтобы добавить в конец плейлиста.";
+        type-style: Theme.body-small;
+        color: Theme.color.on-surface-variant;
+        wrap: word-wrap;
+    }
+    if Pl.sheet == "add": VerticalLayout {
+        for m in Pl.add-results: ListRow {
+            padding-x: 0;
+            focusable: false;
+            double-clicked => {
+                Pl.add-media(m.id);
+            }
+            VerticalLayout {
+                alignment: center;
+                KindTag {
+                    kind: m.kind;
+                    show-name: false;
+                }
+            }
+            Label {
+                horizontal-stretch: 1;
+                text: m.title;
+            }
+            Label {
+                text: m.duration;
+                mono: true;
+                type-style: Theme.body-small;
+                color: Theme.color.on-surface-variant;
+            }
+            VerticalLayout {
+                alignment: center;
+                IconButton {
+                    width: 32px;
+                    height: 32px;
+                    icon: Icons.add;
+                    tooltip: "Добавить в плейлист";
+                    clicked => {
+                        Pl.add-media(m.id);
+                    }
+                }
+            }
+        }
+    }
+
+    if Pl.sheet == "props": KindTag {
+        kind: Pl.props.kind;
+    }
+    if Pl.sheet == "props": Label {
+        text: Pl.props.title;
+        type-style: Theme.title-medium;
+        wrap: word-wrap;
+    }
+    if Pl.sheet == "props" && Pl.props.problem != "": StatusChip {
+        text: Pl.props.problem;
+        tone: StatusTone.error;
+    }
+    if Pl.sheet == "props": Prop { label: "ПОЗИЦИЯ"; value: Pl.props.index + 1; }
+    if Pl.sheet == "props": Prop { label: "ID РОЛИКА"; value: Pl.props.media; mono: true; }
+    if Pl.sheet == "props": Prop { label: "ДЛИТЕЛЬНОСТЬ"; value: Pl.props.duration; mono: true; }
+    if Pl.sheet == "props": Prop { label: "КАТЕГОРИЯ"; value: Pl.props.category; }
+    if Pl.sheet == "props": Prop { label: "ФАЙЛ"; value: Pl.props.path; }
+    if Pl.sheet == "props": Switch {
+        text: "Закреплён при перемешивании";
+        checked: Pl.props.pinned;
+        toggled => {
+            Pl.entry-action(Pl.props.index, "pin");
+        }
+    }
+    if Pl.sheet == "props": Switch {
+        text: "Включён";
+        checked: !Pl.props.disabled;
+        toggled => {
+            Pl.entry-action(Pl.props.index, "disable");
+        }
+    }
+    if Pl.sheet == "props": HorizontalLayout {
+        spacing: Theme.sp2;
+        alignment: start;
+        Button {
+            text: "В очередь эфира";
+            variant: ButtonVariant.tonal;
+            icon: Icons.queue-music;
+            has-icon: true;
+            enabled: Pl.props.problem == "";
+            clicked => {
+                Pl.entry-action(Pl.props.index, "queue");
+            }
+        }
+        Button {
+            text: "Удалить";
+            variant: ButtonVariant.text;
+            clicked => {
+                Pl.entry-action(Pl.props.index, "remove");
+            }
+        }
+    }
+}

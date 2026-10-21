@@ -1,0 +1,296 @@
+// Library table (sortable header, checkbox, thumbnail, kind, duration,
+// category, format, status) and tile grid; both virtualized.
+
+import { ListView } from "std-widgets.slint";
+import { Theme } from "../../theme/tokens.slint";
+import { Icons } from "../../theme/icons.slint";
+import { Label } from "../../components/label.slint";
+import { Icon } from "../../components/icon.slint";
+import { Checkbox } from "../../components/checkbox.slint";
+import { ListRow, ListHeader } from "../../components/list-row.slint";
+import { Interactive } from "../../components/interactive.slint";
+import { Thumbnail } from "../../components/thumbnail.slint";
+import { KindTag, StatusChip, StatusTone } from "../../components/indicators.slint";
+import { Skeleton, EmptyState } from "../../components/feedback.slint";
+import { Menu } from "../../components/menu.slint";
+import { Lib, MediaRow } from "../../state/library-state.slint";
+
+component SortHeader inherits Interactive {
+    in property <string> text;
+    in property <int> key;
+    in property <bool> right;
+    radius: 0;
+    focusable: false;
+    accessible-role: button;
+    accessible-label: "Сортировать: " + text;
+    clicked => {
+        Lib.sort(root.key);
+    }
+    HorizontalLayout {
+        spacing: 2px;
+        alignment: root.right ? end : start;
+        Label {
+            text: root.text;
+            type-style: Theme.label-small;
+            color: Lib.sort-key == root.key ? Theme.color.primary : Theme.color.on-surface-variant;
+        }
+        if Lib.sort-key == root.key: VerticalLayout {
+            alignment: center;
+            Icon {
+                source: Lib.sort-desc ? Icons.arrow-downward : Icons.arrow-upward;
+                size: 14px;
+                tint: Theme.color.primary;
+            }
+        }
+    }
+}
+
+component RowMenu inherits Menu {
+    in property <MediaRow> item;
+    entries: [
+        { id: "edit", text: "Изменить свойства", icon: Icons.edit, has-icon: true, enabled: true },
+        { id: "add-to-open-playlist", text: "В открытый плейлист", icon: Icons.playlist-add, has-icon: true, enabled: true },
+        { id: "queue", text: "В очередь эфира", icon: Icons.queue-music, has-icon: true, enabled: item.problem == "" },
+        { id: "play-now", text: "Показать сейчас…", icon: Icons.play-arrow, has-icon: true, enabled: item.problem == "" },
+        { id: "toggle", text: item.enabled ? "Выключить" : "Включить", icon: Icons.visibility-off, has-icon: true, enabled: true, divider: true },
+        { id: "delete", text: "Удалить из медиатеки…", icon: Icons.delete, has-icon: true, enabled: true, danger: true, divider: true },
+    ];
+    activated(id) => {
+        Lib.row-action(item.row, id);
+    }
+}
+
+component MediaRowView inherits ListRow {
+    in property <MediaRow> item;
+    height: Theme.compact ? 44px : 52px;
+    selected: Lib.focused == item.row;
+    opacity: item.enabled ? 1 : 0.55;
+    accessible-label: item.title;
+    clicked => {
+        Lib.focused = item.row;
+    }
+    double-clicked => {
+        Lib.open-edit(item.row);
+    }
+    right-clicked(p) => {
+        Lib.focused = item.row;
+        menu.open-at(p.x, p.y);
+    }
+
+    Checkbox {
+        checked: root.item.checked;
+        toggled => {
+            Lib.toggle-check(root.item.row);
+        }
+    }
+    VerticalLayout {
+        alignment: center;
+        Thumbnail {
+            height: root.height - 14px;
+            kind: root.item.kind;
+            source: root.item.thumb;
+            has-image: root.item.has-thumb;
+            problem: root.item.problem != "";
+        }
+    }
+    VerticalLayout {
+        horizontal-stretch: 3;
+        preferred-width: 0;
+        min-width: 120px;
+        alignment: center;
+        Label {
+            text: root.item.title;
+        }
+        Label {
+            text: root.item.id;
+            type-style: Theme.label-small;
+            mono: true;
+            color: Theme.color.on-surface-variant;
+        }
+    }
+    KindTag {
+        width: 120px;
+        kind: root.item.kind;
+    }
+    Label {
+        width: 72px;
+        text: root.item.duration;
+        mono: true;
+        type-style: Theme.body-small;
+        horizontal-alignment: right;
+    }
+    Label {
+        horizontal-stretch: 1;
+        preferred-width: 0;
+        min-width: 80px;
+        text: root.item.category;
+        type-style: Theme.body-small;
+        color: Theme.color.on-surface-variant;
+    }
+    Label {
+        horizontal-stretch: 1;
+        preferred-width: 0;
+        min-width: 120px;
+        text: root.item.format;
+        type-style: Theme.body-small;
+        color: Theme.color.on-surface-variant;
+    }
+    VerticalLayout {
+        width: 120px;
+        alignment: center;
+        if root.item.problem != "": StatusChip {
+            text: "Ошибка файла";
+            tone: StatusTone.error;
+        }
+        if root.item.problem == "" && !root.item.enabled: StatusChip {
+            text: "Выключен";
+            tone: StatusTone.idle;
+            icon: Icons.visibility-off;
+        }
+    }
+    menu := RowMenu {
+        item: root.item;
+    }
+}
+
+component Tile inherits Interactive {
+    in property <MediaRow> item;
+    radius: Theme.radius-m;
+    focusable: false;
+    background: Lib.focused == item.row ? Theme.color.secondary-container : Theme.color.surface-container-low;
+    opacity: item.enabled ? 1 : 0.55;
+    accessible-role: list-item;
+    accessible-label: item.title;
+    clicked => {
+        Lib.focused = root.item.row;
+    }
+    double-clicked => {
+        Lib.open-edit(root.item.row);
+    }
+    right-clicked(p) => {
+        Lib.focused = root.item.row;
+        menu.open-at(p.x, p.y);
+    }
+    VerticalLayout {
+        padding: Theme.sp2;
+        spacing: Theme.sp1;
+        Thumbnail {
+            height: (root.width - 2 * Theme.sp2) * 9 / 16;
+            width: root.width - 2 * Theme.sp2;
+            kind: root.item.kind;
+            source: root.item.thumb;
+            has-image: root.item.has-thumb;
+            duration: root.item.duration;
+            problem: root.item.problem != "";
+        }
+        Label {
+            text: root.item.title;
+            type-style: Theme.label-large;
+        }
+        HorizontalLayout {
+            KindTag {
+                horizontal-stretch: 1;
+                kind: root.item.kind;
+            }
+            Checkbox {
+                height: 28px;
+                checked: root.item.checked;
+                toggled => {
+                    Lib.toggle-check(root.item.row);
+                }
+            }
+        }
+    }
+    menu := RowMenu {
+        item: root.item;
+    }
+}
+
+export component MediaTable inherits Rectangle {
+    border-radius: Theme.radius-l;
+    background: Theme.color.surface-container-low;
+    clip: true;
+
+    property <int> fit-columns: max(1, floor((self.width - 16px) / 220px));
+    changed fit-columns => {
+        Lib.columns-changed(self.fit-columns);
+    }
+    // the first layout pass may happen after init: re-check while tiles are shown
+    Timer {
+        interval: 250ms;
+        running: Lib.grid;
+        triggered => {
+            if root.fit-columns != Lib.columns {
+                Lib.columns-changed(root.fit-columns);
+            }
+        }
+    }
+
+    if Lib.loading: VerticalLayout {
+        padding: Theme.sp4;
+        spacing: Theme.sp3;
+        alignment: start;
+        for i in 8: HorizontalLayout {
+            spacing: Theme.sp3;
+            Skeleton {
+                width: 64px;
+                height: 36px;
+            }
+            VerticalLayout {
+                spacing: 6px;
+                Skeleton {
+                    height: 12px;
+                    width: 40%;
+                }
+                Skeleton {
+                    height: 10px;
+                    width: 20%;
+                }
+            }
+        }
+    }
+
+    if !Lib.loading && Lib.items.length == 0: EmptyState {
+        icon: Icons.video-library;
+        title: Lib.filter != "" || Lib.kind-filter >= 0 || Lib.problems-only ? "Ничего не найдено" : "Медиатека пуста";
+        text: Lib.filter != "" || Lib.kind-filter >= 0 || Lib.problems-only ? "Измените поиск или фильтры." : "Добавьте файлы кнопкой «Импорт».";
+    }
+
+    if !Lib.loading && Lib.items.length > 0 && !Lib.grid: VerticalLayout {
+        ListHeader {
+            Checkbox {
+                checked: Lib.checked-count > 0 && Lib.checked-count == Lib.items.length;
+                indeterminate: Lib.checked-count > 0 && Lib.checked-count < Lib.items.length;
+                toggled(on) => {
+                    Lib.check-all(on);
+                }
+            }
+            Rectangle { width: 68px; }
+            SortHeader { horizontal-stretch: 3; preferred-width: 0; min-width: 120px; text: "НАЗВАНИЕ"; key: 0; }
+            SortHeader { width: 120px; text: "ТИП"; key: 1; }
+            SortHeader { width: 72px; text: "ДЛИТ."; key: 2; right: true; }
+            SortHeader { horizontal-stretch: 1; preferred-width: 0; min-width: 80px; text: "КАТЕГОРИЯ"; key: 3; }
+            Label { horizontal-stretch: 1; preferred-width: 0; min-width: 120px; text: "ФОРМАТ"; type-style: Theme.label-small; color: Theme.color.on-surface-variant; }
+            Label { width: 120px; text: "СОСТОЯНИЕ"; type-style: Theme.label-small; color: Theme.color.on-surface-variant; }
+        }
+        ListView {
+            vertical-stretch: 1;
+            for m in Lib.items: MediaRowView {
+                item: m;
+            }
+        }
+    }
+
+    if !Lib.loading && Lib.items.length > 0 && Lib.grid: ListView {
+        for line in Lib.lines: HorizontalLayout {
+            padding: Theme.sp2;
+            padding-bottom: 0;
+            spacing: Theme.sp2;
+            alignment: start;
+            for t in line.tiles: Tile {
+                width: (root.width - 2 * Theme.sp2 - (Lib.columns - 1) * Theme.sp2 - 12px) / Lib.columns;
+                item: t;
+            }
+        }
+    }
+}

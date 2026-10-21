@@ -1,0 +1,71 @@
+// M3 common button: filled / tonal / outlined / text, plus "danger" for
+// destructive actions. Optional leading icon.
+
+import { Theme } from "../theme/tokens.slint";
+import { Interactive } from "interactive.slint";
+import { Icon } from "icon.slint";
+import { Label } from "label.slint";
+import { Tooltip } from "tooltip.slint";
+
+export enum ButtonVariant { filled, tonal, outlined, text, danger }
+
+export component Button inherits Interactive {
+    in property <string> text;
+    in property <image> icon;
+    in property <bool> has-icon: false;
+    in property <ButtonVariant> variant: ButtonVariant.filled;
+    in property <string> tooltip;
+
+    property <color> fg: variant == ButtonVariant.filled ? Theme.color.on-primary
+        : variant == ButtonVariant.tonal ? Theme.color.on-secondary-container
+        : variant == ButtonVariant.danger ? Theme.color.on-error
+        : Theme.color.primary;
+    property <color> bg: variant == ButtonVariant.filled ? Theme.color.primary
+        : variant == ButtonVariant.tonal ? Theme.color.secondary-container
+        : variant == ButtonVariant.danger ? Theme.color.error
+        : transparent;
+    property <bool> container: variant != ButtonVariant.outlined && variant != ButtonVariant.text;
+    property <color> ink: root.enabled ? fg : Theme.color.on-surface.with-alpha(Theme.disabled-content);
+
+    height: Theme.control-height;
+    // never squeeze the label: shrink neighbours instead
+    min-width: max(64px, content.preferred-width);
+    state-tint: fg;
+    background: !root.enabled && container ? Theme.color.on-surface.with-alpha(Theme.disabled-container) : bg;
+    border-width: variant == ButtonVariant.outlined ? 1px : 0;
+    border-color: root.enabled ? Theme.color.outline : Theme.color.on-surface.with-alpha(Theme.disabled-container);
+    accessible-role: button;
+    accessible-label: text;
+    accessible-description: tooltip;
+    accessible-enabled: root.enabled;
+    accessible-action-default => {
+        self.clicked();
+    }
+
+    content := HorizontalLayout {
+        padding-left: root.has-icon ? Theme.sp4 : (root.variant == ButtonVariant.text ? Theme.sp3 : Theme.sp6);
+        padding-right: root.variant == ButtonVariant.text ? Theme.sp3 : Theme.sp6;
+        spacing: Theme.sp2;
+        alignment: center;
+        if root.has-icon: VerticalLayout {
+            alignment: center;
+            Icon {
+                source: root.icon;
+                size: Theme.icon-small;
+                tint: root.ink;
+            }
+        }
+        Label {
+            text: root.text;
+            type-style: Theme.label-large;
+            color: root.ink;
+            overflow: clip;
+        }
+    }
+
+    Tooltip {
+        text: root.tooltip;
+        hovered: root.hovered;
+        anchor-height: root.height;
+    }
+}

@@ -1,0 +1,69 @@
+// Gallery, block F: timeline, multi-day strip, monitors, time displays.
+
+import { Theme } from "../../theme/tokens.slint";
+import { Timeline, MultiDayStrip } from "../../components/timeline.slint";
+import { Monitor, MonitorRole, TimeDisplay } from "../../components/monitor.slint";
+import { Section } from "section.slint";
+
+export component SpecialPage inherits Section {
+    title: "F · Таймлайн, монитор, время";
+    Timeline {
+        width: 1200px;
+        height: 120px;
+        view-start: 420;
+        view-span: 480;
+        now: 568;
+        segments: [
+            { start: 420, duration: 120, title: "Утро на канале", subtitle: "плейлист morning", kind: "program", movable: true },
+            { start: 540, duration: 30, title: "Новости", kind: "program", current: true },
+            { start: 570, duration: 5, title: "Реклама", kind: "ad" },
+            { start: 575, duration: 25, title: "", kind: "gap", gap: true },
+            { start: 600, duration: 90, title: "Кино", kind: "program", selected: true, movable: true },
+            { start: 680, duration: 60, title: "Детский блок", kind: "program", conflict: true },
+            { start: 740, duration: 160, title: "Музыка", kind: "filler" },
+            { start: 420, duration: 121, kind: "program", lane: 1 },
+            { start: 541, duration: 27, kind: "program", lane: 1 },
+        ];
+    }
+
+    MultiDayStrip {
+        width: 1200px;
+        now-day: 0;
+        now: 568;
+        days: [
+            { label: "Сегодня", segments: [{ start: 0, duration: 420, kind: "filler" }, { start: 420, duration: 120, kind: "program" }, { start: 540, duration: 35, kind: "ad" }, { start: 575, duration: 25, gap: true }, { start: 600, duration: 840, kind: "program" }] },
+            { label: "Пт 24", segments: [{ start: 0, duration: 400, kind: "filler" }, { start: 400, duration: 600, kind: "program" }, { start: 1000, duration: 440, kind: "promo" }] },
+            { label: "Сб 25", segments: [{ start: 0, duration: 1440, kind: "program", conflict: true }] },
+        ];
+    }
+
+    HorizontalLayout {
+        spacing: Theme.sp4;
+        alignment: start;
+        Monitor {
+            width: 560px;
+            height: 315px;
+            live: true;
+            timecode: "00:12:04";
+            progress: 0.42;
+            caption: "Утренние новости";
+        }
+        VerticalLayout {
+            spacing: Theme.sp3;
+            alignment: start;
+            Monitor {
+                width: 320px;
+                height: 180px;
+                role: MonitorRole.next;
+                placeholder: "Миниатюра следующего";
+            }
+            HorizontalLayout {
+                spacing: Theme.sp6;
+                TimeDisplay { label: "ПРОШЛО"; value: "00:16:26"; }
+                TimeDisplay { label: "ОСТАЛОСЬ"; value: "00:12:04"; value-color: Theme.status.live; }
+                TimeDisplay { label: "ДАЛЕЕ В"; value: "09:30:00"; }
+            }
+            TimeDisplay { label: "ДО СЛЕДУЮЩЕЙ ПЕРЕДАЧИ"; value: "01:12:30"; large: true; }
+        }
+    }
+}

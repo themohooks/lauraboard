@@ -1,0 +1,59 @@
+// 16:9 media thumbnail with a kind-colored placeholder while the image
+// is missing or loading, optional duration badge and problem marker.
+
+import { Theme } from "../theme/tokens.slint";
+import { Icons } from "../theme/icons.slint";
+import { Icon } from "icon.slint";
+import { Label } from "label.slint";
+import { Kinds } from "indicators.slint";
+
+export component Thumbnail inherits Rectangle {
+    in property <image> source;
+    in property <bool> has-image: false;
+    in property <string> kind: "program";
+    in property <string> duration;
+    in property <bool> problem: false;
+
+    width: self.height * 16 / 9;
+    border-radius: Theme.radius-xs;
+    clip: true;
+    background: Kinds.color-of(kind).with-alpha(Theme.dark ? 0.22 : 0.16);
+
+    if !root.has-image: Icon {
+        source: Kinds.icon-of(root.kind);
+        size: min(root.height * 0.5, 32px);
+        tint: Kinds.color-of(root.kind);
+    }
+    if root.has-image: Image {
+        width: 100%;
+        height: 100%;
+        source: root.source;
+        image-fit: cover;
+    }
+    if root.duration != "" && root.height >= 48px: Rectangle {
+        x: parent.width - self.width - 4px;
+        y: parent.height - self.height - 4px;
+        width: dur.preferred-width + 8px;
+        height: 16px;
+        border-radius: 3px;
+        background: #000000b0;
+        dur := Label {
+            text: root.duration;
+            type-style: Theme.label-small;
+            color: #ffffff;
+        }
+    }
+    if root.problem: Rectangle {
+        x: parent.width - self.width - 3px;
+        y: 3px;
+        width: min(20px, root.height * 0.6);
+        height: self.width;
+        border-radius: self.width / 2;
+        background: Theme.color.error;
+        Icon {
+            source: Icons.error;
+            size: parent.width - 4px;
+            tint: Theme.color.on-error;
+        }
+    }
+}

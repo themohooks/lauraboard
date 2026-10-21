@@ -8,8 +8,11 @@ rust-version.workspace = true
 axum = { version = "0.8.9", features = ["ws"] }
 chrono = { version = "0.4.45", features = ["serde"] }
 futures-util = "0.3.31"
+image = { version = "0.25.10", default-features = false, features = ["png"] }
 lb-core = { version = "0.1.0", path = "../lb-core" }
 lb-engine = { version = "0.1.0", path = "../lb-engine" }
+lb-gfx = { version = "0.1.0", path = "../lb-gfx" }
+lb-media = { version = "0.1.0", path = "../lb-media" }
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.154"
 tokio = { version = "1.54.0", features = ["full"] }

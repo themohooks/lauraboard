@@ -1,0 +1,18 @@
+// Keyboard focus indicator drawn around a target of the given size
+// (2dp, primary color). Place it as a child of the focused element.
+
+import { Theme } from "../theme/tokens.slint";
+
+export component FocusRing inherits Rectangle {
+    in property <length> radius: Theme.radius-s;
+    in property <length> gap: 2px;
+    in property <length> target-width;
+    in property <length> target-height;
+    x: -gap - Theme.focus-ring;
+    y: -gap - Theme.focus-ring;
+    width: target-width + 2 * (gap + Theme.focus-ring);
+    height: target-height + 2 * (gap + Theme.focus-ring);
+    border-width: Theme.focus-ring;
+    border-color: Theme.color.primary;
+    border-radius: radius + gap + Theme.focus-ring;
+}

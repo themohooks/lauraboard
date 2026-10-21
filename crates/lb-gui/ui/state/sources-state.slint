@@ -1,0 +1,52 @@
+// Data contract of the sources & scenes overview (src/bridge/sources.rs).
+
+export struct SceneRow {
+    // -1 = automatic (by the weekly plan)
+    index: int,
+    name: string,
+    detail: string,
+    active: bool,
+    enabled: bool,
+}
+
+export struct OutRow {
+    name: string,
+    // secrets masked
+    url: string,
+    format: string,
+    enabled: bool,
+}
+
+export struct StreamRow {
+    title: string,
+    url: string,
+    enabled: bool,
+}
+
+export struct Fact {
+    label: string,
+    value: string,
+}
+
+export global Src {
+    in property <[SceneRow]> scenes;
+    in property <bool> manual;
+
+    // encoder / output state (from the live status)
+    in property <bool> running;
+    in property <string> state-text;
+    in property <[Fact]> encoder;
+    in property <string> last-error;
+    in property <[string]> active-targets;
+
+    // channel settings (admin role only)
+    in property <bool> has-config;
+    in property <[Fact]> format;
+    in property <[OutRow]> outputs;
+    in property <[Fact]> recording;
+
+    in property <[StreamRow]> streams;
+
+    callback switch-scene(int);
+    callback open-library();
+}

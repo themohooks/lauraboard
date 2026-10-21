@@ -1,0 +1,258 @@
+// Graphics tabs besides the canvas: display rules, template variables,
+// saved design templates.
+
+import { ScrollView, ListView } from "std-widgets.slint";
+import { Theme } from "../../theme/tokens.slint";
+import { Icons } from "../../theme/icons.slint";
+import { Label } from "../../components/label.slint";
+import { TextField } from "../../components/text-field.slint";
+import { Select } from "../../components/select.slint";
+import { Switch } from "../../components/switch.slint";
+import { Button, ButtonVariant } from "../../components/button.slint";
+import { IconButton } from "../../components/icon-button.slint";
+import { ListRow } from "../../components/list-row.slint";
+import { EmptyState } from "../../components/feedback.slint";
+import { Gfx, GRuleRow } from "../../state/graphics-state.slint";
+import { FormSection } from "../rules/form-parts.slint";
+
+component RuleCard inherits FormSection {
+    in property <GRuleRow> r;
+    title: r.name;
+    hint: "id: " + r.id;
+    icon: Icons.rule;
+    HorizontalLayout {
+        spacing: Theme.sp3;
+        VerticalLayout {
+            alignment: center;
+            Switch {
+                text: "Включено";
+                checked: root.r.enabled;
+                toggled(on) => {
+                    Gfx.rule-edited(root.r.index, "enabled", on ? "1" : "0");
+                }
+            }
+        }
+        Select {
+            horizontal-stretch: 1;
+            label: "Элемент";
+            options: Gfx.element-names;
+            current-index: root.r.element-index;
+            selected(i, _) => {
+                Gfx.rule-edited(root.r.index, "element", i);
+            }
+        }
+        TextField {
+            width: 110px;
+            label: "Приоритет";
+            text: root.r.priority;
+            mono: true;
+            edited(t) => {
+                Gfx.rule-edited(root.r.index, "priority", t);
+            }
+        }
+        VerticalLayout {
+            alignment: center;
+            IconButton {
+                icon: Icons.delete;
+                tooltip: "Удалить правило";
+                clicked => {
+                    Gfx.rule-remove(root.r.index);
+                }
+            }
+        }
+    }
+    HorizontalLayout {
+        spacing: Theme.sp2;
+        TextField { label: "Через (от начала)"; text: root.r.after; mono: true; placeholder: "00:00:10"; edited(t) => { Gfx.rule-edited(root.r.index, "after", t); } }
+        TextField { label: "Показывать"; text: root.r.duration; mono: true; placeholder: "до конца"; edited(t) => { Gfx.rule-edited(root.r.index, "duration", t); } }
+        TextField { label: "Скрыть до конца за"; text: root.r.before-end; mono: true; edited(t) => { Gfx.rule-edited(root.r.index, "before-end", t); } }
+        TextField { label: "Последние"; text: root.r.last; mono: true; edited(t) => { Gfx.rule-edited(root.r.index, "last", t); } }
+        TextField { label: "Каждые"; text: root.r.every; mono: true; edited(t) => { Gfx.rule-edited(root.r.index, "every", t); } }
+    }
+    HorizontalLayout {
+        spacing: Theme.sp2;
+        TextField {
+            horizontal-stretch: 1;
+            label: "В точное время (ЧЧ:ММ через запятую)";
+            text: root.r.at;
+            mono: true;
+            edited(t) => {
+                Gfx.rule-edited(root.r.index, "at", t);
+            }
+        }
+        TextField {
+            horizontal-stretch: 1;
+            label: "Только для категорий";
+            text: root.r.categories;
+            edited(t) => {
+                Gfx.rule-edited(root.r.index, "categories", t);
+            }
+        }
+    }
+    if root.r.error != "": Label {
+        text: root.r.error;
+        type-style: Theme.body-small;
+        color: Theme.color.error;
+    }
+}
+
+export component GfxRulesTab inherits VerticalLayout {
+    spacing: Theme.sp3;
+    HorizontalLayout {
+        Label {
+            horizontal-stretch: 1;
+            text: "Когда элементы появляются в эфире автоматически. Время — ЧЧ:ММ:СС.";
+            color: Theme.color.on-surface-variant;
+            vertical-alignment: center;
+        }
+        Button {
+            text: "Новое правило показа";
+            icon: Icons.add;
+            has-icon: true;
+            clicked => {
+                Gfx.rule-add();
+            }
+        }
+    }
+    if Gfx.rules.length == 0: EmptyState {
+        vertical-stretch: 1;
+        icon: Icons.rule;
+        title: "Нет правил показа";
+        text: "Без правил элементы показываются только вручную.";
+    }
+    if Gfx.rules.length > 0: sv := ScrollView {
+        vertical-stretch: 1;
+        VerticalLayout {
+            width: sv.visible-width;
+            padding-right: Theme.sp3;
+            padding-top: Theme.sp1;
+            spacing: Theme.sp3;
+            alignment: start;
+            for r in Gfx.rules: RuleCard {
+                r: r;
+            }
+        }
+    }
+}
+
+export component GfxVarsTab inherits VerticalLayout {
+    spacing: Theme.sp3;
+    alignment: start;
+    Label {
+        text: "Значения по умолчанию для {переменных} в текстах. Оператор может переопределить их в эфире (например, {ticker}). Встроенные: {title} {category} {block} {presenter} {next_title} {next_start} {next_program} {next_program_start} {channel}.";
+        color: Theme.color.on-surface-variant;
+        wrap: word-wrap;
+    }
+    for v[i] in Gfx.vars: HorizontalLayout {
+        spacing: Theme.sp2;
+        Label {
+            width: 180px;
+            text: "{" + v.key + "}";
+            mono: true;
+            vertical-alignment: center;
+        }
+        TextField {
+            horizontal-stretch: 1;
+            text: v.value;
+            edited(t) => {
+                Gfx.var-edited(i, t);
+            }
+        }
+        VerticalLayout {
+            alignment: center;
+            IconButton {
+                icon: Icons.delete;
+                tooltip: "Удалить переменную";
+                clicked => {
+                    Gfx.var-remove(i);
+                }
+            }
+        }
+    }
+    HorizontalLayout {
+        spacing: Theme.sp2;
+        TextField {
+            width: 180px;
+            label: "Имя";
+            text <=> Gfx.new-key;
+            mono: true;
+        }
+        TextField {
+            horizontal-stretch: 1;
+            label: "Значение";
+            text <=> Gfx.new-value;
+        }
+        VerticalLayout {
+            alignment: center;
+            Button {
+                text: "Добавить";
+                variant: ButtonVariant.tonal;
+                enabled: Gfx.new-key != "";
+                clicked => {
+                    Gfx.var-add();
+                }
+            }
+        }
+    }
+}
+
+export component GfxTemplatesTab inherits VerticalLayout {
+    spacing: Theme.sp3;
+    alignment: start;
+    Label {
+        text: "Шаблон оформления — сохранённый набор элементов, правил и переменных. Хранится на этом компьютере и применяется к любому каналу.";
+        color: Theme.color.on-surface-variant;
+        wrap: word-wrap;
+    }
+    HorizontalLayout {
+        spacing: Theme.sp2;
+        TextField {
+            horizontal-stretch: 1;
+            label: "Название шаблона";
+            text <=> Gfx.template-name;
+        }
+        VerticalLayout {
+            alignment: center;
+            Button {
+                text: "Сохранить текущее оформление";
+                icon: Icons.save;
+                has-icon: true;
+                enabled: Gfx.template-name != "";
+                clicked => {
+                    Gfx.template-save();
+                }
+            }
+        }
+    }
+    if Gfx.templates.length == 0: EmptyState {
+        icon: Icons.palette;
+        title: "Нет сохранённых шаблонов";
+    }
+    for t[i] in Gfx.templates: ListRow {
+        focusable: false;
+        Label {
+            horizontal-stretch: 1;
+            text: t;
+        }
+        VerticalLayout {
+            alignment: center;
+            Button {
+                text: "Применить";
+                variant: ButtonVariant.tonal;
+                clicked => {
+                    Gfx.template-apply(i);
+                }
+            }
+        }
+        VerticalLayout {
+            alignment: center;
+            IconButton {
+                icon: Icons.delete;
+                tooltip: "Удалить шаблон";
+                clicked => {
+                    Gfx.template-delete(i);
+                }
+            }
+        }
+    }
+}

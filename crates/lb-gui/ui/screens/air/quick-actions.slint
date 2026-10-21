@@ -1,0 +1,268 @@
+// Quick on-air actions in tabs: put a clip on air / in the queue, ad
+// break, live graphics, ticker text.
+
+import { ListView } from "std-widgets.slint";
+import { Theme } from "../../theme/tokens.slint";
+import { Icons } from "../../theme/icons.slint";
+import { Label } from "../../components/label.slint";
+import { SegmentedButton } from "../../components/segmented-button.slint";
+import { SearchField } from "../../components/search-field.slint";
+import { TextField } from "../../components/text-field.slint";
+import { Select } from "../../components/select.slint";
+import { Button, ButtonVariant } from "../../components/button.slint";
+import { IconButton } from "../../components/icon-button.slint";
+import { ListRow } from "../../components/list-row.slint";
+import { KindTag, StatusChip, StatusTone } from "../../components/indicators.slint";
+import { App } from "../../state/app-state.slint";
+import { Air } from "../../state/air-state.slint";
+
+component ClipTab inherits VerticalLayout {
+    spacing: Theme.sp2;
+    SearchField {
+        placeholder: "Найти ролик в медиатеке";
+        text <=> Air.media-filter;
+        edited(t) => {
+            Air.search-media(t);
+        }
+    }
+    ListView {
+        vertical-stretch: 1;
+        min-height: 120px;
+        for m in Air.media-results: ListRow {
+            height: Theme.row-height;
+            focusable: false;
+            VerticalLayout {
+                alignment: center;
+                KindTag {
+                    kind: m.kind;
+                    show-name: false;
+                }
+            }
+            Label {
+                horizontal-stretch: 1;
+                text: m.title;
+            }
+            Label {
+                text: m.duration;
+                mono: true;
+                type-style: Theme.body-small;
+                color: Theme.color.on-surface-variant;
+            }
+            VerticalLayout {
+                alignment: center;
+                IconButton {
+                    width: 32px;
+                    height: 32px;
+                    icon: Icons.playlist-add;
+                    tooltip: "В очередь (после текущего)";
+                    enabled: App.online;
+                    clicked => {
+                        Air.queue-media(m.id);
+                    }
+                }
+            }
+            VerticalLayout {
+                alignment: center;
+                IconButton {
+                    width: 32px;
+                    height: 32px;
+                    icon: Icons.play-arrow;
+                    icon-tint: Theme.status.live;
+                    tooltip: "Показать сейчас (прервёт текущий)";
+                    enabled: App.online;
+                    clicked => {
+                        Air.play-now(m.id);
+                    }
+                }
+            }
+        }
+    }
+}
+
+component AdTab inherits VerticalLayout {
+    property <int> picked: -1;
+    spacing: Theme.sp3;
+    alignment: start;
+    Label {
+        text: "Внеплановый рекламный блок";
+        color: Theme.color.on-surface-variant;
+    }
+    Select {
+        label: "Рекламный блок";
+        options: Air.ad-breaks;
+        current-index: root.picked;
+        placeholder: Air.ad-breaks.length == 0 ? "Нет рекламных блоков" : "Выберите блок";
+        selected(i, _) => {
+            root.picked = i;
+        }
+    }
+    HorizontalLayout {
+        spacing: Theme.sp2;
+        alignment: start;
+        Button {
+            text: "Следующим";
+            variant: ButtonVariant.tonal;
+            icon: Icons.playlist-add;
+            has-icon: true;
+            enabled: App.online && root.picked >= 0;
+            clicked => {
+                Air.ad-break(root.picked, false);
+            }
+        }
+        Button {
+            text: "Сейчас";
+            variant: ButtonVariant.danger;
+            icon: Icons.play-arrow;
+            has-icon: true;
+            enabled: App.online && root.picked >= 0;
+            tooltip: "Прервать текущий элемент";
+            clicked => {
+                Air.ad-break(root.picked, true);
+            }
+        }
+    }
+}
+
+component GraphicsTab inherits VerticalLayout {
+    spacing: 0;
+    if Air.graphics.length == 0: Label {
+        text: "Элементы графики не настроены";
+        color: Theme.color.on-surface-variant;
+    }
+    ListView {
+        vertical-stretch: 1;
+        min-height: 120px;
+        for g in Air.graphics: ListRow {
+            focusable: false;
+            VerticalLayout {
+                alignment: center;
+                StatusChip {
+                    width: 100px;
+                    text: g.on ? "в эфире" : "скрыт";
+                    tone: g.on ? StatusTone.live : StatusTone.idle;
+                    icon: g.on ? Icons.visibility : Icons.visibility-off;
+                }
+            }
+            VerticalLayout {
+                horizontal-stretch: 1;
+                alignment: center;
+                Label {
+                    text: g.name;
+                }
+                Label {
+                    text: g.kind + " · слой " + g.layer;
+                    type-style: Theme.label-small;
+                    color: Theme.color.on-surface-variant;
+                }
+            }
+            VerticalLayout {
+                alignment: center;
+                IconButton {
+                    width: 32px;
+                    height: 32px;
+                    icon: Icons.visibility;
+                    tooltip: "Показать";
+                    enabled: App.online;
+                    clicked => {
+                        Air.graphic(g.id, "show");
+                    }
+                }
+            }
+            VerticalLayout {
+                alignment: center;
+                IconButton {
+                    width: 32px;
+                    height: 32px;
+                    icon: Icons.visibility-off;
+                    tooltip: "Скрыть";
+                    enabled: App.online;
+                    clicked => {
+                        Air.graphic(g.id, "hide");
+                    }
+                }
+            }
+            VerticalLayout {
+                alignment: center;
+                IconButton {
+                    width: 32px;
+                    height: 32px;
+                    icon: Icons.motion-photos-on;
+                    tooltip: "По правилам (снять ручное управление)";
+                    enabled: App.online;
+                    clicked => {
+                        Air.graphic(g.id, "auto");
+                    }
+                }
+            }
+        }
+    }
+}
+
+component TickerTab inherits VerticalLayout {
+    spacing: Theme.sp3;
+    alignment: start;
+    Label {
+        text: "Текст переменной {ticker} для бегущей строки";
+        color: Theme.color.on-surface-variant;
+    }
+    TextField {
+        label: "Бегущая строка";
+        text <=> Air.ticker;
+        placeholder: "Пусто — строка скрыта";
+        container-color: Theme.color.surface-container-low;
+        accepted(t) => {
+            Air.apply-ticker(t);
+        }
+    }
+    HorizontalLayout {
+        spacing: Theme.sp2;
+        alignment: start;
+        Button {
+            text: "Применить";
+            enabled: App.online;
+            clicked => {
+                Air.apply-ticker(Air.ticker);
+            }
+        }
+        Button {
+            text: "Очистить";
+            variant: ButtonVariant.text;
+            enabled: App.online;
+            clicked => {
+                Air.ticker = "";
+                Air.apply-ticker("");
+            }
+        }
+    }
+}
+
+export component QuickActions inherits Rectangle {
+    border-radius: Theme.radius-l;
+    background: Theme.color.surface-container-low;
+
+    VerticalLayout {
+        padding: Theme.sp3;
+        spacing: Theme.sp3;
+        SegmentedButton {
+            segments: [
+                { text: "Ролик", icon: Icons.movie, has-icon: true },
+                { text: "Реклама", icon: Icons.campaign, has-icon: true },
+                { text: "Графика", icon: Icons.branding-watermark, has-icon: true },
+                { text: "Строка", icon: Icons.subtitles, has-icon: true },
+            ];
+            selected <=> Air.quick-tab;
+        }
+        if Air.quick-tab == 0: ClipTab {
+            vertical-stretch: 1;
+        }
+        if Air.quick-tab == 1: AdTab {
+            vertical-stretch: 1;
+        }
+        if Air.quick-tab == 2: GraphicsTab {
+            vertical-stretch: 1;
+        }
+        if Air.quick-tab == 3: TickerTab {
+            vertical-stretch: 1;
+        }
+    }
+}

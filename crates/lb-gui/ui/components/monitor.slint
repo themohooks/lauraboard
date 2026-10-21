@@ -1,0 +1,135 @@
+// Video monitor: keeps the frame aspect ratio, tally border (PGM = live
+// red, NEXT/preview = green), minimal overlay (role chip, timecode, item
+// progress), "no signal" placeholder. Double click asks for fullscreen.
+// TimeDisplay: labelled time value with jitter-free digits.
+
+import { Theme } from "../theme/tokens.slint";
+import { Icons } from "../theme/icons.slint";
+import { Icon } from "icon.slint";
+import { Label } from "label.slint";
+import { StatusChip, StatusTone } from "indicators.slint";
+
+export enum MonitorRole { program, next }
+
+export component Monitor inherits Rectangle {
+    in property <image> frame;
+    in property <bool> has-frame: false;
+    in property <MonitorRole> role: MonitorRole.program;
+    in property <bool> live: false;
+    in property <string> caption;
+    in property <string> timecode;
+    in property <float> progress: -1;
+    in property <float> aspect: 16 / 9;
+    in property <string> placeholder: "Нет сигнала";
+    callback fullscreen();
+
+    property <color> tally: role == MonitorRole.program ? (live ? Theme.status.live : Theme.color.outline) : Theme.status.preview;
+
+    // aspect-fit box inside the allotted area
+    property <length> box-w: min(self.width, self.height * aspect);
+    property <length> box-h: box-w / aspect;
+
+    background: transparent;
+    accessible-role: image;
+    accessible-label: (role == MonitorRole.program ? "Монитор эфира" : "Следующий материал") + (caption != "" ? ": " + caption : "");
+
+    screen := Rectangle {
+        x: (root.width - root.box-w) / 2;
+        y: (root.height - root.box-h) / 2;
+        width: root.box-w;
+        height: root.box-h;
+        background: #000000;
+        border-radius: Theme.radius-s;
+        border-width: 3px;
+        border-color: root.tally;
+        clip: true;
+
+        if root.has-frame: Image {
+            x: 3px;
+            y: 3px;
+            width: parent.width - 6px;
+            height: parent.height - 6px;
+            source: root.frame;
+            image-fit: contain;
+        }
+        if !root.has-frame: VerticalLayout {
+            alignment: center;
+            spacing: Theme.sp2;
+            HorizontalLayout {
+                alignment: center;
+                Icon {
+                    source: Icons.videocam;
+                    size: 40px;
+                    tint: #ffffff60;
+                }
+            }
+            Label {
+                text: root.placeholder;
+                horizontal-alignment: center;
+                color: #ffffffa0;
+            }
+        }
+
+        // overlay: role + caption
+        StatusChip {
+                x: 10px;
+                y: 10px;
+                width: self.preferred-width;
+                text: root.role == MonitorRole.program ? (root.live ? "PGM · В ЭФИРЕ" : "PGM") : "ДАЛЕЕ";
+                tone: root.role == MonitorRole.program ? (root.live ? StatusTone.live : StatusTone.idle) : StatusTone.preview;
+                strong: true;
+        }
+        if root.timecode != "": Rectangle {
+            x: parent.width - self.width - 10px;
+            y: 10px;
+            width: tc.preferred-width + 16px;
+            height: 28px;
+            border-radius: Theme.radius-s;
+            background: #000000a0;
+            tc := Label {
+                text: root.timecode;
+                type-style: Theme.title-small;
+                mono: true;
+                color: #ffffff;
+            }
+        }
+        if root.progress >= 0: Rectangle {
+            y: parent.height - 7px;
+            x: 3px;
+            width: parent.width - 6px;
+            height: 4px;
+            background: #ffffff30;
+            Rectangle {
+                x: 0;
+                width: parent.width * clamp(root.progress, 0, 1);
+                background: root.tally;
+            }
+        }
+
+        TouchArea {
+            double-clicked => {
+                root.fullscreen();
+            }
+        }
+    }
+}
+
+export component TimeDisplay inherits VerticalLayout {
+    in property <string> label;
+    in property <string> value;
+    in property <bool> large: false;
+    in property <color> value-color: Theme.color.on-surface;
+    spacing: 0;
+    Label {
+        text: root.label;
+        type-style: Theme.label-small;
+        color: Theme.color.on-surface-variant;
+    }
+    Label {
+        text: root.value;
+        type-style: root.large ? Theme.headline-small : Theme.title-medium;
+        mono: true;
+        color: root.value-color;
+        min-width: self.preferred-width;
+    }
+}

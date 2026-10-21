@@ -1,0 +1,151 @@
+// Ad / promo / filler policies and transitions.
+
+import { ScrollView } from "std-widgets.slint";
+import { Theme } from "../../theme/tokens.slint";
+import { Icons } from "../../theme/icons.slint";
+import { Label } from "../../components/label.slint";
+import { TextField } from "../../components/text-field.slint";
+import { Switch } from "../../components/switch.slint";
+import { Rules } from "../../state/rules-state.slint";
+import { FormSection, ToggleChips } from "form-parts.slint";
+
+export component PoliciesEditor inherits ScrollView {
+    VerticalLayout {
+        width: root.visible-width;
+        padding-top: Theme.sp2;
+        spacing: Theme.sp3;
+        padding-right: Theme.sp3;
+        alignment: start;
+        if Rules.e-policy != "": Label {
+            text: Rules.e-policy;
+            color: Theme.color.error;
+        }
+        FormSection {
+            title: "Реклама";
+            icon: Icons.campaign;
+            HorizontalLayout {
+                spacing: Theme.sp3;
+                TextField {
+                    horizontal-stretch: 1;
+                    label: "Рекламных блоков в сутки, не более";
+                    text <=> Rules.p-ads-max;
+                    supporting: "пусто — без ограничения";
+                    edited => {
+                        Rules.policy-changed();
+                    }
+                }
+                TextField {
+                    horizontal-stretch: 1;
+                    label: "Минимальный интервал между блоками";
+                    text <=> Rules.p-ads-interval;
+                    placeholder: "00:15:00";
+                    edited => {
+                        Rules.policy-changed();
+                    }
+                }
+            }
+        }
+        FormSection {
+            title: "Анонсы";
+            icon: Icons.event;
+            HorizontalLayout {
+                spacing: Theme.sp3;
+                TextField {
+                    horizontal-stretch: 1;
+                    label: "Анонсировать передачи на горизонте";
+                    text <=> Rules.p-promo-lookahead;
+                    placeholder: "24:00:00";
+                    edited => {
+                        Rules.policy-changed();
+                    }
+                }
+                TextField {
+                    horizontal-stretch: 1;
+                    label: "Повтор одного анонса не чаще";
+                    text <=> Rules.p-promo-interval;
+                    edited => {
+                        Rules.policy-changed();
+                    }
+                }
+            }
+        }
+        FormSection {
+            title: "Заполнение пустот";
+            icon: Icons.queue-music;
+            TextField {
+                label: "Категории заполнения (через запятую)";
+                text <=> Rules.p-filler-cats;
+                edited => {
+                    Rules.policy-changed();
+                }
+            }
+            HorizontalLayout {
+                spacing: Theme.sp3;
+                TextField {
+                    horizontal-stretch: 1;
+                    label: "Минимальная пустота для заполнения";
+                    text <=> Rules.p-filler-min;
+                    edited => {
+                        Rules.policy-changed();
+                    }
+                }
+                TextField {
+                    horizontal-stretch: 1;
+                    label: "Повтор ролика не чаще";
+                    text <=> Rules.p-filler-interval;
+                    edited => {
+                        Rules.policy-changed();
+                    }
+                }
+            }
+            Switch {
+                text: "Использовать анонсы для заполнения";
+                checked <=> Rules.p-filler-promos;
+                toggled => {
+                    Rules.policy-changed();
+                }
+            }
+        }
+    }
+}
+
+export component TransitionsEditor inherits VerticalLayout {
+    spacing: Theme.sp3;
+    alignment: start;
+    FormSection {
+        title: "Переходы между роликами";
+        hint: "затемнение кадра и звука";
+        icon: Icons.animation;
+        TextField {
+            width: 260px;
+            label: "Длительность затемнения, мс";
+            text <=> Rules.t-fade;
+            error: Rules.e-fade;
+            supporting: "0 — без перехода, до 5000";
+            edited => {
+                Rules.transitions-changed();
+            }
+        }
+        Label {
+            text: "Применять перед роликами типов (ничего не выбрано — ко всем)";
+            type-style: Theme.label-medium;
+            color: Theme.color.on-surface-variant;
+        }
+        ToggleChips {
+            labels: ["Передачи", "Заставки", "Реклама", "Анонсы", "Заполнение", "Изображения", "Потоки"];
+            values: Rules.t-kinds;
+            to: 4;
+            toggled(i) => {
+                Rules.toggle-t-kind(i);
+            }
+        }
+        ToggleChips {
+            labels: ["Передачи", "Заставки", "Реклама", "Анонсы", "Заполнение", "Изображения", "Потоки"];
+            values: Rules.t-kinds;
+            from: 4;
+            toggled(i) => {
+                Rules.toggle-t-kind(i);
+            }
+        }
+    }
+}

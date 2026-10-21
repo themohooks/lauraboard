@@ -1,0 +1,63 @@
+// Compact list / table row: selectable, hover state layer, optional
+// "current" accent bar on the left (e.g. the item on air). Content is laid
+// out horizontally by the caller.
+
+import { Theme } from "../theme/tokens.slint";
+import { Interactive } from "interactive.slint";
+
+export component ListRow inherits Interactive {
+    in property <bool> selected;
+    in property <bool> current;
+    in property <color> accent: Theme.status.live;
+    in property <length> padding-x: Theme.sp3;
+    in property <length> gap: Theme.sp3;
+    in property <bool> divider: false;
+
+    height: Theme.row-height;
+    radius: 0;
+    state-tint: Theme.color.on-surface;
+    background: selected ? Theme.color.secondary-container
+        : current ? root.accent.with-alpha(Theme.dark ? 0.16 : 0.10)
+        : transparent;
+    accessible-role: list-item;
+    accessible-item-selectable: true;
+    accessible-item-selected: selected;
+
+    if root.current: Rectangle {
+        x: 0;
+        width: 3px;
+        background: root.accent;
+    }
+
+    HorizontalLayout {
+        padding-left: root.padding-x;
+        padding-right: root.padding-x;
+        spacing: root.gap;
+        @children
+    }
+
+    if root.divider: Rectangle {
+        y: parent.height - 1px;
+        height: 1px;
+        background: Theme.color.outline-variant.with-alpha(0.6);
+    }
+}
+
+// Table header row (sticky header for lists).
+export component ListHeader inherits Rectangle {
+    in property <length> padding-x: Theme.sp3;
+    in property <length> gap: Theme.sp3;
+    height: Theme.compact ? 28px : 32px;
+    background: Theme.color.surface-container;
+    HorizontalLayout {
+        padding-left: root.padding-x;
+        padding-right: root.padding-x;
+        spacing: root.gap;
+        @children
+    }
+    Rectangle {
+        y: parent.height - 1px;
+        height: 1px;
+        background: Theme.color.outline-variant;
+    }
+}

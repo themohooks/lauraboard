@@ -1,0 +1,214 @@
+// Timeline card: date navigation, go-to-time, zoom, plan status; the day
+// timeline (planned + actual) or the multi-day overview.
+
+import { Theme } from "../../theme/tokens.slint";
+import { Icons } from "../../theme/icons.slint";
+import { Label } from "../../components/label.slint";
+import { IconButton } from "../../components/icon-button.slint";
+import { Button, ButtonVariant } from "../../components/button.slint";
+import { TextField } from "../../components/text-field.slint";
+import { Select } from "../../components/select.slint";
+import { StatusChip, StatusTone } from "../../components/indicators.slint";
+import { CircularProgress } from "../../components/feedback.slint";
+import { Timeline, MultiDayStrip } from "../../components/timeline.slint";
+import { Grid } from "../../state/schedule-state.slint";
+import { App } from "../../state/app-state.slint";
+
+export component TimelinePanel inherits Rectangle {
+    border-radius: Theme.radius-l;
+    background: Theme.color.surface-container-low;
+
+    VerticalLayout {
+        padding: Theme.sp3;
+        spacing: Theme.sp3;
+        alignment: start;
+
+        HorizontalLayout {
+            spacing: Theme.sp2;
+            if Grid.mode == 0: VerticalLayout {
+                alignment: center;
+                IconButton {
+                    icon: Icons.chevron-left;
+                    tooltip: "Предыдущий день";
+                    clicked => {
+                        Grid.shift-date(-1);
+                    }
+                }
+            }
+            Label {
+                text: Grid.date-label;
+                type-style: Theme.title-medium;
+                vertical-alignment: center;
+                // narrow window: the long date line gives way to the controls
+                min-width: App.narrow ? 120px : self.preferred-width;
+                horizontal-stretch: App.narrow ? 1 : 0;
+                overflow: elide;
+            }
+            if Grid.mode == 0: VerticalLayout {
+                alignment: center;
+                IconButton {
+                    icon: Icons.chevron-right;
+                    tooltip: "Следующий день";
+                    clicked => {
+                        Grid.shift-date(1);
+                    }
+                }
+            }
+            if Grid.mode == 0: VerticalLayout {
+                alignment: center;
+                Button {
+                    text: "Сейчас";
+                    variant: ButtonVariant.tonal;
+                    icon: Icons.my-location;
+                    has-icon: true;
+                    tooltip: "Сегодня, текущий блок в центре";
+                    clicked => {
+                        Grid.today();
+                    }
+                }
+            }
+            if Grid.mode == 0: TextField {
+                width: 140px;
+                label: "Перейти к";
+                placeholder: "ЧЧ:ММ";
+                mono: true;
+                text <=> Grid.goto;
+                error: Grid.goto-error;
+                container-color: Theme.color.surface-container-low;
+                accepted(t) => {
+                    Grid.goto-time(t);
+                }
+            }
+            if Grid.mode == 0: VerticalLayout {
+                alignment: center;
+                IconButton {
+                    icon: Icons.zoom-out;
+                    tooltip: "Уменьшить масштаб (Ctrl+колесо)";
+                    clicked => {
+                        Grid.view-start = Grid.view-start - Grid.view-span / 2;
+                        Grid.view-span = min(Grid.view-span * 2, 1440);
+                        Grid.view-start = max(0, min(Grid.view-start, 1440 - Grid.view-span));
+                        Grid.view-changed();
+                    }
+                }
+            }
+            if Grid.mode == 0: VerticalLayout {
+                alignment: center;
+                IconButton {
+                    icon: Icons.zoom-in;
+                    tooltip: "Увеличить масштаб (Ctrl+колесо)";
+                    clicked => {
+                        Grid.view-start = Grid.view-start + Grid.view-span / 4;
+                        Grid.view-span = max(Grid.view-span / 2, 30);
+                        Grid.view-changed();
+                    }
+                }
+            }
+            if Grid.mode == 0: VerticalLayout {
+                alignment: center;
+                Button {
+                    text: "Весь день";
+                    variant: ButtonVariant.text;
+                    clicked => {
+                        Grid.view-start = 0;
+                        Grid.view-span = 1440;
+                        Grid.view-changed();
+                    }
+                }
+            }
+            if Grid.mode == 1: Select {
+                width: 160px;
+                options: ["3 суток", "7 суток", "14 суток"];
+                current-index <=> Grid.days-count-index;
+                selected => {
+                    Grid.mode-changed();
+                }
+            }
+            Rectangle {
+                horizontal-stretch: 1;
+            }
+            if Grid.planning: VerticalLayout {
+                alignment: center;
+                CircularProgress {
+                    size: 20px;
+                }
+            }
+        }
+
+        if Grid.mode == 0: Timeline {
+            height: 150px;
+            segments: Grid.segments;
+            view-start <=> Grid.view-start;
+            view-span <=> Grid.view-span;
+            now: Grid.now;
+            snap: 5;
+            segment-clicked(i) => {
+                Grid.segment-clicked(i);
+            }
+            segment-double-clicked(i) => {
+                Grid.segment-clicked(i);
+                Grid.details-open = true;
+            }
+            segment-moved(i, m) => {
+                Grid.segment-moved(i, m);
+            }
+            view-changed => {
+                Grid.view-changed();
+            }
+        }
+        if Grid.mode == 1: MultiDayStrip {
+            days: Grid.day-rows;
+            now-day: 0;
+            now: Grid.now;
+        }
+        HorizontalLayout {
+            spacing: Theme.sp2;
+            VerticalLayout {
+                alignment: center;
+                StatusChip {
+                    text: Grid.gaps == 0 ? "Без пустот" : "Пустот: " + Grid.gaps;
+                    tone: Grid.gaps == 0 ? StatusTone.success : StatusTone.error;
+                }
+            }
+            VerticalLayout {
+                alignment: center;
+                StatusChip {
+                    text: Grid.conflicts == 0 ? "Без конфликтов" : "Предупреждений: " + Grid.conflicts;
+                    tone: Grid.conflicts == 0 ? StatusTone.success : StatusTone.warning;
+                }
+            }
+            Label {
+                horizontal-stretch: 1;
+                text: Grid.plan-note;
+                type-style: Theme.body-small;
+                color: Theme.color.on-surface-variant;
+                vertical-alignment: center;
+            }
+        }
+        if Grid.warnings.length > 0: VerticalLayout {
+            spacing: 2px;
+            for w[i] in Grid.warnings: HorizontalLayout {
+                visible: i < 4;
+                height: i < 4 ? self.preferred-height : 0;
+                spacing: Theme.sp2;
+                Image {
+                    width: 16px;
+                    height: 16px;
+                    source: Icons.warning;
+                    colorize: Theme.status.warning;
+                }
+                Label {
+                    horizontal-stretch: 1;
+                    text: w;
+                    type-style: Theme.body-small;
+                    color: Theme.color.on-surface-variant;
+                }
+            }
+            if Grid.warnings.length > 4: Label {
+                text: "и ещё " + (Grid.warnings.length - 4) + " — полный список в разделе «Эфир»";
+                type-style: Theme.body-small;
+                color: Theme.color.on-surface-variant;
+            }
+        }
+    }
+}

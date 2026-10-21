@@ -1,0 +1,204 @@
+// Frame canvas: background (exact render / live air / none), safe area,
+// element boxes with move / resize handles, snapping guides. Arrow keys
+// nudge the selection (Shift = 10 px).
+
+import { Theme } from "../../theme/tokens.slint";
+import { Label } from "../../components/label.slint";
+import { Kinds } from "../../components/indicators.slint";
+import { Gfx, CanvasItem } from "../../state/graphics-state.slint";
+
+component Handle inherits Rectangle {
+    in property <int> element;
+    in property <int> handle;
+    in property <float> scale;
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+    background: Theme.color.surface;
+    border-width: 2px;
+    border-color: Theme.color.primary;
+    TouchArea {
+        mouse-cursor: root.handle == 0 || root.handle == 4 ? MouseCursor.nwse-resize
+            : root.handle == 2 || root.handle == 6 ? MouseCursor.nesw-resize
+            : root.handle == 1 || root.handle == 5 ? MouseCursor.ns-resize
+            : MouseCursor.ew-resize;
+        pointer-event(e) => {
+            if e.kind == PointerEventKind.down {
+                Gfx.drag-start(root.element, root.handle);
+            }
+            if e.kind == PointerEventKind.up {
+                Gfx.drag-end();
+            }
+        }
+        moved => {
+            if self.pressed {
+                Gfx.drag-move(root.element, root.handle, (self.mouse-x - self.pressed-x) / 1px / root.scale, (self.mouse-y - self.pressed-y) / 1px / root.scale);
+            }
+        }
+    }
+}
+
+component ItemBox inherits Rectangle {
+    in property <CanvasItem> item;
+    in property <float> scale;
+    property <bool> sel: Gfx.selected == item.index;
+    x: item.x * scale * 1px;
+    y: item.y * scale * 1px;
+    width: max(4px, item.w * scale * 1px);
+    height: max(4px, item.h * scale * 1px);
+    visible: !item.hidden;
+    border-width: sel ? 2px : 1px;
+    border-color: sel ? Theme.color.primary : (item.on-air ? Theme.status.live : #ffffff80);
+    background: sel ? Theme.color.primary.with-alpha(0.08) : transparent;
+
+    if !root.sel && root.width > 50px: Rectangle {
+        x: 0;
+        y: -16px;
+        width: tag.preferred-width + 8px;
+        height: 16px;
+        border-radius: 3px;
+        background: #000000a0;
+        tag := Label {
+            text: root.item.name;
+            type-style: Theme.label-small;
+            color: #ffffff;
+        }
+    }
+
+    TouchArea {
+        mouse-cursor: root.item.locked ? MouseCursor.not-allowed : MouseCursor.move;
+        pointer-event(e) => {
+            if e.kind == PointerEventKind.down {
+                Gfx.select(root.item.index);
+                focus.focus();
+                if !root.item.locked {
+                    Gfx.drag-start(root.item.index, -1);
+                }
+            }
+            if e.kind == PointerEventKind.up && !root.item.locked {
+                Gfx.drag-end();
+            }
+        }
+        moved => {
+            if self.pressed && !root.item.locked {
+                Gfx.drag-move(root.item.index, -1, (self.mouse-x - self.pressed-x) / 1px / root.scale, (self.mouse-y - self.pressed-y) / 1px / root.scale);
+            }
+        }
+    }
+
+    focus := FocusScope {
+        width: 0;
+        height: 0;
+        key-pressed(e) => {
+            let step = e.modifiers.shift ? 10 : 1;
+            if e.text == Key.LeftArrow {
+                Gfx.nudge(-step, 0);
+                return accept;
+            }
+            if e.text == Key.RightArrow {
+                Gfx.nudge(step, 0);
+                return accept;
+            }
+            if e.text == Key.UpArrow {
+                Gfx.nudge(0, -step);
+                return accept;
+            }
+            if e.text == Key.DownArrow {
+                Gfx.nudge(0, step);
+                return accept;
+            }
+            if e.text == Key.Delete {
+                Gfx.remove();
+                return accept;
+            }
+            reject
+        }
+    }
+
+    if root.sel && !root.item.locked: Rectangle {
+        // handles: 0 tl, 1 t, 2 tr, 3 r, 4 br, 5 b, 6 bl, 7 l
+        Handle { x: -5px; y: -5px; element: root.item.index; handle: 0; scale: root.scale; }
+        Handle { x: root.width / 2 - 5px; y: -5px; element: root.item.index; handle: 1; scale: root.scale; }
+        Handle { x: root.width - 5px; y: -5px; element: root.item.index; handle: 2; scale: root.scale; }
+        Handle { x: root.width - 5px; y: root.height / 2 - 5px; element: root.item.index; handle: 3; scale: root.scale; }
+        Handle { x: root.width - 5px; y: root.height - 5px; element: root.item.index; handle: 4; scale: root.scale; }
+        Handle { x: root.width / 2 - 5px; y: root.height - 5px; element: root.item.index; handle: 5; scale: root.scale; }
+        Handle { x: -5px; y: root.height - 5px; element: root.item.index; handle: 6; scale: root.scale; }
+        Handle { x: -5px; y: root.height / 2 - 5px; element: root.item.index; handle: 7; scale: root.scale; }
+    }
+}
+
+export component GfxCanvas inherits Rectangle {
+    property <float> aspect: Gfx.frame-w / max(Gfx.frame-h, 1);
+    property <length> box-w: min(self.width, self.height * aspect);
+    property <length> box-h: box-w / aspect;
+    property <float> scale: box-w / 1px / max(Gfx.frame-w, 1);
+
+    background: Theme.color.surface-container-lowest;
+    border-radius: Theme.radius-m;
+    clip: true;
+
+    frame := Rectangle {
+        x: (root.width - root.box-w) / 2;
+        y: (root.height - root.box-h) / 2;
+        width: root.box-w;
+        height: root.box-h;
+        // checkerboard-free neutral background so transparent graphics stay visible
+        background: #3a3d44;
+        clip: true;
+
+        TouchArea {
+            clicked => {
+                Gfx.select(-1);
+            }
+        }
+
+        if Gfx.has-background && Gfx.bg-mode != 2: Image {
+            width: 100%;
+            height: 100%;
+            source: Gfx.anim-playing && Gfx.anim-frames.length > 0 ? Gfx.anim-frames[Gfx.anim-index] : Gfx.background;
+            image-fit: fill;
+        }
+
+        if Gfx.safe-area: Rectangle {
+            x: parent.width * 0.05;
+            y: parent.height * 0.05;
+            width: parent.width * 0.9;
+            height: parent.height * 0.9;
+            border-width: 1px;
+            border-color: #ffd54f90;
+        }
+
+        for it in Gfx.items: ItemBox {
+            item: it;
+            scale: root.scale;
+        }
+
+        for g in Gfx.vguides: Rectangle {
+            x: g * root.scale * 1px;
+            width: 1px;
+            background: #ff4081;
+        }
+        for g in Gfx.hguides: Rectangle {
+            y: g * root.scale * 1px;
+            height: 1px;
+            background: #ff4081;
+        }
+    }
+
+    Label {
+        x: frame.x + frame.width - self.width - 8px;
+        y: frame.y + frame.height + 2px - self.height - 6px;
+        text: round(Gfx.frame-w) + "×" + round(Gfx.frame-h) + " · " + round(root.scale * 100) + "%";
+        type-style: Theme.label-small;
+        color: #ffffffa0;
+    }
+
+    Timer {
+        interval: 80ms;
+        running: Gfx.anim-playing && Gfx.anim-frames.length > 0;
+        triggered => {
+            Gfx.anim-index = mod(Gfx.anim-index + 1, Gfx.anim-frames.length);
+        }
+    }
+}

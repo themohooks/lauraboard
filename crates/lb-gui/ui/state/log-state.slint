@@ -1,0 +1,24 @@
+// Data contract of the event log (src/bridge/log.rs).
+
+import { LogRow } from "air-state.slint";
+
+export global Log {
+    // 0 live events (WebSocket), 1 server log file
+    in-out property <int> tab;
+    in property <[LogRow]> rows;
+    in property <int> total;
+    in-out property <string> query;
+    in-out property <bool> show-info: true;
+    in-out property <bool> show-warning: true;
+    in-out property <bool> show-critical: true;
+    // frozen list: new events are counted, not shown
+    in-out property <bool> paused;
+    in property <int> unseen;
+    in property <bool> loading;
+
+    callback refresh-list();
+    callback pause(bool);
+    callback clear();
+    callback reload();
+    callback export();
+}

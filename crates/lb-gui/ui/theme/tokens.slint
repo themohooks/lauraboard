@@ -1,0 +1,277 @@
+// Material 3 design tokens: color roles (light / dark), typography,
+// spacing, shape, motion and density. Every component reads only from here.
+
+import { Palette } from "std-widgets.slint";
+
+export struct ColorRoles {
+    primary: color,
+    on-primary: color,
+    primary-container: color,
+    on-primary-container: color,
+    secondary: color,
+    on-secondary: color,
+    secondary-container: color,
+    on-secondary-container: color,
+    tertiary: color,
+    on-tertiary: color,
+    tertiary-container: color,
+    on-tertiary-container: color,
+    error: color,
+    on-error: color,
+    error-container: color,
+    on-error-container: color,
+    surface: color,
+    on-surface: color,
+    on-surface-variant: color,
+    surface-container-lowest: color,
+    surface-container-low: color,
+    surface-container: color,
+    surface-container-high: color,
+    surface-container-highest: color,
+    surface-bright: color,
+    outline: color,
+    outline-variant: color,
+    inverse-surface: color,
+    inverse-on-surface: color,
+    inverse-primary: color,
+    scrim: color,
+    shadow: color,
+}
+
+// Status palette for broadcast states (always paired with an icon and a label).
+export struct StatusRoles {
+    live: color,                // program / on-air tally
+    on-live: color,
+    live-container: color,
+    on-live-container: color,
+    preview: color,             // preview / next tally
+    preview-container: color,
+    on-preview-container: color,
+    success: color,
+    success-container: color,
+    on-success-container: color,
+    warning: color,
+    warning-container: color,
+    on-warning-container: color,
+    idle: color,
+    idle-container: color,
+    on-idle-container: color,
+}
+
+// Content kinds (program, jingle, ad, promo, filler, image, stream).
+export struct KindRoles {
+    program: color,
+    jingle: color,
+    ad: color,
+    promo: color,
+    filler: color,
+    image: color,
+    stream: color,
+}
+
+export struct TypeStyle {
+    size: length,
+    line: length,
+    weight: int,
+    tracking: length,
+}
+
+export enum ThemeMode { system, light, dark }
+
+export global Theme {
+    // ---- inputs (set from Rust / settings)
+    in-out property <ThemeMode> mode: ThemeMode.system;
+    in-out property <bool> animations: true;
+    in-out property <bool> compact: false;
+
+    // ---- resolved scheme
+    out property <bool> dark: mode == ThemeMode.dark || (mode == ThemeMode.system && Palette.color-scheme == ColorScheme.dark);
+
+    out property <ColorRoles> light-roles: {
+        primary: #415f91,
+        on-primary: #ffffff,
+        primary-container: #d6e3ff,
+        on-primary-container: #001b3e,
+        secondary: #565f71,
+        on-secondary: #ffffff,
+        secondary-container: #dae2f9,
+        on-secondary-container: #131c2b,
+        tertiary: #705575,
+        on-tertiary: #ffffff,
+        tertiary-container: #fad8fd,
+        on-tertiary-container: #28132e,
+        error: #ba1a1a,
+        on-error: #ffffff,
+        error-container: #ffdad6,
+        on-error-container: #410002,
+        surface: #f9f9ff,
+        on-surface: #191c20,
+        on-surface-variant: #44474e,
+        surface-container-lowest: #ffffff,
+        surface-container-low: #f3f3fa,
+        surface-container: #ededf4,
+        surface-container-high: #e7e8ee,
+        surface-container-highest: #e2e2e9,
+        surface-bright: #f9f9ff,
+        outline: #74777f,
+        outline-variant: #c4c6d0,
+        inverse-surface: #2e3036,
+        inverse-on-surface: #f0f0f7,
+        inverse-primary: #aac7ff,
+        scrim: #000000,
+        shadow: #000000,
+    };
+
+    // Dark scheme: no pure white, low-luminance tonal surfaces for long sessions.
+    out property <ColorRoles> dark-roles: {
+        primary: #aac7ff,
+        on-primary: #0a305f,
+        primary-container: #284777,
+        on-primary-container: #d6e3ff,
+        secondary: #bec6dc,
+        on-secondary: #283141,
+        secondary-container: #3e4759,
+        on-secondary-container: #dae2f9,
+        tertiary: #ddbce0,
+        on-tertiary: #3f2844,
+        tertiary-container: #573e5c,
+        on-tertiary-container: #fad8fd,
+        error: #ffb4ab,
+        on-error: #690005,
+        error-container: #93000a,
+        on-error-container: #ffdad6,
+        surface: #111318,
+        on-surface: #e2e2e9,
+        on-surface-variant: #c4c6d0,
+        surface-container-lowest: #0c0e13,
+        surface-container-low: #191c20,
+        surface-container: #1d2024,
+        surface-container-high: #282a2f,
+        surface-container-highest: #33353a,
+        surface-bright: #37393e,
+        outline: #8e9099,
+        outline-variant: #44474e,
+        inverse-surface: #e2e2e9,
+        inverse-on-surface: #2e3036,
+        inverse-primary: #415f91,
+        scrim: #000000,
+        shadow: #000000,
+    };
+
+    out property <StatusRoles> light-status: {
+        live: #c62828,
+        on-live: #ffffff,
+        live-container: #ffdad5,
+        on-live-container: #410001,
+        preview: #2e7d32,
+        preview-container: #c8f0c4,
+        on-preview-container: #002204,
+        success: #2e7d32,
+        success-container: #c8f0c4,
+        on-success-container: #002204,
+        warning: #8a5100,
+        warning-container: #ffdcbd,
+        on-warning-container: #2c1600,
+        idle: #5d5e66,
+        idle-container: #e2e2e9,
+        on-idle-container: #1a1b21,
+    };
+
+    out property <StatusRoles> dark-status: {
+        live: #ff5449,
+        on-live: #410001,
+        live-container: #8c1d18,
+        on-live-container: #ffdad5,
+        preview: #8fd88b,
+        preview-container: #1f5223,
+        on-preview-container: #c8f0c4,
+        success: #8fd88b,
+        success-container: #1f5223,
+        on-success-container: #c8f0c4,
+        warning: #ffb870,
+        warning-container: #6a3c00,
+        on-warning-container: #ffdcbd,
+        idle: #c6c6d0,
+        idle-container: #33353a,
+        on-idle-container: #e2e2e9,
+    };
+
+    out property <KindRoles> light-kinds: {
+        program: #3b6fd4,
+        jingle: #8a4fc9,
+        ad: #c66a00,
+        promo: #00897b,
+        filler: #6b6f78,
+        image: #7d6650,
+        stream: #c2185b,
+    };
+
+    out property <KindRoles> dark-kinds: {
+        program: #8fb4ff,
+        jingle: #d3a8ff,
+        ad: #ffb36b,
+        promo: #6fdac9,
+        filler: #a9adb6,
+        image: #c8ad94,
+        stream: #ff8db6,
+    };
+
+    out property <ColorRoles> color: dark ? dark-roles : light-roles;
+    out property <StatusRoles> status: dark ? dark-status : light-status;
+    out property <KindRoles> kind: dark ? dark-kinds : light-kinds;
+
+    // ---- state layer opacities (M3)
+    out property <float> hover-opacity: 0.08;
+    out property <float> focus-opacity: 0.10;
+    out property <float> pressed-opacity: 0.10;
+    out property <float> drag-opacity: 0.16;
+    out property <float> disabled-content: 0.38;
+    out property <float> disabled-container: 0.12;
+
+    // ---- typography (M3 type scale, desktop sizes)
+    out property <string> font: "Roboto";
+    out property <string> mono-font: "Roboto Mono";
+    out property <TypeStyle> display-small: { size: 36px, line: 44px, weight: 400, tracking: 0px };
+    out property <TypeStyle> headline-medium: { size: 28px, line: 36px, weight: 400, tracking: 0px };
+    out property <TypeStyle> headline-small: { size: 24px, line: 32px, weight: 400, tracking: 0px };
+    out property <TypeStyle> title-large: { size: 22px, line: 28px, weight: 400, tracking: 0px };
+    out property <TypeStyle> title-medium: { size: 16px, line: 24px, weight: 500, tracking: 0.15px };
+    out property <TypeStyle> title-small: { size: 14px, line: 20px, weight: 500, tracking: 0.1px };
+    out property <TypeStyle> body-large: { size: 16px, line: 24px, weight: 400, tracking: 0.5px };
+    out property <TypeStyle> body-medium: { size: 14px, line: 20px, weight: 400, tracking: 0.25px };
+    out property <TypeStyle> body-small: { size: 12px, line: 16px, weight: 400, tracking: 0.4px };
+    out property <TypeStyle> label-large: { size: 14px, line: 20px, weight: 500, tracking: 0.1px };
+    out property <TypeStyle> label-medium: { size: 12px, line: 16px, weight: 500, tracking: 0.5px };
+    out property <TypeStyle> label-small: { size: 11px, line: 16px, weight: 500, tracking: 0.5px };
+
+    // ---- spacing (4dp grid)
+    out property <length> sp1: 4px;
+    out property <length> sp2: 8px;
+    out property <length> sp3: 12px;
+    out property <length> sp4: 16px;
+    out property <length> sp5: 20px;
+    out property <length> sp6: 24px;
+    out property <length> sp8: 32px;
+
+    // ---- shape
+    out property <length> radius-xs: 4px;
+    out property <length> radius-s: 8px;
+    out property <length> radius-m: 12px;
+    out property <length> radius-l: 16px;
+    out property <length> radius-xl: 28px;
+    out property <length> radius-full: 999px;
+
+    // ---- sizes (density-aware)
+    out property <length> icon-size: 24px;
+    out property <length> icon-small: 18px;
+    out property <length> control-height: compact ? 32px : 40px;
+    out property <length> row-height: compact ? 32px : 40px;
+    out property <length> row-height-tall: compact ? 48px : 56px;
+    out property <length> touch-target: compact ? 36px : 40px;
+    out property <length> focus-ring: 2px;
+
+    // ---- motion (0 when animations are disabled / reduce-motion)
+    out property <duration> motion-short: animations ? 100ms : 0ms;
+    out property <duration> motion-medium: animations ? 200ms : 0ms;
+    out property <duration> motion-long: animations ? 300ms : 0ms;
+}

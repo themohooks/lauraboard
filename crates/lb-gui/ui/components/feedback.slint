@@ -1,0 +1,102 @@
+// Loading and empty states: LinearProgress (determinate / indeterminate),
+// CircularProgress (indeterminate spinner), Skeleton (shimmer placeholder,
+// static when animations are off), EmptyState.
+
+import { Theme } from "../theme/tokens.slint";
+import { Icon } from "icon.slint";
+import { Label } from "label.slint";
+
+export component LinearProgress inherits Rectangle {
+    in property <float> progress: 0;
+    in property <bool> indeterminate: false;
+    in property <color> fill: Theme.color.primary;
+    height: 4px;
+    border-radius: 2px;
+    background: Theme.color.secondary-container;
+    clip: true;
+    accessible-role: progress-indicator;
+    accessible-value: indeterminate ? "" : round(progress * 100) + "%";
+
+    property <float> phase: Theme.animations && indeterminate ? mod(animation-tick() / 1500ms, 1) : 0.3;
+
+    Rectangle {
+        x: root.indeterminate ? (root.phase * 1.6 - 0.4) * root.width : 0;
+        width: root.indeterminate ? root.width * 0.4 : root.width * clamp(root.progress, 0, 1);
+        border-radius: 2px;
+        background: root.fill;
+    }
+}
+
+export component CircularProgress inherits Rectangle {
+    in property <length> size: 24px;
+    in property <color> fill: Theme.color.primary;
+    width: size;
+    height: size;
+    accessible-role: progress-indicator;
+
+    property <angle> turn: Theme.animations ? mod(animation-tick() / 1000ms, 1) * 360deg : 0deg;
+
+    Path {
+        width: root.size;
+        height: root.size;
+        viewbox-width: 24;
+        viewbox-height: 24;
+        stroke: root.fill;
+        stroke-width: 2.5px;
+        stroke-line-cap: round;
+        transform-rotation: root.turn;
+        transform-origin: { x: root.size / 2, y: root.size / 2 };
+        MoveTo { x: 12; y: 2; }
+        ArcTo { x: 22; y: 12; radius-x: 10; radius-y: 10; sweep: true; }
+        ArcTo { x: 12; y: 22; radius-x: 10; radius-y: 10; sweep: true; }
+        ArcTo { x: 4.93; y: 19.07; radius-x: 10; radius-y: 10; sweep: true; }
+    }
+}
+
+export component Skeleton inherits Rectangle {
+    border-radius: Theme.radius-xs;
+    background: Theme.color.surface-container-highest;
+    clip: true;
+    property <float> phase: Theme.animations ? mod(animation-tick() / 1400ms, 1) : -1;
+    if root.phase >= 0: Rectangle {
+        x: (root.phase * 1.5 - 0.5) * root.width;
+        width: root.width * 0.5;
+        background: @linear-gradient(90deg,
+            Theme.color.surface-container-highest 0%,
+            Theme.color.surface-bright.with-alpha(0.6) 50%,
+            Theme.color.surface-container-highest 100%);
+    }
+}
+
+export component EmptyState inherits VerticalLayout {
+    in property <image> icon;
+    in property <string> title;
+    in property <string> text;
+    alignment: center;
+    spacing: Theme.sp2;
+    padding: Theme.sp6;
+    HorizontalLayout {
+        alignment: center;
+        Icon {
+            source: root.icon;
+            size: 48px;
+            tint: Theme.color.outline;
+        }
+    }
+    Label {
+        text: root.title;
+        type-style: Theme.title-medium;
+        horizontal-alignment: center;
+    }
+    if root.text != "": Label {
+        text: root.text;
+        type-style: Theme.body-medium;
+        color: Theme.color.on-surface-variant;
+        horizontal-alignment: center;
+        wrap: word-wrap;
+    }
+    HorizontalLayout {
+        alignment: center;
+        @children
+    }
+}

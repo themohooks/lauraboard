@@ -1,0 +1,120 @@
+// M3 switch with optional label (click on the label toggles too). The
+// selected handle shows a check icon, so the state does not rely on color.
+
+import { Theme } from "../theme/tokens.slint";
+import { Icons } from "../theme/icons.slint";
+import { Icon } from "icon.slint";
+import { Label } from "label.slint";
+import { StateLayer } from "state-layer.slint";
+import { FocusRing } from "focus-ring.slint";
+
+export component Switch inherits Rectangle {
+    in-out property <bool> checked;
+    in property <string> text;
+    in property <bool> enabled: true;
+    callback toggled(bool);
+
+    function flip() {
+        if root.enabled {
+            root.checked = !root.checked;
+            root.toggled(root.checked);
+        }
+    }
+
+    min-height: Theme.touch-target;
+
+    HorizontalLayout {
+    spacing: Theme.sp3;
+    alignment: start;
+
+    VerticalLayout {
+    alignment: center;
+    track := Rectangle {
+        width: 52px;
+        height: 32px;
+        border-radius: 16px;
+        background: !root.enabled ? (root.checked ? Theme.color.on-surface.with-alpha(Theme.disabled-container) : Theme.color.surface-container-highest.with-alpha(0.12))
+            : root.checked ? Theme.color.primary : Theme.color.surface-container-highest;
+        border-width: root.checked ? 0 : 2px;
+        border-color: !root.enabled ? Theme.color.on-surface.with-alpha(Theme.disabled-container) : Theme.color.outline;
+        animate background { duration: Theme.motion-medium; }
+        accessible-role: switch;
+        accessible-label: root.text;
+        accessible-checked: root.checked;
+        accessible-checkable: true;
+        accessible-action-default => {
+            root.flip();
+        }
+
+        property <length> knob: root.checked || touch.pressed ? 24px : 16px;
+
+        halo := Rectangle {
+            x: (root.checked ? parent.width - 16px : 16px) - 20px;
+            y: (parent.height - 40px) / 2;
+            width: 40px;
+            height: 40px;
+            border-radius: 20px;
+            StateLayer {
+                border-radius: 20px;
+                tint: root.checked ? Theme.color.primary : Theme.color.on-surface;
+                hovered: touch.has-hover;
+                pressed: touch.pressed;
+                focused: focus.has-focus;
+                enabled: root.enabled;
+            }
+            animate x { duration: Theme.motion-medium; easing: ease-out; }
+        }
+
+        Rectangle {
+            x: (root.checked ? parent.width - 16px : 16px) - self.width / 2;
+            y: (parent.height - self.height) / 2;
+            width: parent.knob;
+            height: parent.knob;
+            border-radius: self.width / 2;
+            background: !root.enabled ? (root.checked ? Theme.color.surface : Theme.color.on-surface.with-alpha(Theme.disabled-content))
+                : root.checked ? Theme.color.on-primary : Theme.color.outline;
+            animate x, width, height { duration: Theme.motion-medium; easing: ease-out; }
+            if root.checked: Icon {
+                source: Icons.check;
+                size: 16px;
+                tint: root.enabled ? Theme.color.on-primary-container : Theme.color.on-surface.with-alpha(Theme.disabled-content);
+            }
+        }
+
+        if focus.has-focus: FocusRing {
+            radius: 16px;
+            target-width: track.width;
+            target-height: track.height;
+        }
+    }
+    }
+
+    if root.text != "": Label {
+            min-width: self.preferred-width;
+        text: root.text;
+        color: root.enabled ? Theme.color.on-surface : Theme.color.on-surface.with-alpha(Theme.disabled-content);
+    }
+
+    }
+
+    // Whole row is the hit target.
+    touch := TouchArea {
+        enabled: root.enabled;
+        clicked => {
+            root.flip();
+        }
+    }
+
+    focus := FocusScope {
+        width: 0;
+        height: 0;
+        enabled: root.enabled;
+        key-pressed(e) => {
+            if e.text == " " || e.text == Key.Return {
+                root.flip();
+                return accept;
+            }
+            reject
+        }
+    }
+}

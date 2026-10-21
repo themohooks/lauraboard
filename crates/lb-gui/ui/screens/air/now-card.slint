@@ -1,0 +1,133 @@
+// "Now on air" card: title, kind, block, progress and the key times
+// (elapsed, remaining, end, deviation from plan) plus the next item.
+
+import { Theme } from "../../theme/tokens.slint";
+import { Icons } from "../../theme/icons.slint";
+import { Label } from "../../components/label.slint";
+import { Card } from "../../components/card.slint";
+import { KindTag, StatusChip, StatusTone } from "../../components/indicators.slint";
+import { LinearProgress } from "../../components/feedback.slint";
+import { TimeDisplay } from "../../components/monitor.slint";
+import { Air } from "../../state/air-state.slint";
+
+export component NowCard inherits Card {
+    in property <bool> compact: false;
+    gap: Theme.sp2;
+
+    if !Air.now.has-item: Label {
+        text: "Сейчас ничего не идёт в эфир";
+        type-style: Theme.title-medium;
+        color: Theme.color.on-surface-variant;
+    }
+
+    if Air.now.has-item: HorizontalLayout {
+        spacing: Theme.sp3;
+        VerticalLayout {
+            alignment: center;
+            StatusChip {
+                text: "СЕЙЧАС";
+                tone: StatusTone.live;
+            }
+        }
+        VerticalLayout {
+            horizontal-stretch: 1;
+            alignment: center;
+            Label {
+                text: Air.now.title;
+                type-style: Theme.title-large;
+            }
+            HorizontalLayout {
+                spacing: Theme.sp3;
+                alignment: start;
+                KindTag {
+                    kind: Air.now.kind;
+                }
+                if Air.now.block != "": Label {
+                    text: "блок «" + Air.now.block + "»";
+                    type-style: Theme.body-small;
+                    color: Theme.color.on-surface-variant;
+                }
+            }
+        }
+    }
+
+    if Air.now.has-item: LinearProgress {
+        progress: Air.now.progress;
+        fill: Theme.status.live;
+        height: 6px;
+    }
+
+    if Air.now.has-item: HorizontalLayout {
+        spacing: Theme.sp6;
+        alignment: start;
+        TimeDisplay { label: "ПРОШЛО"; value: Air.now.elapsed; }
+        TimeDisplay { label: "ОСТАЛОСЬ"; value: Air.now.remaining; value-color: Theme.status.live; large: !root.compact; }
+        TimeDisplay { label: "ДЛИТЕЛЬНОСТЬ"; value: Air.now.duration; }
+        TimeDisplay { label: "ОКОНЧАНИЕ"; value: Air.now.ends; }
+        if !root.compact: TimeDisplay {
+            label: "ОТКЛОНЕНИЕ";
+            value: Air.now.deviation;
+            value-color: Air.now.deviation-warn ? Theme.status.warning : Theme.color.on-surface;
+        }
+    }
+
+    if Air.next.has-item: Rectangle {
+        height: 1px;
+        background: Theme.color.outline-variant;
+    }
+
+    if Air.next.has-item: HorizontalLayout {
+        spacing: Theme.sp3;
+        VerticalLayout {
+            alignment: center;
+            StatusChip {
+                text: "ДАЛЕЕ";
+                tone: StatusTone.preview;
+            }
+        }
+        VerticalLayout {
+            alignment: center;
+            KindTag {
+                kind: Air.next.kind;
+                show-name: false;
+            }
+        }
+        Label {
+            horizontal-stretch: 1;
+            text: Air.next.title;
+            type-style: Theme.title-small;
+        }
+        Label {
+            text: "в " + Air.next.start + " · " + Air.next.duration;
+            mono: true;
+            color: Theme.color.on-surface-variant;
+        }
+    }
+
+    if Air.next.program-title != "" && !root.compact: HorizontalLayout {
+        spacing: Theme.sp2;
+        VerticalLayout {
+            alignment: center;
+            Rectangle {
+                width: Theme.icon-small;
+                height: Theme.icon-small;
+                Image {
+                    source: Icons.schedule;
+                    colorize: Theme.color.on-surface-variant;
+                    width: 100%;
+                    height: 100%;
+                }
+            }
+        }
+        Label {
+            horizontal-stretch: 1;
+            text: "Следующая передача: " + Air.next.program-title;
+            color: Theme.color.on-surface-variant;
+        }
+        Label {
+            text: Air.next.program-start + " (через " + Air.next.program-in + ")";
+            mono: true;
+            color: Theme.color.on-surface-variant;
+        }
+    }
+}

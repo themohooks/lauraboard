@@ -1,0 +1,220 @@
+// Home: channel health at a glance (on air, encoder, connection, plan),
+// mini monitor with now/next, upcoming items and recent warnings.
+
+import { ScrollView } from "std-widgets.slint";
+import { Theme } from "../../theme/tokens.slint";
+import { Icons } from "../../theme/icons.slint";
+import { Label } from "../../components/label.slint";
+import { Icon } from "../../components/icon.slint";
+import { Card, CardHeader, CardStyle } from "../../components/card.slint";
+import { Tone, StatusTone } from "../../components/indicators.slint";
+import { Monitor } from "../../components/monitor.slint";
+import { Button, ButtonVariant } from "../../components/button.slint";
+import { App } from "../../state/app-state.slint";
+import { Air } from "../../state/air-state.slint";
+import { Page, PageHeader } from "../../shell/page.slint";
+import { StateTone } from "../../shell/app-bar.slint";
+import { NowCard } from "../air/now-card.slint";
+import { QueueRowView } from "../air/queue-row.slint";
+
+component HealthCard inherits Card {
+    in property <string> title;
+    in property <string> value;
+    in property <string> detail;
+    in property <StatusTone> tone;
+    in property <image> icon: Tone.icon(tone);
+    horizontal-stretch: 1;
+    min-width: 150px;
+    preferred-width: 0;
+    gap: Theme.sp1;
+    card-style: CardStyle.low;
+    HorizontalLayout {
+        spacing: Theme.sp3;
+        Rectangle {
+            width: 40px;
+            height: 40px;
+            border-radius: 20px;
+            background: Tone.container(root.tone);
+            Icon {
+                source: root.icon;
+                tint: Tone.on-container(root.tone);
+            }
+        }
+        VerticalLayout {
+            alignment: center;
+            Label {
+                text: root.title;
+                type-style: Theme.label-medium;
+                color: Theme.color.on-surface-variant;
+            }
+            Label {
+                text: root.value;
+                type-style: Theme.title-medium;
+            }
+        }
+    }
+    Label {
+        text: root.detail;
+        type-style: Theme.body-small;
+        color: Theme.color.on-surface-variant;
+        wrap: word-wrap;
+    }
+}
+
+export component HomeScreen inherits Page {
+    sv := ScrollView {
+        VerticalLayout {
+            width: sv.visible-width;
+            padding: App.narrow ? Theme.sp4 : Theme.sp6;
+            spacing: Theme.sp4;
+            alignment: start;
+
+            PageHeader {
+                title: "Главная";
+                subtitle: App.channel-name;
+                Button {
+                    text: "Открыть эфир";
+                    variant: ButtonVariant.tonal;
+                    icon: Icons.live-tv;
+                    has-icon: true;
+                    clicked => {
+                        App.navigate("air");
+                    }
+                }
+            }
+
+            HorizontalLayout {
+                spacing: Theme.sp4;
+                HealthCard {
+                    title: "Вещание";
+                    value: App.status.state-text;
+                    tone: StateTone.of(App.status.state);
+                    detail: App.status.manual ? "Ручной режим: расписание приостановлено" : (App.status.force-schedule != "" ? "Расписание: " + App.status.force-schedule : "По расписанию");
+                }
+                HealthCard {
+                    title: "Кодирование";
+                    value: App.status.encoder-text;
+                    tone: !App.online ? StatusTone.idle : App.status.encoder-ok ? StatusTone.success : StatusTone.error;
+                    icon: Icons.speed;
+                    detail: App.status.last-error != "" ? App.status.last-error : App.status.encoder-detail;
+                }
+                HealthCard {
+                    title: "Подключение";
+                    value: App.online ? "Есть связь" : "Нет связи";
+                    tone: App.online ? StatusTone.success : StatusTone.error;
+                    icon: App.online ? Icons.cloud-done : Icons.cloud-off;
+                    detail: App.api-url + (App.status.outputs != "" ? " → " + App.status.outputs : "");
+                }
+                HealthCard {
+                    title: "План эфира";
+                    value: App.status.plan-warnings == 0 ? "Без замечаний" : "Предупреждений: " + App.status.plan-warnings;
+                    tone: App.status.plan-warnings == 0 ? StatusTone.success : StatusTone.warning;
+                    icon: Icons.view-timeline;
+                    detail: Air.warnings.length > 0 ? Air.warnings[0] : "Пустот и пересечений нет";
+                }
+            }
+
+            if !App.narrow: HorizontalLayout {
+                spacing: Theme.sp4;
+                Monitor {
+                    width: min(480px, root.width * 0.38);
+                    height: self.width * 9 / 16;
+                    frame: App.preview;
+                    has-frame: App.has-preview;
+                    live: App.status.state == "on_air";
+                    timecode: Air.now.remaining;
+                    progress: Air.now.has-item ? Air.now.progress : -1;
+                    placeholder: App.online ? "Ожидание кадра…" : "Нет связи с сервером";
+                    fullscreen => {
+                        App.navigate("air");
+                        App.toggle-fullscreen();
+                    }
+                }
+                NowCard {
+                    horizontal-stretch: 1;
+                }
+            }
+            // narrow: the card needs the full width, the monitor sits above it
+            if App.narrow: NowCard { }
+
+            HorizontalLayout {
+                spacing: Theme.sp4;
+                Card {
+                    horizontal-stretch: 3;
+                    card-style: CardStyle.low;
+                    inset: 0;
+                    gap: 0;
+                    HorizontalLayout {
+                        padding: Theme.sp4;
+                        padding-bottom: Theme.sp2;
+                        Label {
+                            horizontal-stretch: 1;
+                            text: "Далее в эфире";
+                            type-style: Theme.title-medium;
+                        }
+                        Label {
+                            text: Air.queue-summary;
+                            color: Theme.color.on-surface-variant;
+                        }
+                    }
+                    for row[i] in Air.queue: QueueRowView {
+                        visible: i < 8;
+                        height: i < 8 ? Theme.row-height : 0;
+                        item: row;
+                        show-block: true;
+                        focusable: false;
+                        clicked => {
+                            App.navigate("air");
+                        }
+                    }
+                    Rectangle {
+                        height: Theme.sp2;
+                    }
+                }
+                Card {
+                    horizontal-stretch: 2;
+                    card-style: CardStyle.low;
+                    CardHeader {
+                        title: "Последние предупреждения";
+                        Button {
+                            text: "Журнал";
+                            variant: ButtonVariant.text;
+                            clicked => {
+                                App.navigate("log");
+                            }
+                        }
+                    }
+                    if Air.recent-events.length == 0: Label {
+                        text: "Нет предупреждений и ошибок";
+                        color: Theme.color.on-surface-variant;
+                    }
+                    for e in Air.recent-events: HorizontalLayout {
+                        spacing: Theme.sp2;
+                        VerticalLayout {
+                            alignment: start;
+                            Icon {
+                                source: e.level == "critical" ? Icons.error : e.level == "warning" ? Icons.warning : Icons.info;
+                                size: 18px;
+                                tint: e.level == "critical" ? Theme.color.error : e.level == "warning" ? Theme.status.warning : Theme.color.on-surface-variant;
+                            }
+                        }
+                        Label {
+                            text: e.at;
+                            mono: true;
+                            type-style: Theme.body-small;
+                            color: Theme.color.on-surface-variant;
+                            vertical-alignment: top;
+                        }
+                        Label {
+                            horizontal-stretch: 1;
+                            text: e.text;
+                            type-style: Theme.body-small;
+                            wrap: word-wrap;
+                            vertical-alignment: top;
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

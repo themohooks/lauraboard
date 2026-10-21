@@ -1,0 +1,303 @@
+// Settings: appearance (theme, scale, density, motion, navigation), layout
+// reset, connection info, keyboard shortcuts, about.
+
+import { ScrollView, AboutSlint } from "std-widgets.slint";
+import { Theme } from "../../theme/tokens.slint";
+import { Icons } from "../../theme/icons.slint";
+import { Label } from "../../components/label.slint";
+import { Icon } from "../../components/icon.slint";
+import { Card, CardHeader, CardStyle } from "../../components/card.slint";
+import { SegmentedButton } from "../../components/segmented-button.slint";
+import { Slider } from "../../components/slider.slint";
+import { Switch } from "../../components/switch.slint";
+import { Button, ButtonVariant } from "../../components/button.slint";
+import { StatusChip, StatusTone } from "../../components/indicators.slint";
+import { Page, PageHeader } from "../../shell/page.slint";
+import { Settings } from "../../state/settings-state.slint";
+
+component Setting inherits HorizontalLayout {
+    in property <string> title;
+    in property <string> hint;
+    spacing: Theme.sp4;
+    VerticalLayout {
+        width: 220px;
+        alignment: center;
+        Label {
+            text: root.title;
+            type-style: Theme.title-small;
+        }
+        if root.hint != "": Label {
+            text: root.hint;
+            type-style: Theme.body-small;
+            color: Theme.color.on-surface-variant;
+            wrap: word-wrap;
+        }
+    }
+    @children
+}
+
+component Row inherits HorizontalLayout {
+    in property <string> label;
+    in property <string> value;
+    in property <bool> mono;
+    spacing: Theme.sp3;
+    Label {
+        width: 220px;
+        text: root.label;
+        color: Theme.color.on-surface-variant;
+    }
+    Label {
+        horizontal-stretch: 1;
+        text: root.value;
+        mono: root.mono;
+        wrap: word-wrap;
+    }
+}
+
+component Key inherits HorizontalLayout {
+    in property <string> keys;
+    in property <string> action;
+    spacing: Theme.sp3;
+    VerticalLayout {
+        width: 220px;
+        alignment: center;
+        HorizontalLayout {
+            alignment: start;
+            Rectangle {
+                border-radius: Theme.radius-xs;
+                background: Theme.color.surface-container-highest;
+                border-width: 1px;
+                border-color: Theme.color.outline-variant;
+                HorizontalLayout {
+                    padding-left: Theme.sp2;
+                    padding-right: Theme.sp2;
+                    padding-top: 2px;
+                    padding-bottom: 2px;
+                    Label {
+                        text: root.keys;
+                        mono: true;
+                        type-style: Theme.label-medium;
+                    }
+                }
+            }
+        }
+    }
+    Label {
+        horizontal-stretch: 1;
+        text: root.action;
+        vertical-alignment: center;
+    }
+}
+
+component ScalePreset inherits Button {
+    in property <int> percent;
+    text: percent + "%";
+    variant: Settings.scale == percent ? ButtonVariant.tonal : ButtonVariant.text;
+    clicked => {
+        Settings.scale = root.percent;
+        Settings.scale-changed(root.percent);
+    }
+}
+
+export component SettingsScreen inherits Page {
+    sv := ScrollView {
+        HorizontalLayout {
+            width: sv.visible-width;
+            alignment: center;
+            VerticalLayout {
+                width: min(sv.visible-width, 880px);
+                padding: Theme.sp4;
+                spacing: Theme.sp3;
+                alignment: start;
+
+                PageHeader {
+                    title: "Настройки";
+                    subtitle: "Интерфейс этого компьютера — на эфир не влияют";
+                }
+
+                Card {
+                    card-style: CardStyle.low;
+                    gap: Theme.sp4;
+                    CardHeader {
+                        title: "Оформление";
+                    }
+                    Setting {
+                        title: "Тема";
+                        hint: "«Системная» следует настройке ОС";
+                        SegmentedButton {
+                            horizontal-stretch: 1;
+                            segments: [
+                                { text: "Системная", icon: Icons.contrast, has-icon: true },
+                                { text: "Светлая", icon: Icons.light-mode, has-icon: true },
+                                { text: "Тёмная", icon: Icons.dark-mode, has-icon: true },
+                            ];
+                            selected <=> Settings.theme;
+                            changed(i) => {
+                                Settings.theme-changed(i);
+                            }
+                        }
+                    }
+                    Setting {
+                        title: "Масштаб: " + Settings.scale + "%";
+                        hint: "Поверх масштаба экрана в ОС";
+                        VerticalLayout {
+                            horizontal-stretch: 1;
+                            spacing: Theme.sp2;
+                            Slider {
+                                minimum: 80;
+                                maximum: 200;
+                                step: 5;
+                                value: Settings.scale;
+                                value-text: Settings.scale + "%";
+                                changed(v) => {
+                                    Settings.scale = round(v);
+                                    Settings.scale-changed(round(v));
+                                }
+                            }
+                            HorizontalLayout {
+                                spacing: Theme.sp2;
+                                alignment: start;
+                                ScalePreset { percent: 100; }
+                                ScalePreset { percent: 125; }
+                                ScalePreset { percent: 150; }
+                                ScalePreset { percent: 175; }
+                                ScalePreset { percent: 200; }
+                            }
+                        }
+                    }
+                    Setting {
+                        title: "Плотность";
+                        hint: "Компактные строки списков и таблиц";
+                        VerticalLayout {
+                            horizontal-stretch: 1;
+                            alignment: center;
+                            Switch {
+                                text: "Компактный режим";
+                                checked <=> Settings.compact;
+                                toggled(v) => {
+                                    Settings.compact-changed(v);
+                                }
+                            }
+                        }
+                    }
+                    Setting {
+                        title: "Анимации";
+                        hint: Settings.motion == 0 ? (Settings.system-reduce-motion ? "Сейчас выключены в ОС" : "Сейчас включены в ОС") : "";
+                        SegmentedButton {
+                            horizontal-stretch: 1;
+                            segments: [{ text: "Как в системе" }, { text: "Включены" }, { text: "Выключены" }];
+                            selected <=> Settings.motion;
+                            changed(i) => {
+                                Settings.motion-changed(i);
+                            }
+                        }
+                    }
+                    Setting {
+                        title: "Навигация";
+                        VerticalLayout {
+                            horizontal-stretch: 1;
+                            alignment: center;
+                            Switch {
+                                text: "Панель разделов с подписями";
+                                checked <=> Settings.nav-expanded;
+                                toggled(v) => {
+                                    Settings.nav-changed(v);
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Card {
+                    card-style: CardStyle.low;
+                    CardHeader {
+                        title: "Компоновка";
+                        subtitle: "Ширина панелей, вид медиатеки и навигации сохраняются между запусками";
+                    }
+                    HorizontalLayout {
+                        spacing: Theme.sp2;
+                        alignment: start;
+                        Button {
+                            text: "Сбросить компоновку";
+                            icon: Icons.undo;
+                            has-icon: true;
+                            variant: ButtonVariant.tonal;
+                            clicked => {
+                                Settings.reset-layout();
+                            }
+                        }
+                        Button {
+                            text: "Сбросить все настройки…";
+                            variant: ButtonVariant.text;
+                            clicked => {
+                                Settings.reset-all();
+                            }
+                        }
+                    }
+                    Label {
+                        text: "Файл настроек: " + Settings.prefs-path;
+                        type-style: Theme.body-small;
+                        color: Theme.color.on-surface-variant;
+                        wrap: word-wrap;
+                    }
+                }
+
+                Card {
+                    card-style: CardStyle.low;
+                    CardHeader {
+                        title: "Подключение";
+                        StatusChip {
+                            text: Settings.online ? "Связь есть" : "Нет связи";
+                            tone: Settings.online ? StatusTone.success : StatusTone.error;
+                        }
+                    }
+                    Row { label: "Сервер API"; value: Settings.api-url; mono: true; }
+                    Row { label: "Каналы"; value: Settings.channels; }
+                    Row { label: "Версия сервера"; value: Settings.server-version; }
+                    Label {
+                        text: "Интерфейс — отдельный клиент: его закрытие или перезапуск не прерывает эфир. Параметры канала (выходы, кодирование, ключи трансляции) задаются в channels/<канал>/channel.toml или через API с ролью администратора.";
+                        type-style: Theme.body-small;
+                        color: Theme.color.on-surface-variant;
+                        wrap: word-wrap;
+                    }
+                }
+
+                Card {
+                    card-style: CardStyle.low;
+                    gap: Theme.sp2;
+                    CardHeader {
+                        title: "Горячие клавиши";
+                    }
+                    Key { keys: "Ctrl+1 … Ctrl+0"; action: "Первые десять разделов по порядку"; }
+                    Key { keys: "Ctrl+S"; action: "Сохранить изменения на экране"; }
+                    Key { keys: "Ctrl+Z / Ctrl+Y"; action: "Отменить / повторить (также Ctrl+Shift+Z)"; }
+                    Key { keys: "Ctrl+F"; action: "Поиск"; }
+                    Key { keys: "Delete"; action: "Удалить выбранное"; }
+                    Key { keys: "F5"; action: "Обновить данные с сервера"; }
+                    Key { keys: "F11"; action: "Монитор эфира на весь экран"; }
+                    Key { keys: "Esc"; action: "Закрыть диалог или панель"; }
+                }
+
+                Card {
+                    card-style: CardStyle.low;
+                    CardHeader {
+                        title: "О программе";
+                        subtitle: "Laurabrod " + Settings.app-version + " — плейаут интернет-телеканала";
+                    }
+                    Label {
+                        text: "Иконки Material Symbols (Apache 2.0), шрифты Roboto и Roboto Mono (OFL).";
+                        type-style: Theme.body-small;
+                        color: Theme.color.on-surface-variant;
+                        wrap: word-wrap;
+                    }
+                    HorizontalLayout {
+                        alignment: start;
+                        AboutSlint {
+                            preferred-height: 120px;
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

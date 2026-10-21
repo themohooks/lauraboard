@@ -1,0 +1,111 @@
+// Data contract of the Broadcast grid screen (src/bridge/schedule.rs).
+
+import { TimelineSegment, DayRow } from "../components/timeline.slint";
+
+export struct BlockRow {
+    index: int,
+    id: string,
+    start: string,
+    start-error: string,
+    title: string,
+    // 0 playlist, 1 media list, 2 category, 3 ad break
+    source-type: int,
+    // playlist / ad break: index in the options; otherwise -1
+    source-index: int,
+    // category / media list text
+    source-text: string,
+    // 0 strict, 1 finish, 2 truncate
+    late: int,
+    truncate: bool,
+    fixed: bool,
+    problem: string,
+}
+
+export struct BlockDetails {
+    has: bool,
+    index: int,
+    id: string,
+    max-duration: string,
+    max-items: string,
+    category: string,
+    intro: string,
+    outro: string,
+    fill-gap: bool,
+    rules: bool,
+    restart: bool,
+    late: int,
+    truncate: bool,
+}
+
+export struct DayChip {
+    label: string,
+    template: string,
+    on: bool,
+}
+
+export global Grid {
+    // schedule / template selection
+    in property <[string]> schedules;
+    in-out property <int> schedule-index;
+    in property <bool> schedule-enabled;
+    in property <string> schedule-info;
+    in property <[string]> templates;
+    in-out property <int> template-index;
+    in property <[DayChip]> days;
+    in property <bool> has-schedule;
+
+    // blocks of the template
+    in property <[BlockRow]> blocks;
+    in-out property <int> selected-block: -1;
+    in property <BlockDetails> details;
+    in-out property <bool> details-open;
+    in property <[string]> playlists;
+    in property <[string]> ad-breaks;
+
+    // draft state
+    in property <bool> dirty;
+    in property <bool> can-undo;
+    in property <bool> can-redo;
+
+    // timeline
+    in property <[TimelineSegment]> segments;
+    in-out property <float> view-start: 0;
+    in-out property <float> view-span: 1440;
+    in property <float> now: -1;
+    in property <string> date-label;
+    in property <string> plan-note;
+    in property <int> gaps;
+    in property <int> conflicts;
+    in property <[string]> warnings;
+    in property <bool> planning;
+    in-out property <string> goto;
+    in property <string> goto-error;
+    // 0 = day, 1 = several days
+    in-out property <int> mode;
+    in property <[DayRow]> day-rows;
+    in-out property <int> days-count-index: 1;
+
+    callback select-schedule(int);
+    callback select-template(int);
+    callback toggle-day(int);
+    callback set-enabled(bool);
+    // field: start, title, source-type, source-index, source-text, late, truncate,
+    //        max-duration, max-items, category, intro, outro, fill-gap, rules, restart
+    callback block-edited(int, string, string);
+    callback block-select(int);
+    callback add-block(bool);
+    callback remove-block(int);
+    callback segment-clicked(int);
+    callback segment-moved(int, float);
+    callback shift-date(int);
+    callback today();
+    callback goto-time(string);
+    callback view-changed();
+    callback mode-changed();
+    callback save();
+    callback revert();
+    callback undo();
+    callback redo();
+    // "new-template", "duplicate-template", "replan"
+    callback menu-action(string);
+}

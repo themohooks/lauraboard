@@ -1,0 +1,29 @@
+// Hidden "Components" section: every design-system block on one page for
+// visual review (see examples/snapshot.rs).
+
+import { ScrollView } from "std-widgets.slint";
+import { Theme } from "../../theme/tokens.slint";
+import { TokensPage } from "tokens-page.slint";
+import { BasePage } from "base-page.slint";
+import { ButtonsPage } from "buttons-page.slint";
+import { InputsPage } from "inputs-page.slint";
+import { ContainersPage } from "containers-page.slint";
+import { NavPage } from "nav-page.slint";
+import { SpecialPage } from "special-page.slint";
+
+export component Gallery inherits ScrollView {
+    // "" = all blocks, otherwise one of: tokens, a, b, c, d, e, f
+    in property <string> page;
+    VerticalLayout {
+        padding: Theme.sp6;
+        spacing: Theme.sp6;
+        alignment: start;
+        if root.page == "" || root.page == "tokens": TokensPage { }
+        if root.page == "" || root.page == "a": BasePage { }
+        if root.page == "" || root.page == "b": ButtonsPage { }
+        if root.page == "" || root.page == "c": InputsPage { }
+        if root.page == "" || root.page == "d": ContainersPage { }
+        if root.page == "" || root.page == "e": NavPage { }
+        if root.page == "" || root.page == "f": SpecialPage { }
+    }
+}
