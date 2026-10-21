@@ -1,0 +1,345 @@
+// Rule form split into the four steps of the wizard: when, what,
+// conditions, limits. Used both by the editor and by the wizard.
+
+import { Theme } from "../../theme/tokens.slint";
+import { Icons } from "../../theme/icons.slint";
+import { Label } from "../../components/label.slint";
+import { TextField } from "../../components/text-field.slint";
+import { Select } from "../../components/select.slint";
+import { Switch } from "../../components/switch.slint";
+import { Radio } from "../../components/checkbox.slint";
+import { Slider } from "../../components/slider.slint";
+import { Rules } from "../../state/rules-state.slint";
+import { FormSection, ToggleChips } from "form-parts.slint";
+
+export component WhenSection inherits FormSection {
+    in property <color> field-bg: Theme.color.surface-container-low;
+    title: "Когда";
+    hint: "событие, по которому срабатывает правило";
+    icon: Icons.schedule;
+    HorizontalLayout {
+        spacing: Theme.sp3;
+        Select {
+            horizontal-stretch: 1;
+            label: "Триггер";
+            options: ["Каждые N роликов", "Каждые N минут", "В начале блока", "В конце блока", "Между блоками", "После категории", "Перед категорией"];
+            current-index <=> Rules.f-trigger;
+            container-color: root.field-bg;
+            selected => {
+                Rules.form-changed();
+            }
+        }
+        if Rules.f-trigger == 0: TextField {
+            width: 140px;
+            label: "Роликов";
+            text <=> Rules.f-n;
+            error: Rules.e-n;
+            container-color: root.field-bg;
+            edited => {
+                Rules.form-changed();
+            }
+        }
+        if Rules.f-trigger == 1: TextField {
+            width: 140px;
+            label: "Минут";
+            text <=> Rules.f-minutes;
+            error: Rules.e-minutes;
+            container-color: root.field-bg;
+            edited => {
+                Rules.form-changed();
+            }
+        }
+        if Rules.f-trigger >= 5: TextField {
+            horizontal-stretch: 1;
+            label: "Категория";
+            text <=> Rules.f-tcat;
+            placeholder: "news";
+            container-color: root.field-bg;
+            edited => {
+                Rules.form-changed();
+            }
+        }
+    }
+}
+
+export component WhatSection inherits FormSection {
+    in property <color> field-bg: Theme.color.surface-container-low;
+    title: "Что вставить";
+    icon: Icons.playlist-add;
+    HorizontalLayout {
+        spacing: Theme.sp3;
+        Select {
+            width: 200px;
+            label: "Действие";
+            options: ["Заставка", "Рекламный блок", "Анонсы", "Ролик"];
+            current-index <=> Rules.f-action;
+            container-color: root.field-bg;
+            selected => {
+                Rules.form-changed();
+            }
+        }
+        if Rules.f-action == 0: TextField {
+            horizontal-stretch: 1;
+            label: "Категория заставок";
+            text <=> Rules.f-jcat;
+            placeholder: "idents";
+            supporting: "или перечислите ролики ниже";
+            container-color: root.field-bg;
+            edited => {
+                Rules.form-changed();
+            }
+        }
+        if Rules.f-action == 1: Select {
+            horizontal-stretch: 1;
+            label: "Рекламный блок";
+            options: Rules.ad-breaks;
+            current-index <=> Rules.f-ab;
+            placeholder: "Создайте блок на вкладке «Рекламные блоки»";
+            container-color: root.field-bg;
+            selected => {
+                Rules.form-changed();
+            }
+        }
+        if Rules.f-action == 2: TextField {
+            width: 140px;
+            label: "Сколько анонсов";
+            text <=> Rules.f-pcount;
+            error: Rules.e-pcount;
+            container-color: root.field-bg;
+            edited => {
+                Rules.form-changed();
+            }
+        }
+        if Rules.f-action == 2: TextField {
+            horizontal-stretch: 1;
+            label: "Категория анонсов";
+            text <=> Rules.f-pcat;
+            placeholder: "любые актуальные";
+            container-color: root.field-bg;
+            edited => {
+                Rules.form-changed();
+            }
+        }
+    }
+    if Rules.f-action == 0 || Rules.f-action == 3: TextField {
+        label: Rules.f-action == 0 ? "Конкретные заставки (id через запятую)" : "Ролики (id через запятую, выбирается один)";
+        text <=> Rules.f-items;
+        container-color: root.field-bg;
+        edited => {
+            Rules.form-changed();
+        }
+    }
+}
+
+export component ConditionsSection inherits FormSection {
+    in property <color> field-bg: Theme.color.surface-container-low;
+    title: "Условия";
+    hint: "пусто — без ограничений";
+    icon: Icons.filter-list;
+    HorizontalLayout {
+        spacing: Theme.sp3;
+        TextField {
+            horizontal-stretch: 1;
+            label: "Только для категорий";
+            text <=> Rules.f-cats;
+            container-color: root.field-bg;
+            edited => {
+                Rules.form-changed();
+            }
+        }
+        TextField {
+            horizontal-stretch: 1;
+            label: "Кроме категорий";
+            text <=> Rules.f-xcats;
+            container-color: root.field-bg;
+            edited => {
+                Rules.form-changed();
+            }
+        }
+    }
+    HorizontalLayout {
+        spacing: Theme.sp3;
+        TextField {
+            horizontal-stretch: 1;
+            label: "Только в блоках (id)";
+            text <=> Rules.f-blocks;
+            container-color: root.field-bg;
+            edited => {
+                Rules.form-changed();
+            }
+        }
+        TextField {
+            horizontal-stretch: 1;
+            label: "Только в плейлистах";
+            text <=> Rules.f-playlists;
+            container-color: root.field-bg;
+            edited => {
+                Rules.form-changed();
+            }
+        }
+        TextField {
+            horizontal-stretch: 1;
+            label: "Кроме роликов";
+            text <=> Rules.f-xmedia;
+            container-color: root.field-bg;
+            edited => {
+                Rules.form-changed();
+            }
+        }
+    }
+    Label {
+        text: "Типы контента, после которых срабатывает";
+        type-style: Theme.label-medium;
+        color: Theme.color.on-surface-variant;
+    }
+    ToggleChips {
+        labels: ["Передачи", "Заставки", "Реклама", "Анонсы", "Заполнение", "Изображения", "Потоки"];
+        values: Rules.f-kinds;
+        to: 4;
+        toggled(i) => {
+            Rules.toggle-kind(i);
+        }
+    }
+    ToggleChips {
+        labels: ["Передачи", "Заставки", "Реклама", "Анонсы", "Заполнение", "Изображения", "Потоки"];
+        values: Rules.f-kinds;
+        from: 4;
+        toggled(i) => {
+            Rules.toggle-kind(i);
+        }
+    }
+    Label {
+        text: "Дни недели и часы";
+        type-style: Theme.label-medium;
+        color: Theme.color.on-surface-variant;
+    }
+    ToggleChips {
+        labels: ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
+        values: Rules.f-weekdays;
+        toggled(i) => {
+            Rules.toggle-weekday(i);
+        }
+    }
+    HorizontalLayout {
+        spacing: Theme.sp3;
+        alignment: start;
+        TextField {
+            width: 110px;
+            label: "С";
+            placeholder: "ЧЧ:ММ";
+            mono: true;
+            text <=> Rules.f-from;
+            error: Rules.e-from;
+            container-color: root.field-bg;
+            edited => {
+                Rules.form-changed();
+            }
+        }
+        TextField {
+            width: 110px;
+            label: "До";
+            placeholder: "ЧЧ:ММ";
+            mono: true;
+            text <=> Rules.f-to;
+            error: Rules.e-to;
+            container-color: root.field-bg;
+            edited => {
+                Rules.form-changed();
+            }
+        }
+    }
+}
+
+export component LimitsSection inherits FormSection {
+    in property <color> field-bg: Theme.color.surface-container-low;
+    title: "Ограничения и приоритет";
+    icon: Icons.tune;
+    HorizontalLayout {
+        spacing: Theme.sp4;
+        alignment: start;
+        Radio {
+            text: "По очереди";
+            checked: !Rules.f-random;
+            clicked => {
+                Rules.f-random = false;
+                Rules.form-changed();
+            }
+        }
+        Radio {
+            text: "Случайно";
+            checked: Rules.f-random;
+            clicked => {
+                Rules.f-random = true;
+                Rules.form-changed();
+            }
+        }
+        Switch {
+            text: "Без повтора подряд";
+            checked <=> Rules.f-norepeat;
+            toggled => {
+                Rules.form-changed();
+            }
+        }
+    }
+    HorizontalLayout {
+        spacing: Theme.sp3;
+        VerticalLayout {
+            horizontal-stretch: 1;
+            spacing: 0;
+            Label {
+                text: "Вероятность: " + round(Rules.f-prob * 100) + "%";
+                type-style: Theme.label-medium;
+                color: Theme.color.on-surface-variant;
+            }
+            Slider {
+                minimum: 0;
+                maximum: 1;
+                step: 0.05;
+                value <=> Rules.f-prob;
+                value-text: round(Rules.f-prob * 100) + "%";
+                changed => {
+                    Rules.form-changed();
+                }
+            }
+        }
+        TextField {
+            width: 120px;
+            label: "Приоритет";
+            text <=> Rules.f-priority;
+            error: Rules.e-priority;
+            supporting: "больше — раньше";
+            container-color: root.field-bg;
+            edited => {
+                Rules.form-changed();
+            }
+        }
+        TextField {
+            width: 180px;
+            label: "Группа";
+            text <=> Rules.f-group;
+            supporting: "из группы — одно правило";
+            container-color: root.field-bg;
+            edited => {
+                Rules.form-changed();
+            }
+        }
+    }
+    HorizontalLayout {
+        spacing: Theme.sp6;
+        alignment: start;
+        Switch {
+            text: "Можно пропустить ради точного времени";
+            checked <=> Rules.f-optional;
+            toggled => {
+                Rules.form-changed();
+            }
+        }
+        Switch {
+            text: "Не вставлять в ручном режиме";
+            checked <=> Rules.f-skipmanual;
+            toggled => {
+                Rules.form-changed();
+            }
+        }
+    }
+}

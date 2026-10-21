@@ -1,0 +1,203 @@
+// Ad break editor: list of breaks and the selected break's form.
+
+import { ListView, ScrollView } from "std-widgets.slint";
+import { Theme } from "../../theme/tokens.slint";
+import { Icons } from "../../theme/icons.slint";
+import { Label } from "../../components/label.slint";
+import { TextField } from "../../components/text-field.slint";
+import { Select } from "../../components/select.slint";
+import { Button, ButtonVariant } from "../../components/button.slint";
+import { IconButton } from "../../components/icon-button.slint";
+import { ListRow } from "../../components/list-row.slint";
+import { EmptyState } from "../../components/feedback.slint";
+import { Rules } from "../../state/rules-state.slint";
+import { FormSection } from "form-parts.slint";
+
+export component AdBreaksEditor inherits HorizontalLayout {
+    spacing: Theme.sp4;
+
+    Rectangle {
+        width: 300px;
+        border-radius: Theme.radius-l;
+        background: Theme.color.surface-container-low;
+        VerticalLayout {
+            padding: Theme.sp3;
+            spacing: Theme.sp2;
+            HorizontalLayout {
+                Label {
+                    horizontal-stretch: 1;
+                    text: "Рекламные блоки";
+                    type-style: Theme.title-medium;
+                    vertical-alignment: center;
+                }
+                IconButton {
+                    icon: Icons.add;
+                    tooltip: "Новый рекламный блок";
+                    clicked => {
+                        Rules.break-add();
+                    }
+                }
+            }
+            if Rules.breaks.length == 0: EmptyState {
+                vertical-stretch: 1;
+                icon: Icons.campaign;
+                title: "Нет рекламных блоков";
+            }
+            if Rules.breaks.length > 0: ListView {
+                vertical-stretch: 1;
+                for b[i] in Rules.breaks: ListRow {
+                    radius: Theme.radius-full;
+                    selected: Rules.break-selected == i;
+                    focusable: false;
+                    clicked => {
+                        Rules.break-select(i);
+                    }
+                    Label {
+                        horizontal-stretch: 1;
+                        text: b;
+                        color: Rules.break-selected == i ? Theme.color.on-secondary-container : Theme.color.on-surface;
+                    }
+                }
+            }
+        }
+    }
+
+    if Rules.break-selected < 0: EmptyState {
+        horizontal-stretch: 1;
+        icon: Icons.campaign;
+        title: "Выберите рекламный блок";
+        text: "Блок задаёт набор роликов, порядок и длительность. Правила и сетка ссылаются на него по id.";
+    }
+    if Rules.break-selected >= 0: sv := ScrollView {
+        horizontal-stretch: 1;
+        VerticalLayout {
+            width: sv.visible-width;
+            padding-top: Theme.sp2;
+            spacing: Theme.sp3;
+            padding-right: Theme.sp3;
+            alignment: start;
+            HorizontalLayout {
+                spacing: Theme.sp3;
+                TextField {
+                    horizontal-stretch: 1;
+                    label: "Название";
+                    text <=> Rules.b-name;
+                    supporting: "id: " + Rules.b-id;
+                    edited => {
+                        Rules.break-changed();
+                    }
+                }
+                VerticalLayout {
+                    alignment: start;
+                    Button {
+                        text: "Удалить блок";
+                        variant: ButtonVariant.text;
+                        icon: Icons.delete;
+                        has-icon: true;
+                        clicked => {
+                            Rules.break-remove();
+                        }
+                    }
+                }
+            }
+            FormSection {
+                title: "Содержимое";
+                icon: Icons.campaign;
+                TextField {
+                    label: "Ролики (id через запятую)";
+                    text <=> Rules.b-items;
+                    supporting: "пусто — все рекламные ролики категории";
+                    edited => {
+                        Rules.break-changed();
+                    }
+                }
+                HorizontalLayout {
+                    spacing: Theme.sp3;
+                    TextField {
+                        horizontal-stretch: 1;
+                        label: "Категория";
+                        text <=> Rules.b-category;
+                        edited => {
+                            Rules.break-changed();
+                        }
+                    }
+                    Select {
+                        width: 220px;
+                        label: "Порядок";
+                        options: ["Как в списке", "Случайно", "Реже показанные"];
+                        current-index <=> Rules.b-order;
+                        selected => {
+                            Rules.break-changed();
+                        }
+                    }
+                }
+            }
+            FormSection {
+                title: "Длительность";
+                icon: Icons.timer;
+                HorizontalLayout {
+                    spacing: Theme.sp3;
+                    TextField {
+                        horizontal-stretch: 1;
+                        label: "Целевая длительность";
+                        text <=> Rules.b-duration;
+                        error: Rules.e-b-duration;
+                        placeholder: "00:03:00";
+                        edited => {
+                            Rules.break-changed();
+                        }
+                    }
+                    TextField {
+                        horizontal-stretch: 1;
+                        label: "Максимум роликов";
+                        text <=> Rules.b-max;
+                        error: Rules.e-b-max;
+                        edited => {
+                            Rules.break-changed();
+                        }
+                    }
+                    TextField {
+                        horizontal-stretch: 1;
+                        label: "Добивка (категория)";
+                        text <=> Rules.b-fill;
+                        supporting: "чем заполнить остаток";
+                        edited => {
+                            Rules.break-changed();
+                        }
+                    }
+                }
+            }
+            FormSection {
+                title: "Оформление";
+                icon: Icons.animation;
+                HorizontalLayout {
+                    spacing: Theme.sp3;
+                    TextField {
+                        horizontal-stretch: 1;
+                        label: "Заставка в начале (id)";
+                        text <=> Rules.b-intro;
+                        edited => {
+                            Rules.break-changed();
+                        }
+                    }
+                    TextField {
+                        horizontal-stretch: 1;
+                        label: "Заставка в конце (id)";
+                        text <=> Rules.b-outro;
+                        edited => {
+                            Rules.break-changed();
+                        }
+                    }
+                }
+            }
+            if Rules.b-used-by.length > 0: FormSection {
+                title: "Используется";
+                icon: Icons.account-tree;
+                for u in Rules.b-used-by: Label {
+                    text: u;
+                    type-style: Theme.body-small;
+                }
+            }
+        }
+    }
+}

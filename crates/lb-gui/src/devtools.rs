@@ -220,6 +220,19 @@ fn prepare_live(section: &str) {
             crate::bridge::library::refresh(c);
         });
     }
+    if section == "jingles" || section == "ads" {
+        crate::bridge::with(|c| {
+            if let Ok(tab) = std::env::var("LB_SNAPSHOT_TAB")
+                && let Some(ui) = c.window()
+            {
+                ui.global::<crate::shell::Rules>().set_tab(tab.parse().unwrap_or(0));
+            }
+            crate::bridge::rules::select_first(c);
+            if std::env::var("LB_SNAPSHOT_WIZARD").is_ok() {
+                crate::bridge::rules::new_rule(c);
+            }
+        });
+    }
     if section == "playlists" {
         crate::bridge::with(|c| {
             if let Some(id) = c.model.playlists.first().map(|p| p.id.clone()) {

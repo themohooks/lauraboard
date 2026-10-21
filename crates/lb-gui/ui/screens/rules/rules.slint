@@ -1,0 +1,109 @@
+// Automation screens. `scope` "jingles": idents + transitions;
+// "ads": ads / promos rules, ad breaks, policies.
+
+import { Theme } from "../../theme/tokens.slint";
+import { Icons } from "../../theme/icons.slint";
+import { Button, ButtonVariant } from "../../components/button.slint";
+import { IconButton } from "../../components/icon-button.slint";
+import { SegmentedButton } from "../../components/segmented-button.slint";
+import { StatusChip, StatusTone } from "../../components/indicators.slint";
+import { Page, PageHeader } from "../../shell/page.slint";
+import { Rules } from "../../state/rules-state.slint";
+import { RuleList } from "rule-list.slint";
+import { RuleDetail } from "rule-detail.slint";
+import { AdBreaksEditor } from "ad-breaks.slint";
+import { PoliciesEditor, TransitionsEditor } from "policies.slint";
+
+export component RulesScreen inherits Page {
+    in property <string> scope;
+
+    VerticalLayout {
+        padding: Theme.sp4;
+        spacing: Theme.sp3;
+
+        PageHeader {
+            title: root.scope == "ads" ? "Реклама и анонсы" : "Заставки и переходы";
+            SegmentedButton {
+                width: root.scope == "ads" ? 440px : 300px;
+                segments: root.scope == "ads"
+                    ? [{ text: "Правила", icon: Icons.rule, has-icon: true }, { text: "Рекламные блоки" }, { text: "Политики" }]
+                    : [{ text: "Правила", icon: Icons.rule, has-icon: true }, { text: "Переходы" }];
+                selected <=> Rules.tab;
+            }
+            if Rules.dirty: VerticalLayout {
+                alignment: center;
+                StatusChip {
+                    text: "Не сохранено";
+                    tone: StatusTone.warning;
+                    icon: Icons.edit;
+                }
+            }
+            VerticalLayout {
+                alignment: center;
+                IconButton {
+                    icon: Icons.undo;
+                    enabled: Rules.can-undo;
+                    tooltip: "Отменить (Ctrl+Z)";
+                    clicked => {
+                        Rules.undo();
+                    }
+                }
+            }
+            VerticalLayout {
+                alignment: center;
+                IconButton {
+                    icon: Icons.redo;
+                    enabled: Rules.can-redo;
+                    tooltip: "Повторить (Ctrl+Y)";
+                    clicked => {
+                        Rules.redo();
+                    }
+                }
+            }
+            VerticalLayout {
+                alignment: center;
+                Button {
+                    text: "Сбросить";
+                    variant: ButtonVariant.text;
+                    enabled: Rules.dirty;
+                    clicked => {
+                        Rules.revert();
+                    }
+                }
+            }
+            VerticalLayout {
+                alignment: center;
+                Button {
+                    text: "Сохранить";
+                    icon: Icons.save;
+                    has-icon: true;
+                    enabled: Rules.dirty;
+                    tooltip: "Ctrl+S";
+                    clicked => {
+                        Rules.save();
+                    }
+                }
+            }
+        }
+
+        if Rules.tab == 0: HorizontalLayout {
+            vertical-stretch: 1;
+            spacing: Theme.sp4;
+            RuleList {
+                width: min(420px, root.width * 0.38);
+            }
+            RuleDetail {
+                horizontal-stretch: 1;
+            }
+        }
+        if Rules.tab == 1 && root.scope == "ads": AdBreaksEditor {
+            vertical-stretch: 1;
+        }
+        if Rules.tab == 1 && root.scope != "ads": TransitionsEditor {
+            vertical-stretch: 1;
+        }
+        if Rules.tab == 2 && root.scope == "ads": PoliciesEditor {
+            vertical-stretch: 1;
+        }
+    }
+}

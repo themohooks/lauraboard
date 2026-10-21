@@ -68,6 +68,7 @@ pub fn connect(ui: &AppWindow) {
             "playlists" => super::playlists::shortcut(c, name.as_str()),
             "library" => super::library::shortcut(c, name.as_str()),
             "schedule" => super::schedule::shortcut(c, name.as_str()),
+            "jingles" | "ads" => super::rules::shortcut(c, name.as_str()),
             _ => {}
         })
     });
@@ -95,6 +96,9 @@ pub fn navigate(c: &mut Ctx, id: &str) {
     }
     if id == "schedule" {
         super::schedule::opened(c);
+    }
+    if id == "jingles" || id == "ads" {
+        super::rules::opened(c, id);
     }
 }
 

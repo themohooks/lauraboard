@@ -8,11 +8,12 @@
 //!
 //! One module per area: [`shell`] (window, navigation, status, overlays),
 //! [`air`] (home + on-air), [`playlists`], [`library`], [`schedule`] (grid),
-//! [`thumbs`] (media thumbnails).
+//! [`rules`] (automation), [`thumbs`] (media thumbnails).
 
 pub mod air;
 pub mod library;
 pub mod playlists;
+pub mod rules;
 pub mod schedule;
 pub mod shell;
 pub mod thumbs;
@@ -55,6 +56,7 @@ pub struct Ctx {
     pub pl: playlists::PlaylistsState,
     pub lib: library::LibraryState,
     pub grid: schedule::ScheduleState,
+    pub rules: rules::RulesState,
 }
 
 thread_local! {
@@ -111,6 +113,7 @@ pub fn start(ui: &AppWindow, opts: &GuiOptions, prefs: UiPrefs) {
         pl: Default::default(),
         lib: Default::default(),
         grid: Default::default(),
+        rules: Default::default(),
     };
     ui.global::<App>().set_api_url(api.base.clone().into());
     CTX.with(|c| *c.borrow_mut() = Some(ctx));
@@ -119,6 +122,7 @@ pub fn start(ui: &AppWindow, opts: &GuiOptions, prefs: UiPrefs) {
     playlists::connect(ui);
     library::connect(ui);
     schedule::connect(ui);
+    rules::connect(ui);
     with(|c| {
         shell::apply_prefs(c);
         air::apply_prefs(c);
@@ -205,6 +209,7 @@ impl Ctx {
                 self.model.rules = r;
                 air::config_changed(self);
                 schedule::refresh(self);
+                rules::reloaded(self);
             }
             Msg::Graphics(g) => {
                 self.model.graphics = g;

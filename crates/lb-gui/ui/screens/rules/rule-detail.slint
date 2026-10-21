@@ -1,0 +1,186 @@
+// Editor of the selected rule: header, problems, the four sections,
+// "check on the plan", firing journal, dependencies.
+
+import { ScrollView } from "std-widgets.slint";
+import { Theme } from "../../theme/tokens.slint";
+import { Icons } from "../../theme/icons.slint";
+import { Label } from "../../components/label.slint";
+import { Icon } from "../../components/icon.slint";
+import { TextField } from "../../components/text-field.slint";
+import { Switch } from "../../components/switch.slint";
+import { Button, ButtonVariant } from "../../components/button.slint";
+import { IconButton } from "../../components/icon-button.slint";
+import { CircularProgress, EmptyState } from "../../components/feedback.slint";
+import { Rules } from "../../state/rules-state.slint";
+import { FormSection } from "form-parts.slint";
+import { WhenSection, WhatSection, ConditionsSection, LimitsSection } from "rule-sections.slint";
+
+component Lines inherits VerticalLayout {
+    in property <[string]> items;
+    in property <image> icon;
+    in property <color> tint: Theme.color.on-surface-variant;
+    in property <string> empty;
+    spacing: 4px;
+    if root.items.length == 0 && root.empty != "": Label {
+        text: root.empty;
+        color: Theme.color.on-surface-variant;
+        type-style: Theme.body-small;
+    }
+    for t in root.items: HorizontalLayout {
+        spacing: Theme.sp2;
+        VerticalLayout {
+            alignment: start;
+            Icon {
+                source: root.icon;
+                size: 16px;
+                tint: root.tint;
+            }
+        }
+        Label {
+            horizontal-stretch: 1;
+            text: t;
+            type-style: Theme.body-small;
+            wrap: word-wrap;
+        }
+    }
+}
+
+export component RuleDetail inherits Rectangle {
+    if !Rules.has-form: EmptyState {
+        icon: Icons.rule;
+        title: "Выберите правило";
+        text: "Правила вставляют заставки, рекламу и анонсы автоматически. Порядок: выше приоритет — раньше.";
+    }
+
+    if Rules.has-form: sv := ScrollView {
+        // content follows the visible width: no horizontal scrolling
+        VerticalLayout {
+            width: sv.visible-width;
+            padding-top: Theme.sp2;
+            padding-right: Theme.sp3;
+            spacing: Theme.sp3;
+            alignment: start;
+
+            HorizontalLayout {
+                spacing: Theme.sp3;
+                TextField {
+                    horizontal-stretch: 1;
+                    label: "Название правила";
+                    text <=> Rules.f-name;
+                    supporting: "id: " + Rules.f-id;
+                    edited => {
+                        Rules.form-changed();
+                    }
+                }
+                VerticalLayout {
+                    alignment: start;
+                    padding-top: Theme.sp2;
+                    Switch {
+                        text: "Включено";
+                        checked <=> Rules.f-enabled;
+                        toggled => {
+                            Rules.form-changed();
+                        }
+                    }
+                }
+                VerticalLayout {
+                    alignment: start;
+                    IconButton {
+                        icon: Icons.content-copy;
+                        tooltip: "Дублировать правило";
+                        clicked => {
+                            Rules.duplicate();
+                        }
+                    }
+                }
+                VerticalLayout {
+                    alignment: start;
+                    IconButton {
+                        icon: Icons.delete;
+                        icon-tint: Theme.color.error;
+                        tooltip: "Удалить правило";
+                        clicked => {
+                            Rules.remove();
+                        }
+                    }
+                }
+            }
+
+            if Rules.problems.length > 0: Rectangle {
+                border-radius: Theme.radius-m;
+                background: Theme.color.error-container;
+                Lines {
+                    padding: Theme.sp3;
+                    items: Rules.problems;
+                    icon: Icons.error;
+                    tint: Theme.color.on-error-container;
+                }
+            }
+
+            WhenSection { }
+            WhatSection { }
+            ConditionsSection { }
+            LimitsSection { }
+
+            FormSection {
+                title: "Проверка без эфира";
+                hint: "по прогнозу на 24 часа с текущим черновиком";
+                icon: Icons.science;
+                HorizontalLayout {
+                    spacing: Theme.sp2;
+                    alignment: start;
+                    Button {
+                        text: "Проверить на плане";
+                        variant: ButtonVariant.tonal;
+                        icon: Icons.science;
+                        has-icon: true;
+                        enabled: !Rules.checking;
+                        clicked => {
+                            Rules.test-rule();
+                        }
+                    }
+                    Button {
+                        text: "Журнал срабатываний";
+                        variant: ButtonVariant.outlined;
+                        icon: Icons.history;
+                        has-icon: true;
+                        clicked => {
+                            Rules.load-journal();
+                        }
+                    }
+                    if Rules.checking: VerticalLayout {
+                        alignment: center;
+                        CircularProgress {
+                            size: 20px;
+                        }
+                    }
+                }
+                if Rules.examples-note != "": Label {
+                    text: Rules.examples-note;
+                    type-style: Theme.body-small;
+                    color: Theme.color.on-surface-variant;
+                    wrap: word-wrap;
+                }
+                Lines {
+                    items: Rules.examples;
+                    icon: Icons.schedule;
+                    tint: Theme.color.primary;
+                }
+                Lines {
+                    items: Rules.journal;
+                    icon: Icons.history;
+                }
+            }
+
+            FormSection {
+                title: "Зависимости";
+                icon: Icons.account-tree;
+                Lines {
+                    items: Rules.deps;
+                    icon: Icons.link;
+                    empty: "Правило не связано с другими (без группы и общих рекламных блоков).";
+                }
+            }
+        }
+    }
+}

@@ -1,0 +1,68 @@
+// Small building blocks of the rule / policy forms: titled section card
+// and a toggle chip row (kinds, weekdays).
+
+import { Theme } from "../../theme/tokens.slint";
+import { Label } from "../../components/label.slint";
+import { Icon } from "../../components/icon.slint";
+import { FilterChip } from "../../components/chips.slint";
+
+export component FormSection inherits Rectangle {
+    in property <string> title;
+    in property <string> hint;
+    in property <image> icon;
+    border-radius: Theme.radius-m;
+    background: Theme.color.surface-container-low;
+    VerticalLayout {
+        padding: Theme.sp4;
+        spacing: Theme.sp3;
+        alignment: start;
+        HorizontalLayout {
+            spacing: Theme.sp2;
+            VerticalLayout {
+                alignment: center;
+                Icon {
+                    source: root.icon;
+                    size: 20px;
+                    tint: Theme.color.primary;
+                }
+            }
+            Label {
+                text: root.title;
+                type-style: Theme.title-small;
+            }
+            Label {
+                horizontal-stretch: 1;
+                text: root.hint;
+                type-style: Theme.body-small;
+                color: Theme.color.on-surface-variant;
+            }
+        }
+        @children
+    }
+}
+
+// Toggle chips; `from` / `to` show a slice so long sets can be split into
+// rows (there is no wrapping layout).
+export component ToggleChips inherits HorizontalLayout {
+    in property <[string]> labels;
+    in property <[bool]> values;
+    in property <int> from: 0;
+    in property <int> to: 99;
+    callback toggled(int);
+    // spacing lives in each item so hidden ones take no room
+    spacing: 0;
+    alignment: start;
+    for l[i] in root.labels: HorizontalLayout {
+        property <bool> shown: i >= root.from && i < root.to;
+        visible: self.shown;
+        width: self.shown ? self.preferred-width : 0;
+        padding-right: self.shown ? Theme.sp1 : 0;
+        FilterChip {
+            text: l;
+            selected: i < root.values.length ? root.values[i] : false;
+            toggled => {
+                root.toggled(i);
+            }
+        }
+    }
+}

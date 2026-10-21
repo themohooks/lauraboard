@@ -1,0 +1,99 @@
+// "New rule" wizard: when → what → conditions → limits.
+
+import { Theme } from "../../theme/tokens.slint";
+import { Icons } from "../../theme/icons.slint";
+import { Label } from "../../components/label.slint";
+import { Dialog, DialogActions } from "../../components/dialog.slint";
+import { TextField } from "../../components/text-field.slint";
+import { Button, ButtonVariant } from "../../components/button.slint";
+import { Rules } from "../../state/rules-state.slint";
+import { WhenSection, WhatSection, ConditionsSection, LimitsSection } from "rule-sections.slint";
+
+component Step inherits HorizontalLayout {
+    in property <int> index;
+    in property <string> text;
+    spacing: Theme.sp2;
+    Rectangle {
+        width: 24px;
+        height: 24px;
+        border-radius: 12px;
+        background: Rules.wizard-step >= root.index ? Theme.color.primary : Theme.color.surface-container-highest;
+        Label {
+            text: Rules.wizard-step > root.index ? "✓" : root.index + 1;
+            type-style: Theme.label-medium;
+            color: Rules.wizard-step >= root.index ? Theme.color.on-primary : Theme.color.on-surface-variant;
+            horizontal-alignment: center;
+        }
+    }
+    Label {
+        text: root.text;
+        type-style: Theme.label-large;
+        color: Rules.wizard-step == root.index ? Theme.color.on-surface : Theme.color.on-surface-variant;
+    }
+}
+
+export component RuleWizard inherits Dialog {
+    open: Rules.wizard-open;
+    title: "Новое правило";
+    dialog-width: 760px;
+    dismissible: false;
+
+    HorizontalLayout {
+        spacing: Theme.sp4;
+        Step { index: 0; text: "Когда"; }
+        Step { index: 1; text: "Что"; }
+        Step { index: 2; text: "Условия"; }
+        Step { index: 3; text: "Ограничения"; }
+    }
+    if Rules.wizard-step == 0: TextField {
+        label: "Название правила";
+        text <=> Rules.f-name;
+        container-color: Theme.color.surface-container-high;
+        edited => {
+            Rules.form-changed();
+        }
+    }
+    if Rules.wizard-step == 0: WhenSection {
+        field-bg: Theme.color.surface-container-low;
+    }
+    if Rules.wizard-step == 1: WhatSection { }
+    if Rules.wizard-step == 2: ConditionsSection { }
+    if Rules.wizard-step == 3: LimitsSection { }
+    Label {
+        text: Rules.problems.length > 0 ? Rules.problems[0] : "";
+        type-style: Theme.body-small;
+        color: Theme.color.error;
+        wrap: word-wrap;
+    }
+    DialogActions {
+        Button {
+            text: "Отмена";
+            variant: ButtonVariant.text;
+            clicked => {
+                Rules.wizard-cancel();
+            }
+        }
+        Button {
+            text: "Назад";
+            variant: ButtonVariant.outlined;
+            enabled: Rules.wizard-step > 0;
+            clicked => {
+                Rules.wizard-step -= 1;
+            }
+        }
+        if Rules.wizard-step < 3: Button {
+            text: "Далее";
+            clicked => {
+                Rules.wizard-step += 1;
+            }
+        }
+        if Rules.wizard-step == 3: Button {
+            text: "Создать правило";
+            icon: Icons.check;
+            has-icon: true;
+            clicked => {
+                Rules.wizard-finish();
+            }
+        }
+    }
+}
