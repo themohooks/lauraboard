@@ -1,0 +1,1352 @@
+[[schedules]]
+id = "main"
+name = "Основная сетка"
+enabled = true
+exceptions = []
+
+[schedules.week]
+sat = "weekend"
+sun = "weekend"
+default = "weekday"
+
+[[schedules.templates]]
+id = "weekday"
+name = "weekday"
+
+[[schedules.templates.blocks]]
+id = "news-00"
+title = "Новости"
+start = "00:00:00"
+late_policy = "strict"
+allow_truncate = false
+category = "news"
+rules = true
+fill_gap = true
+
+[schedules.templates.blocks.source]
+type = "media"
+items = ["news"]
+
+[[schedules.templates.blocks]]
+id = "shows-00"
+title = "Дневной эфир"
+late_policy = "strict"
+allow_truncate = false
+rules = true
+fill_gap = true
+
+[schedules.templates.blocks.source]
+type = "playlist"
+playlist = "shows"
+restart = false
+
+[[schedules.templates.blocks]]
+id = "news-01"
+title = "Новости"
+start = "01:00:00"
+late_policy = "strict"
+allow_truncate = false
+category = "news"
+rules = true
+fill_gap = true
+
+[schedules.templates.blocks.source]
+type = "media"
+items = ["news"]
+
+[[schedules.templates.blocks]]
+id = "shows-01"
+title = "Дневной эфир"
+late_policy = "strict"
+allow_truncate = false
+rules = true
+fill_gap = true
+
+[schedules.templates.blocks.source]
+type = "playlist"
+playlist = "shows"
+restart = false
+
+[[schedules.templates.blocks]]
+id = "news-02"
+title = "Новости"
+start = "02:00:00"
+late_policy = "strict"
+allow_truncate = false
+category = "news"
+rules = true
+fill_gap = true
+
+[schedules.templates.blocks.source]
+type = "media"
+items = ["news"]
+
+[[schedules.templates.blocks]]
+id = "shows-02"
+title = "Дневной эфир"
+late_policy = "strict"
+allow_truncate = false
+rules = true
+fill_gap = true
+
+[schedules.templates.blocks.source]
+type = "playlist"
+playlist = "shows"
+restart = false
+
+[[schedules.templates.blocks]]
+id = "news-03"
+title = "Новости"
+start = "03:00:00"
+late_policy = "strict"
+allow_truncate = false
+category = "news"
+rules = true
+fill_gap = true
+
+[schedules.templates.blocks.source]
+type = "media"
+items = ["news"]
+
+[[schedules.templates.blocks]]
+id = "shows-03"
+title = "Дневной эфир"
+late_policy = "strict"
+allow_truncate = false
+rules = true
+fill_gap = true
+
+[schedules.templates.blocks.source]
+type = "playlist"
+playlist = "shows"
+restart = false
+
+[[schedules.templates.blocks]]
+id = "news-04"
+title = "Новости"
+start = "04:00:00"
+late_policy = "strict"
+allow_truncate = false
+category = "news"
+rules = true
+fill_gap = true
+
+[schedules.templates.blocks.source]
+type = "media"
+items = ["news"]
+
+[[schedules.templates.blocks]]
+id = "shows-04"
+title = "Дневной эфир"
+late_policy = "strict"
+allow_truncate = false
+rules = true
+fill_gap = true
+
+[schedules.templates.blocks.source]
+type = "playlist"
+playlist = "shows"
+restart = false
+
+[[schedules.templates.blocks]]
+id = "news-05"
+title = "Новости"
+start = "05:00:00"
+late_policy = "strict"
+allow_truncate = false
+category = "news"
+rules = true
+fill_gap = true
+
+[schedules.templates.blocks.source]
+type = "media"
+items = ["news"]
+
+[[schedules.templates.blocks]]
+id = "shows-05"
+title = "Дневной эфир"
+late_policy = "strict"
+allow_truncate = false
+rules = true
+fill_gap = true
+
+[schedules.templates.blocks.source]
+type = "playlist"
+playlist = "shows"
+restart = false
+
+[[schedules.templates.blocks]]
+id = "news-06"
+title = "Новости"
+start = "06:00:00"
+late_policy = "strict"
+allow_truncate = false
+category = "news"
+rules = true
+fill_gap = true
+
+[schedules.templates.blocks.source]
+type = "media"
+items = ["news"]
+
+[[schedules.templates.blocks]]
+id = "shows-06"
+title = "Дневной эфир"
+late_policy = "strict"
+allow_truncate = false
+rules = true
+fill_gap = true
+
+[schedules.templates.blocks.source]
+type = "playlist"
+playlist = "shows"
+restart = false
+
+[[schedules.templates.blocks]]
+id = "news-07"
+title = "Новости"
+start = "07:00:00"
+late_policy = "strict"
+allow_truncate = false
+category = "news"
+rules = true
+fill_gap = true
+
+[schedules.templates.blocks.source]
+type = "media"
+items = ["news"]
+
+[[schedules.templates.blocks]]
+id = "shows-07"
+title = "Дневной эфир"
+late_policy = "strict"
+allow_truncate = false
+rules = true
+fill_gap = true
+
+[schedules.templates.blocks.source]
+type = "playlist"
+playlist = "shows"
+restart = false
+
+[[schedules.templates.blocks]]
+id = "news-08"
+title = "Новости"
+start = "08:00:00"
+late_policy = "strict"
+allow_truncate = false
+category = "news"
+rules = true
+fill_gap = true
+
+[schedules.templates.blocks.source]
+type = "media"
+items = ["news"]
+
+[[schedules.templates.blocks]]
+id = "shows-08"
+title = "Дневной эфир"
+late_policy = "strict"
+allow_truncate = false
+rules = true
+fill_gap = true
+
+[schedules.templates.blocks.source]
+type = "playlist"
+playlist = "shows"
+restart = false
+
+[[schedules.templates.blocks]]
+id = "news-09"
+title = "Новости"
+start = "09:00:00"
+late_policy = "strict"
+allow_truncate = false
+category = "news"
+rules = true
+fill_gap = true
+
+[schedules.templates.blocks.source]
+type = "media"
+items = ["news"]
+
+[[schedules.templates.blocks]]
+id = "shows-09"
+title = "Дневной эфир"
+late_policy = "strict"
+allow_truncate = false
+rules = true
+fill_gap = true
+
+[schedules.templates.blocks.source]
+type = "playlist"
+playlist = "shows"
+restart = false
+
+[[schedules.templates.blocks]]
+id = "news-10"
+title = "Новости"
+start = "10:00:00"
+late_policy = "strict"
+allow_truncate = false
+category = "news"
+rules = true
+fill_gap = true
+
+[schedules.templates.blocks.source]
+type = "media"
+items = ["news"]
+
+[[schedules.templates.blocks]]
+id = "shows-10"
+title = "Дневной эфир"
+late_policy = "strict"
+allow_truncate = false
+rules = true
+fill_gap = true
+
+[schedules.templates.blocks.source]
+type = "playlist"
+playlist = "shows"
+restart = false
+
+[[schedules.templates.blocks]]
+id = "news-11"
+title = "Новости"
+start = "11:00:00"
+late_policy = "strict"
+allow_truncate = false
+category = "news"
+rules = true
+fill_gap = true
+
+[schedules.templates.blocks.source]
+type = "media"
+items = ["news"]
+
+[[schedules.templates.blocks]]
+id = "shows-11"
+title = "Дневной эфир"
+late_policy = "strict"
+allow_truncate = false
+rules = true
+fill_gap = true
+
+[schedules.templates.blocks.source]
+type = "playlist"
+playlist = "shows"
+restart = false
+
+[[schedules.templates.blocks]]
+id = "news-12"
+title = "Новости"
+start = "12:00:00"
+late_policy = "strict"
+allow_truncate = false
+category = "news"
+rules = true
+fill_gap = true
+
+[schedules.templates.blocks.source]
+type = "media"
+items = ["news"]
+
+[[schedules.templates.blocks]]
+id = "shows-12"
+title = "Дневной эфир"
+late_policy = "strict"
+allow_truncate = false
+rules = true
+fill_gap = true
+
+[schedules.templates.blocks.source]
+type = "playlist"
+playlist = "shows"
+restart = false
+
+[[schedules.templates.blocks]]
+id = "news-13"
+title = "Новости"
+start = "13:00:00"
+late_policy = "strict"
+allow_truncate = false
+category = "news"
+rules = true
+fill_gap = true
+
+[schedules.templates.blocks.source]
+type = "media"
+items = ["news"]
+
+[[schedules.templates.blocks]]
+id = "shows-13"
+title = "Дневной эфир"
+late_policy = "strict"
+allow_truncate = false
+rules = true
+fill_gap = true
+
+[schedules.templates.blocks.source]
+type = "playlist"
+playlist = "shows"
+restart = false
+
+[[schedules.templates.blocks]]
+id = "news-14"
+title = "Новости"
+start = "14:00:00"
+late_policy = "strict"
+allow_truncate = false
+category = "news"
+rules = true
+fill_gap = true
+
+[schedules.templates.blocks.source]
+type = "media"
+items = ["news"]
+
+[[schedules.templates.blocks]]
+id = "shows-14"
+title = "Дневной эфир"
+late_policy = "strict"
+allow_truncate = false
+rules = true
+fill_gap = true
+
+[schedules.templates.blocks.source]
+type = "playlist"
+playlist = "shows"
+restart = false
+
+[[schedules.templates.blocks]]
+id = "news-15"
+title = "Новости"
+start = "15:00:00"
+late_policy = "strict"
+allow_truncate = false
+category = "news"
+rules = true
+fill_gap = true
+
+[schedules.templates.blocks.source]
+type = "media"
+items = ["news"]
+
+[[schedules.templates.blocks]]
+id = "shows-15"
+title = "Дневной эфир"
+late_policy = "strict"
+allow_truncate = false
+rules = true
+fill_gap = true
+
+[schedules.templates.blocks.source]
+type = "playlist"
+playlist = "shows"
+restart = false
+
+[[schedules.templates.blocks]]
+id = "news-16"
+title = "Новости"
+start = "16:00:00"
+late_policy = "strict"
+allow_truncate = false
+category = "news"
+rules = true
+fill_gap = true
+
+[schedules.templates.blocks.source]
+type = "media"
+items = ["news"]
+
+[[schedules.templates.blocks]]
+id = "shows-16"
+title = "Дневной эфир"
+late_policy = "strict"
+allow_truncate = false
+rules = true
+fill_gap = true
+
+[schedules.templates.blocks.source]
+type = "playlist"
+playlist = "shows"
+restart = false
+
+[[schedules.templates.blocks]]
+id = "news-17"
+title = "Новости"
+start = "17:00:00"
+late_policy = "strict"
+allow_truncate = false
+category = "news"
+rules = true
+fill_gap = true
+
+[schedules.templates.blocks.source]
+type = "media"
+items = ["news"]
+
+[[schedules.templates.blocks]]
+id = "shows-17"
+title = "Дневной эфир"
+late_policy = "strict"
+allow_truncate = false
+rules = true
+fill_gap = true
+
+[schedules.templates.blocks.source]
+type = "playlist"
+playlist = "shows"
+restart = false
+
+[[schedules.templates.blocks]]
+id = "news-18"
+title = "Новости"
+start = "18:00:00"
+late_policy = "strict"
+allow_truncate = false
+category = "news"
+rules = true
+fill_gap = true
+
+[schedules.templates.blocks.source]
+type = "media"
+items = ["news"]
+
+[[schedules.templates.blocks]]
+id = "shows-18"
+title = "Дневной эфир"
+late_policy = "strict"
+allow_truncate = false
+rules = true
+fill_gap = true
+
+[schedules.templates.blocks.source]
+type = "playlist"
+playlist = "shows"
+restart = false
+
+[[schedules.templates.blocks]]
+id = "news-19"
+title = "Новости"
+start = "19:00:00"
+late_policy = "strict"
+allow_truncate = false
+category = "news"
+rules = true
+fill_gap = true
+
+[schedules.templates.blocks.source]
+type = "media"
+items = ["news"]
+
+[[schedules.templates.blocks]]
+id = "shows-19"
+title = "Дневной эфир"
+late_policy = "strict"
+allow_truncate = false
+rules = true
+fill_gap = true
+
+[schedules.templates.blocks.source]
+type = "playlist"
+playlist = "shows"
+restart = false
+
+[[schedules.templates.blocks]]
+id = "news-20"
+title = "Новости"
+start = "20:00:00"
+late_policy = "strict"
+allow_truncate = false
+category = "news"
+rules = true
+fill_gap = true
+
+[schedules.templates.blocks.source]
+type = "media"
+items = ["news"]
+
+[[schedules.templates.blocks]]
+id = "evening"
+title = "Вечерний кинозал"
+start = "20:05:00"
+max_items = 1
+late_policy = "strict"
+allow_truncate = false
+category = "movies"
+rules = true
+fill_gap = true
+
+[schedules.templates.blocks.source]
+type = "playlist"
+playlist = "movies"
+restart = true
+
+[schedules.templates.blocks.meta]
+presenter = "Кинозал"
+
+[[schedules.templates.blocks]]
+id = "shows-20"
+title = "Дневной эфир"
+late_policy = "strict"
+allow_truncate = false
+rules = true
+fill_gap = true
+
+[schedules.templates.blocks.source]
+type = "playlist"
+playlist = "shows"
+restart = false
+
+[[schedules.templates.blocks]]
+id = "news-21"
+title = "Новости"
+start = "21:00:00"
+late_policy = "strict"
+allow_truncate = false
+category = "news"
+rules = true
+fill_gap = true
+
+[schedules.templates.blocks.source]
+type = "media"
+items = ["news"]
+
+[[schedules.templates.blocks]]
+id = "shows-21"
+title = "Дневной эфир"
+late_policy = "strict"
+allow_truncate = false
+rules = true
+fill_gap = true
+
+[schedules.templates.blocks.source]
+type = "playlist"
+playlist = "shows"
+restart = false
+
+[[schedules.templates.blocks]]
+id = "news-22"
+title = "Новости"
+start = "22:00:00"
+late_policy = "strict"
+allow_truncate = false
+category = "news"
+rules = true
+fill_gap = true
+
+[schedules.templates.blocks.source]
+type = "media"
+items = ["news"]
+
+[[schedules.templates.blocks]]
+id = "shows-22"
+title = "Дневной эфир"
+late_policy = "strict"
+allow_truncate = false
+rules = true
+fill_gap = true
+
+[schedules.templates.blocks.source]
+type = "playlist"
+playlist = "shows"
+restart = false
+
+[[schedules.templates.blocks]]
+id = "news-23"
+title = "Новости"
+start = "23:00:00"
+late_policy = "strict"
+allow_truncate = false
+category = "news"
+rules = true
+fill_gap = true
+
+[schedules.templates.blocks.source]
+type = "media"
+items = ["news"]
+
+[[schedules.templates.blocks]]
+id = "shows-23"
+title = "Дневной эфир"
+late_policy = "strict"
+allow_truncate = false
+rules = true
+fill_gap = true
+
+[schedules.templates.blocks.source]
+type = "playlist"
+playlist = "shows"
+restart = false
+
+[[schedules.templates]]
+id = "weekend"
+name = "weekend"
+
+[[schedules.templates.blocks]]
+id = "news-00"
+title = "Новости"
+start = "00:00:00"
+late_policy = "strict"
+allow_truncate = false
+category = "news"
+rules = true
+fill_gap = true
+
+[schedules.templates.blocks.source]
+type = "media"
+items = ["news"]
+
+[[schedules.templates.blocks]]
+id = "shows-00"
+title = "Дневной эфир"
+late_policy = "strict"
+allow_truncate = false
+rules = true
+fill_gap = true
+
+[schedules.templates.blocks.source]
+type = "playlist"
+playlist = "shows-weekend"
+restart = false
+
+[[schedules.templates.blocks]]
+id = "news-01"
+title = "Новости"
+start = "01:00:00"
+late_policy = "strict"
+allow_truncate = false
+category = "news"
+rules = true
+fill_gap = true
+
+[schedules.templates.blocks.source]
+type = "media"
+items = ["news"]
+
+[[schedules.templates.blocks]]
+id = "shows-01"
+title = "Дневной эфир"
+late_policy = "strict"
+allow_truncate = false
+rules = true
+fill_gap = true
+
+[schedules.templates.blocks.source]
+type = "playlist"
+playlist = "shows-weekend"
+restart = false
+
+[[schedules.templates.blocks]]
+id = "news-02"
+title = "Новости"
+start = "02:00:00"
+late_policy = "strict"
+allow_truncate = false
+category = "news"
+rules = true
+fill_gap = true
+
+[schedules.templates.blocks.source]
+type = "media"
+items = ["news"]
+
+[[schedules.templates.blocks]]
+id = "shows-02"
+title = "Дневной эфир"
+late_policy = "strict"
+allow_truncate = false
+rules = true
+fill_gap = true
+
+[schedules.templates.blocks.source]
+type = "playlist"
+playlist = "shows-weekend"
+restart = false
+
+[[schedules.templates.blocks]]
+id = "news-03"
+title = "Новости"
+start = "03:00:00"
+late_policy = "strict"
+allow_truncate = false
+category = "news"
+rules = true
+fill_gap = true
+
+[schedules.templates.blocks.source]
+type = "media"
+items = ["news"]
+
+[[schedules.templates.blocks]]
+id = "shows-03"
+title = "Дневной эфир"
+late_policy = "strict"
+allow_truncate = false
+rules = true
+fill_gap = true
+
+[schedules.templates.blocks.source]
+type = "playlist"
+playlist = "shows-weekend"
+restart = false
+
+[[schedules.templates.blocks]]
+id = "news-04"
+title = "Новости"
+start = "04:00:00"
+late_policy = "strict"
+allow_truncate = false
+category = "news"
+rules = true
+fill_gap = true
+
+[schedules.templates.blocks.source]
+type = "media"
+items = ["news"]
+
+[[schedules.templates.blocks]]
+id = "shows-04"
+title = "Дневной эфир"
+late_policy = "strict"
+allow_truncate = false
+rules = true
+fill_gap = true
+
+[schedules.templates.blocks.source]
+type = "playlist"
+playlist = "shows-weekend"
+restart = false
+
+[[schedules.templates.blocks]]
+id = "news-05"
+title = "Новости"
+start = "05:00:00"
+late_policy = "strict"
+allow_truncate = false
+category = "news"
+rules = true
+fill_gap = true
+
+[schedules.templates.blocks.source]
+type = "media"
+items = ["news"]
+
+[[schedules.templates.blocks]]
+id = "shows-05"
+title = "Дневной эфир"
+late_policy = "strict"
+allow_truncate = false
+rules = true
+fill_gap = true
+
+[schedules.templates.blocks.source]
+type = "playlist"
+playlist = "shows-weekend"
+restart = false
+
+[[schedules.templates.blocks]]
+id = "news-06"
+title = "Новости"
+start = "06:00:00"
+late_policy = "strict"
+allow_truncate = false
+category = "news"
+rules = true
+fill_gap = true
+
+[schedules.templates.blocks.source]
+type = "media"
+items = ["news"]
+
+[[schedules.templates.blocks]]
+id = "shows-06"
+title = "Дневной эфир"
+late_policy = "strict"
+allow_truncate = false
+rules = true
+fill_gap = true
+
+[schedules.templates.blocks.source]
+type = "playlist"
+playlist = "shows-weekend"
+restart = false
+
+[[schedules.templates.blocks]]
+id = "news-07"
+title = "Новости"
+start = "07:00:00"
+late_policy = "strict"
+allow_truncate = false
+category = "news"
+rules = true
+fill_gap = true
+
+[schedules.templates.blocks.source]
+type = "media"
+items = ["news"]
+
+[[schedules.templates.blocks]]
+id = "shows-07"
+title = "Дневной эфир"
+late_policy = "strict"
+allow_truncate = false
+rules = true
+fill_gap = true
+
+[schedules.templates.blocks.source]
+type = "playlist"
+playlist = "shows-weekend"
+restart = false
+
+[[schedules.templates.blocks]]
+id = "news-08"
+title = "Новости"
+start = "08:00:00"
+late_policy = "strict"
+allow_truncate = false
+category = "news"
+rules = true
+fill_gap = true
+
+[schedules.templates.blocks.source]
+type = "media"
+items = ["news"]
+
+[[schedules.templates.blocks]]
+id = "shows-08"
+title = "Дневной эфир"
+late_policy = "strict"
+allow_truncate = false
+rules = true
+fill_gap = true
+
+[schedules.templates.blocks.source]
+type = "playlist"
+playlist = "shows-weekend"
+restart = false
+
+[[schedules.templates.blocks]]
+id = "news-09"
+title = "Новости"
+start = "09:00:00"
+late_policy = "strict"
+allow_truncate = false
+category = "news"
+rules = true
+fill_gap = true
+
+[schedules.templates.blocks.source]
+type = "media"
+items = ["news"]
+
+[[schedules.templates.blocks]]
+id = "shows-09"
+title = "Дневной эфир"
+late_policy = "strict"
+allow_truncate = false
+rules = true
+fill_gap = true
+
+[schedules.templates.blocks.source]
+type = "playlist"
+playlist = "shows-weekend"
+restart = false
+
+[[schedules.templates.blocks]]
+id = "news-10"
+title = "Новости"
+start = "10:00:00"
+late_policy = "strict"
+allow_truncate = false
+category = "news"
+rules = true
+fill_gap = true
+
+[schedules.templates.blocks.source]
+type = "media"
+items = ["news"]
+
+[[schedules.templates.blocks]]
+id = "shows-10"
+title = "Дневной эфир"
+late_policy = "strict"
+allow_truncate = false
+rules = true
+fill_gap = true
+
+[schedules.templates.blocks.source]
+type = "playlist"
+playlist = "shows-weekend"
+restart = false
+
+[[schedules.templates.blocks]]
+id = "news-11"
+title = "Новости"
+start = "11:00:00"
+late_policy = "strict"
+allow_truncate = false
+category = "news"
+rules = true
+fill_gap = true
+
+[schedules.templates.blocks.source]
+type = "media"
+items = ["news"]
+
+[[schedules.templates.blocks]]
+id = "shows-11"
+title = "Дневной эфир"
+late_policy = "strict"
+allow_truncate = false
+rules = true
+fill_gap = true
+
+[schedules.templates.blocks.source]
+type = "playlist"
+playlist = "shows-weekend"
+restart = false
+
+[[schedules.templates.blocks]]
+id = "news-12"
+title = "Новости"
+start = "12:00:00"
+late_policy = "strict"
+allow_truncate = false
+category = "news"
+rules = true
+fill_gap = true
+
+[schedules.templates.blocks.source]
+type = "media"
+items = ["news"]
+
+[[schedules.templates.blocks]]
+id = "shows-12"
+title = "Дневной эфир"
+late_policy = "strict"
+allow_truncate = false
+rules = true
+fill_gap = true
+
+[schedules.templates.blocks.source]
+type = "playlist"
+playlist = "shows-weekend"
+restart = false
+
+[[schedules.templates.blocks]]
+id = "news-13"
+title = "Новости"
+start = "13:00:00"
+late_policy = "strict"
+allow_truncate = false
+category = "news"
+rules = true
+fill_gap = true
+
+[schedules.templates.blocks.source]
+type = "media"
+items = ["news"]
+
+[[schedules.templates.blocks]]
+id = "shows-13"
+title = "Дневной эфир"
+late_policy = "strict"
+allow_truncate = false
+rules = true
+fill_gap = true
+
+[schedules.templates.blocks.source]
+type = "playlist"
+playlist = "shows-weekend"
+restart = false
+
+[[schedules.templates.blocks]]
+id = "news-14"
+title = "Новости"
+start = "14:00:00"
+late_policy = "strict"
+allow_truncate = false
+category = "news"
+rules = true
+fill_gap = true
+
+[schedules.templates.blocks.source]
+type = "media"
+items = ["news"]
+
+[[schedules.templates.blocks]]
+id = "shows-14"
+title = "Дневной эфир"
+late_policy = "strict"
+allow_truncate = false
+rules = true
+fill_gap = true
+
+[schedules.templates.blocks.source]
+type = "playlist"
+playlist = "shows-weekend"
+restart = false
+
+[[schedules.templates.blocks]]
+id = "news-15"
+title = "Новости"
+start = "15:00:00"
+late_policy = "strict"
+allow_truncate = false
+category = "news"
+rules = true
+fill_gap = true
+
+[schedules.templates.blocks.source]
+type = "media"
+items = ["news"]
+
+[[schedules.templates.blocks]]
+id = "shows-15"
+title = "Дневной эфир"
+late_policy = "strict"
+allow_truncate = false
+rules = true
+fill_gap = true
+
+[schedules.templates.blocks.source]
+type = "playlist"
+playlist = "shows-weekend"
+restart = false
+
+[[schedules.templates.blocks]]
+id = "news-16"
+title = "Новости"
+start = "16:00:00"
+late_policy = "strict"
+allow_truncate = false
+category = "news"
+rules = true
+fill_gap = true
+
+[schedules.templates.blocks.source]
+type = "media"
+items = ["news"]
+
+[[schedules.templates.blocks]]
+id = "shows-16"
+title = "Дневной эфир"
+late_policy = "strict"
+allow_truncate = false
+rules = true
+fill_gap = true
+
+[schedules.templates.blocks.source]
+type = "playlist"
+playlist = "shows-weekend"
+restart = false
+
+[[schedules.templates.blocks]]
+id = "news-17"
+title = "Новости"
+start = "17:00:00"
+late_policy = "strict"
+allow_truncate = false
+category = "news"
+rules = true
+fill_gap = true
+
+[schedules.templates.blocks.source]
+type = "media"
+items = ["news"]
+
+[[schedules.templates.blocks]]
+id = "shows-17"
+title = "Дневной эфир"
+late_policy = "strict"
+allow_truncate = false
+rules = true
+fill_gap = true
+
+[schedules.templates.blocks.source]
+type = "playlist"
+playlist = "shows-weekend"
+restart = false
+
+[[schedules.templates.blocks]]
+id = "news-18"
+title = "Новости"
+start = "18:00:00"
+late_policy = "strict"
+allow_truncate = false
+category = "news"
+rules = true
+fill_gap = true
+
+[schedules.templates.blocks.source]
+type = "media"
+items = ["news"]
+
+[[schedules.templates.blocks]]
+id = "shows-18"
+title = "Дневной эфир"
+late_policy = "strict"
+allow_truncate = false
+rules = true
+fill_gap = true
+
+[schedules.templates.blocks.source]
+type = "playlist"
+playlist = "shows-weekend"
+restart = false
+
+[[schedules.templates.blocks]]
+id = "news-19"
+title = "Новости"
+start = "19:00:00"
+late_policy = "strict"
+allow_truncate = false
+category = "news"
+rules = true
+fill_gap = true
+
+[schedules.templates.blocks.source]
+type = "media"
+items = ["news"]
+
+[[schedules.templates.blocks]]
+id = "shows-19"
+title = "Дневной эфир"
+late_policy = "strict"
+allow_truncate = false
+rules = true
+fill_gap = true
+
+[schedules.templates.blocks.source]
+type = "playlist"
+playlist = "shows-weekend"
+restart = false
+
+[[schedules.templates.blocks]]
+id = "news-20"
+title = "Новости"
+start = "20:00:00"
+late_policy = "strict"
+allow_truncate = false
+category = "news"
+rules = true
+fill_gap = true
+
+[schedules.templates.blocks.source]
+type = "media"
+items = ["news"]
+
+[[schedules.templates.blocks]]
+id = "evening"
+title = "Вечерний кинозал"
+start = "20:05:00"
+max_items = 1
+late_policy = "strict"
+allow_truncate = false
+category = "movies"
+rules = true
+fill_gap = true
+
+[schedules.templates.blocks.source]
+type = "playlist"
+playlist = "movies"
+restart = true
+
+[schedules.templates.blocks.meta]
+presenter = "Кинозал"
+
+[[schedules.templates.blocks]]
+id = "shows-20"
+title = "Дневной эфир"
+late_policy = "strict"
+allow_truncate = false
+rules = true
+fill_gap = true
+
+[schedules.templates.blocks.source]
+type = "playlist"
+playlist = "shows-weekend"
+restart = false
+
+[[schedules.templates.blocks]]
+id = "news-21"
+title = "Новости"
+start = "21:00:00"
+late_policy = "strict"
+allow_truncate = false
+category = "news"
+rules = true
+fill_gap = true
+
+[schedules.templates.blocks.source]
+type = "media"
+items = ["news"]
+
+[[schedules.templates.blocks]]
+id = "shows-21"
+title = "Дневной эфир"
+late_policy = "strict"
+allow_truncate = false
+rules = true
+fill_gap = true
+
+[schedules.templates.blocks.source]
+type = "playlist"
+playlist = "shows-weekend"
+restart = false
+
+[[schedules.templates.blocks]]
+id = "news-22"
+title = "Новости"
+start = "22:00:00"
+late_policy = "strict"
+allow_truncate = false
+category = "news"
+rules = true
+fill_gap = true
+
+[schedules.templates.blocks.source]
+type = "media"
+items = ["news"]
+
+[[schedules.templates.blocks]]
+id = "shows-22"
+title = "Дневной эфир"
+late_policy = "strict"
+allow_truncate = false
+rules = true
+fill_gap = true
+
+[schedules.templates.blocks.source]
+type = "playlist"
+playlist = "shows-weekend"
+restart = false
+
+[[schedules.templates.blocks]]
+id = "news-23"
+title = "Новости"
+start = "23:00:00"
+late_policy = "strict"
+allow_truncate = false
+category = "news"
+rules = true
+fill_gap = true
+
+[schedules.templates.blocks.source]
+type = "media"
+items = ["news"]
+
+[[schedules.templates.blocks]]
+id = "shows-23"
+title = "Дневной эфир"
+late_policy = "strict"
+allow_truncate = false
+rules = true
+fill_gap = true
+
+[schedules.templates.blocks.source]
+type = "playlist"
+playlist = "shows-weekend"
+restart = false

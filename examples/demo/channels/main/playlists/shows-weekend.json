@@ -1,0 +1,21 @@
+{
+  "id": "shows-weekend",
+  "name": "Выходные (случайный порядок)",
+  "entries": [
+    {
+      "media": "show-1",
+      "pinned": true
+    },
+    {
+      "media": "show-2"
+    },
+    {
+      "media": "show-3"
+    },
+    {
+      "media": "show-4"
+    }
+  ],
+  "loop": true,
+  "shuffle": true
+}

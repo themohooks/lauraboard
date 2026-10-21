@@ -1,0 +1,11 @@
+{
+  "id": "movies",
+  "name": "Фильмы",
+  "entries": [
+    {
+      "media": "movie-1"
+    }
+  ],
+  "loop": true,
+  "shuffle": false
+}

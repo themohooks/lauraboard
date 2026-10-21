@@ -1,0 +1,20 @@
+{
+  "id": "shows",
+  "name": "Дневные передачи",
+  "entries": [
+    {
+      "media": "show-1"
+    },
+    {
+      "media": "show-2"
+    },
+    {
+      "media": "show-3"
+    },
+    {
+      "media": "show-4"
+    }
+  ],
+  "loop": true,
+  "shuffle": false
+}

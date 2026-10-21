@@ -1,0 +1,17 @@
+channels = []
+
+[ffmpeg]
+ffmpeg = "ffmpeg"
+ffprobe = "ffprobe"
+loglevel = "warning"
+
+[api]
+enabled = true
+bind = "127.0.0.1:8787"
+tokens = []
+
+[log]
+level = "info"
+dir = "logs"
+
+[notify]

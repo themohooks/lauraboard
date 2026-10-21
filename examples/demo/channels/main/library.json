@@ -1,0 +1,333 @@
+{
+  "items": [
+    {
+      "id": "show-1",
+      "path": "media/show-1.mp4",
+      "title": "Передача 1",
+      "kind": "program",
+      "category": "shows",
+      "duration": "00:01:30",
+      "volume_db": 0.0,
+      "weight": 1.0,
+      "meta": {
+        "presenter": "Лаура"
+      },
+      "probe": {
+        "video": {
+          "width": 1280,
+          "height": 720,
+          "fps": 25.0,
+          "codec": "h264"
+        },
+        "has_audio": true,
+        "audio_codec": "aac",
+        "format": "mov,mp4"
+      },
+      "enabled": true
+    },
+    {
+      "id": "show-2",
+      "path": "media/show-2.mp4",
+      "title": "Передача 2",
+      "kind": "program",
+      "category": "shows",
+      "duration": "00:01:15",
+      "volume_db": 0.0,
+      "weight": 1.0,
+      "meta": {
+        "presenter": "Лаура"
+      },
+      "probe": {
+        "video": {
+          "width": 1280,
+          "height": 720,
+          "fps": 25.0,
+          "codec": "h264"
+        },
+        "has_audio": true,
+        "audio_codec": "aac",
+        "format": "mov,mp4"
+      },
+      "enabled": true
+    },
+    {
+      "id": "show-3",
+      "path": "media/show-3.mp4",
+      "title": "Передача 3",
+      "kind": "program",
+      "category": "shows",
+      "duration": "00:01:00",
+      "volume_db": 0.0,
+      "weight": 1.0,
+      "meta": {
+        "presenter": "Лаура"
+      },
+      "probe": {
+        "video": {
+          "width": 1280,
+          "height": 720,
+          "fps": 25.0,
+          "codec": "h264"
+        },
+        "has_audio": true,
+        "audio_codec": "aac",
+        "format": "mov,mp4"
+      },
+      "enabled": true
+    },
+    {
+      "id": "show-4",
+      "path": "media/show-4.mp4",
+      "title": "Передача 4",
+      "kind": "program",
+      "category": "shows",
+      "duration": "00:01:20",
+      "volume_db": 0.0,
+      "weight": 1.0,
+      "meta": {
+        "presenter": "Лаура"
+      },
+      "probe": {
+        "video": {
+          "width": 1280,
+          "height": 720,
+          "fps": 25.0,
+          "codec": "h264"
+        },
+        "has_audio": true,
+        "audio_codec": "aac",
+        "format": "mov,mp4"
+      },
+      "enabled": true
+    },
+    {
+      "id": "movie-1",
+      "path": "media/movie-1.mp4",
+      "title": "Вечерний фильм",
+      "kind": "program",
+      "category": "movies",
+      "duration": "00:04:00",
+      "volume_db": 0.0,
+      "weight": 1.0,
+      "meta": {
+        "presenter": "Лаура"
+      },
+      "probe": {
+        "video": {
+          "width": 1280,
+          "height": 720,
+          "fps": 25.0,
+          "codec": "h264"
+        },
+        "has_audio": true,
+        "audio_codec": "aac",
+        "format": "mov,mp4"
+      },
+      "enabled": true
+    },
+    {
+      "id": "news",
+      "path": "media/news.mp4",
+      "title": "Новости",
+      "kind": "program",
+      "category": "news",
+      "duration": "00:00:30",
+      "volume_db": 0.0,
+      "weight": 1.0,
+      "meta": {
+        "presenter": "Лаура"
+      },
+      "probe": {
+        "video": {
+          "width": 1280,
+          "height": 720,
+          "fps": 25.0,
+          "codec": "h264"
+        },
+        "has_audio": true,
+        "audio_codec": "aac",
+        "format": "mov,mp4"
+      },
+      "enabled": true
+    },
+    {
+      "id": "jingle-1",
+      "path": "media/jingle-1.mp4",
+      "title": "jingle 1",
+      "kind": "jingle",
+      "category": "idents",
+      "duration": "00:00:05",
+      "volume_db": 0.0,
+      "weight": 1.0,
+      "probe": {
+        "video": {
+          "width": 1280,
+          "height": 720,
+          "fps": 25.0,
+          "codec": "h264"
+        },
+        "has_audio": true,
+        "audio_codec": "aac",
+        "format": "mov,mp4"
+      },
+      "enabled": true
+    },
+    {
+      "id": "jingle-2",
+      "path": "media/jingle-2.mp4",
+      "title": "jingle 2",
+      "kind": "jingle",
+      "category": "idents",
+      "duration": "00:00:06",
+      "volume_db": 0.0,
+      "weight": 1.0,
+      "probe": {
+        "video": {
+          "width": 1280,
+          "height": 720,
+          "fps": 25.0,
+          "codec": "h264"
+        },
+        "has_audio": true,
+        "audio_codec": "aac",
+        "format": "mov,mp4"
+      },
+      "enabled": true
+    },
+    {
+      "id": "ad-1",
+      "path": "media/ad-1.mp4",
+      "title": "ad 1",
+      "kind": "ad",
+      "category": "commercials",
+      "duration": "00:00:15",
+      "volume_db": 0.0,
+      "weight": 1.0,
+      "probe": {
+        "video": {
+          "width": 1280,
+          "height": 720,
+          "fps": 25.0,
+          "codec": "h264"
+        },
+        "has_audio": true,
+        "audio_codec": "aac",
+        "format": "mov,mp4"
+      },
+      "enabled": true
+    },
+    {
+      "id": "ad-2",
+      "path": "media/ad-2.mp4",
+      "title": "ad 2",
+      "kind": "ad",
+      "category": "commercials",
+      "duration": "00:00:20",
+      "volume_db": 0.0,
+      "weight": 1.0,
+      "probe": {
+        "video": {
+          "width": 1280,
+          "height": 720,
+          "fps": 25.0,
+          "codec": "h264"
+        },
+        "has_audio": true,
+        "audio_codec": "aac",
+        "format": "mov,mp4"
+      },
+      "enabled": true
+    },
+    {
+      "id": "ad-3",
+      "path": "media/ad-3.mp4",
+      "title": "ad 3",
+      "kind": "ad",
+      "category": "commercials",
+      "duration": "00:00:30",
+      "volume_db": 0.0,
+      "weight": 1.0,
+      "probe": {
+        "video": {
+          "width": 1280,
+          "height": 720,
+          "fps": 25.0,
+          "codec": "h264"
+        },
+        "has_audio": true,
+        "audio_codec": "aac",
+        "format": "mov,mp4"
+      },
+      "enabled": true
+    },
+    {
+      "id": "promo-movie",
+      "path": "media/promo-movie.mp4",
+      "title": "promo movie",
+      "kind": "promo",
+      "category": "promos",
+      "duration": "00:00:10",
+      "volume_db": 0.0,
+      "weight": 1.0,
+      "promo": {
+        "block": "evening"
+      },
+      "probe": {
+        "video": {
+          "width": 1280,
+          "height": 720,
+          "fps": 25.0,
+          "codec": "h264"
+        },
+        "has_audio": true,
+        "audio_codec": "aac",
+        "format": "mov,mp4"
+      },
+      "enabled": true
+    },
+    {
+      "id": "filler-1",
+      "path": "media/filler-1.mp4",
+      "title": "filler 1",
+      "kind": "filler",
+      "category": "fillers",
+      "duration": "00:00:30",
+      "volume_db": 0.0,
+      "weight": 1.0,
+      "probe": {
+        "video": {
+          "width": 1280,
+          "height": 720,
+          "fps": 25.0,
+          "codec": "h264"
+        },
+        "has_audio": true,
+        "audio_codec": "aac",
+        "format": "mov,mp4"
+      },
+      "enabled": true
+    },
+    {
+      "id": "filler-2",
+      "path": "media/filler-2.mp4",
+      "title": "filler 2",
+      "kind": "filler",
+      "category": "fillers",
+      "duration": "00:00:45",
+      "volume_db": 0.0,
+      "weight": 1.0,
+      "probe": {
+        "video": {
+          "width": 1280,
+          "height": 720,
+          "fps": 25.0,
+          "codec": "h264"
+        },
+        "has_audio": true,
+        "audio_codec": "aac",
+        "format": "mov,mp4"
+      },
+      "enabled": true
+    }
+  ]
+}

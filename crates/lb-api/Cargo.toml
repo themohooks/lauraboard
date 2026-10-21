@@ -2,6 +2,7 @@
 name = "lb-api"
 version = "0.1.0"
 edition.workspace = true
+rust-version.workspace = true
 
 [dependencies]
 axum = { version = "0.8.9", features = ["ws"] }

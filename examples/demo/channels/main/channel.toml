@@ -1,0 +1,58 @@
+id = "main"
+name = "LAURA TV (demo)"
+enabled = true
+autostart = true
+
+[video]
+width = 1280
+height = 720
+fps = 25.0
+scale = "fit"
+background = "#000000"
+
+[audio]
+sample_rate = 48000
+channels = 2
+volume_db = 0.0
+normalize = false
+
+[encoder]
+video_codec = "libx264"
+preset = "veryfast"
+video_bitrate = "2500k"
+gop_seconds = 2.0
+audio_codec = "aac"
+audio_bitrate = "160k"
+extra_args = []
+
+[[outputs]]
+name = "hls"
+url = "output/hls/live.m3u8"
+enabled = true
+
+[[outputs]]
+name = "youtube"
+url = "rtmp://a.rtmp.youtube.com/live2/YOUR-STREAM-KEY"
+enabled = false
+
+[record]
+enabled = false
+dir = "recordings"
+segment = "01:00:00"
+
+[preview]
+enabled = true
+width = 480
+fps = 5.0
+
+[fallback]
+
+[planning]
+mode = "grid"
+horizon = "24:00:00"
+seed = 0
+history = "336:00:00"
+
+[graphics]
+enabled = true
+fps = 10.0

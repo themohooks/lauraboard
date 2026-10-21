@@ -1,0 +1,294 @@
+[[layers]]
+id = 20
+name = "Плашки"
+exclusive = true
+
+[[elements]]
+id = "logo"
+name = "logo"
+type = "image"
+path = "media/logo.png"
+opacity = 0.85
+layer = 10
+
+[elements.placement]
+anchor = "top_right"
+x = 30.0
+y = 30.0
+width = 160.0
+
+[elements.animation]
+in = "none"
+out = "none"
+duration = "00:00:00"
+
+[[elements]]
+id = "clock"
+name = "clock"
+type = "clock"
+format = "%H:%M"
+opacity = 1.0
+layer = 10
+
+[elements.style]
+size = 30.0
+color = "#FFFFFF"
+outline_width = 0.0
+shadow_color = "#000000A0"
+shadow_offset = [
+    2.0,
+    2.0,
+]
+padding = 12.0
+corner_radius = 0.0
+
+[elements.placement]
+anchor = "top_left"
+x = 30.0
+y = 30.0
+
+[elements.animation]
+in = "none"
+out = "none"
+duration = "00:00:00"
+
+[[elements]]
+id = "lt-bg"
+name = "lt-bg"
+type = "rect"
+color = "#101828D0"
+width = 620.0
+height = 90.0
+radius = 8.0
+opacity = 1.0
+layer = 20
+
+[elements.placement]
+anchor = "top_left"
+x = 0.0
+y = 0.0
+
+[elements.animation]
+in = "none"
+out = "none"
+duration = "00:00:00"
+
+[[elements]]
+id = "lt-title"
+name = "lt-title"
+type = "text"
+text = "{title}"
+opacity = 1.0
+layer = 20
+
+[elements.style]
+size = 34.0
+color = "#FFFFFF"
+outline_width = 0.0
+shadow_color = "#000000A0"
+shadow_offset = [
+    2.0,
+    2.0,
+]
+padding = 12.0
+corner_radius = 0.0
+
+[elements.placement]
+anchor = "top_left"
+x = 20.0
+y = 8.0
+
+[elements.animation]
+in = "none"
+out = "none"
+duration = "00:00:00"
+
+[[elements]]
+id = "lt-sub"
+name = "lt-sub"
+type = "text"
+text = "{block} · ведущая: {presenter}"
+opacity = 1.0
+layer = 20
+
+[elements.style]
+size = 22.0
+color = "#FFD166"
+outline_width = 0.0
+shadow_color = "#000000A0"
+shadow_offset = [
+    2.0,
+    2.0,
+]
+padding = 12.0
+corner_radius = 0.0
+
+[elements.placement]
+anchor = "top_left"
+x = 20.0
+y = 52.0
+
+[elements.animation]
+in = "none"
+out = "none"
+duration = "00:00:00"
+
+[[elements]]
+id = "lower-third"
+name = "lower-third"
+type = "group"
+children = [
+    "lt-bg",
+    "lt-title",
+    "lt-sub",
+]
+opacity = 1.0
+layer = 20
+
+[elements.placement]
+anchor = "bottom_left"
+x = 60.0
+y = 110.0
+width = 620.0
+height = 90.0
+
+[elements.animation]
+in = "slide_right"
+out = "fade"
+duration = "00:00:00.600"
+
+[[elements]]
+id = "next-up"
+name = "next-up"
+type = "text"
+text = "Далее: {next_title} в {next_start}"
+opacity = 1.0
+layer = 20
+
+[elements.style]
+size = 28.0
+color = "#FFFFFF"
+outline_width = 0.0
+shadow_color = "#000000A0"
+shadow_offset = [
+    2.0,
+    2.0,
+]
+background = "#C0182BE0"
+padding = 12.0
+corner_radius = 6.0
+
+[elements.placement]
+anchor = "bottom_right"
+x = 60.0
+y = 110.0
+
+[elements.animation]
+in = "slide_left"
+out = "fade"
+duration = "00:00:00.500"
+
+[[elements]]
+id = "ticker"
+name = "ticker"
+type = "ticker"
+text = "LAURA TV — круглосуточное вещание • {ticker} • Сейчас: {title} • Далее: {next_program} в {next_program_start}"
+speed = 110.0
+opacity = 1.0
+layer = 30
+
+[elements.style]
+size = 26.0
+color = "#FFFFFF"
+outline_width = 0.0
+shadow_color = "#000000A0"
+shadow_offset = [
+    2.0,
+    2.0,
+]
+background = "#000000B0"
+padding = 8.0
+corner_radius = 0.0
+
+[elements.placement]
+anchor = "bottom_left"
+x = 0.0
+y = 20.0
+
+[elements.animation]
+in = "none"
+out = "none"
+duration = "00:00:00"
+
+[[rules]]
+id = "logo"
+name = "logo"
+enabled = true
+element = "logo"
+priority = 0
+
+[rules.timing]
+
+[rules.conditions]
+kinds = [
+    "program",
+    "filler",
+]
+
+[[rules]]
+id = "clock"
+name = "clock"
+enabled = true
+element = "clock"
+priority = 0
+
+[rules.timing]
+
+[rules.conditions]
+kinds = [
+    "program",
+    "filler",
+]
+
+[[rules]]
+id = "lower-third"
+name = "lower-third"
+enabled = true
+element = "lower-third"
+priority = 0
+
+[rules.timing]
+after_start = "00:00:05"
+duration = "00:00:10"
+
+[rules.conditions]
+kinds = ["program"]
+
+[[rules]]
+id = "next-up"
+name = "next-up"
+enabled = true
+element = "next-up"
+priority = 5
+
+[rules.timing]
+before_end = "00:00:01"
+last = "00:00:20"
+
+[rules.conditions]
+kinds = ["program"]
+
+[[rules]]
+id = "ticker"
+name = "ticker"
+enabled = true
+element = "ticker"
+priority = 0
+
+[rules.timing]
+
+[rules.conditions]
+exclude_categories = ["commercials"]
+
+[vars]
+ticker = "Смотрите вечерний кинозал в 20:05"

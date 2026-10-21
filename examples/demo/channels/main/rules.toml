@@ -1,0 +1,116 @@
+[[rules]]
+id = "news-intro"
+name = "Заставка перед новостями"
+enabled = true
+select = "sequential"
+probability = 1.0
+no_repeat = true
+priority = 10
+optional = false
+skip_on_manual = true
+
+[rules.trigger]
+type = "block_start"
+
+[rules.action]
+type = "jingle"
+items = ["jingle-1"]
+
+[rules.conditions]
+categories = ["news"]
+
+[[rules]]
+id = "ads"
+name = "Реклама каждые 20 минут"
+enabled = true
+select = "random"
+probability = 1.0
+no_repeat = true
+priority = 5
+group = "between"
+optional = true
+skip_on_manual = true
+
+[rules.trigger]
+type = "every_minutes"
+minutes = 20.0
+
+[rules.action]
+type = "ad_break"
+ad_break = "regular"
+
+[rules.conditions]
+exclude_categories = [
+    "news",
+    "movies",
+]
+
+[[rules]]
+id = "ident"
+name = "Заставка каждые 2 передачи"
+enabled = true
+select = "random"
+probability = 1.0
+no_repeat = true
+priority = 0
+group = "between"
+optional = true
+skip_on_manual = true
+
+[rules.trigger]
+type = "every_n_items"
+n = 2
+
+[rules.action]
+type = "jingle"
+category = "idents"
+items = []
+
+[rules.conditions]
+
+[[rules]]
+id = "promo"
+name = "Анонс между блоками"
+enabled = true
+select = "random"
+probability = 1.0
+no_repeat = true
+priority = 0
+optional = true
+skip_on_manual = true
+
+[rules.trigger]
+type = "between_blocks"
+
+[rules.action]
+type = "promos"
+count = 1
+
+[rules.conditions]
+
+[[ad_breaks]]
+id = "regular"
+name = "Рекламный блок"
+items = []
+category = "commercials"
+order = "least_played"
+max_spots = 2
+intro = "jingle-2"
+
+[ads]
+max_per_day = 48
+min_interval = "00:10:00"
+
+[promos]
+lookahead = "12:00:00"
+min_interval = "00:10:00"
+
+[filler]
+categories = []
+use_promos = true
+min_fill = "00:00:03"
+min_interval = "00:00:00"
+
+[transitions]
+fade = "00:00:00.300"
+kinds = ["program"]
