@@ -106,3 +106,31 @@ async fn plan_with_draft_documents() {
     let (st, _) = call(&app, "POST", "/api/v1/channels/main/plan", None, Some(r#"{"rules":{"rules":"nope"}}"#)).await;
     assert!(st.is_client_error());
 }
+
+async fn call_bytes(app: &axum::Router, method: &str, uri: &str, body: &str) -> (StatusCode, Vec<u8>) {
+    let req = Request::builder().method(method).uri(uri).header("content-type", "application/json").body(Body::from(body.to_string())).unwrap();
+    let res = app.clone().oneshot(req).await.unwrap();
+    let status = res.status();
+    (status, axum::body::to_bytes(res.into_body(), 16 << 20).await.unwrap().to_vec())
+}
+
+#[tokio::test]
+async fn graphics_render_draws_the_draft() {
+    let dir = project(vec![]);
+    let app = app(&dir).await;
+    let cfg = r##"{"config":{"elements":[{"id":"plate","type":"rect","color":"#FF0000","width":200,"height":100,
+        "placement":{"anchor":"top_left","x":0,"y":0}}]},"width":480}"##;
+    let (st, png) = call_bytes(&app, "POST", "/api/v1/channels/main/graphics/render", cfg).await;
+    assert_eq!(st, StatusCode::OK, "{}", String::from_utf8_lossy(&png));
+    let img = image::load_from_memory(&png).unwrap().to_rgba8();
+    assert_eq!(img.width(), 480);
+    // the plate is drawn top-left and the rest of the frame stays transparent
+    assert_eq!(img.get_pixel(5, 5).0, [255, 0, 0, 255]);
+    assert_eq!(img.get_pixel(470, 260).0[3], 0);
+    // half-way through a fade-in the plate is partly transparent
+    let cfg = cfg.replace(r#""width":480"#, r#""width":480,"t_ms":250"#).replace(r#""y":0}"#, r#""y":0},"animation":{"in":"fade","duration":"500ms"}"#);
+    let (st, png) = call_bytes(&app, "POST", "/api/v1/channels/main/graphics/render", &cfg).await;
+    assert_eq!(st, StatusCode::OK, "{}", String::from_utf8_lossy(&png));
+    let a = image::load_from_memory(&png).unwrap().to_rgba8().get_pixel(5, 5).0[3];
+    assert!(a > 0 && a < 255, "alpha {a}");
+}

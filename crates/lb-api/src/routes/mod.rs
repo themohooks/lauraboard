@@ -7,12 +7,15 @@
 //! | media library | [`library`] |
 //! | playlists | [`playlists`] |
 //! | schedules, rules, graphics, channel config | [`config`] |
+//! | graphics render (draft preview) | [`render`] |
+//! | media thumbnails | [`thumbs`] |
 //! | as-run, statistics, logs | [`reports`] |
 
 pub mod config;
 pub mod control;
 pub mod library;
 pub mod playlists;
+pub mod render;
 pub mod reports;
 pub mod status;
 
@@ -53,6 +56,7 @@ pub fn router(state: AppState) -> Router {
         .route("/schedules", get(config::get_schedules).put(config::put_schedules))
         .route("/rules", get(config::get_rules).put(config::put_rules))
         .route("/graphics", get(config::get_graphics).put(config::put_graphics))
+        .route("/graphics/render", post(render::render))
         .route("/config", get(config::get_config).put(config::put_config))
         .route("/asrun", get(reports::asrun))
         .route("/stats", get(reports::stats));

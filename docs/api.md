@@ -51,6 +51,7 @@
 | GET, PUT | `/schedules` | сетка (`ScheduleSet`) целиком |
 | GET, PUT | `/rules` | правила (`RuleSet`) целиком |
 | GET, PUT | `/graphics` | графика (`GraphicsConfig`) целиком |
+| POST | `/graphics/render` | PNG с прозрачностью: `{"config": GraphicsConfig, "vars": {…}, "t_ms": 250, "width": 1280, "elements": ["id", …]}` — черновик рисуется тем же компоновщиком, что и эфир, в размере кадра канала. `t_ms` — время с момента появления (анимация; по умолчанию элементы показаны полностью), `width` — уменьшить кадр, `elements` — какие элементы (по умолчанию все верхнего уровня). Переменные — живые (`{title}`, `{next_title}` …) плюс `vars`. Ничего не сохраняется |
 | GET, PUT | `/config` | параметры канала (admin) |
 | GET | `/asrun?from=YYYY-MM-DD&to=…&format=json\|csv` | журнал фактического эфира |
 | GET | `/stats?from=…&to=…&format=json\|csv` | статистика: показы, реклама, анонсы, отклонения |
