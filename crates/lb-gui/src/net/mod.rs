@@ -38,13 +38,11 @@ pub enum Msg {
     Channels(Vec<String>),
     Status(Box<StatusView>),
     Rundown(Rundown),
-    Plan(Rundown),
     Library(Vec<MediaItem>),
     Playlists(Vec<Playlist>),
     Schedules(ScheduleSet),
     Rules(RuleSet),
     Graphics(GraphicsConfig),
-    Stats(Value),
     Preview(Frame),
     /// Media thumbnail (`None`: not available for this item).
     Thumb(String, Option<Frame>),

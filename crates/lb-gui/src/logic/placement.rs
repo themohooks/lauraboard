@@ -179,7 +179,7 @@ pub fn resize(r: Rect, handle: i32, dx: f32, dy: f32, min: f32) -> Rect {
         if matches!(handle, 0 | 6 | 7) { l = rr - min } else { rr = l + min }
     }
     if b - t < min {
-        if matches!(handle, 0 | 1 | 2) { t = b - min } else { b = t + min }
+        if matches!(handle, 0..=2) { t = b - min } else { b = t + min }
     }
     Rect { x: l, y: t, w: rr - l, h: b - t }
 }

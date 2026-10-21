@@ -22,18 +22,6 @@ pub fn kind_id(k: MediaKind) -> &'static str {
     }
 }
 
-pub fn kind_name(k: MediaKind) -> &'static str {
-    match k {
-        MediaKind::Program => "Передача",
-        MediaKind::Jingle => "Заставка",
-        MediaKind::Ad => "Реклама",
-        MediaKind::Promo => "Анонс",
-        MediaKind::Filler => "Заполнение",
-        MediaKind::Image => "Изображение",
-        MediaKind::Stream => "Поток",
-    }
-}
-
 pub const KINDS: [MediaKind; 7] =
     [MediaKind::Program, MediaKind::Jingle, MediaKind::Ad, MediaKind::Promo, MediaKind::Filler, MediaKind::Image, MediaKind::Stream];
 

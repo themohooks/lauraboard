@@ -7,7 +7,6 @@ rust-version.workspace = true
 [dependencies]
 chrono = { version = "0.4.45", features = ["serde"] }
 dirs = "7.0.0"
-eframe = "0.37.0"
 image = { version = "0.25.10", default-features = false, features = ["jpeg", "png"] }
 lb-core = { version = "0.1.0", path = "../lb-core" }
 rfd = "0.17.2"

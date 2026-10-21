@@ -123,15 +123,12 @@ pub struct Model {
     pub online: bool,
     pub status: StatusView,
     pub rundown: Rundown,
-    pub plan: Rundown,
     pub library: Vec<MediaItem>,
     pub playlists: Vec<Playlist>,
     pub schedules: ScheduleSet,
     pub rules: RuleSet,
     pub graphics: GraphicsConfig,
-    pub stats: Value,
     pub log: VecDeque<LogLine>,
-    pub toast: Option<(String, bool, std::time::Instant)>,
 }
 
 impl Model {

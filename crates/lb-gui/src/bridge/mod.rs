@@ -207,7 +207,6 @@ impl Ctx {
                 self.model.rundown = r;
                 air::queue_changed(self);
             }
-            Msg::Plan(r) => self.model.plan = r,
             Msg::Library(l) => {
                 self.model.library = l;
                 self.lib.loaded = true;
@@ -239,7 +238,6 @@ impl Ctx {
                 air::status_changed(self);
                 graphics::reloaded(self);
             }
-            Msg::Stats(s) => self.model.stats = s,
             Msg::Preview(f) => {
                 shell::preview_changed(self, f);
                 graphics::preview_changed(self);

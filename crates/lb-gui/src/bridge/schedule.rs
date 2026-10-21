@@ -162,7 +162,7 @@ pub fn opened(c: &mut Ctx) {
     replan(c);
 }
 
-fn template<'a>(set: &'a ScheduleSet, sched: usize, tpl: usize) -> Option<&'a DayTemplate> {
+fn template(set: &ScheduleSet, sched: usize, tpl: usize) -> Option<&DayTemplate> {
     set.schedules.get(sched)?.templates.get(tpl)
 }
 
@@ -318,7 +318,7 @@ fn update_row(c: &mut Ctx, i: usize, start_error: &str) {
 fn details(c: &mut Ctx) {
     let Some(ui) = c.window() else { return };
     let set = c.grid.draft.clone().unwrap_or_default();
-    let b = c.grid.block.and_then(|i| template(&set, c.grid.sched, c.grid.tpl).and_then(|t| t.blocks.get(i)).map(|b| (i, b)));
+    let b = c.grid.block.and_then(|i| Some((i, template(&set, c.grid.sched, c.grid.tpl)?.blocks.get(i)?)));
     ui.global::<Grid>().set_details(match b {
         Some((i, b)) => BlockDetails {
             has: true,
