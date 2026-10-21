@@ -1,0 +1,7 @@
+/target
+**/*.rs.bk
+/examples/demo/channels/*/state/
+/examples/demo/channels/*/asrun/
+/examples/demo/channels/*/logs/
+/examples/demo/media/generated/
+*.lock.pid
