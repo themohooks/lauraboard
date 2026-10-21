@@ -4,6 +4,7 @@
 import { ScrollView } from "std-widgets.slint";
 import { Theme } from "../../theme/tokens.slint";
 import { TokensPage } from "tokens-page.slint";
+import { BasePage } from "base-page.slint";
 
 export component Gallery inherits ScrollView {
     VerticalLayout {
@@ -11,5 +12,6 @@ export component Gallery inherits ScrollView {
         spacing: Theme.sp6;
         alignment: start;
         TokensPage { }
+        BasePage { }
     }
 }

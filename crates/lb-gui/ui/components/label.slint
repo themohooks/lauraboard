@@ -1,0 +1,15 @@
+// Text in one of the M3 type scale styles (see Theme.*-large/medium/small).
+
+import { Theme, TypeStyle } from "../theme/tokens.slint";
+
+export component Label inherits Text {
+    in property <TypeStyle> type-style: Theme.body-medium;
+    in property <bool> mono: false;
+    font-size: type-style.size;
+    font-weight: type-style.weight;
+    letter-spacing: type-style.tracking;
+    font-family: mono ? Theme.mono-font : Theme.font;
+    color: Theme.color.on-surface;
+    vertical-alignment: center;
+    overflow: elide;
+}

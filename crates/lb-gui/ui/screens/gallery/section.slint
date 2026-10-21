@@ -1,0 +1,16 @@
+// Gallery section: title + content row.
+
+import { Theme } from "../../theme/tokens.slint";
+import { Label } from "../../components/label.slint";
+
+export component Section inherits VerticalLayout {
+    in property <string> title;
+    spacing: Theme.sp3;
+    alignment: start;
+    Label {
+        text: title;
+        type-style: Theme.title-medium;
+        color: Theme.color.primary;
+    }
+    @children
+}

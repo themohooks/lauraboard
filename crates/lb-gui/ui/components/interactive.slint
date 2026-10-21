@@ -1,0 +1,91 @@
+// Base for every clickable component: pointer + keyboard activation
+// (Enter / Space), hover / pressed / focus states, focus ring that shows
+// only for keyboard focus, tooltip text for accessibility.
+
+import { Theme } from "../theme/tokens.slint";
+import { StateLayer } from "state-layer.slint";
+import { FocusRing } from "focus-ring.slint";
+
+export component Interactive inherits Rectangle {
+    in property <bool> enabled: true;
+    in property <color> state-tint: Theme.color.on-surface;
+    in property <length> radius: Theme.radius-full;
+    in property <bool> focusable: true;
+    in property <MouseCursor> cursor: MouseCursor.pointer;
+    out property <bool> hovered: touch.has-hover;
+    out property <bool> pressed: touch.pressed || key-pressed;
+    out property <bool> keyboard-focus: focus.has-focus && focus-from-keyboard;
+    callback clicked();
+    callback right-clicked(Point);
+    callback double-clicked();
+
+    property <bool> key-pressed;
+    property <bool> focus-from-keyboard: true;
+
+    border-radius: min(radius, self.height / 2);
+    clip: false;
+
+    StateLayer {
+        tint: root.state-tint;
+        hovered: root.hovered;
+        pressed: root.pressed;
+        focused: root.keyboard-focus;
+        enabled: root.enabled;
+        border-radius: root.border-radius;
+    }
+
+    @children
+
+    touch := TouchArea {
+        enabled: root.enabled;
+        mouse-cursor: root.enabled ? root.cursor : MouseCursor.default;
+        clicked => {
+            root.focus-from-keyboard = false;
+            if root.focusable {
+                focus.focus();
+            }
+            root.clicked();
+        }
+        double-clicked => {
+            root.double-clicked();
+        }
+        pointer-event(e) => {
+            if e.button == PointerEventButton.right && e.kind == PointerEventKind.up {
+                root.right-clicked({ x: self.mouse-x, y: self.mouse-y });
+            }
+        }
+    }
+
+    focus := FocusScope {
+        enabled: root.enabled && root.focusable;
+        width: 0;
+        height: 0;
+        focus-changed-event => {
+            if !self.has-focus {
+                root.focus-from-keyboard = true;
+                root.key-pressed = false;
+            }
+        }
+        key-pressed(e) => {
+            if e.text == " " || e.text == Key.Return {
+                root.key-pressed = true;
+                return accept;
+            }
+            reject
+        }
+        key-released(e) => {
+            if root.key-pressed && (e.text == " " || e.text == Key.Return) {
+                root.key-pressed = false;
+                root.clicked();
+                return accept;
+            }
+            reject
+        }
+    }
+
+    if root.keyboard-focus: FocusRing {
+        radius: root.border-radius;
+        target-width: root.width;
+        target-height: root.height;
+    }
+}
