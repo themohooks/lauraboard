@@ -104,6 +104,9 @@ pub fn navigate(c: &mut Ctx, id: &str) {
     if id == "graphics" {
         super::graphics::opened(c);
     }
+    if id == "log" {
+        super::log::opened(c);
+    }
 }
 
 /// Push preferences into the UI (startup and after settings change).

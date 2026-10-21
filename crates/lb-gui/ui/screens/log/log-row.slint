@@ -1,0 +1,55 @@
+// One log line: level icon + colour (never colour alone), time, text.
+
+import { Theme } from "../../theme/tokens.slint";
+import { Icons } from "../../theme/icons.slint";
+import { Label } from "../../components/label.slint";
+import { Icon } from "../../components/icon.slint";
+import { LogRow } from "../../state/air-state.slint";
+
+export component LogLineView inherits Rectangle {
+    in property <LogRow> item;
+    in property <bool> odd;
+    property <bool> critical: item.level == "critical" || item.level == "error";
+    property <bool> warning: item.level == "warning";
+    min-height: Theme.compact ? 28px : 32px;
+    background: critical ? Theme.color.error-container.with-alpha(0.45) : odd ? Theme.color.surface-container-low : transparent;
+    accessible-role: AccessibleRole.list-item;
+    accessible-label: (critical ? "Критично: " : warning ? "Предупреждение: " : "") + item.at + " " + item.text;
+
+    HorizontalLayout {
+        padding-left: Theme.sp3;
+        padding-right: Theme.sp3;
+        spacing: Theme.sp3;
+        VerticalLayout {
+            alignment: center;
+            Icon {
+                size: 18px;
+                source: critical ? Icons.error : warning ? Icons.warning : Icons.info;
+                tint: critical ? Theme.color.error : warning ? Theme.status.warning : Theme.color.on-surface-variant;
+            }
+        }
+        VerticalLayout {
+            alignment: center;
+            Label {
+                width: 64px;
+                text: item.at;
+                mono: true;
+                type-style: Theme.body-small;
+                color: Theme.color.on-surface-variant;
+            }
+        }
+        VerticalLayout {
+            alignment: center;
+            horizontal-stretch: 1;
+            padding-top: 4px;
+            padding-bottom: 4px;
+            Label {
+                text: item.text;
+                mono: true;
+                type-style: Theme.body-small;
+                color: critical ? Theme.color.on-error-container : Theme.color.on-surface;
+                wrap: word-wrap;
+            }
+        }
+    }
+}

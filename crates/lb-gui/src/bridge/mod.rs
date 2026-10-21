@@ -14,6 +14,7 @@
 pub mod air;
 pub mod graphics;
 pub mod library;
+pub mod log;
 pub mod playlists;
 pub mod rules;
 pub mod schedule;
@@ -60,6 +61,7 @@ pub struct Ctx {
     pub grid: schedule::ScheduleState,
     pub rules: rules::RulesState,
     pub gfx: graphics::GraphicsState,
+    pub log: log::LogState,
     /// Channel configuration (admin only; `None` when not available).
     pub channel_config: Option<Value>,
 }
@@ -120,6 +122,7 @@ pub fn start(ui: &AppWindow, opts: &GuiOptions, prefs: UiPrefs) {
         grid: Default::default(),
         rules: Default::default(),
         gfx: Default::default(),
+        log: Default::default(),
         channel_config: None,
     };
     ui.global::<App>().set_api_url(api.base.clone().into());
@@ -131,6 +134,7 @@ pub fn start(ui: &AppWindow, opts: &GuiOptions, prefs: UiPrefs) {
     schedule::connect(ui);
     rules::connect(ui);
     graphics::connect(ui);
+    log::connect(ui);
     with(|c| {
         shell::apply_prefs(c);
         air::apply_prefs(c);
@@ -241,11 +245,13 @@ impl Ctx {
             Msg::Event(v) => {
                 self.model.push_log(LogLine::from_event(&v));
                 air::log_changed(self);
+                log::changed(self);
             }
             Msg::Done(text) => self.toast(text, false),
             Msg::Error(e) => {
                 self.model.push_log(LogLine { at: chrono::Local::now().format("%H:%M:%S").to_string(), level: "warning".into(), text: e.clone() });
                 air::log_changed(self);
+                log::changed(self);
                 self.toast(e, true);
             }
             Msg::Apply(f) => f(self),

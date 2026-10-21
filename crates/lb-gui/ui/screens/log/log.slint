@@ -1,0 +1,171 @@
+// Event log: live channel events or the server log file; level filter
+// chips, search, pause of auto-update, clear and export.
+
+import { ListView } from "std-widgets.slint";
+import { Theme } from "../../theme/tokens.slint";
+import { Icons } from "../../theme/icons.slint";
+import { Label } from "../../components/label.slint";
+import { SearchField } from "../../components/search-field.slint";
+import { FilterChip } from "../../components/chips.slint";
+import { SegmentedButton } from "../../components/segmented-button.slint";
+import { Button, ButtonVariant } from "../../components/button.slint";
+import { IconButton } from "../../components/icon-button.slint";
+import { Badge } from "../../components/indicators.slint";
+import { EmptyState, LinearProgress } from "../../components/feedback.slint";
+import { Page, PageHeader } from "../../shell/page.slint";
+import { Log } from "../../state/log-state.slint";
+import { LogLineView } from "log-row.slint";
+
+component LevelChip inherits VerticalLayout {
+    in property <string> text;
+    in property <image> icon;
+    in-out property <bool> selected;
+    alignment: center;
+    FilterChip {
+        text: root.text;
+        has-icon: true;
+        icon: root.icon;
+        selected <=> root.selected;
+        toggled => {
+            Log.refresh-list();
+        }
+    }
+}
+
+export component LogScreen inherits Page {
+    VerticalLayout {
+        padding: Theme.sp4;
+        spacing: Theme.sp3;
+
+        PageHeader {
+            title: "Журнал событий";
+            SegmentedButton {
+                width: 340px;
+                segments: [{ text: "События эфира" }, { text: "Журнал сервера" }];
+                selected <=> Log.tab;
+                changed => {
+                    Log.reload();
+                }
+            }
+        }
+
+        HorizontalLayout {
+            spacing: Theme.sp2;
+            SearchField {
+                horizontal-stretch: 1;
+                min-width: 200px;
+                max-width: 360px;
+                placeholder: "Поиск по тексту";
+                text <=> Log.query;
+                edited => {
+                    Log.refresh-list();
+                }
+            }
+            LevelChip {
+                text: "Информация";
+                icon: Icons.info;
+                selected <=> Log.show-info;
+            }
+            LevelChip {
+                text: "Предупреждения";
+                icon: Icons.warning;
+                selected <=> Log.show-warning;
+            }
+            LevelChip {
+                text: "Критичные";
+                icon: Icons.error;
+                selected <=> Log.show-critical;
+            }
+            Rectangle {
+                horizontal-stretch: 1;
+            }
+            if Log.tab == 0: VerticalLayout {
+                alignment: center;
+                Rectangle {
+                    width: pause.width;
+                    height: pause.height;
+                    pause := IconButton {
+                        icon: Log.paused ? Icons.play-arrow : Icons.pause;
+                        toggle: true;
+                        selected: Log.paused;
+                        tooltip: Log.paused ? "Продолжить обновление" : "Пауза: не обновлять список";
+                        clicked => {
+                            Log.pause(!Log.paused);
+                        }
+                    }
+                    if Log.unseen > 0: Badge {
+                        x: parent.width - self.width + 2px;
+                        y: -2px;
+                        text: Log.unseen > 99 ? "99+" : Log.unseen;
+                    }
+                }
+            }
+            if Log.tab == 1: VerticalLayout {
+                alignment: center;
+                IconButton {
+                    icon: Icons.refresh;
+                    tooltip: "Перечитать файл журнала";
+                    clicked => {
+                        Log.reload();
+                    }
+                }
+            }
+            VerticalLayout {
+                alignment: center;
+                IconButton {
+                    icon: Icons.download;
+                    tooltip: "Сохранить показанные строки в файл";
+                    enabled: Log.rows.length > 0;
+                    clicked => {
+                        Log.export();
+                    }
+                }
+            }
+            if Log.tab == 0: VerticalLayout {
+                alignment: center;
+                Button {
+                    text: "Очистить";
+                    variant: ButtonVariant.text;
+                    enabled: Log.total > 0;
+                    clicked => {
+                        Log.clear();
+                    }
+                }
+            }
+        }
+
+        Rectangle {
+            vertical-stretch: 1;
+            border-radius: Theme.radius-l;
+            background: Theme.color.surface-container-lowest;
+            border-width: 1px;
+            border-color: Theme.color.outline-variant;
+            clip: true;
+
+            if Log.rows.length == 0 && !Log.loading: EmptyState {
+                icon: Icons.receipt-long;
+                title: Log.total == 0 ? "Событий пока нет" : "Ничего не найдено";
+                text: Log.total == 0
+                    ? (Log.tab == 0 ? "События канала появятся здесь в реальном времени." : "Файл журнала сервера пуст или недоступен.")
+                    : "Измените поиск или включите другие уровни.";
+            }
+            if Log.rows.length > 0: ListView {
+                for r[i] in Log.rows: LogLineView {
+                    item: r;
+                    odd: mod(i, 2) == 1;
+                }
+            }
+            if Log.loading: LinearProgress {
+                y: 0;
+                height: 4px;
+                indeterminate: true;
+            }
+        }
+
+        Label {
+            text: "Показано " + Log.rows.length + " из " + Log.total + (Log.tab == 0 ? " · новые сверху, хранится 1000 последних событий" : " · последние 1000 строк файла");
+            type-style: Theme.body-small;
+            color: Theme.color.on-surface-variant;
+        }
+    }
+}
