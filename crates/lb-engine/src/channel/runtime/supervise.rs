@@ -66,8 +66,8 @@ impl Runtime {
     /// Restart the encoder (settings changed); the current item resumes.
     pub(super) async fn restart_encoder(&mut self) {
         if let Some(cur) = self.on_air.take() {
-            if let Some(a) = &cur.abort {
-                a.abort();
+            if let Some(p) = &cur.play {
+                p.stop();
             }
             self.resume = Some((cur.item.clone(), cur.offset_ms + diff_ms(now(), cur.started)));
         }

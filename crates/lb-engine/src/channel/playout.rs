@@ -1,16 +1,20 @@
 //! Playing one item: run its decoder and pump the output into the encoder.
 
 use std::sync::Arc;
+use std::time::Duration;
 
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::process::ChildStdin;
-use tokio::sync::{Mutex, mpsc};
-use tokio::task::AbortHandle;
+use tokio::sync::{Mutex, mpsc, watch};
 
 use lb_media::process::Decoder;
 
 /// Encoder stdin shared between consecutive items.
 pub type SharedStdin = Arc<Mutex<Option<ChildStdin>>>;
+
+/// MPEG-TS packet size: interruptions are aligned to it so the encoder
+/// never receives a truncated packet.
+const TS_PACKET: u64 = 188;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum PlayOutcome {
@@ -20,11 +24,31 @@ pub enum PlayOutcome {
     Failed { error: String, bytes: u64 },
     /// The encoder went away while feeding.
     EncoderGone,
+    /// Stopped on request (skip, interrupt).
+    Stopped,
+}
+
+/// Handle to a running play task.
+#[derive(Clone)]
+pub struct PlayHandle {
+    stop: Arc<watch::Sender<bool>>,
+}
+
+impl PlayHandle {
+    /// Ask the task to stop at the next packet boundary (kills the decoder).
+    pub fn stop(&self) {
+        let _ = self.stop.send(true);
+    }
+}
+
+impl std::fmt::Debug for PlayHandle {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("PlayHandle")
+    }
 }
 
 /// Spawn the decoder and feed its output to the shared encoder stdin. The
-/// outcome is sent to `done` tagged with `generation`; aborting the returned
-/// handle kills the decoder and sends nothing.
+/// outcome is sent to `done` tagged with `generation`.
 pub fn spawn(
     ffmpeg: String,
     args: Vec<String>,
@@ -32,15 +56,16 @@ pub fn spawn(
     sink: SharedStdin,
     generation: u64,
     done: mpsc::Sender<(u64, PlayOutcome)>,
-) -> AbortHandle {
-    let h = tokio::spawn(async move {
-        let outcome = feed(&ffmpeg, &args, &label, &sink).await;
+) -> PlayHandle {
+    let (stop, stop_rx) = watch::channel(false);
+    tokio::spawn(async move {
+        let outcome = feed(&ffmpeg, &args, &label, &sink, stop_rx).await;
         let _ = done.send((generation, outcome)).await;
     });
-    h.abort_handle()
+    PlayHandle { stop: Arc::new(stop) }
 }
 
-async fn feed(ffmpeg: &str, args: &[String], label: &str, sink: &SharedStdin) -> PlayOutcome {
+async fn feed(ffmpeg: &str, args: &[String], label: &str, sink: &SharedStdin, mut stop: watch::Receiver<bool>) -> PlayOutcome {
     let mut dec = match Decoder::spawn(ffmpeg, args, label) {
         Ok(d) => d,
         Err(e) => return PlayOutcome::Failed { error: e.to_string(), bytes: 0 },
@@ -53,10 +78,26 @@ async fn feed(ffmpeg: &str, args: &[String], label: &str, sink: &SharedStdin) ->
     let mut buf = vec![0u8; 188 * 1024];
     let mut total: u64 = 0;
     loop {
-        let n = match dec.stdout.read(&mut buf).await {
-            Ok(0) => break,
-            Ok(n) => n,
-            Err(e) => return PlayOutcome::Failed { error: e.to_string(), bytes: total },
+        let n = tokio::select! {
+            r = dec.stdout.read(&mut buf) => match r {
+                Ok(0) => break,
+                Ok(n) => n,
+                Err(e) => return PlayOutcome::Failed { error: e.to_string(), bytes: total },
+            },
+            _ = stop.changed() => {
+                // complete the current TS packet, then stop
+                let missing = ((TS_PACKET - total % TS_PACKET) % TS_PACKET) as usize;
+                if missing > 0 {
+                    let mut tail = vec![0u8; missing];
+                    let read = tokio::time::timeout(Duration::from_millis(500), dec.stdout.read_exact(&mut tail)).await;
+                    if matches!(read, Ok(Ok(_))) {
+                        let _ = stdin.write_all(&tail).await;
+                    }
+                }
+                let _ = stdin.flush().await;
+                dec.kill().await;
+                return PlayOutcome::Stopped;
+            }
         };
         if stdin.write_all(&buf[..n]).await.is_err() {
             dec.kill().await;
@@ -66,8 +107,12 @@ async fn feed(ffmpeg: &str, args: &[String], label: &str, sink: &SharedStdin) ->
         total += n as u64;
     }
     let _ = stdin.flush().await;
-    match dec.wait().await {
-        Ok(true) if total > 0 => PlayOutcome::Completed,
-        _ => PlayOutcome::Failed { error: dec.error_text().unwrap_or_else(|| "decoder failed".into()), bytes: total },
+    match dec.wait_code().await {
+        Ok(0) if total > 0 => PlayOutcome::Completed,
+        status => {
+            let code = status.map(|c| c.to_string()).unwrap_or_else(|e| e.to_string());
+            let detail = dec.error_text().map(|e| format!(": {e}")).unwrap_or_default();
+            PlayOutcome::Failed { error: format!("decoder exited with code {code} after {total} bytes{detail}"), bytes: total }
+        }
     }
 }

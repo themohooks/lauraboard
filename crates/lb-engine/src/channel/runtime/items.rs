@@ -60,7 +60,7 @@ impl Runtime {
             }
         };
         self.generation += 1;
-        let abort = playout::spawn(
+        let play = playout::spawn(
             self.shared.app.ffmpeg.ffmpeg.clone(),
             args,
             format!("{}:{}", self.shared.id, item.media),
@@ -74,7 +74,7 @@ impl Runtime {
         }
         self.replan_after_start(&item, started, offset_ms);
         tracing::info!(channel = %self.shared.id, media = %item.media, title = %item.title, "on air");
-        self.on_air = Some(OnAir { item: item.clone(), started, offset_ms, generation: self.generation, abort: Some(abort) });
+        self.on_air = Some(OnAir { item: item.clone(), started, offset_ms, generation: self.generation, play: Some(play) });
         self.update_graphics_state();
         self.emit(Level::Info, EventKind::ItemStarted { item });
         self.save_state();
@@ -150,6 +150,11 @@ impl Runtime {
                 self.write_asrun(&cur.item, cur.started, t, status, &error);
                 self.start_next_if_running().await;
             }
+            PlayOutcome::Stopped => {
+                // stop requested while still current (should not happen): move on
+                self.write_asrun(&cur.item, cur.started, t, AsRunStatus::Interrupted, "stopped");
+                self.start_next_if_running().await;
+            }
             PlayOutcome::EncoderGone => {
                 // resume this item once the encoder is back
                 self.write_asrun(&cur.item, cur.started, t, AsRunStatus::Interrupted, "encoder stopped");
@@ -169,8 +174,8 @@ impl Runtime {
     /// Stop the current item (skip / interrupt) and record it.
     pub(super) fn interrupt_current(&mut self, note: &str) -> Option<OnAir> {
         let cur = self.on_air.take()?;
-        if let Some(a) = &cur.abort {
-            a.abort();
+        if let Some(p) = &cur.play {
+            p.stop();
         }
         let t = now();
         self.write_asrun(&cur.item, cur.started, t, AsRunStatus::Interrupted, note);

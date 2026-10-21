@@ -22,6 +22,9 @@ pub fn video_chain(v: &VideoFormat, fade_in_ms: i64, fade_out_ms: i64, dur_ms: i
         ScaleMode::Stretch => f.push(format!("scale={w}:{h}")),
     }
     f.push("setsar=1".into());
+    // identical colour metadata for every item (no filter reconfiguration
+    // at item boundaries in the encoder)
+    f.push("setparams=range=tv:colorspace=bt709:color_primaries=bt709:color_trc=bt709".into());
     f.push(format!("fps={}", fps_str(v.fps)));
     f.push("format=yuv420p".into());
     if fade_in_ms > 0 {

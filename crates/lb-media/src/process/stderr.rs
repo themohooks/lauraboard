@@ -43,11 +43,7 @@ where
 
 /// Expected messages of the concatenated pipeline that are not problems.
 fn is_benign(l: &str) -> bool {
-    const PATTERNS: &[&str] = &[
-        "timestamp discontinuity",
-        "is muxed as a private data stream",
-        "deprecated pixel format used",
-    ];
+    const PATTERNS: &[&str] = &["timestamp discontinuity", "is muxed as a private data stream", "deprecated pixel format used"];
     PATTERNS.iter().any(|p| l.contains(p))
 }
 

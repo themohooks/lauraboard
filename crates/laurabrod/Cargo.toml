@@ -29,5 +29,5 @@ windows-service = "0.8.1"
 tempfile = "3.27.0"
 
 [features]
-default = []
+default = ["gui"]
 gui = ["dep:lb-gui"]

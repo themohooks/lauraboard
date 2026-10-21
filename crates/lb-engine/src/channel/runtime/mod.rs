@@ -40,7 +40,7 @@ pub(crate) struct OnAir {
     /// Offset into the item at which playback started (resume).
     pub offset_ms: i64,
     pub generation: u64,
-    pub abort: Option<tokio::task::AbortHandle>,
+    pub play: Option<super::playout::PlayHandle>,
 }
 
 pub struct Runtime {

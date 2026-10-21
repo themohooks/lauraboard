@@ -1,14 +1,37 @@
-pub fn add(left: u64, right: u64) -> u64 {
-    left + right
+//! Operator GUI (egui). It is a pure API client: everything goes through the
+//! HTTP/WebSocket API, so the GUI can control a local or remote instance and
+//! never blocks playout.
+//!
+//! * [`net`] — background requests, polling and the event stream
+//! * [`model`] — client-side cache of server data
+//! * [`app`] — window layout, navigation, dialogs
+//! * [`views`] — one module per screen
+//! * [`widgets`] — shared formatting and small widgets
+
+mod app;
+mod model;
+mod net;
+mod views;
+mod widgets;
+
+/// How to reach the API.
+#[derive(Debug, Clone)]
+pub struct GuiOptions {
+    /// e.g. `http://127.0.0.1:8787`
+    pub base_url: String,
+    pub token: Option<String>,
+    /// Preferred channel (default: first).
+    pub channel: Option<String>,
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
-    }
+/// Open the main window (blocks until it is closed).
+pub fn run(opts: GuiOptions) -> Result<(), String> {
+    let native = eframe::NativeOptions {
+        viewport: eframe::egui::ViewportBuilder::default()
+            .with_title("Laurabrod — TV playout")
+            .with_inner_size([1400.0, 860.0])
+            .with_min_inner_size([960.0, 600.0]),
+        ..Default::default()
+    };
+    eframe::run_native("Laurabrod", native, Box::new(move |cc| Ok(Box::new(app::App::new(cc, opts))))).map_err(|e| e.to_string())
 }

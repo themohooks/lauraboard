@@ -33,9 +33,9 @@ impl Decoder {
         Ok(Decoder { child, stdout, last_error })
     }
 
-    /// Wait for exit; `Ok(true)` on success.
-    pub async fn wait(&mut self) -> Result<bool> {
-        Ok(self.child.wait().await?.success())
+    /// Wait for exit; returns the exit code (-1 when killed by a signal).
+    pub async fn wait_code(&mut self) -> Result<i32> {
+        Ok(self.child.wait().await?.code().unwrap_or(-1))
     }
 
     pub async fn kill(&mut self) {
