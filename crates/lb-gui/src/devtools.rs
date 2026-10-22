@@ -72,7 +72,7 @@ pub fn snapshot(out: &Path, section: &str, width: u32, height: u32, scale: f32, 
     ui.show().map_err(|e| e.to_string())?;
     match live {
         Some(url) => {
-            let opts = crate::GuiOptions { base_url: url.to_string(), token: std::env::var("LB_TOKEN").ok(), channel: None };
+            let opts = crate::GuiOptions { base_url: url.to_string(), token: std::env::var("LB_TOKEN").ok(), channel: None, embedded_engine: false };
             let prefs = crate::prefs::UiPrefs { section: name.to_string(), persist: false, ..Default::default() };
             crate::bridge::start(&ui, &opts, prefs);
             pump_for(&jobs, Duration::from_secs(6));
@@ -84,6 +84,20 @@ pub fn snapshot(out: &Path, section: &str, width: u32, height: u32, scale: f32, 
             demo_state(&ui);
             demo_air(&ui);
         }
+    }
+    // `LB_SNAPSHOT_CLICKS="x,y;x,y,2"`: logical-pixel clicks before rendering
+    // (menus and popups only exist after a click); `,2` double-clicks
+    for p in std::env::var("LB_SNAPSHOT_CLICKS").unwrap_or_default().split(';') {
+        let n: Vec<f32> = p.split(',').filter_map(|v| v.trim().parse().ok()).collect();
+        let [x, y, rest @ ..] = n.as_slice() else { continue };
+        let position = slint::LogicalPosition::new(*x, *y);
+        let button = slint::platform::PointerEventButton::Left;
+        window.dispatch_event(WindowEvent::PointerMoved { position });
+        for _ in 0..rest.first().map_or(1, |c| *c as usize) {
+            window.dispatch_event(WindowEvent::PointerPressed { position, button });
+            window.dispatch_event(WindowEvent::PointerReleased { position, button });
+        }
+        pump_for(&jobs, Duration::from_millis(live.map_or(300, |_| 1500)));
     }
     for (name, mode) in [("light", ThemeMode::Light), ("dark", ThemeMode::Dark)] {
         ui.global::<Theme>().set_mode(mode);

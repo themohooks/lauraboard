@@ -1,0 +1,305 @@
+// Encoder settings: codec and preset, rate control, keyframes and
+// B-frames, frame format, sound, raw ffmpeg arguments. Saving restarts the
+// encoder (short break on air).
+
+import { ScrollView } from "std-widgets.slint";
+import { Theme } from "../../theme/tokens.slint";
+import { Icons } from "../../theme/icons.slint";
+import { Dialog, DialogActions } from "../../components/dialog.slint";
+import { TextField } from "../../components/text-field.slint";
+import { Select } from "../../components/select.slint";
+import { Slider } from "../../components/slider.slint";
+import { Switch } from "../../components/switch.slint";
+import { Label } from "../../components/label.slint";
+import { Button, ButtonVariant } from "../../components/button.slint";
+import { Src } from "../../state/sources-state.slint";
+
+component Section inherits VerticalLayout {
+    in property <string> title;
+    in property <string> hint;
+    spacing: Theme.sp3;
+    padding-top: Theme.sp2;
+    VerticalLayout {
+        spacing: 2px;
+        Label {
+            text: root.title;
+            type-style: Theme.title-small;
+            color: Theme.color.primary;
+        }
+        if root.hint != "": Label {
+            text: root.hint;
+            type-style: Theme.body-small;
+            color: Theme.color.on-surface-variant;
+            wrap: word-wrap;
+        }
+    }
+    @children
+}
+
+component Field inherits TextField {
+    horizontal-stretch: 1;
+    container-color: Theme.color.surface-container-high;
+}
+
+component Choice inherits Select {
+    horizontal-stretch: 1;
+    container-color: Theme.color.surface-container-high;
+}
+
+export component EncoderDialog inherits Dialog {
+    open: Src.dialog == "encoder";
+    dialog-width: 720px;
+    title: "Настройки кодировщика";
+    text: "Применяются ко всем точкам вещания. Сохранение перезапускает кодировщик — в эфире будет короткий обрыв.";
+    has-icon: true;
+    icon: Icons.tune;
+    dismissed => {
+        Src.dialog = "";
+    }
+
+    sv := ScrollView {
+        height: min(560px, root.height - 260px);
+        VerticalLayout {
+            width: sv.visible-width;
+            padding-right: Theme.sp3;
+            spacing: Theme.sp3;
+
+            Section {
+                title: "Видео";
+                hint: "Аппаратные кодеки (NVIDIA, Intel, AMD) разгружают процессор; «авто» выбирает лучший доступный на этом компьютере.";
+                HorizontalLayout {
+                    spacing: Theme.sp3;
+                    Choice {
+                        label: "Кодек";
+                        options: Src.k-codecs;
+                        current-index <=> Src.k-codec;
+                        selected => {
+                            Src.encoder-codec-changed();
+                        }
+                    }
+                    Choice {
+                        label: "Пресет скорости";
+                        options: Src.k-presets;
+                        current-index <=> Src.k-preset;
+                        supporting: "Быстрее — меньше нагрузка, хуже картинка";
+                    }
+                }
+                HorizontalLayout {
+                    spacing: Theme.sp3;
+                    Choice {
+                        label: "Профиль";
+                        options: Src.k-profiles;
+                        current-index <=> Src.k-profile;
+                    }
+                    Field {
+                        label: "Уровень";
+                        placeholder: "авто";
+                        mono: true;
+                        text <=> Src.k-level;
+                        supporting: "Например 4.1 или 4.2";
+                    }
+                    Choice {
+                        label: "Tune";
+                        options: Src.k-tunes;
+                        current-index <=> Src.k-tune;
+                        enabled: Src.k-has-tune;
+                        supporting: Src.k-has-tune ? "zerolatency — минимальная задержка" : "Только для libx264 / libx265";
+                    }
+                }
+            }
+
+            Section {
+                title: "Битрейт";
+                hint: "Платформы (YouTube, Twitch, VK) ждут постоянный битрейт. «Постоянное качество» удобно для записи и HLS: поток ограничивается максимумом.";
+                Choice {
+                    label: "Режим";
+                    options: ["Постоянный (CBR)", "Переменный (VBR)", "Постоянное качество (CRF)"];
+                    current-index <=> Src.k-rc;
+                }
+                HorizontalLayout {
+                    spacing: Theme.sp3;
+                    if Src.k-rc != 2: Field {
+                        label: "Битрейт видео";
+                        placeholder: "3000k";
+                        mono: true;
+                        text <=> Src.k-bitrate;
+                        supporting: "k — кбит/с, M — Мбит/с";
+                    }
+                    Field {
+                        label: "Максимум";
+                        placeholder: Src.k-rc == 0 ? "= битрейту" : Src.k-rc == 1 ? "1,5 × битрейт" : "без ограничения";
+                        mono: true;
+                        text <=> Src.k-maxrate;
+                    }
+                    Field {
+                        label: "Буфер";
+                        placeholder: "2 × максимум";
+                        mono: true;
+                        text <=> Src.k-bufsize;
+                    }
+                }
+                if Src.k-rc == 2: VerticalLayout {
+                    spacing: Theme.sp1;
+                    Label {
+                        text: "Качество (CRF): " + round(Src.k-crf) + (Src.k-crf <= 18 ? " — почти без потерь" : Src.k-crf <= 23 ? " — высокое" : Src.k-crf <= 28 ? " — среднее" : " — низкое");
+                        type-style: Theme.body-medium;
+                    }
+                    Slider {
+                        minimum: 0;
+                        maximum: 51;
+                        step: 1;
+                        value <=> Src.k-crf;
+                        value-text: round(Src.k-crf);
+                    }
+                    Label {
+                        text: "Меньше — лучше и больше трафика. Обычно 18–28.";
+                        type-style: Theme.body-small;
+                        color: Theme.color.on-surface-variant;
+                    }
+                }
+            }
+
+            Section {
+                title: "Кадры";
+                hint: "Ключевой кадр раз в 2 секунды — требование большинства платформ. Ровный GOP без кадров на смене сцены нужен для HLS.";
+                HorizontalLayout {
+                    spacing: Theme.sp3;
+                    Field {
+                        label: "Ключевой кадр, с";
+                        placeholder: "2";
+                        mono: true;
+                        text <=> Src.k-gop;
+                    }
+                    Field {
+                        label: "B-кадры";
+                        placeholder: "авто";
+                        mono: true;
+                        text <=> Src.k-bframes;
+                        supporting: "0–16; 0 — меньше задержка";
+                    }
+                    Field {
+                        label: "Потоки";
+                        placeholder: "авто";
+                        mono: true;
+                        text <=> Src.k-threads;
+                    }
+                }
+                HorizontalLayout {
+                    spacing: Theme.sp3;
+                    Choice {
+                        label: "Формат пикселей";
+                        options: Src.k-pix-fmts;
+                        current-index <=> Src.k-pix-fmt;
+                    }
+                    VerticalLayout {
+                        horizontal-stretch: 1;
+                        alignment: center;
+                        Switch {
+                            text: "Ключевые кадры на смене сцены";
+                            checked <=> Src.k-scene-cut;
+                        }
+                    }
+                }
+            }
+
+            Section {
+                title: "Формат кадра";
+                hint: "Все ролики приводятся к этому размеру и частоте кадров. Ширина и высота — чётные числа.";
+                HorizontalLayout {
+                    spacing: Theme.sp3;
+                    Field {
+                        label: "Ширина";
+                        mono: true;
+                        text <=> Src.k-width;
+                    }
+                    Field {
+                        label: "Высота";
+                        mono: true;
+                        text <=> Src.k-height;
+                    }
+                    Field {
+                        label: "Кадров в секунду";
+                        mono: true;
+                        text <=> Src.k-fps;
+                    }
+                }
+            }
+
+            Section {
+                title: "Звук";
+                HorizontalLayout {
+                    spacing: Theme.sp3;
+                    Choice {
+                        label: "Кодек";
+                        options: Src.k-acodecs;
+                        current-index <=> Src.k-acodec;
+                    }
+                    Field {
+                        label: "Битрейт звука";
+                        placeholder: "160k";
+                        mono: true;
+                        text <=> Src.k-abitrate;
+                    }
+                }
+                HorizontalLayout {
+                    spacing: Theme.sp3;
+                    Choice {
+                        label: "Частота";
+                        options: ["44,1 кГц", "48 кГц"];
+                        current-index <=> Src.k-rate;
+                    }
+                    Choice {
+                        label: "Каналы";
+                        options: ["Моно", "Стерео", "5.1"];
+                        current-index <=> Src.k-channels;
+                    }
+                    Field {
+                        label: "Громкость, дБ";
+                        placeholder: "0";
+                        mono: true;
+                        text <=> Src.k-volume;
+                    }
+                }
+                Switch {
+                    text: "Выравнивать громкость роликов (EBU R128)";
+                    checked <=> Src.k-normalize;
+                }
+            }
+
+            Section {
+                title: "Дополнительно";
+                Field {
+                    label: "Свои аргументы ffmpeg";
+                    placeholder: "-x264-params nal-hrd=cbr";
+                    mono: true;
+                    text <=> Src.k-extra;
+                    supporting: "Добавляются к выходу кодировщика как есть, через пробел. Для опытных пользователей.";
+                }
+            }
+        }
+    }
+
+    if Src.k-error != "": Label {
+        text: Src.k-error;
+        color: Theme.color.error;
+        wrap: word-wrap;
+    }
+
+    DialogActions {
+        Button {
+            text: "Отмена";
+            variant: ButtonVariant.text;
+            clicked => {
+                Src.dialog = "";
+            }
+        }
+        Button {
+            text: "Сохранить";
+            icon: Icons.save;
+            has-icon: true;
+            clicked => {
+                Src.encoder-save();
+            }
+        }
+    }
+}

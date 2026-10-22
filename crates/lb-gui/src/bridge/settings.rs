@@ -76,6 +76,7 @@ pub fn connect(ui: &AppWindow) {
         with(move |c| {
             c.prefs.close_to_tray = v;
             c.prefs.save();
+            super::tray_refresh(c);
         })
     });
     g.on_reset_layout(|| {

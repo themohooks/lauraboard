@@ -85,6 +85,8 @@ export global Air {
     in property <[GfxRow]> graphics;
     in-out property <string> ticker;
     in-out property <int> quick-tab: 0;
+    // ⋮ menu dialog: 0 closed, 1 ad break, 2 graphics, 3 ticker
+    in-out property <int> action-dialog: 0;
 
     // home
     in property <[LogRow]> recent-events;

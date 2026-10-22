@@ -761,7 +761,7 @@ fn timeline_changed(c: &mut Ctx) {
     g.set_warnings(vec_model(
         p.warnings
             .iter()
-            .map(|w| SharedString::from(format!("{} {}", w.at.map(|t| t.format("%d.%m %H:%M").to_string()).unwrap_or_default(), w.message)))
+            .map(|w| SharedString::from(format!("{} {}", w.at.map(|t| t.format("%d.%m %H:%M").to_string()).unwrap_or_default(), crate::ru::server(&w.message))))
             .collect(),
     ));
     if g.get_mode() == 1 {

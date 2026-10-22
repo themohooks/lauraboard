@@ -12,6 +12,7 @@ import { Button, ButtonVariant } from "../../components/button.slint";
 import { IconButton } from "../../components/icon-button.slint";
 import { ListRow } from "../../components/list-row.slint";
 import { EmptyState } from "../../components/feedback.slint";
+import { VarList } from "var-help.slint";
 import { Gfx, GRuleRow } from "../../state/graphics-state.slint";
 import { FormSection } from "../rules/form-parts.slint";
 
@@ -135,11 +136,11 @@ export component GfxRulesTab inherits VerticalLayout {
     }
 }
 
-export component GfxVarsTab inherits VerticalLayout {
+component VarsBody inherits VerticalLayout {
     spacing: Theme.sp3;
     alignment: start;
     Label {
-        text: "Значения по умолчанию для {переменных} в текстах. Оператор может переопределить их в эфире (например, {ticker}). Встроенные: {title} {category} {block} {presenter} {next_title} {next_start} {next_program} {next_program_start} {channel}.";
+        text: "Переменная — слово в фигурных скобках внутри текста элемента, например «Далее: {next_title} в {next_start}». В эфире вместо неё подставляется значение: «Далее: Реклама: блок 1 в 09:28». Здесь задаются собственные переменные канала и их значения по умолчанию; оператор может менять их в эфире (например, {ticker}).";
         color: Theme.color.on-surface-variant;
         wrap: word-wrap;
     }
@@ -192,6 +193,29 @@ export component GfxVarsTab inherits VerticalLayout {
                     Gfx.var-add();
                 }
             }
+        }
+    }
+    Label {
+        text: "Справочник переменных";
+        type-style: Theme.title-small;
+    }
+    Rectangle {
+        border-radius: Theme.radius-m;
+        background: Theme.color.surface-container-low;
+        VerticalLayout {
+            padding: Theme.sp2;
+            VarList { }
+        }
+    }
+}
+
+export component GfxVarsTab inherits VerticalLayout {
+    sv := ScrollView {
+        vertical-stretch: 1;
+        VarsBody {
+            width: sv.visible-width;
+            padding-right: Theme.sp3;
+            padding-bottom: Theme.sp3;
         }
     }
 }

@@ -120,6 +120,11 @@ pub fn humanize(status: u16, msg: &str) -> String {
     if let Some((_, m)) = msg.split_once("into the target type:") {
         return format!("Сервер не принял данные: {}", m.trim());
     }
+    let ru = crate::ru::server(msg);
+    // a known message says enough without the status code
+    if ru != msg {
+        return ru;
+    }
     match status {
         401 => "Нет доступа: неверный или отсутствующий токен API".into(),
         403 => format!("Недостаточно прав: {msg}"),

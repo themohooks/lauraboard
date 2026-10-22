@@ -76,4 +76,47 @@ export global Src {
     in-out property <string> e-duration;
     in property <string> e-error;
     callback dialog-save();
+
+    // encoder settings dialog (dialog == "encoder"); selects are indexes
+    // into the option lists below, filled from Rust
+    in property <[string]> k-codecs;
+    in property <[string]> k-presets;
+    in property <[string]> k-tunes;
+    in property <[string]> k-profiles;
+    in property <[string]> k-pix-fmts;
+    in property <[string]> k-acodecs;
+    in-out property <int> k-codec;
+    in-out property <int> k-preset;
+    in-out property <int> k-profile;
+    in-out property <string> k-level;
+    in-out property <int> k-tune;
+    // 0 CBR, 1 VBR, 2 constant quality
+    in-out property <int> k-rc;
+    in-out property <string> k-bitrate;
+    in-out property <string> k-maxrate;
+    in-out property <string> k-bufsize;
+    in-out property <float> k-crf: 23;
+    in-out property <string> k-gop;
+    in-out property <string> k-bframes;
+    in-out property <bool> k-scene-cut;
+    in-out property <string> k-threads;
+    in-out property <int> k-pix-fmt;
+    in-out property <string> k-width;
+    in-out property <string> k-height;
+    in-out property <string> k-fps;
+    in-out property <int> k-acodec;
+    in-out property <string> k-abitrate;
+    // 0 44.1 kHz, 1 48 kHz
+    in-out property <int> k-rate;
+    // 0 mono, 1 stereo, 2 5.1
+    in-out property <int> k-channels;
+    in-out property <string> k-volume;
+    in-out property <bool> k-normalize;
+    in-out property <string> k-extra;
+    // x264 / x265: tune applies
+    in property <bool> k-has-tune;
+    in property <string> k-error;
+    callback encoder-edit();
+    callback encoder-codec-changed();
+    callback encoder-save();
 }

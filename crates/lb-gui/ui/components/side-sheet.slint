@@ -47,9 +47,10 @@ export component SideSheet inherits Rectangle {
                 }
             }
         }
-        ScrollView {
+        sv := ScrollView {
             vertical-stretch: 1;
             VerticalLayout {
+                width: sv.visible-width;
                 padding-left: Theme.sp6;
                 padding-right: Theme.sp6;
                 padding-bottom: Theme.sp6;

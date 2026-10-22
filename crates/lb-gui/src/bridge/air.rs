@@ -77,7 +77,7 @@ pub fn connect(ui: &AppWindow) {
     });
 }
 
-fn transport(c: &mut Ctx, action: &str) {
+pub fn transport(c: &mut Ctx, action: &str) {
     match action {
         "start" => c.command(cmd("start")),
         "stop" => c.ask(
@@ -185,7 +185,8 @@ pub fn queue_changed(c: &mut Ctx) {
     a.set_queue_summary(format!("{} элементов · {}", r.items.len(), hms(r.total_ms())).into());
     a.set_warnings(strings(r.warnings.iter().map(|w| {
         let at = w.at.map(|t| t.format("%H:%M:%S").to_string()).unwrap_or_default();
-        if at.is_empty() { w.message.clone() } else { format!("{at} — {}", w.message) }
+        let text = crate::ru::server(&w.message);
+        if at.is_empty() { text } else { format!("{at} — {text}") }
     })));
 }
 

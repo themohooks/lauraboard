@@ -12,6 +12,7 @@
 //! [`thumbs`] (media thumbnails).
 
 pub mod air;
+pub mod encoder;
 pub mod graphics;
 pub mod library;
 pub mod log;
@@ -155,6 +156,7 @@ pub fn start(ui: &AppWindow, opts: &GuiOptions, prefs: UiPrefs) {
     log::connect(ui);
     stats::connect(ui);
     sources::connect(ui);
+    encoder::connect(ui);
     settings::connect(ui);
     picker::connect(ui);
     with(|c| {
@@ -171,9 +173,51 @@ pub fn start(ui: &AppWindow, opts: &GuiOptions, prefs: UiPrefs) {
 pub fn set_tray(on: bool) {
     with(move |c| {
         c.has_tray = on;
+        tray_refresh(c);
         if let Some(ui) = c.window() {
             ui.global::<crate::shell::Settings>().set_has_tray(on);
         }
+    });
+}
+
+/// Menu of the tray icon from the current status.
+pub fn tray_refresh(c: &Ctx) {
+    if !c.has_tray {
+        return;
+    }
+    let s = &c.model.status;
+    let on_air = c.model.online && matches!(s.state.as_str(), "on_air" | "starting" | "reconnecting");
+    let title = s.on_air.as_ref().and_then(|o| o.item.as_ref()).map(|i| i.title.clone()).unwrap_or_default();
+    let status = if !c.model.online {
+        "Нет связи с сервером".to_string()
+    } else {
+        match s.state.as_str() {
+            "on_air" if !title.is_empty() => format!("● В эфире: {title}"),
+            "on_air" => "● В эфире".into(),
+            "starting" => "Запуск вещания…".into(),
+            "reconnecting" => "Переподключение…".into(),
+            "error" => "Ошибка вещания".into(),
+            _ => "Вещание остановлено".into(),
+        }
+    };
+    crate::tray::update(crate::tray::TrayState {
+        status: if s.manual && on_air { format!("{status} (ручной режим)") } else { status },
+        online: c.model.online,
+        on_air,
+        manual: s.manual,
+        close_to_tray: c.prefs.close_to_tray,
+    });
+}
+
+/// Flip "close into the tray" (tray menu) and show it in Settings.
+pub fn toggle_close_to_tray() {
+    with(|c| {
+        c.prefs.close_to_tray = !c.prefs.close_to_tray;
+        c.prefs.save();
+        if let Some(ui) = c.window() {
+            ui.global::<crate::shell::Settings>().set_close_to_tray(c.prefs.close_to_tray);
+        }
+        tray_refresh(c);
     });
 }
 
@@ -380,7 +424,7 @@ impl Ctx {
         let ch = self.model.ch();
         self.worker.spawn(move |api| {
             let r = api.post(&format!("/channels/{ch}/command"), &cmd)?;
-            Ok(Msg::Done(r["message"].as_str().unwrap_or("Выполнено").to_string()))
+            Ok(Msg::Done(r["message"].as_str().map(crate::ru::server).unwrap_or_else(|| "Выполнено".into())))
         });
     }
 

@@ -28,6 +28,8 @@ component ModeSwitch inherits VerticalLayout {
 }
 
 export component GridHeader inherits VerticalLayout {
+    // own width, not the window's: the block sheet takes part of the screen
+    property <bool> tight: App.narrow || root.width < 1000px;
     spacing: Theme.sp3;
 
     HorizontalLayout {
@@ -170,9 +172,9 @@ export component GridHeader inherits VerticalLayout {
         Rectangle {
             horizontal-stretch: 1;
         }
-        if !App.narrow: ModeSwitch { }
+        if !root.tight: ModeSwitch { }
     }
-    if App.narrow: HorizontalLayout {
+    if root.tight: HorizontalLayout {
         ModeSwitch { }
         Rectangle {
             horizontal-stretch: 1;

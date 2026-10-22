@@ -20,6 +20,7 @@ mod model;
 mod net;
 mod prefs;
 mod shell;
+mod ru;
 mod single;
 mod sysprefs;
 mod tray;
@@ -32,6 +33,8 @@ pub struct GuiOptions {
     pub token: Option<String>,
     /// Preferred channel (default: first).
     pub channel: Option<String>,
+    /// The engine runs inside this process: quitting stops the broadcast.
+    pub embedded_engine: bool,
 }
 
 /// Open the main window (blocks until the user quits; with a tray icon

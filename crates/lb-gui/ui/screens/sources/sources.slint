@@ -310,6 +310,16 @@ export component SourcesScreen inherits Page {
                             tone: Src.running ? StatusTone.live : StatusTone.idle;
                             strong: Src.running;
                         }
+                        if Src.has-config: Button {
+                            text: "Настроить";
+                            icon: Icons.tune;
+                            has-icon: true;
+                            variant: ButtonVariant.tonal;
+                            tooltip: "Кодек, битрейт, ключевые кадры, звук, формат кадра";
+                            clicked => {
+                                Src.encoder-edit();
+                            }
+                        }
                     }
                     Facts {
                         facts: Src.encoder;

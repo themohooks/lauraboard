@@ -31,7 +31,9 @@ export component GraphicsScreen inherits Page {
         PageHeader {
             title: "Экранная графика";
             if !App.narrow: GfxTabs { }
-            if Gfx.dirty: VerticalLayout {
+            // the chip does not fit next to the tabs in a narrower window;
+            // the enabled "Сохранить" says the same there
+            if Gfx.dirty && root.width >= 1300px: VerticalLayout {
                 alignment: center;
                 StatusChip {
                     text: "Не сохранено";

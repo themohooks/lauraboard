@@ -171,10 +171,13 @@ export component TransportBar inherits Rectangle {
                             Air.transport("clear-queue");
                         } else if id == "ads" {
                             Air.quick-tab = 1;
+                            Air.action-dialog = 1;
                         } else if id == "graphics" {
                             Air.quick-tab = 2;
+                            Air.action-dialog = 2;
                         } else if id == "ticker" {
                             Air.quick-tab = 3;
+                            Air.action-dialog = 3;
                         } else if id == "fullscreen" {
                             App.toggle-fullscreen();
                         }
