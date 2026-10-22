@@ -9,6 +9,7 @@ import { TextField } from "../../components/text-field.slint";
 import { Select } from "../../components/select.slint";
 import { Slider } from "../../components/slider.slint";
 import { Interactive } from "../../components/interactive.slint";
+import { Button, ButtonVariant } from "../../components/button.slint";
 import { EmptyState } from "../../components/feedback.slint";
 import { Gfx } from "../../state/graphics-state.slint";
 import { App } from "../../state/app-state.slint";
@@ -182,10 +183,28 @@ export component PropertiesPanel inherits Rectangle {
                     }
                     Field { horizontal-stretch: 1; label: "Префикс"; text <=> Gfx.p-prefix; }
                 }
-                if Gfx.p-kind == 4: Field {
-                    label: "Файл изображения (на сервере)";
-                    text <=> Gfx.p-path;
-                    supporting: "PNG / JPEG / WebP, путь от корня проекта или абсолютный";
+                if Gfx.p-kind == 4: HorizontalLayout {
+                    spacing: Theme.sp2;
+                    Field {
+                        horizontal-stretch: 1;
+                        label: "Файл изображения";
+                        text <=> Gfx.p-path;
+                        supporting: "PNG / JPEG / WebP, путь от корня проекта или абсолютный";
+                    }
+                    VerticalLayout {
+                        alignment: start;
+                        padding-top: 4px;
+                        Button {
+                            text: "Обзор…";
+                            icon: Icons.folder-open;
+                            has-icon: true;
+                            variant: ButtonVariant.tonal;
+                            tooltip: "Выбрать файл на этом компьютере";
+                            clicked => {
+                                Gfx.pick-image();
+                            }
+                        }
+                    }
                 }
                 if Gfx.p-kind == 5: ColorField {
                     label: "Цвет плашки";
