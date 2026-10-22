@@ -67,6 +67,7 @@ pub struct Ctx {
     pub log: log::LogState,
     pub stats: stats::StatsState,
     pub settings: settings::SettingsState,
+    pub src: sources::SourcesState,
     /// Channel configuration (admin only; `None` when not available).
     pub channel_config: Option<Value>,
 }
@@ -130,6 +131,7 @@ pub fn start(ui: &AppWindow, opts: &GuiOptions, prefs: UiPrefs) {
         log: Default::default(),
         stats: Default::default(),
         settings: Default::default(),
+        src: Default::default(),
         channel_config: None,
     };
     ui.global::<App>().set_api_url(api.base.clone().into());

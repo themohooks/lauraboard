@@ -42,6 +42,26 @@ pub fn mask_url(url: &str) -> String {
     }
 }
 
+/// RTMP-like URL → (server, stream key) for editing them separately;
+/// other URLs stay whole.
+pub fn split_key(url: &str) -> (String, String) {
+    let url = url.trim();
+    let keyed = url.to_lowercase().starts_with("rtmp");
+    match url.split_once("://").map(|(_, rest)| rest) {
+        Some(rest) if keyed && !rest.contains('?') => match url.rsplit_once('/') {
+            Some((head, key)) if rest.matches('/').count() >= 2 && !key.is_empty() => (head.to_string(), key.to_string()),
+            _ => (url.to_string(), String::new()),
+        },
+        _ => (url.to_string(), String::new()),
+    }
+}
+
+/// Inverse of [`split_key`].
+pub fn join_key(server: &str, key: &str) -> String {
+    let (server, key) = (server.trim(), key.trim().trim_start_matches('/'));
+    if key.is_empty() { server.to_string() } else { format!("{}/{key}", server.trim_end_matches('/')) }
+}
+
 fn is_secret(k: &str) -> bool {
     let k = k.to_lowercase();
     ["key", "token", "pass", "passphrase", "password", "secret", "streamid", "auth"].iter().any(|s| k.contains(s))
@@ -67,5 +87,16 @@ mod tests {
         assert_eq!(mask_url("rtmp://user:hunter2@host/app/key"), "rtmp://user:••••@host/app/••••");
         assert_eq!(mask_url("udp://239.0.0.1:1234"), "udp://239.0.0.1:1234");
         assert_eq!(mask_url("recordings/out.ts"), "recordings/out.ts");
+    }
+
+    #[test]
+    fn stream_key_is_split_from_rtmp_urls() {
+        let (srv, key) = split_key("rtmp://a.rtmp.youtube.com/live2/abcd-1234");
+        assert_eq!((srv.as_str(), key.as_str()), ("rtmp://a.rtmp.youtube.com/live2", "abcd-1234"));
+        assert_eq!(join_key(&srv, &key), "rtmp://a.rtmp.youtube.com/live2/abcd-1234");
+        assert_eq!(split_key("rtmp://host/app"), ("rtmp://host/app".to_string(), String::new()));
+        assert_eq!(split_key("srt://host:9000?streamid=x").1, "");
+        assert_eq!(join_key("rtmp://host/app/", "/k"), "rtmp://host/app/k");
+        assert_eq!(join_key("udp://239.0.0.1:1234", ""), "udp://239.0.0.1:1234");
     }
 }

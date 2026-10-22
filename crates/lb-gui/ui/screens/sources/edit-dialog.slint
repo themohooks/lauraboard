@@ -1,0 +1,86 @@
+// Dialog for one output target (server URL + stream key, container) or
+// one live stream input (title, URL, airing length).
+
+import { Theme } from "../../theme/tokens.slint";
+import { Icons } from "../../theme/icons.slint";
+import { Dialog, DialogActions } from "../../components/dialog.slint";
+import { TextField } from "../../components/text-field.slint";
+import { Select } from "../../components/select.slint";
+import { Label } from "../../components/label.slint";
+import { Button, ButtonVariant } from "../../components/button.slint";
+import { Src } from "../../state/sources-state.slint";
+
+export component SourceEditDialog inherits Dialog {
+    property <bool> output: Src.dialog == "output";
+    open: Src.dialog != "";
+    dialog-width: 520px;
+    title: root.output ? (Src.dialog-new ? "Новая точка вещания" : "Точка вещания")
+        : (Src.dialog-new ? "Новый поток" : "Поток");
+    text: root.output
+        ? "Куда кодировщик отправляет эфир: RTMP(S) — YouTube, Twitch, VK…, а также SRT, UDP, HLS или файл. Изменение перезапускает кодировщик (короткий обрыв)."
+        : "Сетевой источник (rtmp, srt, http, udp…) выходит в эфир как обычный элемент: через плейлист, очередь или «В эфир сейчас».";
+    has-icon: true;
+    icon: root.output ? Icons.sensors : Icons.stream;
+    dismissed => {
+        Src.dialog = "";
+    }
+
+    TextField {
+        label: root.output ? "Название" : "Название в эфире";
+        placeholder: root.output ? "youtube" : "Прямое включение";
+        text <=> Src.e-name;
+        container-color: Theme.color.surface-container-high;
+    }
+    TextField {
+        label: root.output ? "Адрес сервера" : "Адрес потока";
+        placeholder: root.output ? "rtmp://a.rtmp.youtube.com/live2" : "rtmp://server/live/stream";
+        mono: true;
+        text <=> Src.e-url;
+        container-color: Theme.color.surface-container-high;
+    }
+    if root.output: TextField {
+        label: "Ключ трансляции";
+        placeholder: "необязательно — можно указать в адресе";
+        mono: true;
+        input-type: InputType.password;
+        text <=> Src.e-key;
+        supporting: "Добавляется к адресу через «/»";
+        container-color: Theme.color.surface-container-high;
+    }
+    if root.output: Select {
+        label: "Контейнер";
+        options: ["Авто (по адресу)", "flv — RTMP", "mpegts — SRT / UDP", "hls"];
+        current-index <=> Src.e-format;
+        container-color: Theme.color.surface-container-high;
+    }
+    if !root.output: TextField {
+        label: "Длительность в эфире";
+        placeholder: "01:00:00";
+        mono: true;
+        text <=> Src.e-duration;
+        supporting: "ЧЧ:ММ:СС — сколько поток занимает в плане эфира";
+        container-color: Theme.color.surface-container-high;
+    }
+    if Src.e-error != "": Label {
+        text: Src.e-error;
+        type-style: Theme.body-small;
+        color: Theme.color.error;
+        wrap: word-wrap;
+    }
+    DialogActions {
+        Button {
+            text: "Отмена";
+            variant: ButtonVariant.text;
+            clicked => {
+                Src.dialog = "";
+            }
+        }
+        Button {
+            text: Src.dialog-new ? "Добавить" : "Сохранить";
+            enabled: Src.e-url != "";
+            clicked => {
+                Src.dialog-save();
+            }
+        }
+    }
+}
