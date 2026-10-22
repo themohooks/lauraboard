@@ -1,7 +1,7 @@
 //! Encoder: reads the intermediate stream on stdin, overlays graphics,
 //! encodes and pushes to all outputs; writes an MJPEG preview to stdout.
 
-use lb_core::config::{AudioFormat, EncoderConfig, OutputTarget, RecordConfig, VideoFormat};
+use lb_core::config::{AudioFormat, EncoderConfig, OutputTarget, RateControl, RecordConfig, VideoFormat};
 
 use super::outputs::{record_slave, tee_slave};
 use super::{base_args, fps_str, sv};
@@ -115,39 +115,112 @@ fn filter_graph(j: &EncodeJob) -> String {
 fn video_codec_args(j: &EncodeJob) -> Vec<String> {
     let e = j.encoder;
     let codec = j.video_codec;
+    let x26 = codec.starts_with("libx26");
+    let (nvenc, amf, qsv, vaapi) = (codec.contains("nvenc"), codec.contains("amf"), codec.contains("qsv"), codec.ends_with("_vaapi"));
     let gop = ((j.video.fps * e.gop_seconds).round() as i64).max(1).to_string();
     let mut a = sv(&["-c:v", codec]);
-    if codec.contains("nvenc") {
+
+    // speed / quality preset
+    if nvenc {
         let preset = if e.preset.starts_with('p') && e.preset.len() == 2 { e.preset.clone() } else { "p4".into() };
-        a.extend(sv(&["-preset", &preset, "-rc", "cbr"]));
-    } else if codec.contains("amf") {
-        a.extend(sv(&["-quality", "speed", "-rc", "cbr"]));
-    } else if codec.contains("qsv") || codec == "libx264" || codec == "libx265" {
+        a.extend(sv(&["-preset", &preset]));
+    } else if amf {
+        let quality = if matches!(e.preset.as_str(), "speed" | "balanced" | "quality") { e.preset.as_str() } else { "speed" };
+        a.extend(sv(&["-quality", quality]));
+    } else if qsv || x26 {
         a.extend(sv(&["-preset", &e.preset]));
-        if codec.starts_with("libx26") {
-            a.extend(sv(&["-tune", "zerolatency"]));
+    }
+    if x26 && !e.tune.trim().is_empty() {
+        a.extend(sv(&["-tune", e.tune.trim()]));
+    }
+    if !e.profile.trim().is_empty() && !vaapi {
+        a.extend(sv(&["-profile:v", e.profile.trim()]));
+    }
+    if !e.level.trim().is_empty() {
+        a.extend(sv(&["-level", e.level.trim()]));
+    }
+
+    // rate control
+    let maxrate = e.maxrate.clone().filter(|m| !m.trim().is_empty());
+    let crf = e.crf.min(51).to_string();
+    match e.rate_control {
+        RateControl::Cbr => {
+            if nvenc || amf {
+                a.extend(sv(&["-rc", "cbr"]));
+            }
+            a.extend(sv(&["-b:v", &e.video_bitrate]));
+            let maxrate = maxrate.unwrap_or_else(|| e.video_bitrate.clone());
+            let bufsize = e.bufsize.clone().unwrap_or_else(|| double_rate(&maxrate));
+            a.extend(sv(&["-maxrate", &maxrate, "-bufsize", &bufsize]));
+        }
+        RateControl::Vbr => {
+            if nvenc {
+                a.extend(sv(&["-rc", "vbr"]));
+            } else if amf {
+                a.extend(sv(&["-rc", "vbr_peak"]));
+            }
+            a.extend(sv(&["-b:v", &e.video_bitrate]));
+            let maxrate = maxrate.unwrap_or_else(|| scale_rate(&e.video_bitrate, 1.5));
+            let bufsize = e.bufsize.clone().unwrap_or_else(|| double_rate(&maxrate));
+            a.extend(sv(&["-maxrate", &maxrate, "-bufsize", &bufsize]));
+        }
+        RateControl::Quality => {
+            if nvenc {
+                a.extend(sv(&["-rc", "vbr", "-cq", &crf, "-b:v", "0"]));
+            } else if amf {
+                a.extend(sv(&["-rc", "cqp", "-qp_i", &crf, "-qp_p", &crf, "-qp_b", &crf]));
+            } else if qsv {
+                a.extend(sv(&["-global_quality", &crf]));
+            } else if vaapi {
+                a.extend(sv(&["-rc_mode", "CQP", "-qp", &crf]));
+            } else {
+                a.extend(sv(&["-crf", &crf]));
+            }
+            // capped: a quality target must not flood the uplink
+            if let Some(m) = maxrate {
+                let bufsize = e.bufsize.clone().unwrap_or_else(|| double_rate(&m));
+                a.extend(sv(&["-maxrate", &m, "-bufsize", &bufsize]));
+            }
         }
     }
-    a.extend(sv(&["-b:v", &e.video_bitrate]));
-    let maxrate = e.maxrate.clone().unwrap_or_else(|| e.video_bitrate.clone());
-    let bufsize = e.bufsize.clone().unwrap_or_else(|| double_rate(&maxrate));
-    a.extend(sv(&["-maxrate", &maxrate, "-bufsize", &bufsize, "-g", &gop, "-keyint_min", &gop]));
-    if codec.starts_with("libx26") {
-        a.extend(sv(&["-sc_threshold", "0"]));
+
+    // frame structure
+    if e.scene_cut {
+        a.extend(sv(&["-g", &gop]));
+    } else {
+        a.extend(sv(&["-g", &gop, "-keyint_min", &gop]));
+        if x26 {
+            a.extend(sv(&["-sc_threshold", "0"]));
+        } else if nvenc {
+            a.extend(sv(&["-no-scenecut", "1"]));
+        }
     }
-    if !codec.ends_with("_vaapi") {
-        a.extend(sv(&["-pix_fmt", "yuv420p"]));
+    if let Some(bf) = e.bframes {
+        a.extend(sv(&["-bf", &bf.min(16).to_string()]));
+    }
+    if e.threads > 0 {
+        a.extend(sv(&["-threads", &e.threads.to_string()]));
+    }
+    if !vaapi {
+        let pix = if e.pix_fmt.trim().is_empty() { "yuv420p" } else { e.pix_fmt.trim() };
+        a.extend(sv(&["-pix_fmt", pix]));
     }
     a
 }
 
-/// "3000k" → "6000k" (bufsize default = 2 × maxrate).
-fn double_rate(r: &str) -> String {
-    let (num, unit) = r.trim().split_at(r.trim().find(|c: char| !c.is_ascii_digit() && c != '.').unwrap_or(r.trim().len()));
+/// "3000k" × 1.5 → "4500k".
+fn scale_rate(r: &str, k: f64) -> String {
+    let r = r.trim();
+    let (num, unit) = r.split_at(r.find(|c: char| !c.is_ascii_digit() && c != '.').unwrap_or(r.len()));
     match num.parse::<f64>() {
-        Ok(n) => format!("{}{unit}", (n * 2.0).round() as i64),
+        Ok(n) => format!("{}{unit}", (n * k).round() as i64),
         Err(_) => r.to_string(),
     }
+}
+
+/// "3000k" → "6000k" (bufsize default = 2 × maxrate).
+fn double_rate(r: &str) -> String {
+    scale_rate(r, 2.0)
 }
 
 fn tee_spec(j: &EncodeJob) -> String {
@@ -210,5 +283,30 @@ mod tests {
         assert!(s.contains("[0:v]setpts=N/(25*TB)[vin]"));
         assert!(s.contains("-f tee [f=null]-"));
         assert_eq!(double_rate("2.5M"), "5M");
+    }
+
+    #[test]
+    fn deep_settings() {
+        let (v, a) = (VideoFormat::default(), AudioFormat::default());
+        let e = EncoderConfig {
+            rate_control: RateControl::Quality,
+            crf: 20,
+            maxrate: Some("6000k".into()),
+            profile: "high".into(),
+            level: "4.1".into(),
+            tune: String::new(),
+            bframes: Some(2),
+            scene_cut: true,
+            threads: 4,
+            ..Default::default()
+        };
+        let s = encoder_args(&job(&e, &v, &a, &[])).join(" ");
+        assert!(s.contains("-c:v libx264 -preset veryfast -profile:v high -level 4.1 -crf 20 -maxrate 6000k -bufsize 12000k -g 50 -bf 2 -threads 4 -pix_fmt yuv420p"), "{s}");
+        assert!(!s.contains("-tune"));
+        assert!(!s.contains("-sc_threshold"));
+
+        let e = EncoderConfig { video_codec: "h264_nvenc".into(), rate_control: RateControl::Vbr, ..Default::default() };
+        let s = encoder_args(&job(&e, &v, &a, &[])).join(" ");
+        assert!(s.contains("-c:v h264_nvenc -preset p4 -rc vbr -b:v 3000k -maxrate 4500k -bufsize 9000k -g 50 -keyint_min 50 -no-scenecut 1"), "{s}");
     }
 }

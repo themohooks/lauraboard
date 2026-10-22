@@ -112,6 +112,47 @@ pub struct EncoderConfig {
     /// Extra raw ffmpeg output arguments.
     #[serde(default)]
     pub extra_args: Vec<String>,
+    /// Constant bitrate (default), variable bitrate, or constant quality.
+    #[serde(default)]
+    pub rate_control: RateControl,
+    /// Quality for `rate_control = "quality"` (x264 CRF scale, lower = better).
+    #[serde(default = "EncoderConfig::crf")]
+    pub crf: u32,
+    /// H.264 / HEVC profile (`baseline`, `main`, `high`); empty = encoder default.
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub profile: String,
+    /// Level (`4.1`, `4.2`, …); empty = automatic.
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub level: String,
+    /// x264 / x265 tune; empty = none.
+    #[serde(default = "EncoderConfig::tune")]
+    pub tune: String,
+    /// B-frames between reference frames; `None` = encoder default.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub bframes: Option<u32>,
+    /// Extra keyframes on scene cuts (off: strictly regular GOP, which
+    /// HLS segmenting and most platforms want).
+    #[serde(default)]
+    pub scene_cut: bool,
+    /// Encoder threads; 0 = automatic.
+    #[serde(default)]
+    pub threads: u32,
+    /// Output pixel format (`yuv420p` for platforms and players).
+    #[serde(default = "EncoderConfig::pix_fmt")]
+    pub pix_fmt: String,
+}
+
+/// How the encoder spends bits.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum RateControl {
+    /// Steady bitrate: what streaming platforms expect.
+    #[default]
+    Cbr,
+    /// Average bitrate with peaks up to `maxrate`.
+    Vbr,
+    /// Constant quality (`crf`), capped by `maxrate`.
+    Quality,
 }
 
 impl EncoderConfig {
@@ -133,6 +174,15 @@ impl EncoderConfig {
     fn abr() -> String {
         "160k".into()
     }
+    fn crf() -> u32 {
+        23
+    }
+    fn tune() -> String {
+        "zerolatency".into()
+    }
+    fn pix_fmt() -> String {
+        "yuv420p".into()
+    }
 }
 
 impl Default for EncoderConfig {
@@ -147,6 +197,15 @@ impl Default for EncoderConfig {
             audio_codec: Self::acodec(),
             audio_bitrate: Self::abr(),
             extra_args: vec![],
+            rate_control: RateControl::default(),
+            crf: Self::crf(),
+            profile: String::new(),
+            level: String::new(),
+            tune: Self::tune(),
+            bframes: None,
+            scene_cut: false,
+            threads: 0,
+            pix_fmt: Self::pix_fmt(),
         }
     }
 }

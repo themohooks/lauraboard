@@ -33,6 +33,18 @@ pub(super) fn check(ch: &ChannelData, r: &mut Report) {
     if c.encoder.gop_seconds <= 0.0 {
         r.error(loc, "encoder.gop_seconds must be positive");
     }
+    if c.encoder.crf > 51 {
+        r.error(loc, "encoder.crf must be 0..51");
+    }
+    if c.encoder.bframes.is_some_and(|b| b > 16) {
+        r.error(loc, "encoder.bframes must be 0..16");
+    }
+    if c.encoder.threads > 64 {
+        r.error(loc, "encoder.threads must be 0..64");
+    }
+    if c.encoder.pix_fmt.trim().is_empty() {
+        r.error(loc, "encoder.pix_fmt is empty");
+    }
     if c.graphics.fps <= 0.0 || c.graphics.fps > c.video.fps {
         r.warn(loc, "graphics.fps should be between 1 and the video fps");
     }

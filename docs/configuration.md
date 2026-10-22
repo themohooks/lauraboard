@@ -86,6 +86,15 @@ gop_seconds = 2.0
 audio_codec = "aac"
 audio_bitrate = "160k"
 extra_args = []                  # дополнительные аргументы ffmpeg для выхода
+rate_control = "cbr"             # cbr — постоянный битрейт | vbr — переменный (пики до maxrate) | quality — постоянное качество
+crf = 23                         # качество для rate_control = "quality": 0..51, меньше — лучше (maxrate ограничивает поток)
+# profile = "high"               # baseline | main | high; пусто — по умолчанию кодировщика
+# level = "4.1"                  # пусто — автоматически
+tune = "zerolatency"             # только libx264/libx265; "" — без tune
+# bframes = 2                    # B-кадры 0..16; не задано — по умолчанию кодировщика
+scene_cut = false                # ключевые кадры на смене сцены (выкл.: строго ровный GOP для HLS и платформ)
+threads = 0                      # потоки кодирования; 0 — автоматически
+pix_fmt = "yuv420p"              # формат пикселей выхода
 
 [[outputs]]
 name = "youtube"
