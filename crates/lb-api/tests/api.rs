@@ -74,6 +74,26 @@ async fn roles_are_enforced() {
 }
 
 #[tokio::test]
+async fn old_errors_do_not_block_other_documents() {
+    let dir = project(vec![]);
+    // a playlist with a missing media id: an error that already exists on disk
+    let mut p = Project::load(dir.path()).unwrap();
+    let ch = p.channel_mut("main").unwrap();
+    let mut broken = lb_core::playlist::Playlist::new("broken");
+    broken.entries.push(lb_core::playlist::PlaylistEntry::new("gone"));
+    ch.playlists.push(broken);
+    ch.save().unwrap();
+    let app = app(&dir).await;
+    // saving graphics must still work …
+    let (st, body) = call(&app, "PUT", "/api/v1/channels/main/graphics", None, Some(r#"{}"#)).await;
+    assert_eq!(st, StatusCode::OK, "{body}");
+    // … while a new error in the saved document is still rejected and named
+    let (st, body) = call(&app, "PUT", "/api/v1/channels/main/graphics", None, Some(r#"{"rules":[{"id":"r","element":"nope"}]}"#)).await;
+    assert_eq!(st, StatusCode::BAD_REQUEST);
+    assert!(body.contains("unknown element 'nope'") && !body.contains("gone"), "{body}");
+}
+
+#[tokio::test]
 async fn create_channel_while_running() {
     let dir = project(vec![]);
     let app = app(&dir).await;

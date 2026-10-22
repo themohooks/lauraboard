@@ -33,13 +33,13 @@ impl Api {
     }
 
     fn finish(res: Result<ureq::http::Response<ureq::Body>, ureq::Error>) -> Result<Vec<u8>, String> {
-        let mut res = res.map_err(|e| format!("connection failed: {e}"))?;
+        let mut res = res.map_err(|e| format!("Нет связи с сервером: {e}"))?;
         let status = res.status().as_u16();
         let body = res.body_mut().with_config().limit(64 * 1024 * 1024).read_to_vec().map_err(|e| e.to_string())?;
         if status >= 400 {
             let text = String::from_utf8_lossy(&body).to_string();
             let msg = serde_json::from_str::<Value>(&text).ok().and_then(|v| v["error"].as_str().map(str::to_string)).unwrap_or(text);
-            return Err(format!("{status}: {msg}"));
+            return Err(humanize(status, &msg));
         }
         Ok(body)
     }
@@ -96,5 +96,50 @@ impl Api {
         }
         let bytes = Self::finish(r.call())?;
         Ok(serde_json::from_slice(&bytes).unwrap_or(Value::Null))
+    }
+}
+
+/// Server error → text for the operator: what failed and every reason,
+/// instead of a bare status code.
+pub fn humanize(status: u16, msg: &str) -> String {
+    let msg = msg.trim();
+    if let Some(list) = msg.strip_prefix("validation failed:") {
+        let items: Vec<String> = list.split("; ").map(|x| format!("• {}", x.trim())).filter(|x| x.len() > 4).collect();
+        return format!("Не сохранено — проверка канала нашла ошибки:
+{}", items.join("
+"));
+    }
+    // channel start (engine pre-flight check)
+    if let Some(m) = msg.strip_prefix("validation failed with") {
+        return format!("Канал не прошёл проверку перед запуском —{}. Подробности: «Журнал» или `laurabrod validate`", m.replace("error(s); first:", "ошибок, первая:"));
+    }
+    if let Some(m) = msg.strip_prefix("invalid:") {
+        return format!("Неверные данные: {}", m.trim());
+    }
+    // axum's JSON extractor (shape of the document did not match)
+    if let Some((_, m)) = msg.split_once("into the target type:") {
+        return format!("Сервер не принял данные: {}", m.trim());
+    }
+    match status {
+        401 => "Нет доступа: неверный или отсутствующий токен API".into(),
+        403 => format!("Недостаточно прав: {msg}"),
+        404 => format!("Не найдено: {msg}"),
+        409 => format!("Конфликт: {msg}"),
+        _ => format!("Ошибка {status}: {msg}"),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::humanize;
+
+    #[test]
+    fn validation_errors_are_listed() {
+        let t = humanize(400, "validation failed: graphics/rules/a: unknown element 'x'; schedule: bad");
+        assert!(t.starts_with("Не сохранено"));
+        assert!(t.contains("
+• graphics/rules/a: unknown element 'x'
+• schedule: bad"), "{t}");
+        assert_eq!(humanize(422, "Failed to deserialize the JSON body into the target type: missing field `id`"), "Сервер не принял данные: missing field `id`");
     }
 }

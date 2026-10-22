@@ -20,15 +20,18 @@ use crate::error::{ApiError, ApiResult};
 async fn update(s: &AppState, id: &str, f: impl FnOnce(&mut ChannelData) + Send + 'static) -> ApiResult<Json<Report>> {
     let h = channel(s, id)?;
     let mut copy = h.read(|d| d.clone());
+    // errors that were already there (in another document) must not block
+    // an unrelated save; only reject what this change introduces
+    let before = validate_channel(&copy);
     f(&mut copy);
     let report = validate_channel(&copy);
-    if report.has_errors() {
-        let msg = report
-            .issues
-            .iter()
-            .filter(|i| i.severity == lb_core::validate::Severity::Error)
-            .map(|i| format!("{}: {}", i.location, i.message))
-            .collect::<Vec<_>>();
+    let msg = report
+        .issues
+        .iter()
+        .filter(|i| i.severity == lb_core::validate::Severity::Error && !before.issues.contains(i))
+        .map(|i| format!("{}: {}", i.location, i.message))
+        .collect::<Vec<_>>();
+    if !msg.is_empty() {
         return Err(ApiError::bad_request(format!("validation failed: {}", msg.join("; "))));
     }
     h.modify(move |d| {
