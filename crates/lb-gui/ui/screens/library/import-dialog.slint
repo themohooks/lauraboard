@@ -14,7 +14,7 @@ import { Lib } from "../../state/library-state.slint";
 export component ImportDialog inherits Dialog {
     open: Lib.import-open;
     title: "Импорт в медиатеку";
-    text: "Путь указывается на сервере вещания. Папки сканируются целиком, длительность и формат определяются автоматически.";
+    text: "Выберите один или несколько роликов, папку или укажите URL. Пути — на сервере вещания; длительность и формат определяются автоматически.";
     has-icon: true;
     icon: Icons.upload;
     dialog-width: 520px;
@@ -26,9 +26,10 @@ export component ImportDialog inherits Dialog {
         spacing: Theme.sp2;
         TextField {
             horizontal-stretch: 1;
-            label: "Файл, папка или URL";
+            label: "Файлы, папка или URL";
             text <=> Lib.import-path;
             placeholder: "D:/media/news или https://…";
+            supporting: "Несколько путей — через «;»";
             has-leading: true;
             leading-icon: Icons.folder-open;
             container-color: Theme.color.surface-container-high;
@@ -51,7 +52,7 @@ export component ImportDialog inherits Dialog {
             IconButton {
                 icon: Icons.movie;
                 variant: IconButtonVariant.tonal;
-                tooltip: "Выбрать файл";
+                tooltip: "Выбрать ролики (можно несколько)";
                 clicked => {
                     Lib.browse-import(false);
                 }
