@@ -51,7 +51,7 @@ pub fn connect(ui: &AppWindow) {
     g.on_dialog_save(|| with(dialog_save));
 }
 
-fn config(c: &Ctx) -> Option<ChannelConfig> {
+pub(super) fn config(c: &Ctx) -> Option<ChannelConfig> {
     c.channel_config.clone().and_then(|v| serde_json::from_value(v).ok())
 }
 
@@ -310,11 +310,16 @@ pub fn refresh(c: &mut Ctx) {
         g.set_format(vec_model(vec![
             fact("Видео", format!("{}×{}, {} к/с", v.width, v.height, v.fps)),
             fact("Звук", format!("{} Гц, {} кан.", a.sample_rate, a.channels)),
+            fact("Кодирование", format!("{} {} · звук {} {}", e.video_codec, e.preset, e.audio_codec, e.audio_bitrate).trim().to_string()),
             fact(
-                "Кодирование",
-                format!("{} {} · {} · звук {} {}", e.video_codec, e.preset, e.video_bitrate, e.audio_codec, e.audio_bitrate).trim().to_string(),
+                "Режим битрейта",
+                match e.rate_control {
+                    lb_core::config::RateControl::Cbr => format!("постоянный {}", e.video_bitrate),
+                    lb_core::config::RateControl::Vbr => format!("переменный {}, до {}", e.video_bitrate, e.maxrate.as_deref().unwrap_or("1,5×")),
+                    lb_core::config::RateControl::Quality => format!("качество CRF {}{}", e.crf, e.maxrate.as_deref().map(|m| format!(", до {m}")).unwrap_or_default()),
+                },
             ),
-            fact("GOP", format!("{} с", e.gop_seconds)),
+            fact("Ключевые кадры", format!("каждые {} с{}", e.gop_seconds, e.bframes.map(|b| format!(" · B-кадров: {b}")).unwrap_or_default())),
         ]));
         g.set_outputs(vec_model(
             cfg.outputs

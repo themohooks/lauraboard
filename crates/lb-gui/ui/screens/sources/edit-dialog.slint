@@ -12,7 +12,7 @@ import { Src } from "../../state/sources-state.slint";
 
 export component SourceEditDialog inherits Dialog {
     property <bool> output: Src.dialog == "output";
-    open: Src.dialog != "";
+    open: Src.dialog == "output" || Src.dialog == "stream";
     dialog-width: 520px;
     title: root.output ? (Src.dialog-new ? "Новая точка вещания" : "Точка вещания")
         : (Src.dialog-new ? "Новый поток" : "Поток");

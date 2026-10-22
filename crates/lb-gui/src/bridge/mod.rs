@@ -12,6 +12,7 @@
 //! [`thumbs`] (media thumbnails).
 
 pub mod air;
+pub mod encoder;
 pub mod graphics;
 pub mod library;
 pub mod log;
@@ -155,6 +156,7 @@ pub fn start(ui: &AppWindow, opts: &GuiOptions, prefs: UiPrefs) {
     log::connect(ui);
     stats::connect(ui);
     sources::connect(ui);
+    encoder::connect(ui);
     settings::connect(ui);
     picker::connect(ui);
     with(|c| {
