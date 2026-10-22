@@ -3,7 +3,7 @@
 //! shortcuts open (`<config dir>/laurabrod/desktop.json`, same format the
 //! application writes).
 
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 
 use crate::receipt::{config_dir, write_json};
@@ -25,6 +25,14 @@ pub fn prepare(binary: &Path, project: &Path, demo: bool) -> Result<(), String> 
         }
     }
     remember(project)
+}
+
+/// The project the shortcuts open, if it still looks like a project.
+pub fn remembered() -> Option<PathBuf> {
+    let bytes = std::fs::read(config_dir()?.join("desktop.json")).ok()?;
+    let v: serde_json::Value = serde_json::from_slice(&bytes).ok()?;
+    let p = PathBuf::from(v["project"].as_str()?);
+    p.join("laurabrod.toml").is_file().then_some(p)
 }
 
 fn remember(project: &Path) -> Result<(), String> {

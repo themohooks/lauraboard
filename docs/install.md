@@ -27,7 +27,7 @@ laurabrod-setup --silent --dir D:\Apps\Laurabrod --project D:\tv --no-desktop
 uninstall --uninstall --silent
 ```
 
-Остальные ключи: `--no-menu`, `--no-path`, `--no-project`, `--demo`, `--forget-settings` (с `--uninstall`: удалить и настройки интерфейса); `--help` — полный список.
+Остальные ключи: `--no-menu`, `--no-path`, `--no-project`, `--demo`, `--forget-settings` (с `--uninstall`: удалить и настройки интерфейса), `--remove-data` (с `--uninstall`: удалить данные каналов и эфиров проекта — настройки, плейлисты, сетку, журналы; медиафайлы и записи остаются); `--help` — полный список.
 
 ### Сборка установщика
 

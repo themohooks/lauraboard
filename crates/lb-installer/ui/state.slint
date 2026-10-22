@@ -47,6 +47,9 @@ export global Setup {
     // uninstall
     in property <string> installed-dir;
     in-out property <bool> forget-settings;
+    // project whose channel / broadcast data can be deleted ("" = none found)
+    in property <string> data-dir;
+    in-out property <bool> remove-data;
 
     callback check-ffmpeg();
     callback dir-edited(string);

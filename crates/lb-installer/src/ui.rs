@@ -49,6 +49,9 @@ pub fn run(mode: Mode) -> Result<(), String> {
             s.set_mode(SetupMode::Uninstall);
             s.set_installed_version(r.version.as_str().into());
             s.set_installed_dir(r.dir.display().to_string().into());
+            if let Some(p) = crate::project::remembered() {
+                s.set_data_dir(p.display().to_string().into());
+            }
         }
         Mode::Uninstall(None) => s.set_mode(SetupMode::Missing),
     }
@@ -128,7 +131,11 @@ pub fn run(mode: Mode) -> Result<(), String> {
             let launch_target = launch_target.clone();
             let job = match s.get_mode() {
                 SetupMode::Install => Job::Install(read_options(&s)),
-                _ => Job::Uninstall(receipt.clone().unwrap_or_default(), s.get_forget_settings()),
+                _ => Job::Uninstall(
+                    receipt.clone().unwrap_or_default(),
+                    s.get_forget_settings(),
+                    (s.get_remove_data() && !s.get_data_dir().is_empty()).then(|| PathBuf::from(s.get_data_dir().as_str())),
+                ),
             };
             let w2 = w.clone();
             std::thread::spawn(move || {
@@ -148,7 +155,7 @@ pub fn run(mode: Mode) -> Result<(), String> {
                 };
                 let result = match job {
                     Job::Install(opts) => install::install(&opts, &mut report).map(|o| (Some(o.binary), o.warnings)),
-                    Job::Uninstall(r, forget) => uninstall::uninstall(&r, forget, &mut report).map(|w| (None, w)),
+                    Job::Uninstall(r, forget, data) => uninstall::uninstall(&r, forget, data.as_deref(), &mut report).map(|w| (None, w)),
                 };
                 let _ = slint::invoke_from_event_loop(move || {
                     busy.store(false, Ordering::Relaxed);
@@ -195,7 +202,8 @@ pub fn run(mode: Mode) -> Result<(), String> {
 
 enum Job {
     Install(Options),
-    Uninstall(Receipt, bool),
+    // receipt, forget settings, project whose data goes too
+    Uninstall(Receipt, bool, Option<PathBuf>),
 }
 
 fn read_options(s: &Setup) -> Options {

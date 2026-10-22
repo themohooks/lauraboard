@@ -62,6 +62,11 @@ struct Args {
     /// With --uninstall: also delete interface settings.
     #[arg(long)]
     forget_settings: bool,
+    /// With --uninstall: also delete channel and broadcast data of the
+    /// project opened by the shortcuts (settings, playlists, schedules,
+    /// as-run and program logs; media and recordings stay).
+    #[arg(long)]
+    remove_data: bool,
     /// Render every page to PNG files in this folder and exit.
     #[cfg(feature = "snapshot")]
     #[arg(long)]
@@ -113,7 +118,8 @@ fn silent(args: &Args) -> Result<(), String> {
     };
     let warnings = if args.uninstall || !payload::present() {
         let r = Receipt::load().ok_or("Laurabrod не установлен")?;
-        uninstall::uninstall(&r, args.forget_settings, &mut report)?
+        let data = if args.remove_data { project::remembered() } else { None };
+        uninstall::uninstall(&r, args.forget_settings, data.as_deref(), &mut report)?
     } else {
         let mut opts = Options::new(Receipt::load().as_ref());
         if let Some(dir) = &args.dir {
