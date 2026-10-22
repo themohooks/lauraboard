@@ -162,6 +162,7 @@ impl Runtime {
         let encoder_changed = {
             let old = self.shared.data.read().unwrap_or_else(|e| e.into_inner());
             encoder_settings_changed(&old.config, &fresh.config)
+                || self.encoder_config.as_ref().is_some_and(|run| encoder_settings_changed(run, &fresh.config))
         };
         *self.shared.data.write().unwrap_or_else(|e| e.into_inner()) = fresh;
         self.sync_graphics_config();

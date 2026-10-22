@@ -67,6 +67,10 @@ pub struct Runtime {
     last_save: Instant,
     encoder_up_since: Option<Instant>,
     last_error: Option<String>,
+    /// Settings the encoder was last started with: edits through the API
+    /// change the in-memory data before the reload, so the reload compares
+    /// against what actually runs.
+    encoder_config: Option<lb_core::config::ChannelConfig>,
 }
 
 impl Runtime {
@@ -114,6 +118,7 @@ impl Runtime {
             last_save: Instant::now(),
             encoder_up_since: None,
             last_error: None,
+            encoder_config: None,
         }
     }
 
