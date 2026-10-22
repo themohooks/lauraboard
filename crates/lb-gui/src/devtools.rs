@@ -231,6 +231,13 @@ fn prepare_live(section: &str) {
             if std::env::var("LB_SNAPSHOT_WIZARD").is_ok() {
                 crate::bridge::rules::new_rule(c);
             }
+            if std::env::var("LB_SNAPSHOT_SPOTS").is_ok() {
+                let ids = ["ad-1", "ad-3", "gone"].map(String::from).to_vec();
+                crate::bridge::rules::picked(c, crate::bridge::picker::Target::AdItems, ids);
+            }
+            if std::env::var("LB_SNAPSHOT_PICKER").is_ok() {
+                crate::bridge::picker::open(c, crate::bridge::picker::Target::AdItems, "Ролики рекламного блока");
+            }
         });
     }
     if section == "graphics" {
