@@ -131,8 +131,11 @@ pub fn navigate(c: &mut Ctx, id: &str) {
     ui.global::<App>().set_section(id.into());
     c.prefs.section = id.to_string();
     c.prefs.save();
-    // documents may have changed elsewhere (CLI, other operator)
-    if matches!(id, "playlists" | "library" | "schedule" | "jingles" | "ads" | "graphics" | "sources") {
+    // documents may have changed elsewhere (CLI, other operator); own
+    // changes reload by themselves, so quick tab switching need not
+    if matches!(id, "playlists" | "library" | "schedule" | "jingles" | "ads" | "graphics" | "sources")
+        && !c.loaded_within(Duration::from_secs(5))
+    {
         c.load_all();
     }
     if id == "schedule" {

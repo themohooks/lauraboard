@@ -59,7 +59,9 @@ export component TooltipLayer inherits Rectangle {
     y: Tip.y + self.height > root.bound-height - 4px ? Tip.y - self.height - 40px : Tip.y;
     width: body.preferred-width;
     height: body.preferred-height;
-    visible: Tip.shown && Tip.text != "";
+    opacity: Tip.shown && Tip.text != "" ? 1 : 0;
+    visible: self.opacity > 0;
+    animate opacity { duration: Theme.motion-short; }
     background: Theme.color.inverse-surface;
     border-radius: Theme.radius-xs;
     body := HorizontalLayout {

@@ -70,6 +70,8 @@ pub struct Ctx {
     pub src: sources::SourcesState,
     /// Channel configuration (admin only; `None` when not available).
     pub channel_config: Option<Value>,
+    /// When [`Ctx::load_all`] last ran.
+    last_load: std::cell::Cell<Option<std::time::Instant>>,
 }
 
 thread_local! {
@@ -133,6 +135,7 @@ pub fn start(ui: &AppWindow, opts: &GuiOptions, prefs: UiPrefs) {
         settings: Default::default(),
         src: Default::default(),
         channel_config: None,
+        last_load: Default::default(),
     };
     ui.global::<App>().set_api_url(api.base.clone().into());
     CTX.with(|c| *c.borrow_mut() = Some(ctx));
@@ -205,11 +208,19 @@ impl Ctx {
                     air::config_changed(self);
                 }
             }
+            // polled / reloaded often: rebuilding big list models when nothing
+            // changed made the whole interface sluggish
             Msg::Rundown(r) => {
+                if r == self.model.rundown {
+                    return;
+                }
                 self.model.rundown = r;
                 air::queue_changed(self);
             }
             Msg::Library(l) => {
+                if self.lib.loaded && l == self.model.library {
+                    return;
+                }
                 self.model.library = l;
                 self.lib.loaded = true;
                 library::refresh(self);
@@ -300,12 +311,17 @@ impl Ctx {
         });
     }
 
+    pub fn loaded_within(&self, d: std::time::Duration) -> bool {
+        self.last_load.get().is_some_and(|t| t.elapsed() < d)
+    }
+
     /// Reload all editable documents of the channel.
     pub fn load_all(&self) {
         let ch = self.model.ch();
         if ch.is_empty() {
             return;
         }
+        self.last_load.set(Some(std::time::Instant::now()));
         let c = ch.clone();
         self.worker.spawn(move |api| Ok(Msg::Library(api.get(&format!("/channels/{c}/media"))?)));
         let c = ch.clone();
