@@ -39,6 +39,20 @@ export component AppBar inherits TopAppBar {
             }
         }
     }
+    VerticalLayout {
+        alignment: center;
+        IconButton {
+            icon: Icons.add;
+            tooltip: "Новый канал";
+            enabled: App.online;
+            clicked => {
+                App.new-channel-id = "";
+                App.new-channel-name = "";
+                App.validate-new-channel("");
+                App.new-channel-open = true;
+            }
+        }
+    }
 
     HorizontalLayout {
         horizontal-stretch: 1;

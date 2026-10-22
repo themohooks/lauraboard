@@ -1,0 +1,150 @@
+// Installer / uninstaller window: step rail on the left, the current page
+// and the action bar on the right. Components and tokens come from the
+// operator GUI (`@m3` = crates/lb-gui/ui), so both look the same.
+
+import "../../lb-gui/assets/fonts/Roboto.ttf";
+import "../../lb-gui/assets/fonts/RobotoMono.ttf";
+import { Theme } from "@m3/theme/tokens.slint";
+import { Icons } from "@m3/theme/icons.slint";
+import { Button, ButtonVariant } from "@m3/components/button.slint";
+import { Setup, SetupMode, SetupPage } from "state.slint";
+import { StepRail, StepItem } from "parts/step-rail.slint";
+import { WelcomePage } from "pages/welcome.slint";
+import { LocationPage } from "pages/location.slint";
+import { OptionsPage } from "pages/options.slint";
+import { ProgressPage } from "pages/progress.slint";
+import { DonePage } from "pages/done.slint";
+import { RemovePage } from "pages/remove.slint";
+
+export { Theme, ThemeMode } from "@m3/theme/tokens.slint";
+export { Setup, SetupMode, SetupPage } from "state.slint";
+
+export component InstallerWindow inherits Window {
+    property <bool> installing: Setup.mode == SetupMode.install;
+    property <int> index: Setup.page == SetupPage.welcome ? 0
+        : Setup.page == SetupPage.location ? 1
+        : Setup.page == SetupPage.options ? 2
+        : Setup.page == SetupPage.progress ? 3 : 4;
+    // the uninstaller has three steps: confirm, remove, done
+    property <int> step: installing ? index : (index == 0 ? 0 : index - 2);
+
+    function state(i: int) -> int {
+        return i < root.step || (Setup.page == SetupPage.done && Setup.success) ? 2 : i == root.step ? 1 : 0;
+    }
+    function next() {
+        if Setup.page == SetupPage.welcome {
+            Setup.page = SetupPage.location;
+        } else if Setup.page == SetupPage.location {
+            Setup.page = SetupPage.options;
+        } else if Setup.page == SetupPage.options {
+            Setup.start();
+        }
+    }
+    function back() {
+        if Setup.page == SetupPage.location {
+            Setup.page = SetupPage.welcome;
+        } else if Setup.page == SetupPage.options || Setup.page == SetupPage.done {
+            Setup.page = SetupPage.location;
+        }
+    }
+
+    title: installing ? "Установка Laurabrod" : "Удаление Laurabrod";
+    icon: @image-url("../../lb-gui/assets/app/laurabrod.svg");
+    preferred-width: 880px;
+    preferred-height: 640px;
+    min-width: 760px;
+    min-height: 540px;
+    background: Theme.color.surface;
+    default-font-family: Theme.font;
+    default-font-size: Theme.body-medium.size;
+
+    HorizontalLayout {
+        StepRail {
+            subtitle: installing ? "Версия \{Setup.version}" : "Удаление программы";
+            steps: installing ? [
+                { title: "Приветствие", state: root.state(0) },
+                { title: "Папка", state: root.state(1) },
+                { title: "Параметры", state: root.state(2) },
+                { title: Setup.installed-version != "" ? "Обновление" : "Установка", state: root.state(3) },
+                { title: "Готово", state: root.state(4) },
+            ] : [
+                { title: "Подтверждение", state: root.state(0) },
+                { title: "Удаление", state: root.state(1) },
+                { title: "Готово", state: root.state(2) },
+            ];
+            footnote: installing ? "Для текущего пользователя, без прав администратора" : "";
+        }
+
+        VerticalLayout {
+            horizontal-stretch: 1;
+
+            if installing && Setup.page == SetupPage.welcome: WelcomePage { vertical-stretch: 1; }
+            if installing && Setup.page == SetupPage.location: LocationPage { vertical-stretch: 1; }
+            if installing && Setup.page == SetupPage.options: OptionsPage { vertical-stretch: 1; }
+            if !installing && Setup.page == SetupPage.welcome: RemovePage { vertical-stretch: 1; }
+            if Setup.page == SetupPage.progress: ProgressPage { vertical-stretch: 1; }
+            if Setup.page == SetupPage.done: DonePage { vertical-stretch: 1; }
+
+            // action bar
+            HorizontalLayout {
+                padding: Theme.sp6;
+                padding-top: Theme.sp4;
+                spacing: Theme.sp2;
+
+                if Setup.page != SetupPage.progress && Setup.page != SetupPage.done && Setup.mode != SetupMode.missing: Button {
+                    text: "Отмена";
+                    variant: ButtonVariant.text;
+                    clicked => {
+                        Setup.close();
+                    }
+                }
+                Rectangle { horizontal-stretch: 1; }
+
+                // install
+                if installing && (Setup.page == SetupPage.location || Setup.page == SetupPage.options): Button {
+                    text: "Назад";
+                    variant: ButtonVariant.outlined;
+                    clicked => {
+                        root.back();
+                    }
+                }
+                if installing && Setup.page == SetupPage.done && !Setup.success: Button {
+                    text: "Изменить параметры";
+                    variant: ButtonVariant.outlined;
+                    clicked => {
+                        root.back();
+                    }
+                }
+                if installing && Setup.page != SetupPage.progress && Setup.page != SetupPage.done: Button {
+                    text: Setup.page != SetupPage.options ? "Далее"
+                        : Setup.installed-version != "" ? "Обновить" : "Установить";
+                    icon: Setup.page == SetupPage.options ? Icons.download : Icons.chevron-right;
+                    has-icon: Setup.page == SetupPage.options;
+                    enabled: Setup.page != SetupPage.location || Setup.dir-error == "";
+                    clicked => {
+                        root.next();
+                    }
+                }
+
+                // uninstall
+                if Setup.mode == SetupMode.uninstall && Setup.page == SetupPage.welcome: Button {
+                    text: "Удалить";
+                    variant: ButtonVariant.danger;
+                    icon: Icons.delete;
+                    has-icon: true;
+                    clicked => {
+                        Setup.start();
+                    }
+                }
+
+                // finish
+                if Setup.page == SetupPage.done || Setup.mode == SetupMode.missing: Button {
+                    text: Setup.success && installing ? "Готово" : "Закрыть";
+                    clicked => {
+                        Setup.finish();
+                    }
+                }
+            }
+        }
+    }
+}

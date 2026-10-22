@@ -1,0 +1,70 @@
+// Where to install.
+
+import { Theme } from "@m3/theme/tokens.slint";
+import { Icons } from "@m3/theme/icons.slint";
+import { Card } from "@m3/components/card.slint";
+import { Label } from "@m3/components/label.slint";
+import { Button, ButtonVariant } from "@m3/components/button.slint";
+import { StatusChip, StatusTone } from "@m3/components/indicators.slint";
+import { TextField } from "@m3/components/text-field.slint";
+import { Setup } from "../state.slint";
+import { WizardPage } from "../parts/page.slint";
+
+export component LocationPage inherits WizardPage {
+    title: "Папка установки";
+    text: "Программа ставится только для вашей учётной записи — права администратора не нужны.";
+
+    HorizontalLayout {
+        spacing: Theme.sp2;
+        TextField {
+            label: "Папка";
+            text <=> Setup.install-dir;
+            leading-icon: Icons.folder-open;
+            has-leading: true;
+            error: Setup.dir-error;
+            supporting: Setup.dir-note;
+            horizontal-stretch: 1;
+            edited(t) => {
+                Setup.dir-edited(t);
+            }
+        }
+        VerticalLayout {
+            alignment: start;
+            padding-top: 4px;
+            Button {
+                text: "Обзор…";
+                variant: ButtonVariant.outlined;
+                clicked => {
+                    Setup.browse-dir();
+                }
+            }
+        }
+    }
+
+    HorizontalLayout {
+        spacing: Theme.sp2;
+        alignment: start;
+        StatusChip {
+            tone: StatusTone.info;
+            icon: Icons.download;
+            text: "Нужно места: \{Setup.size-text}";
+        }
+    }
+
+    Card {
+        card-style: low;
+        Label {
+            text: "Что будет в папке";
+            type-style: Theme.title-small;
+        }
+        Label {
+            text: Setup.windows
+                ? "laurabrod.exe — программа (графический интерфейс и команды), uninstall.exe — удаление, документация. Проекты каналов хранятся отдельно, по умолчанию в «Документы\\Laurabrod»."
+                : "laurabrod — программа (графический интерфейс и команды), uninstall — удаление, документация. Проекты каналов хранятся отдельно, по умолчанию в ~/Documents/Laurabrod.";
+            type-style: Theme.body-medium;
+            color: Theme.color.on-surface-variant;
+            wrap: word-wrap;
+            overflow: clip;
+        }
+    }
+}

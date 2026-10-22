@@ -42,6 +42,14 @@ export component Menu {
         y: root.py;
         width: root.menu-width;
         Rectangle {
+            // created on every show(): animate from init
+            property <bool> appeared;
+            init => {
+                self.appeared = true;
+            }
+            opacity: appeared ? 1 : 0;
+            y: appeared ? 0 : -6px;
+            animate opacity, y { duration: Theme.motion-medium; easing: ease-out; }
             background: Theme.color.surface-container;
             border-radius: Theme.radius-xs;
             drop-shadow-blur: 8px;

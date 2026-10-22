@@ -8,12 +8,14 @@ rust-version.workspace = true
 anyhow = "1.0.104"
 chrono = { version = "0.4.45", features = ["serde"] }
 clap = { version = "4.6.7", features = ["derive", "env"] }
+dirs = { version = "7.0.0", optional = true }
 lb-api = { version = "0.1.0", path = "../lb-api" }
 lb-core = { version = "0.1.0", path = "../lb-core" }
 lb-engine = { version = "0.1.0", path = "../lb-engine" }
 lb-gfx = { version = "0.1.0", path = "../lb-gfx" }
 lb-gui = { version = "0.1.0", path = "../lb-gui", optional = true }
 lb-media = { version = "0.1.0", path = "../lb-media" }
+rfd = { version = "0.17.2", optional = true }
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.154"
 tokio = { version = "1.54.0", features = ["full"] }
@@ -25,10 +27,14 @@ zip = { version = "9.0.5", default-features = false, features = ["deflate"] }
 
 [target."cfg(windows)".dependencies]
 windows-service = "0.8.1"
+windows-sys = { version = "0.61.2", features = ["Win32_System_Console"] }
+
+[build-dependencies]
+lb-winres = { version = "0.1.0", path = "../lb-winres" }
 
 [dev-dependencies]
 tempfile = "3.27.0"
 
 [features]
 default = ["gui"]
-gui = ["dep:lb-gui"]
+gui = ["dep:lb-gui", "dep:dirs", "dep:rfd"]

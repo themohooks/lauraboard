@@ -26,7 +26,9 @@
 
 ## Быстрый старт
 
-Требуются Rust ≥ 1.92 и FFmpeg ≥ 6.1 (`ffmpeg` и `ffprobe` в PATH).
+Готовый установщик для Windows или Linux собирается одной командой — `cargo dist` (см. [docs/install.md](docs/install.md#установщик)). Установленная программа открывается с ярлыка как графическое приложение.
+
+Для сборки из исходников требуются Rust ≥ 1.92 и FFmpeg ≥ 6.1 (`ffmpeg` и `ffprobe` в PATH).
 
 ```bash
 cargo build --release
@@ -69,6 +71,9 @@ cargo build --release
 | `lb-api` | REST + WebSocket (axum) |
 | `lb-gui` | Интерфейс оператора (Slint, Material 3), работает только через API |
 | `laurabrod` | Исполняемый файл: CLI, GUI, служба |
+| `lb-installer` | Установщик и деинсталлятор (Slint, те же компоненты Material 3) |
+| `lb-winres` | Иконка и манифест для exe на Windows (build-скрипты) |
+| `xtask` | Автоматизация: `cargo dist`, `cargo xtask icons` |
 
 GUI и CLI не связаны с механизмом воспроизведения напрямую: они работают через API или файлы проекта. Медиадвижок отделён от планировщика: планировщик выдаёт рундаун, движок его исполняет.
 

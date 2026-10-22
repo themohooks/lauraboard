@@ -30,7 +30,7 @@ use lb_engine::ChannelHandle;
 
 /// Resolve a channel id from the path.
 pub(crate) fn channel(state: &AppState, id: &str) -> ApiResult<ChannelHandle> {
-    Ok(state.engine.channel(id)?.clone())
+    Ok(state.engine.channel(id)?)
 }
 
 pub fn router(state: AppState) -> Router {
@@ -63,7 +63,7 @@ pub fn router(state: AppState) -> Router {
         .route("/asrun", get(reports::asrun))
         .route("/stats", get(reports::stats));
     let api = Router::new()
-        .route("/channels", get(status::channels))
+        .route("/channels", get(status::channels).post(status::create_channel))
         .route("/events", get(crate::ws::events_all))
         .route("/logs", get(reports::logs))
         .route("/version", get(status::version))

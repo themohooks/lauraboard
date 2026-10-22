@@ -34,6 +34,8 @@ export component Dialog inherits Rectangle {
     }
 
     keys := FocusScope {
+        // let clicks reach the scrim (a focus grab would swallow the first one)
+        focus-on-click: false;
         key-pressed(e) => {
             if e.text == Key.Escape && root.dismissible {
                 root.dismissed();

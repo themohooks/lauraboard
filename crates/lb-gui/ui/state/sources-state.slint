@@ -10,6 +10,8 @@ export struct SceneRow {
 }
 
 export struct OutRow {
+    // index in the channel's output list
+    index: int,
     name: string,
     // secrets masked
     url: string,
@@ -18,6 +20,7 @@ export struct OutRow {
 }
 
 export struct StreamRow {
+    index: int,
     title: string,
     url: string,
     enabled: bool,
@@ -49,4 +52,28 @@ export global Src {
 
     callback switch-scene(int);
     callback open-library();
+
+    // output targets (admin): edit opens the dialog, index -1 = new
+    callback output-edit(int);
+    callback output-toggle(int);
+    callback output-remove(int);
+    // live stream inputs (library items of kind "stream")
+    callback stream-edit(int);
+    callback stream-toggle(int);
+    callback stream-remove(int);
+    // "queue" or "now"
+    callback stream-air(int, string);
+
+    // edit dialog: "output" / "stream" ("" = closed)
+    in-out property <string> dialog;
+    in property <bool> dialog-new;
+    in-out property <string> e-name;
+    in-out property <string> e-url;
+    // stream key, appended to the URL as the last path segment
+    in-out property <string> e-key;
+    // 0 auto, 1 flv, 2 mpegts, 3 hls
+    in-out property <int> e-format;
+    in-out property <string> e-duration;
+    in property <string> e-error;
+    callback dialog-save();
 }

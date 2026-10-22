@@ -1,0 +1,62 @@
+// Installer state shared by all pages; filled and driven from Rust (src/ui.rs).
+
+export enum SetupMode { install, uninstall, missing }
+
+// Pages of the wizard, in order.
+export enum SetupPage { welcome, location, options, progress, done }
+
+export global Setup {
+    in property <SetupMode> mode: SetupMode.install;
+    in-out property <SetupPage> page: SetupPage.welcome;
+
+    // product
+    in property <string> version;
+    in property <string> installed-version;   // empty when not installed
+    in property <string> size-text;           // "≈ 38 МБ"
+    in property <bool> windows: true;
+
+    // FFmpeg
+    in property <bool> ffmpeg-found;
+    in property <string> ffmpeg-version;
+    in property <string> ffmpeg-hint;
+    in property <bool> ffmpeg-checking;
+
+    // location
+    in-out property <string> install-dir;
+    in property <string> dir-error;           // blocks "Next"
+    in property <string> dir-note;
+
+    // options
+    in-out property <bool> menu-shortcut: true;
+    in-out property <bool> desktop-shortcut: true;
+    in-out property <bool> add-to-path: true;
+    in-out property <bool> create-project: true;
+    in-out property <string> project-dir;
+    in-out property <bool> demo;
+    in property <bool> project-exists;
+
+    // progress / result
+    in property <float> progress;
+    in property <bool> indeterminate;
+    in property <string> step;
+    in property <bool> success;
+    in property <string> error;
+    in property <[string]> warnings;
+    in-out property <bool> launch: true;
+
+    // uninstall
+    in property <string> installed-dir;
+    in-out property <bool> forget-settings;
+    // project whose channel / broadcast data can be deleted ("" = none found)
+    in property <string> data-dir;
+    in-out property <bool> remove-data;
+
+    callback check-ffmpeg();
+    callback dir-edited(string);
+    callback project-edited(string);
+    callback browse-dir();
+    callback browse-project();
+    callback start();
+    callback finish();
+    callback close();
+}

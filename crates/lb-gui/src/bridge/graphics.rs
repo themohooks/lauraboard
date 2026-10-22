@@ -38,7 +38,11 @@ pub struct GraphicsState {
     locked: HashSet<String>,
     drag: Option<Drag>,
     items: Rc<VecModel<CanvasItem>>,
+    /// Identifies the latest debounce timer (older ones do nothing).
     render_seq: u64,
+    /// A server render is running; `render_again`: the draft changed meanwhile.
+    rendering: bool,
+    render_again: bool,
     last_edit: Option<(String, Instant)>,
     templates: Vec<PathBuf>,
 }
@@ -118,6 +122,7 @@ pub fn connect(ui: &AppWindow) {
     g.on_drag_end(|| with(drag_end));
     g.on_nudge(|dx, dy| with(move |c| nudge(c, dx, dy)));
     g.on_props_changed(|| with(props_changed));
+    g.on_pick_image(|| with(pick_image));
     g.on_add(|k| with(move |c| add(c, k.as_str())));
     g.on_duplicate(|| with(duplicate));
     g.on_remove(|| with(remove));
@@ -520,6 +525,20 @@ fn props_changed(c: &mut Ctx) {
     flags(c);
 }
 
+/// Choose the image of the selected element with a file dialog.
+fn pick_image(c: &mut Ctx) {
+    let Some(ui) = c.window() else { return };
+    let g = ui.global::<Gfx>();
+    let current = PathBuf::from(g.get_p_path().trim());
+    let mut dlg = rfd::FileDialog::new().set_title("Изображение для графики").add_filter("Изображения", &["png", "jpg", "jpeg", "webp"]);
+    if let Some(dir) = current.parent().filter(|d| d.is_absolute() && d.is_dir()) {
+        dlg = dlg.set_directory(dir);
+    }
+    let Some(path) = dlg.pick_file() else { return };
+    g.set_p_path(s(path.to_string_lossy().to_string()));
+    props_changed(c);
+}
+
 // ------------------------------------------------------------ canvas edits
 
 fn drag_start(c: &mut Ctx, i: usize, handle: i32) {
@@ -572,6 +591,8 @@ fn drag_move(c: &mut Ctx, i: usize, handle: i32, dx: f32, dy: f32) {
     if let Some(e) = c.gfx.draft.as_ref().and_then(|d| d.elements.get(i)).cloned() {
         pos_fields(c, &e);
     }
+    // keep the rendered frame following the drag (at most one request in flight)
+    render(c);
 }
 
 fn drag_end(c: &mut Ctx) {
@@ -673,14 +694,21 @@ fn duplicate(c: &mut Ctx) {
 fn remove(c: &mut Ctx) {
     let Some(i) = c.gfx.selected else { return };
     let Some(e) = c.gfx.draft.as_ref().and_then(|d| d.elements.get(i)).cloned() else { return };
-    let used = c.gfx.draft.as_ref().is_some_and(|d| d.rules.iter().any(|r| r.element == e.id));
+    let rules = c.gfx.draft.as_ref().map(|d| d.rules.iter().filter(|r| r.element == e.id).count()).unwrap_or(0);
+    // one edit, so a single undo brings the element back with its rules
     mutate(c, None, |cfg| {
         cfg.elements.remove(i);
+        cfg.rules.retain(|r| r.element != e.id);
+        for other in &mut cfg.elements {
+            if let ElementKind::Group { children } = &mut other.kind {
+                children.retain(|ch| *ch != e.id);
+            }
+        }
     });
     c.gfx.selected = None;
     refresh(c);
     c.toast_with(
-        format!("Элемент «{}» удалён{}", label(&e), if used { " — на него ссылаются правила показа" } else { "" }),
+        format!("Элемент «{}» удалён{}", label(&e), if rules > 0 { format!(" вместе с правилами показа: {rules}") } else { String::new() }),
         "Отменить",
         undo,
     );
@@ -710,7 +738,7 @@ fn live(c: &mut Ctx, action: &str) {
 fn schedule_render(c: &mut Ctx) {
     c.gfx.render_seq += 1;
     let seq = c.gfx.render_seq;
-    slint::Timer::single_shot(Duration::from_millis(700), move || {
+    slint::Timer::single_shot(Duration::from_millis(150), move || {
         with(move |c| {
             if c.gfx.render_seq == seq && c.section() == "graphics" {
                 render(c);
@@ -748,9 +776,12 @@ pub fn render(c: &mut Ctx) {
         return;
     }
     let Some(cfg) = c.gfx.draft.clone() else { return };
+    if c.gfx.rendering {
+        c.gfx.render_again = true;
+        return;
+    }
+    c.gfx.rendering = true;
     g.set_rendering(true);
-    c.gfx.render_seq += 1;
-    let seq = c.gfx.render_seq;
     let ch = c.model.ch();
     let vars = cfg.vars.clone();
     c.worker.spawn(move |api| {
@@ -758,7 +789,10 @@ pub fn render(c: &mut Ctx) {
         let frame = r.as_ref().ok().and_then(|b| png_image(b));
         let err = r.err();
         Ok(Msg::Apply(Box::new(move |c: &mut Ctx| {
-            if c.gfx.render_seq != seq {
+            c.gfx.rendering = false;
+            if std::mem::take(&mut c.gfx.render_again) && c.section() == "graphics" {
+                // the draft changed while rendering: this frame is already stale
+                render(c);
                 return;
             }
             let Some(ui) = c.window() else { return };

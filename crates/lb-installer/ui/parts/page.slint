@@ -1,0 +1,45 @@
+// Content area of one wizard page: headline, lead text, scrollable body.
+
+import { ScrollView } from "std-widgets.slint";
+import { Theme } from "@m3/theme/tokens.slint";
+import { Label } from "@m3/components/label.slint";
+
+export component WizardPage inherits VerticalLayout {
+    in property <string> title;
+    in property <string> text;
+
+    padding-left: Theme.sp8;
+    padding-right: Theme.sp8;
+    padding-top: Theme.sp8;
+    spacing: Theme.sp2;
+
+    Label {
+        text: root.title;
+        type-style: Theme.headline-small;
+        accessible-role: AccessibleRole.text;
+    }
+    if root.text != "": Label {
+        text: root.text;
+        type-style: Theme.body-large;
+        color: Theme.color.on-surface-variant;
+        wrap: word-wrap;
+        overflow: clip;
+    }
+    Rectangle { height: Theme.sp3; }
+    sv := ScrollView {
+        vertical-stretch: 1;
+        // vertical scrolling only: content follows the page width
+        content-width: self.visible-width;
+        VerticalLayout {
+            width: sv.visible-width;
+            // room for the floating text-field labels
+            padding-top: Theme.sp2;
+            padding-bottom: Theme.sp4;
+            // keep clear of the scroll bar
+            padding-right: Theme.sp3;
+            spacing: Theme.sp4;
+            alignment: start;
+            @children
+        }
+    }
+}

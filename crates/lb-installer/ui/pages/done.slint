@@ -1,0 +1,68 @@
+// Result: success (with optional warnings) or failure.
+
+import { Theme } from "@m3/theme/tokens.slint";
+import { Icons } from "@m3/theme/icons.slint";
+import { Card } from "@m3/components/card.slint";
+import { Icon } from "@m3/components/icon.slint";
+import { Label } from "@m3/components/label.slint";
+import { Setup, SetupMode } from "../state.slint";
+import { WizardPage } from "../parts/page.slint";
+import { OptionRow } from "../parts/option-row.slint";
+
+export component DonePage inherits WizardPage {
+    property <bool> removing: Setup.mode == SetupMode.uninstall;
+
+    title: !Setup.success ? (removing ? "Не удалось удалить" : "Не удалось установить")
+        : removing ? "Laurabrod удалён"
+        : Setup.installed-version != "" ? "Laurabrod обновлён" : "Laurabrod установлен";
+    text: !Setup.success ? Setup.error
+        : removing ? "Проекты каналов и медиафайлы остались на месте."
+        : "Программа открывается с ярлыка или командой laurabrod gui.";
+
+    HorizontalLayout {
+        alignment: start;
+        Rectangle {
+            width: 72px;
+            height: 72px;
+            border-radius: 36px;
+            background: Setup.success ? Theme.status.success-container : Theme.color.error-container;
+            Icon {
+                source: Setup.success ? Icons.check-circle : Icons.error;
+                size: 40px;
+                tint: Setup.success ? Theme.status.on-success-container : Theme.color.on-error-container;
+            }
+        }
+    }
+
+    if Setup.warnings.length > 0: Card {
+        card-style: outlined;
+        HorizontalLayout {
+            spacing: Theme.sp2;
+            Icon {
+                source: Icons.warning;
+                tint: Theme.status.warning;
+            }
+            Label {
+                text: "Готово, но с замечаниями";
+                type-style: Theme.title-small;
+            }
+        }
+        for w in Setup.warnings: Label {
+            text: "• " + w;
+            type-style: Theme.body-medium;
+            color: Theme.color.on-surface-variant;
+            wrap: word-wrap;
+            overflow: clip;
+        }
+    }
+
+    if Setup.success && !removing: Card {
+        card-style: low;
+        inset: Theme.sp2;
+        OptionRow {
+            icon: Icons.play-arrow;
+            title: "Запустить Laurabrod";
+            checked <=> Setup.launch;
+        }
+    }
+}

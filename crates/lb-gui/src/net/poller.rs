@@ -77,6 +77,10 @@ impl Poller {
         Poller { target, stop }
     }
 
+    pub fn channel(&self) -> Option<String> {
+        self.target.lock().ok().and_then(|g| g.channel.clone())
+    }
+
     pub fn set_channel(&self, ch: &str) {
         if let Ok(mut g) = self.target.lock() {
             g.channel = Some(ch.to_string());

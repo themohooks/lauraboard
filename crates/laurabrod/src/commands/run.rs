@@ -58,6 +58,8 @@ pub fn run(ctx: &Ctx, api: bool) -> Result<()> {
 #[cfg(feature = "gui")]
 pub fn gui(ctx: &Ctx, connect: Option<String>) -> Result<()> {
     let project = ctx.project()?;
+    // the next start from a shortcut opens the same project
+    crate::desktop::remember(&ctx.root);
     let (base, token) = match connect {
         Some(url) => (url, ctx.token.clone()),
         None => {

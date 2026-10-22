@@ -430,16 +430,15 @@ fn create(c: &mut Ctx) {
     p.name = g.get_new_name().trim().to_string();
     g.set_create_open(false);
     let ch = c.model.ch();
-    c.worker.spawn(move |api| {
-        api.post(&format!("/channels/{ch}/playlists"), &p)?;
-        Ok(Msg::Done("Плейлист создан".into()))
-    });
     // open it once the reload arrives
     c.pl.selected = Some(id);
     c.pl.draft = None;
     c.pl.saved = None;
     c.pl.history.clear();
-    c.load_all();
+    c.change(move |api| {
+        api.post(&format!("/channels/{ch}/playlists"), &p)?;
+        Ok("Плейлист создан".into())
+    });
 }
 
 fn menu_action(c: &mut Ctx, action: &str) {
@@ -458,13 +457,12 @@ fn menu_action(c: &mut Ctx, action: &str) {
                 move |c| {
                     let ch = c.model.ch();
                     let id2 = id.clone();
-                    c.worker.spawn(move |api| {
+                    c.change(move |api| {
                         api.delete(&format!("/channels/{ch}/playlists/{id2}"))?;
-                        Ok(Msg::Done("Плейлист удалён".into()))
+                        Ok("Плейлист удалён".into())
                     });
                     c.pl = PlaylistsState::default();
                     rows_changed(c);
-                    c.load_all();
                 },
             );
         }

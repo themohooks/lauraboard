@@ -19,6 +19,7 @@ export component ListRow inherits Interactive {
     background: selected ? Theme.color.secondary-container
         : current ? root.accent.with-alpha(Theme.dark ? 0.16 : 0.10)
         : transparent;
+    animate background { duration: Theme.motion-short; }
     accessible-role: list-item;
     accessible-item-selectable: true;
     accessible-item-selected: selected;

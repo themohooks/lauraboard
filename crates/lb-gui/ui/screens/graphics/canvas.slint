@@ -17,6 +17,10 @@ component Handle inherits Rectangle {
     background: Theme.color.surface;
     border-width: 2px;
     border-color: Theme.color.primary;
+    // pointer position at press, in window coordinates: the handle moves
+    // with the drag, so offsets relative to it would feed back and jitter
+    property <length> start-x;
+    property <length> start-y;
     TouchArea {
         mouse-cursor: root.handle == 0 || root.handle == 4 ? MouseCursor.nwse-resize
             : root.handle == 2 || root.handle == 6 ? MouseCursor.nesw-resize
@@ -24,6 +28,8 @@ component Handle inherits Rectangle {
             : MouseCursor.ew-resize;
         pointer-event(e) => {
             if e.kind == PointerEventKind.down {
+                root.start-x = self.absolute-position.x + self.mouse-x;
+                root.start-y = self.absolute-position.y + self.mouse-y;
                 Gfx.drag-start(root.element, root.handle);
             }
             if e.kind == PointerEventKind.up {
@@ -32,7 +38,9 @@ component Handle inherits Rectangle {
         }
         moved => {
             if self.pressed {
-                Gfx.drag-move(root.element, root.handle, (self.mouse-x - self.pressed-x) / 1px / root.scale, (self.mouse-y - self.pressed-y) / 1px / root.scale);
+                Gfx.drag-move(root.element, root.handle,
+                    (self.absolute-position.x + self.mouse-x - root.start-x) / 1px / root.scale,
+                    (self.absolute-position.y + self.mouse-y - root.start-y) / 1px / root.scale);
             }
         }
     }
@@ -50,6 +58,9 @@ component ItemBox inherits Rectangle {
     border-width: sel ? 2px : 1px;
     border-color: sel ? Theme.color.primary : (item.on-air ? Theme.status.live : #ffffff80);
     background: sel ? Theme.color.primary.with-alpha(0.08) : transparent;
+    // see Handle: drag offsets are measured in window coordinates
+    property <length> start-x;
+    property <length> start-y;
 
     if !root.sel && root.width > 50px: Rectangle {
         x: 0;
@@ -71,6 +82,8 @@ component ItemBox inherits Rectangle {
             if e.kind == PointerEventKind.down {
                 Gfx.select(root.item.index);
                 focus.focus();
+                root.start-x = self.absolute-position.x + self.mouse-x;
+                root.start-y = self.absolute-position.y + self.mouse-y;
                 if !root.item.locked {
                     Gfx.drag-start(root.item.index, -1);
                 }
@@ -81,7 +94,9 @@ component ItemBox inherits Rectangle {
         }
         moved => {
             if self.pressed && !root.item.locked {
-                Gfx.drag-move(root.item.index, -1, (self.mouse-x - self.pressed-x) / 1px / root.scale, (self.mouse-y - self.pressed-y) / 1px / root.scale);
+                Gfx.drag-move(root.item.index, -1,
+                    (self.absolute-position.x + self.mouse-x - root.start-x) / 1px / root.scale,
+                    (self.absolute-position.y + self.mouse-y - root.start-y) / 1px / root.scale);
             }
         }
     }

@@ -6,7 +6,49 @@
 - Для сборки из исходников: **Rust ≥ 1.92** (rustup).
 - Для GUI на Linux: X11 или Wayland, OpenGL (или программная отрисовка, см. [gui.md](gui.md#отрисовка)) и xdg-desktop-portal для диалогов выбора файлов. Для сервера без экрана GUI не нужен: используйте `run` и API или соберите программу без GUI.
 
-## Windows
+## Установщик
+
+Проще всего поставить Laurabrod установщиком `laurabrod-<версия>-<os>-<arch>-setup` — для Windows (`.exe`) и для Linux. Это мастер в том же стиле Material 3, что и интерфейс программы:
+
+1. **Приветствие** — что ставится, обновление поверх старой версии, проверка FFmpeg (если его нет — подсказка, как установить).
+2. **Папка** — по умолчанию `%LOCALAPPDATA%\Programs\Laurabrod` или `~/.local/share/laurabrod`. Установка только для текущего пользователя, права администратора не нужны.
+3. **Параметры** — ярлык в меню «Пуск» / меню приложений, ярлык на рабочем столе, команда `laurabrod` в терминале (PATH пользователя на Windows, ссылка в `~/.local/bin` на Linux), папка проекта канала и демо-канал (нужен FFmpeg).
+4. **Установка** и **Готово** — с запуском программы.
+
+Удаление: «Параметры → Приложения» на Windows или `uninstall` в папке программы. Удаляется ровно то, что создал установщик (список хранится в `installation.json` рядом с `gui.json`); проекты, медиа и журналы остаются.
+
+Без окна (для скриптов и развёртывания):
+
+```bash
+laurabrod-setup --silent --dir D:\Apps\Laurabrod --project D:\tv --no-desktop
+```
+
+```bash
+uninstall --uninstall --silent
+```
+
+Остальные ключи: `--no-menu`, `--no-path`, `--no-project`, `--demo`, `--forget-settings` (с `--uninstall`: удалить и настройки интерфейса), `--remove-data` (с `--uninstall`: удалить данные каналов и эфиров проекта — настройки, плейлисты, сетку, журналы; медиафайлы и записи остаются); `--help` — полный список.
+
+### Сборка установщика
+
+Одна команда собирает release-версию программы и установщик с ней внутри:
+
+```bash
+cargo dist
+```
+
+Результат — `target/dist/laurabrod-<версия>-<os>-<arch>-setup[.exe]`. Установщик собирается для той ОС, на которой запущена команда: Windows-версию собирайте на Windows, Linux-версию — на Linux (нужны те же зависимости, что и для сборки GUI, см. ниже).
+
+Как это устроено (крейты `xtask`, `lb-installer`, `lb-winres`):
+
+- `laurabrod-setup` без вложенного архива работает только как деинсталлятор — эта копия кладётся в пакет как `uninstall[.exe]`;
+- программа, деинсталлятор, иконка, README, документация и лицензии упаковываются в zip с `manifest.json` (версия, ОС, размер) и встраиваются в `laurabrod-setup` при сборке (`LB_PAYLOAD`);
+- на Windows оба exe получают иконку и манифест (`asInvoker`, DPI) без Windows SDK; иконка `.ico` генерируется из `crates/lb-gui/assets/app/laurabrod.svg` командой `cargo xtask icons`;
+- страницы мастера можно отрисовать в PNG без экрана: `cargo run -p lb-installer --features snapshot -- --snapshot target/snapshots/setup`.
+
+## Сборка из исходников
+
+### Windows
 
 1. Установите FFmpeg:
    ```bash
@@ -31,7 +73,7 @@
    laurabrod -p D:\tv gui
    ```
 
-### Служба Windows
+#### Служба Windows
 
 Из командной строки, запущенной от имени администратора:
 
@@ -47,7 +89,7 @@ laurabrod service uninstall --name laurabrod
 
 Пока служба работает, подключайтесь к ней из GUI командой `laurabrod -p D:\tv gui`: GUI найдёт работающий API и не станет запускать второй движок.
 
-## Linux
+### Linux
 
 1. Установите FFmpeg. В Debian и Ubuntu:
    ```bash
@@ -74,7 +116,7 @@ laurabrod service uninstall --name laurabrod
    ./target/release/laurabrod -p /srv/tv run
    ```
 
-### Сервис systemd
+#### Сервис systemd
 
 ```bash
 sudo ./target/release/laurabrod -p /srv/tv service install

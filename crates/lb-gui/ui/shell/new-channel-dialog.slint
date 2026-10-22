@@ -1,0 +1,65 @@
+// "New channel" dialog: id (inline validation), name, copy settings of
+// the current channel (video, encoder, … — never its outputs).
+
+import { Theme } from "../theme/tokens.slint";
+import { Icons } from "../theme/icons.slint";
+import { Dialog, DialogActions } from "../components/dialog.slint";
+import { TextField } from "../components/text-field.slint";
+import { Checkbox } from "../components/checkbox.slint";
+import { Button, ButtonVariant } from "../components/button.slint";
+import { App } from "../state/app-state.slint";
+
+export component NewChannelDialog inherits Dialog {
+    open: App.new-channel-open;
+    title: "Новый канал";
+    text: "Канал появится сразу, без перезапуска. Эфир не запускается сам — настройте выходы в «Источниках и сценах» и нажмите «Старт».";
+    has-icon: true;
+    icon: Icons.live-tv;
+    dismissed => {
+        App.new-channel-open = false;
+    }
+
+    TextField {
+        label: "Идентификатор";
+        placeholder: "news";
+        mono: true;
+        text <=> App.new-channel-id;
+        error: App.new-channel-error;
+        supporting: "Латиница, цифры, «-» и «_»; это имя папки канала";
+        container-color: Theme.color.surface-container-high;
+        edited(t) => {
+            App.validate-new-channel(t);
+        }
+    }
+    TextField {
+        label: "Название";
+        placeholder: "Новости 24";
+        text <=> App.new-channel-name;
+        container-color: Theme.color.surface-container-high;
+        accepted => {
+            if App.new-channel-id != "" && App.new-channel-error == "" {
+                App.create-channel();
+            }
+        }
+    }
+    if App.channel-index >= 0: Checkbox {
+        text: "Скопировать настройки текущего канала (кроме выходов)";
+        checked <=> App.new-channel-copy;
+    }
+    DialogActions {
+        Button {
+            text: "Отмена";
+            variant: ButtonVariant.text;
+            clicked => {
+                App.new-channel-open = false;
+            }
+        }
+        Button {
+            text: "Создать";
+            enabled: App.new-channel-id != "" && App.new-channel-error == "";
+            clicked => {
+                App.create-channel();
+            }
+        }
+    }
+}

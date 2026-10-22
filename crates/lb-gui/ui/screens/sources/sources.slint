@@ -1,7 +1,7 @@
-// Sources & scenes: an honest overview. The playout engine has no scene
-// graph — "scenes" are schedules (switching one changes what airs), the
-// output is a single encoder with its targets, live sources are stream
-// items of the library. Channel settings come from the admin-only config.
+// Sources & scenes. The playout engine has no scene graph — "scenes" are
+// schedules (switching one changes what airs), the output is a single
+// encoder with its targets (editable here, admin role), live sources are
+// stream items of the library (added, edited and put on air here).
 
 import { ScrollView } from "std-widgets.slint";
 import { Theme } from "../../theme/tokens.slint";
@@ -10,6 +10,8 @@ import { Label } from "../../components/label.slint";
 import { Icon } from "../../components/icon.slint";
 import { Card, CardHeader, CardStyle } from "../../components/card.slint";
 import { Button, ButtonVariant } from "../../components/button.slint";
+import { IconButton } from "../../components/icon-button.slint";
+import { Switch } from "../../components/switch.slint";
 import { ListRow } from "../../components/list-row.slint";
 import { StatusChip, StatusTone } from "../../components/indicators.slint";
 import { Page, PageHeader } from "../../shell/page.slint";
@@ -136,6 +138,35 @@ component OutputView inherits ListRow {
             tone: !item.enabled ? StatusTone.idle : live ? StatusTone.live : StatusTone.warning;
         }
     }
+    if item.index >= 0: VerticalLayout {
+        alignment: center;
+        Switch {
+            checked: item.enabled;
+            toggled => {
+                Src.output-toggle(item.index);
+            }
+        }
+    }
+    if item.index >= 0: VerticalLayout {
+        alignment: center;
+        IconButton {
+            icon: Icons.edit;
+            tooltip: "Изменить адрес и ключ";
+            clicked => {
+                Src.output-edit(item.index);
+            }
+        }
+    }
+    if item.index >= 0: VerticalLayout {
+        alignment: center;
+        IconButton {
+            icon: Icons.delete;
+            tooltip: "Удалить точку вещания";
+            clicked => {
+                Src.output-remove(item.index);
+            }
+        }
+    }
 }
 
 component StreamView inherits ListRow {
@@ -162,6 +193,60 @@ component StreamView inherits ListRow {
             type-style: Theme.body-small;
             color: Theme.color.on-surface-variant;
             overflow: elide;
+        }
+    }
+    VerticalLayout {
+        alignment: center;
+        Button {
+            text: "В эфир";
+            icon: Icons.play-arrow;
+            has-icon: true;
+            variant: ButtonVariant.tonal;
+            enabled: item.enabled;
+            tooltip: "Прервать текущий элемент и сразу показать поток";
+            clicked => {
+                Src.stream-air(item.index, "now");
+            }
+        }
+    }
+    VerticalLayout {
+        alignment: center;
+        IconButton {
+            icon: Icons.queue-music;
+            enabled: item.enabled;
+            tooltip: "Поставить в очередь эфира";
+            clicked => {
+                Src.stream-air(item.index, "queue");
+            }
+        }
+    }
+    VerticalLayout {
+        alignment: center;
+        Switch {
+            checked: item.enabled;
+            toggled => {
+                Src.stream-toggle(item.index);
+            }
+        }
+    }
+    VerticalLayout {
+        alignment: center;
+        IconButton {
+            icon: Icons.edit;
+            tooltip: "Изменить";
+            clicked => {
+                Src.stream-edit(item.index);
+            }
+        }
+    }
+    VerticalLayout {
+        alignment: center;
+        IconButton {
+            icon: Icons.delete;
+            tooltip: "Удалить поток из медиатеки";
+            clicked => {
+                Src.stream-remove(item.index);
+            }
         }
     }
 }
@@ -261,10 +346,25 @@ export component SourcesScreen inherits Page {
                     CardHeader {
                         title: "Точки вещания";
                         subtitle: "Ключи трансляции скрыты";
+                        if Src.has-config: Button {
+                            text: "Добавить";
+                            icon: Icons.add;
+                            has-icon: true;
+                            variant: ButtonVariant.tonal;
+                            clicked => {
+                                Src.output-edit(-1);
+                            }
+                        }
+                    }
+                    if Src.has-config && Src.outputs.length == 0: Label {
+                        text: "Точек вещания нет — эфир никуда не отправляется. Добавьте RTMP-сервер (YouTube, Twitch, VK…) или другой адрес.";
+                        type-style: Theme.body-medium;
+                        color: Theme.color.on-surface-variant;
+                        wrap: word-wrap;
                     }
                     if !Src.has-config && Src.active-targets.length > 0: VerticalLayout {
                         for t in Src.active-targets: OutputView {
-                            item: { name: t, url: "", format: "", enabled: true };
+                            item: { index: -1, name: t, url: "", format: "", enabled: true };
                             live: true;
                         }
                     }
@@ -306,9 +406,18 @@ export component SourcesScreen inherits Page {
                             Src.open-library();
                         }
                     }
+                    Button {
+                        text: "Добавить поток";
+                        icon: Icons.add;
+                        has-icon: true;
+                        variant: ButtonVariant.tonal;
+                        clicked => {
+                            Src.stream-edit(-1);
+                        }
+                    }
                 }
                 if Src.streams.length == 0: Label {
-                    text: "Потоков нет. Добавьте URL через импорт в медиатеке (тип «Поток»).";
+                    text: "Потоков нет. Нажмите «Добавить поток» и укажите адрес (rtmp, srt, http, udp…).";
                     type-style: Theme.body-medium;
                     color: Theme.color.on-surface-variant;
                 }

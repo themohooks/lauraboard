@@ -1,0 +1,6 @@
+# Project commands (see crates/xtask):
+#   cargo dist          — release build + installer with the application inside
+#   cargo xtask icons   — regenerate the .ico from the app icon SVG
+[alias]
+xtask = "run -q -p xtask --"
+dist = "run -q -p xtask -- dist"

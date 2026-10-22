@@ -13,7 +13,9 @@ export component Page inherits Rectangle {
         self.appeared = true;
     }
     opacity: appeared ? 1 : 0;
-    animate opacity { duration: Theme.motion-medium; easing: ease-out; }
+    y: appeared ? 0 : 16px;
+    animate opacity { duration: Theme.motion-long; easing: ease-out; }
+    animate y { duration: Theme.motion-long; easing: cubic-bezier(0.05, 0.7, 0.1, 1.0); }
     @children
 }
 

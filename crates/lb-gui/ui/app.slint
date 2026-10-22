@@ -7,8 +7,11 @@ import { Theme } from "theme/tokens.slint";
 import { NavRail } from "components/nav-rail.slint";
 import { Snackbar } from "components/snackbar.slint";
 import { ConfirmDialog } from "components/dialog.slint";
+import { TooltipLayer } from "components/tooltip.slint";
 import { App } from "state/app-state.slint";
 import { AppBar } from "shell/app-bar.slint";
+import { NewChannelDialog } from "shell/new-channel-dialog.slint";
+import { SourceEditDialog } from "screens/sources/edit-dialog.slint";
 import { Gallery } from "screens/gallery/gallery.slint";
 import { AirScreen } from "screens/air/air.slint";
 import { HomeScreen } from "screens/home/home.slint";
@@ -53,6 +56,7 @@ export component AppWindow inherits Window {
     }
 
     title: "Laurabrod — управление эфиром";
+    icon: @image-url("../assets/app/laurabrod.svg");
     preferred-width: 1400px;
     preferred-height: 860px;
     min-width: 960px;
@@ -180,6 +184,10 @@ export component AppWindow inherits Window {
 
     RuleWizard { }
 
+    NewChannelDialog { }
+
+    SourceEditDialog { }
+
     ConfirmDialog {
         open: App.confirm-open;
         title: App.confirm-title;
@@ -196,6 +204,11 @@ export component AppWindow inherits Window {
             App.confirm-result(false);
             keys.focus();
         }
+    }
+
+    TooltipLayer {
+        bound-width: root.width;
+        bound-height: root.height;
     }
 
     init => {

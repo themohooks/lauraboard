@@ -67,8 +67,11 @@ pub struct Ctx {
     pub log: log::LogState,
     pub stats: stats::StatsState,
     pub settings: settings::SettingsState,
+    pub src: sources::SourcesState,
     /// Channel configuration (admin only; `None` when not available).
     pub channel_config: Option<Value>,
+    /// When [`Ctx::load_all`] last ran.
+    last_load: std::cell::Cell<Option<std::time::Instant>>,
 }
 
 thread_local! {
@@ -130,7 +133,9 @@ pub fn start(ui: &AppWindow, opts: &GuiOptions, prefs: UiPrefs) {
         log: Default::default(),
         stats: Default::default(),
         settings: Default::default(),
+        src: Default::default(),
         channel_config: None,
+        last_load: Default::default(),
     };
     ui.global::<App>().set_api_url(api.base.clone().into());
     CTX.with(|c| *c.borrow_mut() = Some(ctx));
@@ -187,8 +192,8 @@ impl Ctx {
                     self.model.channel = list.first().cloned();
                 }
                 self.model.channels = list;
-                if let Some(c) = &self.model.channel {
-                    self.poller.set_channel(c);
+                if let Some(c) = self.model.channel.clone() {
+                    self.channel_selected(&c);
                 }
                 shell::channels_changed(self);
                 self.load_all();
@@ -203,11 +208,19 @@ impl Ctx {
                     air::config_changed(self);
                 }
             }
+            // polled / reloaded often: rebuilding big list models when nothing
+            // changed made the whole interface sluggish
             Msg::Rundown(r) => {
+                if r == self.model.rundown {
+                    return;
+                }
                 self.model.rundown = r;
                 air::queue_changed(self);
             }
             Msg::Library(l) => {
+                if self.lib.loaded && l == self.model.library {
+                    return;
+                }
                 self.model.library = l;
                 self.lib.loaded = true;
                 library::refresh(self);
@@ -277,6 +290,18 @@ impl Ctx {
         }
     }
 
+    /// Point polling and the editors at channel `ch` (drafts of another
+    /// channel must not stay open).
+    pub fn channel_selected(&mut self, ch: &str) {
+        if self.poller.channel().as_deref() != Some(ch) {
+            self.pl = Default::default();
+            self.gfx = Default::default();
+            self.lib.checked.clear();
+            self.thumbs.clear();
+        }
+        self.poller.set_channel(ch);
+    }
+
     // ------------------------------------------------------------ requests
 
     pub fn load_channels(&self) {
@@ -286,12 +311,17 @@ impl Ctx {
         });
     }
 
+    pub fn loaded_within(&self, d: std::time::Duration) -> bool {
+        self.last_load.get().is_some_and(|t| t.elapsed() < d)
+    }
+
     /// Reload all editable documents of the channel.
     pub fn load_all(&self) {
         let ch = self.model.ch();
         if ch.is_empty() {
             return;
         }
+        self.last_load.set(Some(std::time::Instant::now()));
         let c = ch.clone();
         self.worker.spawn(move |api| Ok(Msg::Library(api.get(&format!("/channels/{c}/media"))?)));
         let c = ch.clone();
@@ -336,11 +366,27 @@ impl Ctx {
     pub fn save_doc<T: serde::Serialize + Send + 'static>(&self, path: &str, doc: T, what: &'static str) {
         let ch = self.model.ch();
         let path = format!("/channels/{ch}{path}");
-        self.worker.spawn(move |api| {
+        self.change(move |api| {
             api.put(&path, &doc)?;
-            Ok(Msg::Done(format!("{what}: сохранено")))
+            Ok(format!("{what}: сохранено"))
         });
-        self.load_all();
+    }
+
+    /// Run a modifying request; once it has finished, show its message and
+    /// reload the channel documents (reloading in parallel could read the
+    /// old version, so new data showed up only after reopening the screen).
+    pub fn change(&self, job: impl FnOnce(&Api) -> Result<String, String> + Send + 'static) {
+        self.worker.spawn(move |api| {
+            let r = job(api);
+            Ok(Msg::Apply(Box::new(move |c: &mut Ctx| {
+                match r {
+                    Ok(text) => c.toast(text, false),
+                    Err(e) => c.apply(Msg::Error(e)),
+                }
+                // after an error too: the server may have applied part of a batch
+                c.load_all();
+            })))
+        });
     }
 
     // ------------------------------------------------------------ overlays

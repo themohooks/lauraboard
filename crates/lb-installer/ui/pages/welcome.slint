@@ -1,0 +1,103 @@
+// Welcome: what is being installed, update notice, FFmpeg check.
+
+import { Theme } from "@m3/theme/tokens.slint";
+import { Icons } from "@m3/theme/icons.slint";
+import { Card } from "@m3/components/card.slint";
+import { Icon } from "@m3/components/icon.slint";
+import { Label } from "@m3/components/label.slint";
+import { Button, ButtonVariant } from "@m3/components/button.slint";
+import { StatusChip, StatusTone } from "@m3/components/indicators.slint";
+import { TextField } from "@m3/components/text-field.slint";
+import { CircularProgress } from "@m3/components/feedback.slint";
+import { Setup } from "../state.slint";
+import { WizardPage } from "../parts/page.slint";
+
+component Feature inherits HorizontalLayout {
+    in property <image> icon;
+    in property <string> text;
+    spacing: Theme.sp3;
+    Icon {
+        source: root.icon;
+        tint: Theme.color.primary;
+    }
+    Label {
+        text: root.text;
+        type-style: Theme.body-medium;
+        wrap: word-wrap;
+        overflow: clip;
+        horizontal-stretch: 1;
+    }
+}
+
+export component WelcomePage inherits WizardPage {
+    title: Setup.installed-version == "" ? "Добро пожаловать" : "Обновление Laurabrod";
+    text: Setup.installed-version == ""
+        ? "Мастер установит Laurabrod — программу круглосуточного вещания интернет-телеканала."
+        : "Установлена версия \{Setup.installed-version}. Мастер заменит её версией \{Setup.version}; проекты и настройки сохранятся.";
+
+    Card {
+        card-style: low;
+        Feature {
+            icon: Icons.calendar-month;
+            text: "Сетка вещания, плейлисты и точное время выхода передач";
+        }
+        Feature {
+            icon: Icons.campaign;
+            text: "Реклама, анонсы и заставки по правилам";
+        }
+        Feature {
+            icon: Icons.branding-watermark;
+            text: "Логотип, плашки, бегущая строка и часы в кадре";
+        }
+        Feature {
+            icon: Icons.stream;
+            text: "Выход в RTMP, SRT, HLS и запись эфира";
+        }
+    }
+
+    Card {
+        card-style: outlined;
+        HorizontalLayout {
+            spacing: Theme.sp3;
+            Label {
+                text: "FFmpeg";
+                type-style: Theme.title-small;
+                horizontal-stretch: 1;
+            }
+            if Setup.ffmpeg-checking: CircularProgress { size: 20px; }
+            if !Setup.ffmpeg-checking: StatusChip {
+                tone: Setup.ffmpeg-found ? StatusTone.success : StatusTone.warning;
+                text: Setup.ffmpeg-found ? "Найден · \{Setup.ffmpeg-version}" : "Не найден";
+            }
+        }
+        if !Setup.ffmpeg-found: Label {
+            text: "Laurabrod использует FFmpeg для декодирования и выхода в эфир. Установить можно и позже — например, командой:";
+            type-style: Theme.body-medium;
+            color: Theme.color.on-surface-variant;
+            wrap: word-wrap;
+            overflow: clip;
+        }
+        if !Setup.ffmpeg-found: HorizontalLayout {
+            spacing: Theme.sp2;
+            TextField {
+                text: Setup.ffmpeg-hint;
+                read-only: true;
+                mono: true;
+                horizontal-stretch: 1;
+            }
+            VerticalLayout {
+                alignment: start;
+                Button {
+                    text: "Проверить снова";
+                    variant: ButtonVariant.text;
+                    icon: Icons.refresh;
+                    has-icon: true;
+                    enabled: !Setup.ffmpeg-checking;
+                    clicked => {
+                        Setup.check-ffmpeg();
+                    }
+                }
+            }
+        }
+    }
+}
