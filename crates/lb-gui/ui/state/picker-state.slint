@@ -1,0 +1,29 @@
+// Data contract of the library picker dialog (src/bridge/picker.rs): pick
+// one or several media items instead of typing their ids.
+
+export struct PickRow {
+    id: string,
+    title: string,
+    kind: string,
+    duration: string,
+    category: string,
+    checked: bool,
+}
+
+export global Picker {
+    in-out property <bool> open;
+    in property <string> title;
+    // several items (checkboxes) or one (click picks and closes)
+    in property <bool> multi;
+    in-out property <string> query;
+    // 0 all kinds, then KINDS order (program, jingle, ad, …)
+    in-out property <int> kind-index;
+    in property <[PickRow]> rows;
+    in property <int> chosen;
+    // rows shown are capped; the rest is reachable through the search
+    in property <bool> more;
+
+    callback search();
+    callback toggle(int);
+    callback confirm();
+}

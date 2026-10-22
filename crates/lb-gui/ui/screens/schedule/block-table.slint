@@ -102,12 +102,34 @@ component BlockRowView inherits ListRow {
                 Grid.block-edited(root.b.index, "source-index", i);
             }
         }
-        if root.b.source-type == 1 || root.b.source-type == 2: TextField {
+        if root.b.source-type == 2: TextField {
             text: root.b.source-text;
-            placeholder: root.b.source-type == 1 ? "id роликов через запятую" : "категория";
+            placeholder: "категория";
             container-color: root.selected ? Theme.color.secondary-container : Theme.color.surface-container-low;
             edited(t) => {
                 Grid.block-edited(root.b.index, "source-text", t);
+            }
+        }
+        if root.b.source-type == 1: HorizontalLayout {
+            spacing: Theme.sp1;
+            TextField {
+                horizontal-stretch: 1;
+                text: root.b.source-text;
+                placeholder: "выберите ролики →";
+                container-color: root.selected ? Theme.color.secondary-container : Theme.color.surface-container-low;
+                edited(t) => {
+                    Grid.block-edited(root.b.index, "source-text", t);
+                }
+            }
+            VerticalLayout {
+                alignment: center;
+                IconButton {
+                    icon: Icons.video-library;
+                    tooltip: "Добавить ролики из медиатеки";
+                    clicked => {
+                        Grid.pick("media", root.b.index);
+                    }
+                }
             }
         }
     }

@@ -15,6 +15,7 @@ pub mod air;
 pub mod graphics;
 pub mod library;
 pub mod log;
+pub mod picker;
 pub mod playlists;
 pub mod rules;
 pub mod schedule;
@@ -68,6 +69,7 @@ pub struct Ctx {
     pub stats: stats::StatsState,
     pub settings: settings::SettingsState,
     pub src: sources::SourcesState,
+    pub picker: picker::PickerState,
     /// Channel configuration (admin only; `None` when not available).
     pub channel_config: Option<Value>,
     /// When [`Ctx::load_all`] last ran.
@@ -134,6 +136,7 @@ pub fn start(ui: &AppWindow, opts: &GuiOptions, prefs: UiPrefs) {
         stats: Default::default(),
         settings: Default::default(),
         src: Default::default(),
+        picker: Default::default(),
         channel_config: None,
         last_load: Default::default(),
     };
@@ -150,6 +153,7 @@ pub fn start(ui: &AppWindow, opts: &GuiOptions, prefs: UiPrefs) {
     stats::connect(ui);
     sources::connect(ui);
     settings::connect(ui);
+    picker::connect(ui);
     with(|c| {
         shell::apply_prefs(c);
         air::apply_prefs(c);

@@ -14,13 +14,14 @@ use lb_core::history::AsRunRecord;
 use lb_core::rules::{AdBreak, AdOrder, Conditions, InsertAction, InsertionRule, RuleSet, SelectMode, Trigger};
 use lb_core::rundown::Rundown;
 
+use super::picker::{self, Target};
 use super::{Ctx, vec_model, with};
 use crate::fmt::KINDS;
 use crate::logic::filter;
 use crate::logic::rule_check::{self, action_kind, action_text, is_ad_rule, trigger_text};
 use crate::logic::undo::History;
 use crate::net::Msg;
-use crate::shell::{AppWindow, RuleRow, Rules};
+use crate::shell::{AppWindow, MediaPick, RuleRow, Rules};
 
 #[derive(Default)]
 pub struct RulesState {
@@ -87,6 +88,17 @@ pub fn connect(ui: &AppWindow) {
     g.on_break_changed(|| with(break_changed));
     g.on_break_add(|| with(break_add));
     g.on_break_remove(|| with(break_remove));
+    g.on_break_item(|a, i| with(move |c| break_item(c, a.as_str(), i as usize)));
+    g.on_pick(|what| {
+        with(move |c| {
+            let (t, title) = match what.as_str() {
+                "ad-intro" => (Target::AdIntro, "Заставка в начале блока"),
+                "ad-outro" => (Target::AdOutro, "Заставка в конце блока"),
+                _ => (Target::AdItems, "Ролики рекламного блока"),
+            };
+            picker::open(c, t, title);
+        })
+    });
     g.on_policy_changed(|| with(policy_changed));
     g.on_transitions_changed(|| with(transitions_changed));
     g.on_toggle_t_kind(|i| {
@@ -703,6 +715,15 @@ fn breaks(c: &mut Ctx) {
     g.set_b_id(s(b.id.clone()));
     g.set_b_name(s(b.name.clone()));
     g.set_b_items(s(join(&b.items)));
+    g.set_b_media(vec_model(
+        b.items
+            .iter()
+            .map(|id| {
+                let (title, kind, duration) = picker::describe(c, id);
+                MediaPick { id: s(id.clone()), title: s(title), kind: s(kind), duration: s(duration) }
+            })
+            .collect(),
+    ));
     g.set_b_category(s(b.category.clone().unwrap_or_default()));
     g.set_b_order(match b.order {
         AdOrder::Listed => 0,
@@ -771,6 +792,44 @@ fn break_changed(c: &mut Ctx) {
         ui.global::<Rules>().set_breaks(vec_model(
             set.ad_breaks.iter().map(|b| s(if b.name.is_empty() { b.id.clone() } else { format!("{} ({})", b.name, b.id) })).collect(),
         ));
+    }
+}
+
+/// Reorder / remove spots of the selected break.
+fn break_item(c: &mut Ctx, action: &str, i: usize) {
+    let Some(b) = c.rules.brk else { return };
+    let action = action.to_string();
+    mutate(c, None, move |set| {
+        let Some(items) = set.ad_breaks.get_mut(b).map(|x| &mut x.items) else { return };
+        match action.as_str() {
+            "up" if i > 0 && i < items.len() => items.swap(i - 1, i),
+            "down" if i + 1 < items.len() => items.swap(i, i + 1),
+            "remove" if i < items.len() => {
+                items.remove(i);
+            }
+            "clear" => items.clear(),
+            _ => {}
+        }
+    });
+    refresh(c);
+}
+
+/// Result of the library picker.
+pub fn picked(c: &mut Ctx, target: Target, ids: Vec<String>) {
+    let Some(b) = c.rules.brk else { return };
+    let n = ids.len();
+    mutate(c, None, move |set| {
+        let Some(brk) = set.ad_breaks.get_mut(b) else { return };
+        match target {
+            Target::AdItems => brk.items.extend(ids),
+            Target::AdIntro => brk.intro = ids.into_iter().next(),
+            Target::AdOutro => brk.outro = ids.into_iter().next(),
+            _ => {}
+        }
+    });
+    refresh(c);
+    if target == Target::AdItems {
+        c.toast(format!("Добавлено роликов: {n}"), false);
     }
 }
 

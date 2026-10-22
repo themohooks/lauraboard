@@ -1,0 +1,141 @@
+// Library picker: search and kind filter, checkboxes for several items or
+// a single click for one. Used wherever media ids were typed by hand.
+
+import { ListView } from "std-widgets.slint";
+import { Theme } from "../theme/tokens.slint";
+import { Icons } from "../theme/icons.slint";
+import { Label } from "../components/label.slint";
+import { Dialog, DialogActions } from "../components/dialog.slint";
+import { SearchField } from "../components/search-field.slint";
+import { Select } from "../components/select.slint";
+import { Checkbox } from "../components/checkbox.slint";
+import { Button, ButtonVariant } from "../components/button.slint";
+import { ListRow } from "../components/list-row.slint";
+import { KindTag } from "../components/indicators.slint";
+import { EmptyState } from "../components/feedback.slint";
+import { Picker } from "../state/picker-state.slint";
+
+export component MediaPickerDialog inherits Dialog {
+    open: Picker.open;
+    title: Picker.title;
+    dialog-width: 640px;
+    dismissed => {
+        Picker.open = false;
+    }
+
+    HorizontalLayout {
+        spacing: Theme.sp3;
+        search := SearchField {
+            horizontal-stretch: 1;
+            placeholder: "Название или id";
+            text <=> Picker.query;
+            edited => {
+                Picker.search();
+            }
+        }
+        Select {
+            width: 200px;
+            options: ["Все типы", "Передачи", "Заставки", "Реклама", "Анонсы", "Заполнение", "Изображения", "Потоки"];
+            current-index <=> Picker.kind-index;
+            container-color: Theme.color.surface-container-highest;
+            selected => {
+                Picker.search();
+            }
+        }
+    }
+
+    Rectangle {
+        height: 360px;
+        border-radius: Theme.radius-m;
+        background: Theme.color.surface-container-low;
+        clip: true;
+        if Picker.rows.length == 0: EmptyState {
+            icon: Icons.video-library;
+            title: "Ничего не найдено";
+            text: Picker.query != "" ? "Измените запрос или тип." : "Медиатека пуста — импортируйте ролики.";
+        }
+        if Picker.rows.length > 0: ListView {
+            for r[i] in Picker.rows: ListRow {
+                height: Theme.compact ? 44px : 52px;
+                selected: r.checked;
+                focusable: false;
+                accessible-label: r.title;
+                clicked => {
+                    Picker.toggle(i);
+                }
+                if Picker.multi: VerticalLayout {
+                    alignment: center;
+                    Checkbox {
+                        checked: r.checked;
+                        toggled => {
+                            Picker.toggle(i);
+                        }
+                    }
+                }
+                VerticalLayout {
+                    alignment: center;
+                    KindTag {
+                        kind: r.kind;
+                        show-name: false;
+                    }
+                }
+                VerticalLayout {
+                    horizontal-stretch: 1;
+                    alignment: center;
+                    Label {
+                        text: r.title != "" ? r.title : r.id;
+                        type-style: Theme.title-small;
+                        overflow: elide;
+                    }
+                    Label {
+                        text: r.id + (r.category != "" ? "  ·  " + r.category : "");
+                        type-style: Theme.body-small;
+                        color: Theme.color.on-surface-variant;
+                        overflow: elide;
+                    }
+                }
+                Label {
+                    text: r.duration;
+                    mono: true;
+                    vertical-alignment: center;
+                    color: Theme.color.on-surface-variant;
+                }
+            }
+        }
+    }
+
+    HorizontalLayout {
+        spacing: Theme.sp2;
+        Label {
+            horizontal-stretch: 1;
+            vertical-alignment: center;
+            text: (Picker.multi ? "Выбрано: " + Picker.chosen : "Нажмите на ролик, чтобы выбрать")
+                + (Picker.more ? "  ·  показаны первые 200, уточните поиск" : "");
+            type-style: Theme.body-small;
+            color: Theme.color.on-surface-variant;
+        }
+    }
+
+    DialogActions {
+        Button {
+            text: "Отмена";
+            variant: ButtonVariant.text;
+            clicked => {
+                Picker.open = false;
+            }
+        }
+        if Picker.multi: Button {
+            text: Picker.chosen > 0 ? "Добавить (" + Picker.chosen + ")" : "Добавить";
+            enabled: Picker.chosen > 0;
+            clicked => {
+                Picker.confirm();
+            }
+        }
+    }
+
+    changed open => {
+        if self.open {
+            search.focus-input();
+        }
+    }
+}

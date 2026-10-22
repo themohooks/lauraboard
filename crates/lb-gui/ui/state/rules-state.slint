@@ -2,6 +2,8 @@
 // "Реклама и анонсы"), see src/bridge/rules.rs. The rule form is a set of
 // flat properties so every input can bind two-way.
 
+import { MediaPick } from "air-state.slint";
+
 export struct RuleRow {
     index: int,
     id: string,
@@ -86,6 +88,8 @@ export global Rules {
     in property <string> b-id;
     in-out property <string> b-name;
     in-out property <string> b-items;
+    // b-items as library entries (title, kind, duration)
+    in property <[MediaPick]> b-media;
     in-out property <string> b-category;
     // 0 listed, 1 random, 2 least played
     in-out property <int> b-order;
@@ -131,6 +135,10 @@ export global Rules {
     callback break-changed();
     callback break-add();
     callback break-remove();
+    // spot list: "up", "down", "remove", "clear" (index ignored)
+    callback break-item(string, int);
+    // library picker: "ad-items", "ad-intro", "ad-outro"
+    callback pick(string);
     callback policy-changed();
     callback transitions-changed();
     callback toggle-t-kind(int);

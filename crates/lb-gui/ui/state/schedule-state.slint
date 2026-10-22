@@ -95,6 +95,8 @@ export global Grid {
     callback block-select(int);
     callback add-block(bool);
     callback remove-block(int);
+    // library picker for a block: "media", "intro", "outro"
+    callback pick(string, int);
     callback segment-clicked(int);
     callback segment-moved(int, float);
     callback shift-date(int);

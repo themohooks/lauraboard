@@ -13,6 +13,7 @@ use lb_core::rundown::Rundown;
 use lb_core::schedule::{Block, BlockSource, DayTemplate, LatePolicy, Schedule, ScheduleSet};
 use lb_core::{Dur, WallTime};
 
+use super::picker::{self, Target};
 use super::{Ctx, vec_model, with};
 use crate::logic::timeline::{self, Segment};
 use crate::logic::undo::History;
@@ -111,6 +112,17 @@ pub fn connect(ui: &AppWindow) {
     });
     g.on_add_block(|fixed| with(move |c| add_block(c, fixed)));
     g.on_remove_block(|i| with(move |c| remove_block(c, i as usize)));
+    g.on_pick(|what, i| {
+        with(move |c| {
+            let i = i as usize;
+            let (t, title) = match what.as_str() {
+                "intro" => (Target::BlockIntro(i), "Заставка в начале блока"),
+                "outro" => (Target::BlockOutro(i), "Заставка в конце блока"),
+                _ => (Target::BlockMedia(i), "Ролики блока"),
+            };
+            picker::open(c, t, title);
+        })
+    });
     g.on_segment_clicked(|i| with(move |c| segment_clicked(c, i as usize)));
     g.on_segment_moved(|i, m| with(move |c| segment_moved(c, i as usize, m)));
     g.on_shift_date(|d| {
@@ -474,6 +486,28 @@ fn add_block(c: &mut Ctx, fixed: bool) {
     });
     c.grid.block = Some(new_index);
     refresh(c);
+}
+
+/// Result of the library picker.
+pub fn picked(c: &mut Ctx, target: Target, ids: Vec<String>) {
+    let (i, field) = match target {
+        Target::BlockMedia(i) => (i, "source-text"),
+        Target::BlockIntro(i) => (i, "intro"),
+        Target::BlockOutro(i) => (i, "outro"),
+        _ => return,
+    };
+    with_block(c, i, field, move |b| match target {
+        Target::BlockMedia(_) => {
+            if let BlockSource::Media { items } = &mut b.source {
+                items.extend(ids);
+            }
+        }
+        Target::BlockIntro(_) => b.intro = ids.into_iter().next(),
+        Target::BlockOutro(_) => b.outro = ids.into_iter().next(),
+        _ => {}
+    });
+    update_row(c, i, "");
+    details(c);
 }
 
 fn remove_block(c: &mut Ctx, i: usize) {
