@@ -1,0 +1,120 @@
+// Reference of {variables} for graphics texts: what each one holds and an
+// example value. The properties panel inserts a variable on click.
+
+import { Theme } from "../../theme/tokens.slint";
+import { Icons } from "../../theme/icons.slint";
+import { Label } from "../../components/label.slint";
+import { Icon } from "../../components/icon.slint";
+import { Interactive } from "../../components/interactive.slint";
+import { Gfx } from "../../state/graphics-state.slint";
+
+export struct VarDoc {
+    name: string,
+    text: string,
+    example: string,
+}
+
+export global VarDocs {
+    // keep in sync with lb-engine/src/channel/vars.rs
+    out property <[VarDoc]> builtin: [
+        { name: "title", text: "Название ролика, который сейчас в эфире", example: "Утренние новости" },
+        { name: "category", text: "Категория текущего ролика из медиатеки", example: "Новости" },
+        { name: "block", text: "Название блока сетки, в котором идёт ролик", example: "Утренний эфир" },
+        { name: "next_title", text: "Следующий элемент эфира — в том числе реклама и заставки", example: "Реклама: блок 1" },
+        { name: "next_start", text: "Время начала следующего элемента, ЧЧ:ММ", example: "09:28" },
+        { name: "next_program", text: "Следующая передача: название её блока, иначе название ролика", example: "Вечернее шоу" },
+        { name: "next_program_title", text: "Название ролика следующей передачи", example: "Вечернее шоу, выпуск 12" },
+        { name: "next_program_start", text: "Время начала следующей передачи, ЧЧ:ММ", example: "19:00" },
+        { name: "channel", text: "Название канала из настроек", example: "LAURA TV" },
+        { name: "ticker", text: "Текст бегущей строки: значение по умолчанию задаётся на вкладке «Переменные», оператор меняет его на экране «Эфир»", example: "Скидки до 50 % до конца недели" },
+    ];
+    out property <string> meta-note: "Также подставляются дополнительные поля ролика и блока сетки (meta в library.json и schedule.toml): например {presenter} → «Лаура». Если значения нет, переменная заменяется пустой строкой.";
+}
+
+component VarItem inherits Interactive {
+    in property <string> name;
+    in property <string> text;
+    in property <string> example;
+    in property <bool> insertable;
+    radius: Theme.radius-s;
+    focusable: insertable;
+    enabled: insertable;
+    cursor: insertable ? MouseCursor.pointer : MouseCursor.default;
+    accessible-role: button;
+    accessible-label: "{" + name + "}: " + text;
+    VerticalLayout {
+        padding: Theme.sp2;
+        spacing: 2px;
+        HorizontalLayout {
+            spacing: Theme.sp2;
+            Rectangle {
+                border-radius: Theme.radius-xs;
+                background: Theme.color.secondary-container;
+                width: chip.preferred-width + 2 * Theme.sp2;
+                chip := Label {
+                    text: "{" + root.name + "}";
+                    mono: true;
+                    type-style: Theme.label-large;
+                    color: Theme.color.on-secondary-container;
+                }
+            }
+            Label {
+                horizontal-stretch: 1;
+                vertical-alignment: center;
+                text: root.example != "" ? "→ " + root.example : "";
+                type-style: Theme.body-small;
+                color: Theme.color.on-surface-variant;
+                overflow: elide;
+            }
+            if root.insertable: VerticalLayout {
+                alignment: center;
+                Icon {
+                    source: Icons.add;
+                    size: 18px;
+                    tint: Theme.color.on-surface-variant;
+                }
+            }
+        }
+        if root.text != "": Label {
+            text: root.text;
+            type-style: Theme.body-small;
+            color: Theme.color.on-surface-variant;
+            wrap: word-wrap;
+        }
+    }
+}
+
+// All variables: built-in, then the channel's own (with their default values).
+export component VarList inherits VerticalLayout {
+    // rows insert themselves on click
+    in property <bool> insertable;
+    callback insert(string);
+    spacing: 0;
+    for d in VarDocs.builtin: VarItem {
+        name: d.name;
+        text: d.text;
+        example: d.example;
+        insertable: root.insertable;
+        clicked => {
+            root.insert("{" + d.name + "}");
+        }
+    }
+    for v in Gfx.vars: VarItem {
+        name: v.key;
+        text: "Переменная канала (вкладка «Переменные»)";
+        example: v.value;
+        insertable: root.insertable;
+        clicked => {
+            root.insert("{" + v.key + "}");
+        }
+    }
+    VerticalLayout {
+        padding: Theme.sp2;
+        Label {
+            text: VarDocs.meta-note;
+            type-style: Theme.body-small;
+            color: Theme.color.on-surface-variant;
+            wrap: word-wrap;
+        }
+    }
+}

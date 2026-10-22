@@ -13,6 +13,7 @@ import { Button, ButtonVariant } from "../../components/button.slint";
 import { EmptyState } from "../../components/feedback.slint";
 import { Gfx } from "../../state/graphics-state.slint";
 import { App } from "../../state/app-state.slint";
+import { VarList } from "var-help.slint";
 import { FormSection } from "../rules/form-parts.slint";
 
 component AnchorGrid inherits Rectangle {
@@ -76,6 +77,8 @@ component ColorField inherits HorizontalLayout {
 }
 
 export component PropertiesPanel inherits Rectangle {
+    // variable reference under the text field
+    property <bool> show-vars;
     border-radius: Theme.radius-l;
     background: Theme.color.surface-container-low;
     clip: true;
@@ -156,7 +159,32 @@ export component PropertiesPanel inherits Rectangle {
                 if Gfx.p-kind <= 1: Field {
                     label: Gfx.p-kind == 1 ? "Текст бегущей строки" : "Текст";
                     text <=> Gfx.p-text;
-                    supporting: "переменные: {title} {next_title} {next_start} {block} {channel} {ticker}";
+                    supporting: "{переменные} заменяются значениями в эфире";
+                }
+                if Gfx.p-kind <= 1: HorizontalLayout {
+                    alignment: start;
+                    Button {
+                        text: root.show-vars ? "Скрыть переменные" : "Вставить переменную";
+                        icon: root.show-vars ? Icons.expand-less : Icons.expand-more;
+                        has-icon: true;
+                        variant: ButtonVariant.text;
+                        clicked => {
+                            root.show-vars = !root.show-vars;
+                        }
+                    }
+                }
+                if Gfx.p-kind <= 1 && root.show-vars: Rectangle {
+                    border-radius: Theme.radius-m;
+                    background: Theme.color.surface-container;
+                    VerticalLayout {
+                        padding: Theme.sp1;
+                        VarList {
+                            insertable: true;
+                            insert(v) => {
+                                Gfx.insert-var(v);
+                            }
+                        }
+                    }
                 }
                 if Gfx.p-kind == 1: HorizontalLayout {
                     spacing: Theme.sp2;
@@ -166,7 +194,7 @@ export component PropertiesPanel inherits Rectangle {
                 if Gfx.p-kind == 2: Field {
                     label: "Формат времени";
                     text <=> Gfx.p-format;
-                    supporting: "%H:%M, %H:%M:%S, %d.%m";
+                    supporting: "%H — часы, %M — минуты, %S — секунды, %d — день, %m — месяц, %Y — год. Например: %H:%M → 18:15, %d.%m.%Y → 22.10.2026";
                     mono: true;
                 }
                 if Gfx.p-kind == 3: HorizontalLayout {

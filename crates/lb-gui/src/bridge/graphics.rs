@@ -122,6 +122,15 @@ pub fn connect(ui: &AppWindow) {
     g.on_drag_end(|| with(drag_end));
     g.on_nudge(|dx, dy| with(move |c| nudge(c, dx, dy)));
     g.on_props_changed(|| with(props_changed));
+    g.on_insert_var(|v| {
+        with(move |c| {
+            if let Some(ui) = c.window() {
+                let g = ui.global::<Gfx>();
+                g.set_p_text(append_var(&g.get_p_text(), &v).into());
+            }
+            props_changed(c);
+        })
+    });
     g.on_pick_image(|| with(pick_image));
     g.on_add(|k| with(move |c| add(c, k.as_str())));
     g.on_duplicate(|| with(duplicate));
@@ -431,6 +440,11 @@ fn swatches(c: &Ctx) {
 }
 
 /// Read the property fields into the selected element.
+/// `text` with `var` at the end, a space between them unless there is one.
+fn append_var(text: &str, var: &str) -> String {
+    if text.is_empty() || text.ends_with(char::is_whitespace) { format!("{text}{var}") } else { format!("{text} {var}") }
+}
+
 fn props_changed(c: &mut Ctx) {
     let Some(i) = c.gfx.selected else { return };
     let Some(ui) = c.window() else { return };
@@ -1132,5 +1146,15 @@ pub fn shortcut(c: &mut Ctx, name: &str) {
         "redo" => redo(c),
         "delete" => remove(c),
         _ => {}
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn append_var_spacing() {
+        assert_eq!(super::append_var("", "{title}"), "{title}");
+        assert_eq!(super::append_var("Далее:", "{title}"), "Далее: {title}");
+        assert_eq!(super::append_var("Далее: ", "{title}"), "Далее: {title}");
     }
 }
