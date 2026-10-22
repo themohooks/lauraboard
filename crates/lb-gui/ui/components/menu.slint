@@ -75,8 +75,9 @@ export component Menu {
                         accessible-role: button;
                         accessible-label: e.text;
                         clicked => {
-                            popup.close();
+                            // before close(): closing destroys this row and `e`
                             root.activated(e.id);
+                            popup.close();
                         }
                         HorizontalLayout {
                             padding-left: Theme.sp3;

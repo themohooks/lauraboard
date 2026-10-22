@@ -85,6 +85,19 @@ pub fn snapshot(out: &Path, section: &str, width: u32, height: u32, scale: f32, 
             demo_air(&ui);
         }
     }
+    // `LB_SNAPSHOT_CLICKS="x,y;x,y"`: logical-pixel clicks before rendering
+    // (menus and popups only exist after a click)
+    for p in std::env::var("LB_SNAPSHOT_CLICKS").unwrap_or_default().split(';') {
+        let Some((x, y)) = p.split_once(',').and_then(|(x, y)| Some((x.trim().parse::<f32>().ok()?, y.trim().parse::<f32>().ok()?))) else {
+            continue;
+        };
+        let position = slint::LogicalPosition::new(x, y);
+        let button = slint::platform::PointerEventButton::Left;
+        window.dispatch_event(WindowEvent::PointerMoved { position });
+        window.dispatch_event(WindowEvent::PointerPressed { position, button });
+        window.dispatch_event(WindowEvent::PointerReleased { position, button });
+        pump_for(&jobs, Duration::from_millis(live.map_or(300, |_| 1500)));
+    }
     for (name, mode) in [("light", ThemeMode::Light), ("dark", ThemeMode::Dark)] {
         ui.global::<Theme>().set_mode(mode);
         let mut buf = vec![Rgb8Pixel::default(); (width * height) as usize];
