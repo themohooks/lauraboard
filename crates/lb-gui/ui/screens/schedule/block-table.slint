@@ -186,7 +186,6 @@ export component BlockTable inherits Rectangle {
                 variant: ButtonVariant.tonal;
                 icon: Icons.schedule;
                 has-icon: true;
-                enabled: Grid.has-schedule;
                 clicked => {
                     Grid.add-block(true);
                 }
@@ -196,7 +195,6 @@ export component BlockTable inherits Rectangle {
                 variant: ButtonVariant.outlined;
                 icon: Icons.add;
                 has-icon: true;
-                enabled: Grid.has-schedule;
                 clicked => {
                     Grid.add-block(false);
                 }
@@ -216,7 +214,15 @@ export component BlockTable inherits Rectangle {
             vertical-stretch: 1;
             icon: Icons.calendar-month;
             title: Grid.has-schedule ? "В шаблоне нет блоков" : "Нет расписаний";
-            text: Grid.has-schedule ? "Добавьте блок по времени или следом за предыдущим." : "Создайте schedule.toml или импортируйте сетку через CLI: laurabrod schedule import.";
+            text: Grid.has-schedule ? "Добавьте блок по времени или следом за предыдущим и выберите для него плейлист." : "Создайте расписание — или сразу добавьте блок, расписание появится само.";
+            if !Grid.has-schedule: Button {
+                text: "Создать расписание";
+                icon: Icons.add;
+                has-icon: true;
+                clicked => {
+                    Grid.menu-action("new-schedule");
+                }
+            }
         }
         // not virtualized: inline editors must stay bound to their row
         if Grid.blocks.length > 0: ScrollView {

@@ -10,7 +10,7 @@ use slint::{ComponentHandle, Model, SharedString, VecModel};
 
 use lb_core::history::AsRunRecord;
 use lb_core::rundown::Rundown;
-use lb_core::schedule::{Block, BlockSource, DayTemplate, LatePolicy, ScheduleSet};
+use lb_core::schedule::{Block, BlockSource, DayTemplate, LatePolicy, Schedule, ScheduleSet};
 use lb_core::{Dur, WallTime};
 
 use super::{Ctx, vec_model, with};
@@ -444,7 +444,11 @@ fn add_block(c: &mut Ctx, fixed: bool) {
     let pl = c.model.playlists.first().map(|p| p.id.clone()).unwrap_or_default();
     let mut new_index = 0;
     mutate(c, None, |set| {
-        let Some(sch) = set.schedules.get_mut(s) else { return };
+        if set.schedules.is_empty() {
+            set.schedules.push(new_schedule(set));
+        }
+        let si = s.min(set.schedules.len() - 1);
+        let Some(sch) = set.schedules.get_mut(si) else { return };
         if sch.templates.is_empty() {
             sch.templates.push(DayTemplate { id: "day".into(), name: "Будни".into(), blocks: vec![] });
             sch.week.default = Some("day".into());
@@ -548,9 +552,43 @@ pub fn shortcut(c: &mut Ctx, name: &str) {
     }
 }
 
+/// An empty schedule with one day template used for every day.
+fn new_schedule(set: &ScheduleSet) -> Schedule {
+    let mut n = set.schedules.len() + 1;
+    let id = loop {
+        let id = if n == 1 { "main".to_string() } else { format!("schedule-{n}") };
+        if !set.schedules.iter().any(|x| x.id == id) {
+            break id;
+        }
+        n += 1;
+    };
+    Schedule {
+        id,
+        name: if n == 1 { "Основное".into() } else { format!("Расписание {n}") },
+        enabled: true,
+        week: lb_core::schedule::WeekMap { default: Some("day".into()), ..Default::default() },
+        templates: vec![DayTemplate { id: "day".into(), name: "Каждый день".into(), blocks: vec![] }],
+        ..Default::default()
+    }
+}
+
 fn menu_action(c: &mut Ctx, a: &str) {
+    if c.grid.draft.is_none() {
+        c.grid.draft = Some(c.model.schedules.clone());
+    }
     let (s, t) = (c.grid.sched, c.grid.tpl);
     match a {
+        "new-schedule" => {
+            mutate(c, None, |set| {
+                let sch = new_schedule(set);
+                set.schedules.push(sch);
+            });
+            c.grid.sched = c.grid.draft.as_ref().map(|d| d.schedules.len().saturating_sub(1)).unwrap_or(0);
+            c.grid.tpl = 0;
+            c.grid.block = None;
+            refresh(c);
+            c.toast("Расписание создано — добавьте блоки и сохраните", false);
+        }
         "new-template" => {
             mutate(c, None, |set| {
                 if let Some(sch) = set.schedules.get_mut(s) {
