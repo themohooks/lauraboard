@@ -10,6 +10,9 @@ export global Settings {
     in-out property <int> motion;
     in property <bool> system-reduce-motion;
     in-out property <bool> nav-expanded: true;
+    in-out property <bool> close-to-tray: true;
+    // no notification area on this system: closing quits
+    in property <bool> has-tray;
 
     in property <string> api-url;
     in property <bool> online;
@@ -23,6 +26,7 @@ export global Settings {
     callback compact-changed(bool);
     callback motion-changed(int);
     callback nav-changed(bool);
+    callback close-to-tray-changed(bool);
     callback reset-layout();
     callback reset-all();
 }

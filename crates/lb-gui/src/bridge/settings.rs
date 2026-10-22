@@ -72,6 +72,12 @@ pub fn connect(ui: &AppWindow) {
             c.prefs.save();
         })
     });
+    g.on_close_to_tray_changed(|v| {
+        with(move |c| {
+            c.prefs.close_to_tray = v;
+            c.prefs.save();
+        })
+    });
     g.on_reset_layout(|| {
         with(|c| {
             reset_layout(c);
@@ -156,6 +162,8 @@ pub fn show(c: &mut Ctx) {
     });
     g.set_system_reduce_motion(crate::sysprefs::reduce_motion());
     g.set_nav_expanded(c.prefs.nav_expanded);
+    g.set_close_to_tray(c.prefs.close_to_tray);
+    g.set_has_tray(c.has_tray);
     g.set_api_url(ui.global::<App>().get_api_url());
     g.set_online(c.model.online);
     g.set_channels(SharedString::from(if c.model.channels.is_empty() { "—".to_string() } else { c.model.channels.join(", ") }));

@@ -40,6 +40,7 @@ export component Select inherits VerticalLayout {
             : focus.has-focus ? Theme.color.primary
             : touch.has-hover ? Theme.color.on-surface
             : Theme.color.outline;
+        animate border-color { duration: Theme.motion-short; easing: ease-out; }
         accessible-role: combobox;
         accessible-label: root.label;
         accessible-value: root.current;

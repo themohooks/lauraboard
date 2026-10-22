@@ -190,6 +190,16 @@ export component LibraryToolbar inherits VerticalLayout {
                 Lib.check-files();
             }
         }
+        if Lib.can-browse: Button {
+            text: "Добавить ролики";
+            variant: ButtonVariant.tonal;
+            icon: Icons.movie;
+            has-icon: true;
+            tooltip: "Выбрать один или несколько файлов";
+            clicked => {
+                Lib.browse-import(false);
+            }
+        }
         Button {
             text: "Импорт";
             icon: Icons.upload;

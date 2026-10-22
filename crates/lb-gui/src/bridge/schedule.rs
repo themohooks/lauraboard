@@ -10,9 +10,10 @@ use slint::{ComponentHandle, Model, SharedString, VecModel};
 
 use lb_core::history::AsRunRecord;
 use lb_core::rundown::Rundown;
-use lb_core::schedule::{Block, BlockSource, DayTemplate, LatePolicy, ScheduleSet};
+use lb_core::schedule::{Block, BlockSource, DayTemplate, LatePolicy, Schedule, ScheduleSet};
 use lb_core::{Dur, WallTime};
 
+use super::picker::{self, Target};
 use super::{Ctx, vec_model, with};
 use crate::logic::timeline::{self, Segment};
 use crate::logic::undo::History;
@@ -111,6 +112,17 @@ pub fn connect(ui: &AppWindow) {
     });
     g.on_add_block(|fixed| with(move |c| add_block(c, fixed)));
     g.on_remove_block(|i| with(move |c| remove_block(c, i as usize)));
+    g.on_pick(|what, i| {
+        with(move |c| {
+            let i = i as usize;
+            let (t, title) = match what.as_str() {
+                "intro" => (Target::BlockIntro(i), "Заставка в начале блока"),
+                "outro" => (Target::BlockOutro(i), "Заставка в конце блока"),
+                _ => (Target::BlockMedia(i), "Ролики блока"),
+            };
+            picker::open(c, t, title);
+        })
+    });
     g.on_segment_clicked(|i| with(move |c| segment_clicked(c, i as usize)));
     g.on_segment_moved(|i, m| with(move |c| segment_moved(c, i as usize, m)));
     g.on_shift_date(|d| {
@@ -444,7 +456,11 @@ fn add_block(c: &mut Ctx, fixed: bool) {
     let pl = c.model.playlists.first().map(|p| p.id.clone()).unwrap_or_default();
     let mut new_index = 0;
     mutate(c, None, |set| {
-        let Some(sch) = set.schedules.get_mut(s) else { return };
+        if set.schedules.is_empty() {
+            set.schedules.push(new_schedule(set));
+        }
+        let si = s.min(set.schedules.len() - 1);
+        let Some(sch) = set.schedules.get_mut(si) else { return };
         if sch.templates.is_empty() {
             sch.templates.push(DayTemplate { id: "day".into(), name: "Будни".into(), blocks: vec![] });
             sch.week.default = Some("day".into());
@@ -470,6 +486,28 @@ fn add_block(c: &mut Ctx, fixed: bool) {
     });
     c.grid.block = Some(new_index);
     refresh(c);
+}
+
+/// Result of the library picker.
+pub fn picked(c: &mut Ctx, target: Target, ids: Vec<String>) {
+    let (i, field) = match target {
+        Target::BlockMedia(i) => (i, "source-text"),
+        Target::BlockIntro(i) => (i, "intro"),
+        Target::BlockOutro(i) => (i, "outro"),
+        _ => return,
+    };
+    with_block(c, i, field, move |b| match target {
+        Target::BlockMedia(_) => {
+            if let BlockSource::Media { items } = &mut b.source {
+                items.extend(ids);
+            }
+        }
+        Target::BlockIntro(_) => b.intro = ids.into_iter().next(),
+        Target::BlockOutro(_) => b.outro = ids.into_iter().next(),
+        _ => {}
+    });
+    update_row(c, i, "");
+    details(c);
 }
 
 fn remove_block(c: &mut Ctx, i: usize) {
@@ -548,9 +586,43 @@ pub fn shortcut(c: &mut Ctx, name: &str) {
     }
 }
 
+/// An empty schedule with one day template used for every day.
+fn new_schedule(set: &ScheduleSet) -> Schedule {
+    let mut n = set.schedules.len() + 1;
+    let id = loop {
+        let id = if n == 1 { "main".to_string() } else { format!("schedule-{n}") };
+        if !set.schedules.iter().any(|x| x.id == id) {
+            break id;
+        }
+        n += 1;
+    };
+    Schedule {
+        id,
+        name: if n == 1 { "Основное".into() } else { format!("Расписание {n}") },
+        enabled: true,
+        week: lb_core::schedule::WeekMap { default: Some("day".into()), ..Default::default() },
+        templates: vec![DayTemplate { id: "day".into(), name: "Каждый день".into(), blocks: vec![] }],
+        ..Default::default()
+    }
+}
+
 fn menu_action(c: &mut Ctx, a: &str) {
+    if c.grid.draft.is_none() {
+        c.grid.draft = Some(c.model.schedules.clone());
+    }
     let (s, t) = (c.grid.sched, c.grid.tpl);
     match a {
+        "new-schedule" => {
+            mutate(c, None, |set| {
+                let sch = new_schedule(set);
+                set.schedules.push(sch);
+            });
+            c.grid.sched = c.grid.draft.as_ref().map(|d| d.schedules.len().saturating_sub(1)).unwrap_or(0);
+            c.grid.tpl = 0;
+            c.grid.block = None;
+            refresh(c);
+            c.toast("Расписание создано — добавьте блоки и сохраните", false);
+        }
         "new-template" => {
             mutate(c, None, |set| {
                 if let Some(sch) = set.schedules.get_mut(s) {

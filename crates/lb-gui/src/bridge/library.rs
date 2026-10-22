@@ -79,9 +79,22 @@ pub fn connect(ui: &AppWindow) {
     g.on_browse_import(|folder| {
         with(move |c| {
             let d = rfd::FileDialog::new();
-            let picked = if folder { d.pick_folder() } else { d.pick_file() };
-            if let (Some(p), Some(ui)) = (picked, c.window()) {
-                ui.global::<Lib>().set_import_path(p.display().to_string().into());
+            let picked: Vec<std::path::PathBuf> = if folder {
+                d.pick_folder().into_iter().collect()
+            } else {
+                d.set_title("Выберите ролики")
+                    .add_filter("Видео и аудио", MEDIA_EXT)
+                    .add_filter("Изображения", &["png", "jpg", "jpeg", "webp", "bmp"])
+                    .add_filter("Все файлы", &["*"])
+                    .pick_files()
+                    .unwrap_or_default()
+            };
+            if let (false, Some(ui)) = (picked.is_empty(), c.window()) {
+                let list: Vec<String> = picked.iter().map(|p| p.display().to_string()).collect();
+                let g = ui.global::<Lib>();
+                g.set_import_path(list.join(PATH_SEP).into());
+                // opened from the toolbar: continue in the dialog (kind, category)
+                g.set_import_open(true);
             }
         })
     });
@@ -427,17 +440,28 @@ fn bulk(c: &mut Ctx, action: &str, arg: i32) {
     }
 }
 
+/// Extensions offered by the file picker (the server probes the rest).
+const MEDIA_EXT: &[&str] =
+    &["mp4", "mov", "mkv", "avi", "ts", "mts", "m2ts", "mxf", "webm", "flv", "wmv", "mpg", "mpeg", "m4v", "mp3", "wav", "aac", "flac", "m4a", "ogg"];
+
+/// Several picked files share the path field.
+const PATH_SEP: &str = "; ";
+
+fn import_paths(field: &str) -> Vec<String> {
+    field.split(';').map(str::trim).filter(|p| !p.is_empty()).map(str::to_string).collect()
+}
+
 fn do_import(c: &mut Ctx) {
     let Some(ui) = c.window() else { return };
     let g = ui.global::<Lib>();
-    let path = g.get_import_path().trim().to_string();
-    if path.is_empty() {
+    let paths = import_paths(&g.get_import_path());
+    if paths.is_empty() {
         return;
     }
     let kind: Option<MediaKind> = usize::try_from(g.get_import_kind() - 1).ok().and_then(|i| KINDS.get(i).copied());
     let cat = g.get_import_category().trim().to_string();
     let body = json!({
-        "paths": [path],
+        "paths": paths,
         "kind": kind,
         "category": if cat.is_empty() { Value::Null } else { json!(cat) },
         "recursive": g.get_import_recursive(),
@@ -517,5 +541,17 @@ pub fn apply_prefs(c: &mut Ctx) {
 pub fn shortcut(c: &mut Ctx, name: &str) {
     if name == "delete" && !c.lib.checked.is_empty() {
         bulk(c, "delete", 0);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn several_files_in_one_field() {
+        assert_eq!(import_paths("D:/a.mp4; D:/b c.mov;;"), ["D:/a.mp4", "D:/b c.mov"]);
+        assert_eq!(import_paths("  https://x/y  "), ["https://x/y"]);
+        assert!(import_paths(" ; ").is_empty());
     }
 }

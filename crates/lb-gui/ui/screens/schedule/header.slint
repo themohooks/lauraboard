@@ -125,6 +125,7 @@ export component GridHeader inherits VerticalLayout {
                 menu := Menu {
                     menu-width: 280px;
                     entries: [
+                        { id: "new-schedule", text: "Новое расписание", icon: Icons.calendar-month, has-icon: true, enabled: true },
                         { id: "new-template", text: "Новый шаблон дня", icon: Icons.add, has-icon: true, enabled: Grid.has-schedule },
                         { id: "duplicate-template", text: "Дублировать шаблон", icon: Icons.content-copy, has-icon: true, enabled: Grid.templates.length > 0 },
                         { id: "replan", text: "Пересчитать прогноз", icon: Icons.refresh, has-icon: true, enabled: true, divider: true },

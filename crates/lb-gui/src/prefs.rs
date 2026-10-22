@@ -39,6 +39,9 @@ pub struct UiPrefs {
     /// Splitter positions by id.
     pub panels: HashMap<String, f32>,
     pub library_grid: bool,
+    /// The close button hides the window into the notification area
+    /// (playout keeps running); quit from the tray menu.
+    pub close_to_tray: bool,
     /// Written to disk on change (off for headless tools).
     #[serde(skip)]
     pub persist: bool,
@@ -55,6 +58,7 @@ impl Default for UiPrefs {
             section: "home".into(),
             panels: HashMap::new(),
             library_grid: false,
+            close_to_tray: true,
             persist: true,
         }
     }
@@ -116,5 +120,6 @@ mod tests {
         assert_eq!(p.scale, 2.0);
         assert!(p.nav_expanded);
         assert_eq!(p.section, "home");
+        assert!(p.close_to_tray);
     }
 }

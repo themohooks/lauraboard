@@ -22,7 +22,8 @@ export component SearchField inherits Rectangle {
     border-radius: self.height / 2;
     background: Theme.color.surface-container-high;
     border-width: root.has-focus ? 2px : 0;
-    border-color: Theme.color.primary;
+    border-color: root.has-focus ? Theme.color.primary : Theme.color.primary.with-alpha(0);
+    animate border-width, border-color { duration: Theme.motion-short; easing: ease-out; }
     accessible-role: text-input;
     accessible-label: root.placeholder;
     accessible-value: root.text;

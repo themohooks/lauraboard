@@ -95,6 +95,8 @@ export global Grid {
     callback block-select(int);
     callback add-block(bool);
     callback remove-block(int);
+    // library picker for a block: "media", "intro", "outro"
+    callback pick(string, int);
     callback segment-clicked(int);
     callback segment-moved(int, float);
     callback shift-date(int);
@@ -106,6 +108,6 @@ export global Grid {
     callback revert();
     callback undo();
     callback redo();
-    // "new-template", "duplicate-template", "replan"
+    // "new-schedule", "new-template", "duplicate-template", "replan"
     callback menu-action(string);
 }

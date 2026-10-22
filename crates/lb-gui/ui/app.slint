@@ -12,6 +12,7 @@ import { App } from "state/app-state.slint";
 import { AppBar } from "shell/app-bar.slint";
 import { NewChannelDialog } from "shell/new-channel-dialog.slint";
 import { SourceEditDialog } from "screens/sources/edit-dialog.slint";
+import { MediaPickerDialog } from "shell/media-picker-dialog.slint";
 import { Gallery } from "screens/gallery/gallery.slint";
 import { AirScreen } from "screens/air/air.slint";
 import { HomeScreen } from "screens/home/home.slint";
@@ -41,6 +42,7 @@ export { Log } from "state/log-state.slint";
 export { Stats, StatRow, Kpi } from "state/stats-state.slint";
 export { Src, SceneRow, OutRow, StreamRow, Fact } from "state/sources-state.slint";
 export { Settings } from "state/settings-state.slint";
+export { Picker, PickRow } from "state/picker-state.slint";
 
 export component AppWindow inherits Window {
     // kept for the snapshot tool; mirrors App.section
@@ -187,6 +189,8 @@ export component AppWindow inherits Window {
     NewChannelDialog { }
 
     SourceEditDialog { }
+
+    MediaPickerDialog { }
 
     ConfirmDialog {
         open: App.confirm-open;

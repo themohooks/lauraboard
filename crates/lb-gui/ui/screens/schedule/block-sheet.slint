@@ -6,6 +6,8 @@ import { SideSheet } from "../../components/side-sheet.slint";
 import { TextField } from "../../components/text-field.slint";
 import { Switch } from "../../components/switch.slint";
 import { Select } from "../../components/select.slint";
+import { IconButton } from "../../components/icon-button.slint";
+import { Icons } from "../../theme/icons.slint";
 import { Grid } from "../../state/schedule-state.slint";
 
 export component BlockSheet inherits SideSheet {
@@ -67,20 +69,52 @@ export component BlockSheet inherits SideSheet {
         text: "Оформление";
         type-style: Theme.title-small;
     }
-    TextField {
-        label: "Заставка в начале (id ролика)";
-        text: Grid.details.intro;
-        container-color: Theme.color.surface-container-low;
-        edited(t) => {
-            Grid.block-edited(Grid.details.index, "intro", t);
+    HorizontalLayout {
+        spacing: Theme.sp1;
+        TextField {
+            horizontal-stretch: 1;
+            label: "Заставка в начале";
+            text: Grid.details.intro;
+            placeholder: "нет";
+            container-color: Theme.color.surface-container-low;
+            edited(t) => {
+                Grid.block-edited(Grid.details.index, "intro", t);
+            }
+        }
+        VerticalLayout {
+            alignment: start;
+            padding-top: 4px;
+            IconButton {
+                icon: Icons.video-library;
+                tooltip: "Выбрать из медиатеки";
+                clicked => {
+                    Grid.pick("intro", Grid.details.index);
+                }
+            }
         }
     }
-    TextField {
-        label: "Заставка в конце (id ролика)";
-        text: Grid.details.outro;
-        container-color: Theme.color.surface-container-low;
-        edited(t) => {
-            Grid.block-edited(Grid.details.index, "outro", t);
+    HorizontalLayout {
+        spacing: Theme.sp1;
+        TextField {
+            horizontal-stretch: 1;
+            label: "Заставка в конце";
+            text: Grid.details.outro;
+            placeholder: "нет";
+            container-color: Theme.color.surface-container-low;
+            edited(t) => {
+                Grid.block-edited(Grid.details.index, "outro", t);
+            }
+        }
+        VerticalLayout {
+            alignment: start;
+            padding-top: 4px;
+            IconButton {
+                icon: Icons.video-library;
+                tooltip: "Выбрать из медиатеки";
+                clicked => {
+                    Grid.pick("outro", Grid.details.index);
+                }
+            }
         }
     }
     Switch {
