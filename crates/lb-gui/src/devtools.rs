@@ -72,7 +72,7 @@ pub fn snapshot(out: &Path, section: &str, width: u32, height: u32, scale: f32, 
     ui.show().map_err(|e| e.to_string())?;
     match live {
         Some(url) => {
-            let opts = crate::GuiOptions { base_url: url.to_string(), token: std::env::var("LB_TOKEN").ok(), channel: None };
+            let opts = crate::GuiOptions { base_url: url.to_string(), token: std::env::var("LB_TOKEN").ok(), channel: None, embedded_engine: false };
             let prefs = crate::prefs::UiPrefs { section: name.to_string(), persist: false, ..Default::default() };
             crate::bridge::start(&ui, &opts, prefs);
             pump_for(&jobs, Duration::from_secs(6));

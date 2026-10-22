@@ -273,6 +273,7 @@ pub fn status_changed(c: &mut Ctx) {
     g.set_status(info);
     g.set_online(c.model.online);
     g.set_channel_name(channel_name.into());
+    super::tray_refresh(c);
 }
 
 pub fn preview_changed(c: &mut Ctx, f: Frame) {

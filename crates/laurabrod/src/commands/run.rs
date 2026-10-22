@@ -60,6 +60,7 @@ pub fn gui(ctx: &Ctx, connect: Option<String>) -> Result<()> {
     let project = ctx.project()?;
     // the next start from a shortcut opens the same project
     crate::desktop::remember(&ctx.root);
+    let mut embedded_engine = false;
     let (base, token) = match connect {
         Some(url) => (url, ctx.token.clone()),
         None => {
@@ -75,9 +76,10 @@ pub fn gui(ctx: &Ctx, connect: Option<String>) -> Result<()> {
                     }
                 });
                 std::mem::forget(tx);
+                embedded_engine = true;
             }
             (base, token)
         }
     };
-    lb_gui::run(lb_gui::GuiOptions { base_url: base, token, channel: ctx.channel.clone() }).map_err(|e| anyhow::anyhow!("GUI error: {e}"))
+    lb_gui::run(lb_gui::GuiOptions { base_url: base, token, channel: ctx.channel.clone(), embedded_engine }).map_err(|e| anyhow::anyhow!("GUI error: {e}"))
 }

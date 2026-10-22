@@ -77,7 +77,7 @@ pub fn connect(ui: &AppWindow) {
     });
 }
 
-fn transport(c: &mut Ctx, action: &str) {
+pub fn transport(c: &mut Ctx, action: &str) {
     match action {
         "start" => c.command(cmd("start")),
         "stop" => c.ask(
