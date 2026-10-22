@@ -187,8 +187,8 @@ impl Ctx {
                     self.model.channel = list.first().cloned();
                 }
                 self.model.channels = list;
-                if let Some(c) = &self.model.channel {
-                    self.poller.set_channel(c);
+                if let Some(c) = self.model.channel.clone() {
+                    self.channel_selected(&c);
                 }
                 shell::channels_changed(self);
                 self.load_all();
@@ -275,6 +275,18 @@ impl Ctx {
                 }
             }
         }
+    }
+
+    /// Point polling and the editors at channel `ch` (drafts of another
+    /// channel must not stay open).
+    pub fn channel_selected(&mut self, ch: &str) {
+        if self.poller.channel().as_deref() != Some(ch) {
+            self.pl = Default::default();
+            self.gfx = Default::default();
+            self.lib.checked.clear();
+            self.thumbs.clear();
+        }
+        self.poller.set_channel(ch);
     }
 
     // ------------------------------------------------------------ requests

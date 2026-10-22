@@ -17,13 +17,13 @@ use crate::error::ApiResult;
 
 pub async fn events_all(State(s): State<AppState>, c: Caller, ws: WebSocketUpgrade) -> ApiResult<Response> {
     c.require(Role::Viewer)?;
-    let chans: Vec<ChannelHandle> = s.engine.channels().cloned().collect();
+    let chans: Vec<ChannelHandle> = s.engine.channels();
     Ok(ws.on_upgrade(move |sock| stream(sock, chans)))
 }
 
 pub async fn events_channel(State(s): State<AppState>, c: Caller, Path(id): Path<String>, ws: WebSocketUpgrade) -> ApiResult<Response> {
     c.require(Role::Viewer)?;
-    let ch = s.engine.channel(&id)?.clone();
+    let ch = s.engine.channel(&id)?;
     Ok(ws.on_upgrade(move |sock| stream(sock, vec![ch])))
 }
 

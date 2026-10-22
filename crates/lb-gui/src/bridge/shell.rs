@@ -35,12 +35,13 @@ pub fn connect(ui: &AppWindow) {
         with(move |c| {
             let Some(ch) = c.model.channels.get(i as usize).cloned() else { return };
             c.model.channel = Some(ch.clone());
-            c.poller.set_channel(&ch);
-            c.thumbs.clear();
+            c.channel_selected(&ch);
             channels_changed(c);
             c.load_all();
         })
     });
+    g.on_validate_new_channel(|id| with(move |c| validate_new_channel(c, id.as_str())));
+    g.on_create_channel(|| with(create_channel));
     g.on_refresh(|| {
         with(|c| {
             c.load_channels();
@@ -83,6 +84,45 @@ pub fn connect(ui: &AppWindow) {
         })
     });
     CLOCK.with(|t| *t.borrow_mut() = Some(timer));
+}
+
+/// Inline validation of the new channel id.
+fn validate_new_channel(c: &mut Ctx, id: &str) {
+    let Some(ui) = c.window() else { return };
+    let id = id.trim();
+    let err = if !id.chars().all(|ch| ch.is_ascii_alphanumeric() || ch == '-' || ch == '_') {
+        "Допустимы латиница, цифры, «-» и «_»"
+    } else if c.model.channels.iter().any(|x| x == id) {
+        "Канал с таким идентификатором уже есть"
+    } else {
+        ""
+    };
+    ui.global::<App>().set_new_channel_error(err.into());
+}
+
+fn create_channel(c: &mut Ctx) {
+    let Some(ui) = c.window() else { return };
+    let g = ui.global::<App>();
+    let id = g.get_new_channel_id().trim().to_string();
+    validate_new_channel(c, &id);
+    if id.is_empty() || !g.get_new_channel_error().is_empty() {
+        return;
+    }
+    let body = serde_json::json!({
+        "id": id,
+        "name": g.get_new_channel_name().trim(),
+        "copy_from": if g.get_new_channel_copy() { c.model.channel.clone() } else { None },
+    });
+    g.set_new_channel_open(false);
+    c.worker.spawn(move |api| {
+        api.post("/channels", &body)?;
+        Ok(crate::net::Msg::Apply(Box::new(move |c: &mut Ctx| {
+            c.toast(format!("Канал «{id}» создан"), false);
+            // switch to it once the channel list arrives
+            c.model.channel = Some(id);
+            c.load_channels();
+        })))
+    });
 }
 
 pub fn navigate(c: &mut Ctx, id: &str) {

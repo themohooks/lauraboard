@@ -10,6 +10,7 @@ import { ConfirmDialog } from "components/dialog.slint";
 import { TooltipLayer } from "components/tooltip.slint";
 import { App } from "state/app-state.slint";
 import { AppBar } from "shell/app-bar.slint";
+import { NewChannelDialog } from "shell/new-channel-dialog.slint";
 import { Gallery } from "screens/gallery/gallery.slint";
 import { AirScreen } from "screens/air/air.slint";
 import { HomeScreen } from "screens/home/home.slint";
@@ -181,6 +182,8 @@ export component AppWindow inherits Window {
     ImportDialog { }
 
     RuleWizard { }
+
+    NewChannelDialog { }
 
     ConfirmDialog {
         open: App.confirm-open;

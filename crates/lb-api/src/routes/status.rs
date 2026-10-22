@@ -25,7 +25,24 @@ pub async fn version() -> Json<serde_json::Value> {
 
 pub async fn channels(State(s): State<AppState>, c: Caller) -> ApiResult<Json<Vec<ChannelStatus>>> {
     c.require(Role::Viewer)?;
-    Ok(Json(s.engine.channels().map(|h| h.status()).collect()))
+    Ok(Json(s.engine.channels().iter().map(|h| h.status()).collect()))
+}
+
+#[derive(Deserialize)]
+pub struct NewChannel {
+    pub id: String,
+    #[serde(default)]
+    pub name: String,
+    /// Copy settings (video, encoder, …; not outputs) from this channel.
+    #[serde(default)]
+    pub copy_from: Option<String>,
+}
+
+/// Create a channel while running (admin).
+pub async fn create_channel(State(s): State<AppState>, c: Caller, Json(v): Json<NewChannel>) -> ApiResult<Json<ChannelStatus>> {
+    c.require(Role::Admin)?;
+    let h = s.engine.create_channel(v.id.trim(), &v.name, v.copy_from.as_deref().filter(|x| !x.is_empty()))?;
+    Ok(Json(h.status()))
 }
 
 pub async fn status(State(s): State<AppState>, c: Caller, Path(id): Path<String>) -> ApiResult<Json<ChannelStatus>> {

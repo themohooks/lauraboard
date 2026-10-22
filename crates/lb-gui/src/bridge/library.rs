@@ -21,7 +21,7 @@ pub struct LibraryState {
     pub loaded: bool,
     /// Library indices in display order.
     shown: Vec<usize>,
-    checked: HashSet<String>,
+    pub checked: HashSet<String>,
     columns: usize,
     rows: Rc<VecModel<MediaRow>>,
     categories: Vec<String>,

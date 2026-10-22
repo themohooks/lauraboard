@@ -74,6 +74,23 @@ async fn roles_are_enforced() {
 }
 
 #[tokio::test]
+async fn create_channel_while_running() {
+    let dir = project(vec![]);
+    let app = app(&dir).await;
+    let (st, body) = call(&app, "POST", "/api/v1/channels", None, Some(r#"{"id":"second","name":"Второй","copy_from":"main"}"#)).await;
+    assert_eq!(st, StatusCode::OK, "{body}");
+    assert!(dir.path().join("channels/second/channel.toml").exists());
+    let (_, body) = call(&app, "GET", "/api/v1/channels", None, None).await;
+    assert!(body.contains("\"channel\":\"second\""), "{body}");
+    let (st, body) = call(&app, "GET", "/api/v1/channels/second/config", None, None).await;
+    assert_eq!(st, StatusCode::OK);
+    assert!(body.contains("Второй") && body.contains("\"autostart\":false"), "{body}");
+    // duplicates and bad ids are rejected
+    assert_eq!(call(&app, "POST", "/api/v1/channels", None, Some(r#"{"id":"second"}"#)).await.0, StatusCode::BAD_REQUEST);
+    assert_eq!(call(&app, "POST", "/api/v1/channels", None, Some(r#"{"id":"../x"}"#)).await.0, StatusCode::BAD_REQUEST);
+}
+
+#[tokio::test]
 async fn playlist_crud_and_plan_preview() {
     let dir = project(vec![]);
     let app = app(&dir).await;

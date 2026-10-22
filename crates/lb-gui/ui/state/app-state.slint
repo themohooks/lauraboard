@@ -55,6 +55,14 @@ export global App {
     in property <string> api-url;
     callback select-channel(int);
     callback refresh();
+    // "new channel" dialog
+    in-out property <bool> new-channel-open;
+    in-out property <string> new-channel-id;
+    in-out property <string> new-channel-name;
+    in-out property <bool> new-channel-copy: true;
+    in property <string> new-channel-error;
+    callback validate-new-channel(string);
+    callback create-channel();
 
     // live status
     in property <StatusInfo> status: { state: "offline", state-text: "НЕТ СВЯЗИ" };
