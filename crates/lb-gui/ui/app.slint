@@ -7,6 +7,7 @@ import { Theme } from "theme/tokens.slint";
 import { NavRail } from "components/nav-rail.slint";
 import { Snackbar } from "components/snackbar.slint";
 import { ConfirmDialog } from "components/dialog.slint";
+import { TooltipLayer } from "components/tooltip.slint";
 import { App } from "state/app-state.slint";
 import { AppBar } from "shell/app-bar.slint";
 import { Gallery } from "screens/gallery/gallery.slint";
@@ -197,6 +198,11 @@ export component AppWindow inherits Window {
             App.confirm-result(false);
             keys.focus();
         }
+    }
+
+    TooltipLayer {
+        bound-width: root.width;
+        bound-height: root.height;
     }
 
     init => {

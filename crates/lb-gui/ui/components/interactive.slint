@@ -5,6 +5,7 @@
 import { Theme } from "../theme/tokens.slint";
 import { StateLayer } from "state-layer.slint";
 import { FocusRing } from "focus-ring.slint";
+import { Tip } from "tooltip.slint";
 
 export component Interactive inherits Rectangle {
     in property <bool> enabled: true;
@@ -34,8 +35,6 @@ export component Interactive inherits Rectangle {
         border-radius: root.border-radius;
     }
 
-    @children
-
     touch := TouchArea {
         enabled: root.enabled;
         mouse-cursor: root.enabled ? root.cursor : MouseCursor.default;
@@ -50,11 +49,18 @@ export component Interactive inherits Rectangle {
             root.double-clicked();
         }
         pointer-event(e) => {
+            // the element may go away on click and never report hover end
+            if e.kind == PointerEventKind.down {
+                Tip.shown = false;
+            }
             if e.button == PointerEventButton.right && e.kind == PointerEventKind.up {
                 root.right-clicked({ x: self.mouse-x, y: self.mouse-y });
             }
         }
     }
+
+    // above the row's own TouchArea, so nested buttons / handles get their clicks
+    @children
 
     focus := FocusScope {
         enabled: root.enabled && root.focusable;

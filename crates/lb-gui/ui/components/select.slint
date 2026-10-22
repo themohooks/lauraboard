@@ -53,8 +53,11 @@ export component Select inherits VerticalLayout {
             }
         }
 
+        // the TouchArea underneath focuses it; taking focus on press here
+        // would swallow the first click (the popup opened only on the second)
         focus := FocusScope {
             enabled: root.enabled;
+            focus-on-click: false;
             key-pressed(e) => {
                 if e.text == " " || e.text == Key.Return {
                     popup.show();

@@ -1,8 +1,20 @@
 // Plain M3 tooltip shown after a short hover delay. Put it inside the
 // hovered element and bind `hovered`; it opens below the element.
+//
+// The text is drawn by one `TooltipLayer` on top of the window (see
+// app.slint), not by a PopupWindow: while any popup is open Slint routes
+// clicks only to it, so a tooltip popup swallowed the click on its button.
 
 import { Theme } from "../theme/tokens.slint";
 import { Label } from "label.slint";
+
+export global Tip {
+    in-out property <string> text;
+    in-out property <bool> shown;
+    // anchor point (window coordinates): bottom-left of the hovered element
+    in-out property <length> x;
+    in-out property <length> y;
+}
 
 export component Tooltip {
     in property <string> text;
@@ -11,39 +23,54 @@ export component Tooltip {
     width: 0;
     height: 0;
 
+    function hide() {
+        // only if the shown tooltip is ours (another one may have taken over)
+        if Tip.shown && Tip.x == root.absolute-position.x && Tip.y == root.absolute-position.y + root.anchor-height + 4px {
+            Tip.shown = false;
+        }
+    }
+
     Timer {
         interval: 600ms;
         running: root.hovered && root.text != "";
         triggered => {
             self.running = false;
-            popup.show();
+            Tip.text = root.text;
+            Tip.x = root.absolute-position.x;
+            Tip.y = root.absolute-position.y + root.anchor-height + 4px;
+            Tip.shown = true;
         }
     }
 
     changed hovered => {
         if !self.hovered {
-            popup.close();
+            root.hide();
         }
     }
+}
 
-    popup := PopupWindow {
-        x: 0;
-        y: root.anchor-height + 4px;
-        close-policy: no-auto-close;
-        Rectangle {
-            background: Theme.color.inverse-surface;
-            border-radius: Theme.radius-xs;
-            HorizontalLayout {
-                padding-left: Theme.sp2;
-                padding-right: Theme.sp2;
-                padding-top: Theme.sp1;
-                padding-bottom: Theme.sp1;
-                Label {
-                    text: root.text;
-                    type-style: Theme.body-small;
-                    color: Theme.color.inverse-on-surface;
-                }
-            }
+// Overlay that renders the current tooltip; place it last in the window.
+export component TooltipLayer inherits Rectangle {
+    // window size, to keep the tooltip inside
+    in property <length> bound-width;
+    in property <length> bound-height;
+
+    x: max(4px, min(Tip.x, root.bound-width - self.width - 4px));
+    y: Tip.y + self.height > root.bound-height - 4px ? Tip.y - self.height - 40px : Tip.y;
+    width: body.preferred-width;
+    height: body.preferred-height;
+    visible: Tip.shown && Tip.text != "";
+    background: Theme.color.inverse-surface;
+    border-radius: Theme.radius-xs;
+    body := HorizontalLayout {
+        padding-left: Theme.sp2;
+        padding-right: Theme.sp2;
+        padding-top: Theme.sp1;
+        padding-bottom: Theme.sp1;
+        Label {
+            text: Tip.text;
+            type-style: Theme.body-small;
+            color: Theme.color.inverse-on-surface;
         }
     }
 }

@@ -336,11 +336,27 @@ impl Ctx {
     pub fn save_doc<T: serde::Serialize + Send + 'static>(&self, path: &str, doc: T, what: &'static str) {
         let ch = self.model.ch();
         let path = format!("/channels/{ch}{path}");
-        self.worker.spawn(move |api| {
+        self.change(move |api| {
             api.put(&path, &doc)?;
-            Ok(Msg::Done(format!("{what}: сохранено")))
+            Ok(format!("{what}: сохранено"))
         });
-        self.load_all();
+    }
+
+    /// Run a modifying request; once it has finished, show its message and
+    /// reload the channel documents (reloading in parallel could read the
+    /// old version, so new data showed up only after reopening the screen).
+    pub fn change(&self, job: impl FnOnce(&Api) -> Result<String, String> + Send + 'static) {
+        self.worker.spawn(move |api| {
+            let r = job(api);
+            Ok(Msg::Apply(Box::new(move |c: &mut Ctx| {
+                match r {
+                    Ok(text) => c.toast(text, false),
+                    Err(e) => c.apply(Msg::Error(e)),
+                }
+                // after an error too: the server may have applied part of a batch
+                c.load_all();
+            })))
+        });
     }
 
     // ------------------------------------------------------------ overlays

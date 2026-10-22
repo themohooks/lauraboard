@@ -310,11 +310,10 @@ fn save_edit(c: &mut Ctx) {
 
 fn put_media(c: &mut Ctx, m: MediaItem, done: &'static str) {
     let ch = c.model.ch();
-    c.worker.spawn(move |api| {
+    c.change(move |api| {
         api.put(&format!("/channels/{ch}/media/{}", m.id), &m)?;
-        Ok(Msg::Done(done.into()))
+        Ok(done.into())
     });
-    c.load_all();
 }
 
 fn row_action(c: &mut Ctx, row: i32, action: &str) {
@@ -353,14 +352,13 @@ fn row_action(c: &mut Ctx, row: i32, action: &str) {
 fn delete_ids(c: &mut Ctx, ids: Vec<String>) {
     let ch = c.model.ch();
     let n = ids.len();
-    c.worker.spawn(move |api| {
+    c.change(move |api| {
         for id in &ids {
             api.delete(&format!("/channels/{ch}/media/{id}"))?;
         }
-        Ok(Msg::Done(format!("Удалено: {n}")))
+        Ok(format!("Удалено: {n}"))
     });
     c.lib.checked.clear();
-    c.load_all();
 }
 
 fn bulk(c: &mut Ctx, action: &str, arg: i32) {
@@ -376,12 +374,11 @@ fn bulk(c: &mut Ctx, action: &str, arg: i32) {
             let n = ids.len();
             p.entries.extend(ids.into_iter().map(PlaylistEntry::new));
             let name = if p.name.is_empty() { p.id.clone() } else { p.name.clone() };
-            c.worker.spawn(move |api| {
+            c.change(move |api| {
                 api.put(&format!("/channels/{ch}/playlists/{}", p.id), &p)?;
-                Ok(Msg::Done(format!("Добавлено в «{name}»: {n}")))
+                Ok(format!("Добавлено в «{name}»: {n}"))
             });
             c.lib.checked.clear();
-            c.load_all();
         }
         "queue" => {
             c.worker.spawn(move |api| {
@@ -397,13 +394,12 @@ fn bulk(c: &mut Ctx, action: &str, arg: i32) {
                 m.enabled = on;
                 m
             }).collect();
-            c.worker.spawn(move |api| {
+            c.change(move |api| {
                 for m in &items {
                     api.put(&format!("/channels/{ch}/media/{}", m.id), m)?;
                 }
-                Ok(Msg::Done(format!("{}: {}", if on { "Включено" } else { "Выключено" }, items.len())))
+                Ok(format!("{}: {}", if on { "Включено" } else { "Выключено" }, items.len()))
             });
-            c.load_all();
         }
         "kind" => {
             let Some(k) = KINDS.get(arg as usize).copied() else { return };
@@ -411,13 +407,12 @@ fn bulk(c: &mut Ctx, action: &str, arg: i32) {
                 m.kind = k;
                 m
             }).collect();
-            c.worker.spawn(move |api| {
+            c.change(move |api| {
                 for m in &items {
                     api.put(&format!("/channels/{ch}/media/{}", m.id), m)?;
                 }
-                Ok(Msg::Done(format!("Тип изменён: {}", items.len())))
+                Ok(format!("Тип изменён: {}", items.len()))
             });
-            c.load_all();
         }
         "delete" => {
             let n = ids.len();
