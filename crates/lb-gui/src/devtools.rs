@@ -85,17 +85,18 @@ pub fn snapshot(out: &Path, section: &str, width: u32, height: u32, scale: f32, 
             demo_air(&ui);
         }
     }
-    // `LB_SNAPSHOT_CLICKS="x,y;x,y"`: logical-pixel clicks before rendering
-    // (menus and popups only exist after a click)
+    // `LB_SNAPSHOT_CLICKS="x,y;x,y,2"`: logical-pixel clicks before rendering
+    // (menus and popups only exist after a click); `,2` double-clicks
     for p in std::env::var("LB_SNAPSHOT_CLICKS").unwrap_or_default().split(';') {
-        let Some((x, y)) = p.split_once(',').and_then(|(x, y)| Some((x.trim().parse::<f32>().ok()?, y.trim().parse::<f32>().ok()?))) else {
-            continue;
-        };
-        let position = slint::LogicalPosition::new(x, y);
+        let n: Vec<f32> = p.split(',').filter_map(|v| v.trim().parse().ok()).collect();
+        let [x, y, rest @ ..] = n.as_slice() else { continue };
+        let position = slint::LogicalPosition::new(*x, *y);
         let button = slint::platform::PointerEventButton::Left;
         window.dispatch_event(WindowEvent::PointerMoved { position });
-        window.dispatch_event(WindowEvent::PointerPressed { position, button });
-        window.dispatch_event(WindowEvent::PointerReleased { position, button });
+        for _ in 0..rest.first().map_or(1, |c| *c as usize) {
+            window.dispatch_event(WindowEvent::PointerPressed { position, button });
+            window.dispatch_event(WindowEvent::PointerReleased { position, button });
+        }
         pump_for(&jobs, Duration::from_millis(live.map_or(300, |_| 1500)));
     }
     for (name, mode) in [("light", ThemeMode::Light), ("dark", ThemeMode::Dark)] {

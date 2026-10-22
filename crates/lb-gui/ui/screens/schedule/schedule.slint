@@ -9,20 +9,28 @@ import { BlockTable } from "block-table.slint";
 import { BlockSheet } from "block-sheet.slint";
 
 export component ScheduleScreen inherits Page {
-    HorizontalLayout {
-        VerticalLayout {
-            horizontal-stretch: 1;
-            padding: Theme.sp4;
-            spacing: Theme.sp3;
-            GridHeader { }
-            TimelinePanel {
-                vertical-stretch: 0;
-            }
-            BlockTable {
-                vertical-stretch: 1;
-                min-height: 200px;
-            }
+    // The sheet sits on top at the right edge instead of sharing a layout:
+    // content that cannot shrink any further goes under the sheet rather
+    // than pushing it out of the window.
+    VerticalLayout {
+        x: 0;
+        y: 0;
+        width: root.width - sheet.width;
+        height: root.height;
+        padding: Theme.sp4;
+        spacing: Theme.sp3;
+        GridHeader { }
+        TimelinePanel {
+            vertical-stretch: 0;
         }
-        BlockSheet { }
+        BlockTable {
+            vertical-stretch: 1;
+            min-height: 200px;
+        }
+    }
+    sheet := BlockSheet {
+        x: root.width - self.width;
+        y: 0;
+        height: root.height;
     }
 }

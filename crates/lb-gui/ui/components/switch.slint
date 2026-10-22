@@ -89,8 +89,12 @@ export component Switch inherits Rectangle {
     }
     }
 
+    // wraps in narrow places (side sheets) instead of widening them
     if root.text != "": Label {
-            min-width: self.preferred-width;
+        horizontal-stretch: 1;
+        min-width: min(self.preferred-width, 120px);
+        vertical-alignment: center;
+        wrap: word-wrap;
         text: root.text;
         color: root.enabled ? Theme.color.on-surface : Theme.color.on-surface.with-alpha(Theme.disabled-content);
     }

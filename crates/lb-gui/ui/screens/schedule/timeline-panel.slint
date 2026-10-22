@@ -15,6 +15,8 @@ import { Grid } from "../../state/schedule-state.slint";
 import { App } from "../../state/app-state.slint";
 
 export component TimelinePanel inherits Rectangle {
+    // own width: the block sheet takes part of the screen
+    property <bool> tight: App.narrow || root.width < 1000px;
     border-radius: Theme.radius-l;
     background: Theme.color.surface-container-low;
 
@@ -40,8 +42,8 @@ export component TimelinePanel inherits Rectangle {
                 type-style: Theme.title-medium;
                 vertical-alignment: center;
                 // narrow window: the long date line gives way to the controls
-                min-width: App.narrow ? 120px : self.preferred-width;
-                horizontal-stretch: App.narrow ? 1 : 0;
+                min-width: root.tight ? 120px : self.preferred-width;
+                horizontal-stretch: root.tight ? 1 : 0;
                 overflow: elide;
             }
             if Grid.mode == 0: VerticalLayout {
