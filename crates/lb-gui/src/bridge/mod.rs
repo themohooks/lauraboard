@@ -380,7 +380,7 @@ impl Ctx {
         let ch = self.model.ch();
         self.worker.spawn(move |api| {
             let r = api.post(&format!("/channels/{ch}/command"), &cmd)?;
-            Ok(Msg::Done(r["message"].as_str().unwrap_or("Выполнено").to_string()))
+            Ok(Msg::Done(r["message"].as_str().map(crate::ru::server).unwrap_or_else(|| "Выполнено".into())))
         });
     }
 

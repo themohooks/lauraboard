@@ -20,6 +20,7 @@ mod model;
 mod net;
 mod prefs;
 mod shell;
+mod ru;
 mod single;
 mod sysprefs;
 mod tray;
