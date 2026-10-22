@@ -206,6 +206,23 @@ export component SettingsScreen inherits Page {
                             }
                         }
                     }
+                    Setting {
+                        title: "Закрытие окна";
+                        hint: Settings.has-tray ? "Эфир продолжается в фоне; окно открывается щелчком по значку в трее, выход — из его меню"
+                            : "Значок в трее недоступен в этой системе — крестик завершает программу";
+                        VerticalLayout {
+                            horizontal-stretch: 1;
+                            alignment: center;
+                            Switch {
+                                text: "Сворачивать в трей вместо выхода";
+                                enabled: Settings.has-tray;
+                                checked <=> Settings.close-to-tray;
+                                toggled(v) => {
+                                    Settings.close-to-tray-changed(v);
+                                }
+                            }
+                        }
+                    }
                 }
 
                 Card {

@@ -7,7 +7,7 @@ rust-version.workspace = true
 [dependencies]
 chrono = { version = "0.4.45", features = ["serde"] }
 dirs = "7.0.0"
-image = { version = "0.25.10", default-features = false, features = ["jpeg", "png"] }
+image = { version = "0.25.10", default-features = false, features = ["ico", "jpeg", "png"] }
 lb-core = { version = "0.1.0", path = "../lb-core" }
 rfd = "0.17.2"
 serde = { version = "1.0.229", features = ["derive"] }
@@ -18,6 +18,14 @@ ureq = "3.4.2"
 
 [target.'cfg(windows)'.dependencies]
 windows-sys = { version = "0.61.2", features = ["Win32_UI_WindowsAndMessaging"] }
+
+# notification-area icon: Win32 / AppKit here, D-Bus StatusNotifierItem on
+# Linux (no GTK needed)
+[target.'cfg(any(windows, target_os = "macos"))'.dependencies]
+tray-icon = "0.26.1"
+
+[target.'cfg(target_os = "linux")'.dependencies]
+ksni = { version = "0.3.7", features = ["blocking"] }
 
 [build-dependencies]
 slint-build = "1.18.1"

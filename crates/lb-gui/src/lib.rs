@@ -20,7 +20,9 @@ mod model;
 mod net;
 mod prefs;
 mod shell;
+mod single;
 mod sysprefs;
+mod tray;
 
 /// How to reach the API.
 #[derive(Debug, Clone)]
@@ -32,7 +34,8 @@ pub struct GuiOptions {
     pub channel: Option<String>,
 }
 
-/// Open the main window (blocks until it is closed).
+/// Open the main window (blocks until the user quits; with a tray icon
+/// closing the window only hides it).
 pub fn run(opts: GuiOptions) -> Result<(), String> {
     shell::run(opts)
 }

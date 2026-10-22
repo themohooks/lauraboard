@@ -70,6 +70,8 @@ pub struct Ctx {
     pub settings: settings::SettingsState,
     pub src: sources::SourcesState,
     pub picker: picker::PickerState,
+    /// The notification-area icon is up (closing hides the window).
+    pub has_tray: bool,
     /// Channel configuration (admin only; `None` when not available).
     pub channel_config: Option<Value>,
     /// When [`Ctx::load_all`] last ran.
@@ -137,6 +139,7 @@ pub fn start(ui: &AppWindow, opts: &GuiOptions, prefs: UiPrefs) {
         settings: Default::default(),
         src: Default::default(),
         picker: Default::default(),
+        has_tray: false,
         channel_config: None,
         last_load: Default::default(),
     };
@@ -164,6 +167,21 @@ pub fn start(ui: &AppWindow, opts: &GuiOptions, prefs: UiPrefs) {
 }
 
 /// Save preferences and drop the context (window closed).
+/// Tray icon state; decides what the close button does.
+pub fn set_tray(on: bool) {
+    with(move |c| {
+        c.has_tray = on;
+        if let Some(ui) = c.window() {
+            ui.global::<crate::shell::Settings>().set_has_tray(on);
+        }
+    });
+}
+
+/// Hide into the tray instead of quitting?
+pub fn close_to_tray() -> bool {
+    CTX.with(|c| c.try_borrow().ok().and_then(|g| g.as_ref().map(|c| c.has_tray && c.prefs.close_to_tray)).unwrap_or(false))
+}
+
 pub fn stop() {
     CTX.with(|c| {
         if let Some(ctx) = c.borrow_mut().take() {
