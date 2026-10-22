@@ -79,8 +79,10 @@ component ClipTab inherits VerticalLayout {
     }
 }
 
-component AdTab inherits VerticalLayout {
-    property <int> picked: -1;
+export component AdTab inherits VerticalLayout {
+    property <int> picked: Air.ad-breaks.length > 0 ? 0 : -1;
+    // an action was sent (the dialog closes)
+    callback done();
     spacing: Theme.sp3;
     alignment: start;
     Label {
@@ -107,6 +109,7 @@ component AdTab inherits VerticalLayout {
             enabled: App.online && root.picked >= 0;
             clicked => {
                 Air.ad-break(root.picked, false);
+                root.done();
             }
         }
         Button {
@@ -118,12 +121,13 @@ component AdTab inherits VerticalLayout {
             tooltip: "Прервать текущий элемент";
             clicked => {
                 Air.ad-break(root.picked, true);
+                root.done();
             }
         }
     }
 }
 
-component GraphicsTab inherits VerticalLayout {
+export component GraphicsTab inherits VerticalLayout {
     spacing: 0;
     if Air.graphics.length == 0: Label {
         text: "Элементы графики не настроены";
@@ -198,7 +202,8 @@ component GraphicsTab inherits VerticalLayout {
     }
 }
 
-component TickerTab inherits VerticalLayout {
+export component TickerTab inherits VerticalLayout {
+    callback done();
     spacing: Theme.sp3;
     alignment: start;
     Label {
@@ -212,6 +217,7 @@ component TickerTab inherits VerticalLayout {
         container-color: Theme.color.surface-container-low;
         accepted(t) => {
             Air.apply-ticker(t);
+            root.done();
         }
     }
     HorizontalLayout {
@@ -222,6 +228,7 @@ component TickerTab inherits VerticalLayout {
             enabled: App.online;
             clicked => {
                 Air.apply-ticker(Air.ticker);
+                root.done();
             }
         }
         Button {
@@ -231,6 +238,7 @@ component TickerTab inherits VerticalLayout {
             clicked => {
                 Air.ticker = "";
                 Air.apply-ticker("");
+                root.done();
             }
         }
     }

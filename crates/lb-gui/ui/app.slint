@@ -13,6 +13,7 @@ import { AppBar } from "shell/app-bar.slint";
 import { NewChannelDialog } from "shell/new-channel-dialog.slint";
 import { SourceEditDialog } from "screens/sources/edit-dialog.slint";
 import { MediaPickerDialog } from "shell/media-picker-dialog.slint";
+import { AirActionDialog } from "screens/air/action-dialog.slint";
 import { Gallery } from "screens/gallery/gallery.slint";
 import { AirScreen } from "screens/air/air.slint";
 import { HomeScreen } from "screens/home/home.slint";
@@ -191,6 +192,8 @@ export component AppWindow inherits Window {
     SourceEditDialog { }
 
     MediaPickerDialog { }
+
+    AirActionDialog { }
 
     ConfirmDialog {
         open: App.confirm-open;

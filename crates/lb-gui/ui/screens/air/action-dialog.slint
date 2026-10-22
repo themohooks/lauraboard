@@ -1,0 +1,49 @@
+// On-air actions from the transport ⋮ menu (ad break, graphics, ticker) in
+// a dialog, so the menu entry visibly does something wherever the quick
+// actions panel is scrolled or squeezed.
+
+import { Theme } from "../../theme/tokens.slint";
+import { Dialog, DialogActions } from "../../components/dialog.slint";
+import { Button, ButtonVariant } from "../../components/button.slint";
+import { Air } from "../../state/air-state.slint";
+import { AdTab, GraphicsTab, TickerTab } from "quick-actions.slint";
+
+export component AirActionDialog inherits Dialog {
+    // keeps the last content while fading out
+    property <int> shown: 1;
+    open: Air.action-dialog > 0;
+    title: shown == 1 ? "Рекламный блок" : shown == 2 ? "Графика в эфире" : "Бегущая строка";
+    dialog-width: shown == 2 ? 600px : 480px;
+    dismissed => {
+        Air.action-dialog = 0;
+    }
+    changed open => {
+        if self.open {
+            self.shown = Air.action-dialog;
+        }
+    }
+
+    if root.shown == 1: AdTab {
+        done => {
+            Air.action-dialog = 0;
+        }
+    }
+    if root.shown == 2: GraphicsTab {
+        height: 320px;
+    }
+    if root.shown == 3: TickerTab {
+        done => {
+            Air.action-dialog = 0;
+        }
+    }
+
+    DialogActions {
+        Button {
+            text: "Закрыть";
+            variant: ButtonVariant.text;
+            clicked => {
+                Air.action-dialog = 0;
+            }
+        }
+    }
+}
