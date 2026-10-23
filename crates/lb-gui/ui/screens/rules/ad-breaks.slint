@@ -13,6 +13,7 @@ import { EmptyState } from "../../components/feedback.slint";
 import { KindTag } from "../../components/indicators.slint";
 import { Rules } from "../../state/rules-state.slint";
 import { FormSection } from "form-parts.slint";
+import { MediaPickList } from "media-list.slint";
 
 export component AdBreaksEditor inherits HorizontalLayout {
     spacing: Theme.sp4;
@@ -131,73 +132,11 @@ export component AdBreaksEditor inherits HorizontalLayout {
                         }
                     }
                 }
-                if Rules.b-media.length > 0: Rectangle {
-                    border-radius: Theme.radius-m;
-                    background: Theme.color.surface-container-low;
-                    clip: true;
-                    VerticalLayout {
-                        for m[i] in Rules.b-media: ListRow {
-                            height: Theme.compact ? 40px : 48px;
-                            divider: i < Rules.b-media.length - 1;
-                            focusable: false;
-                            Label {
-                                width: 24px;
-                                text: i + 1;
-                                vertical-alignment: center;
-                                color: Theme.color.on-surface-variant;
-                            }
-                            KindTag {
-                                kind: m.kind;
-                                show-name: false;
-                            }
-                            VerticalLayout {
-                                horizontal-stretch: 1;
-                                alignment: center;
-                                Label {
-                                    text: m.title;
-                                    overflow: elide;
-                                    color: m.kind == "gap" ? Theme.color.error : Theme.color.on-surface;
-                                }
-                            }
-                            Label {
-                                text: m.duration;
-                                mono: true;
-                                vertical-alignment: center;
-                                color: Theme.color.on-surface-variant;
-                            }
-                            VerticalLayout {
-                                alignment: center;
-                                IconButton {
-                                    icon: Icons.arrow-upward;
-                                    enabled: i > 0;
-                                    tooltip: "Выше";
-                                    clicked => {
-                                        Rules.break-item("up", i);
-                                    }
-                                }
-                            }
-                            VerticalLayout {
-                                alignment: center;
-                                IconButton {
-                                    icon: Icons.arrow-downward;
-                                    enabled: i < Rules.b-media.length - 1;
-                                    tooltip: "Ниже";
-                                    clicked => {
-                                        Rules.break-item("down", i);
-                                    }
-                                }
-                            }
-                            VerticalLayout {
-                                alignment: center;
-                                IconButton {
-                                    icon: Icons.close;
-                                    tooltip: "Убрать из блока";
-                                    clicked => {
-                                        Rules.break-item("remove", i);
-                                    }
-                                }
-                            }
-                        }
+                if Rules.b-media.length > 0: MediaPickList {
+                    items: Rules.b-media;
+                    remove-tooltip: "Убрать из блока";
+                    action(a, i) => {
+                        Rules.break-item(a, i);
                     }
                 }
                 HorizontalLayout {

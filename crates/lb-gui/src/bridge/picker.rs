@@ -17,6 +17,10 @@ pub enum Target {
     AdItems,
     AdIntro,
     AdOutro,
+    /// Items of the rule being edited (jingles / media action, appended).
+    RuleItems,
+    /// "Except these items" condition of the rule being edited (appended).
+    RuleExclude,
     /// Media list of a schedule block (appended).
     BlockMedia(usize),
     BlockIntro(usize),
@@ -25,7 +29,7 @@ pub enum Target {
 
 impl Target {
     fn multi(self) -> bool {
-        matches!(self, Target::AdItems | Target::BlockMedia(_))
+        matches!(self, Target::AdItems | Target::RuleItems | Target::RuleExclude | Target::BlockMedia(_))
     }
 }
 
@@ -117,7 +121,7 @@ fn confirm(c: &mut Ctx) {
         return;
     }
     match target {
-        Target::AdItems | Target::AdIntro | Target::AdOutro => super::rules::picked(c, target, ids),
+        Target::AdItems | Target::AdIntro | Target::AdOutro | Target::RuleItems | Target::RuleExclude => super::rules::picked(c, target, ids),
         Target::BlockMedia(_) | Target::BlockIntro(_) | Target::BlockOutro(_) => super::schedule::picked(c, target, ids),
     }
 }
