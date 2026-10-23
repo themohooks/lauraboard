@@ -140,6 +140,23 @@ impl ChannelEntry {
     }
 }
 
+/// A background job on the server (`GET /jobs`).
+#[derive(Debug, Clone, PartialEq, serde::Deserialize)]
+pub struct JobView {
+    pub id: u64,
+    pub kind: String,
+    pub title: String,
+    #[serde(default)]
+    pub channel: Option<String>,
+    /// running / done / failed / cancelled
+    pub state: String,
+    pub progress: f32,
+    #[serde(default)]
+    pub message: String,
+    #[serde(default)]
+    pub result: Option<serde_json::Value>,
+}
+
 /// Everything the GUI knows about the selected channel.
 #[derive(Default)]
 pub struct Model {

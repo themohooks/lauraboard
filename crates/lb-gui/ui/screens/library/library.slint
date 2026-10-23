@@ -1,25 +1,33 @@
-// Media library screen: toolbar | table or tiles | edit sheet.
+// Media library screen: folders | toolbar + table or tiles | edit sheet.
 
 import { Theme } from "../../theme/tokens.slint";
+import { App } from "../../state/app-state.slint";
 import { Page, PageHeader } from "../../shell/page.slint";
 import { LibraryToolbar } from "toolbar.slint";
 import { MediaTable } from "media-table.slint";
 import { MediaEditSheet } from "edit-sheet.slint";
+import { FolderPanel } from "folder-panel.slint";
 
 export component LibraryScreen inherits Page {
     // The sheet sits on top at the right edge instead of sharing a layout:
     // content that cannot shrink any further goes under the sheet rather
     // than pushing it out of the window.
-    VerticalLayout {
+    HorizontalLayout {
         x: 0;
         y: 0;
         width: root.width - sheet.width;
         height: root.height;
         padding: Theme.sp4;
-        spacing: Theme.sp3;
-        LibraryToolbar { }
-        MediaTable {
-            vertical-stretch: 1;
+        spacing: Theme.sp4;
+        if !App.narrow: FolderPanel {
+            width: 230px;
+        }
+        VerticalLayout {
+            spacing: Theme.sp3;
+            LibraryToolbar { }
+            MediaTable {
+                vertical-stretch: 1;
+            }
         }
     }
     sheet := MediaEditSheet {

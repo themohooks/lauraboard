@@ -75,6 +75,7 @@ impl Poller {
         std::thread::spawn(move || {
             let mut last_rundown = Instant::now() - Duration::from_secs(60);
             let mut online = None;
+            let mut last_jobs = String::new();
             while !s2.load(Ordering::Relaxed) {
                 let channel = t2.lock().unwrap_or_else(|e| e.into_inner()).channel.clone();
                 let Some(ch) = channel else {
@@ -89,6 +90,17 @@ impl Poller {
                 }
                 if let Ok(s) = status {
                     let _ = tx.send(Msg::Status(Box::new(s)));
+                }
+                if ok
+                    && let Ok(body) = api.get_bytes("/jobs")
+                {
+                    let text = String::from_utf8_lossy(&body).into_owned();
+                    if text != last_jobs
+                        && let Ok(jobs) = serde_json::from_str(&text)
+                    {
+                        last_jobs = text;
+                        let _ = tx.send(Msg::Jobs(jobs));
+                    }
                 }
                 if ok && last_rundown.elapsed() >= Duration::from_secs(2) {
                     last_rundown = Instant::now();

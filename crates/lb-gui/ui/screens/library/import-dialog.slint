@@ -9,12 +9,13 @@ import { Switch } from "../../components/switch.slint";
 import { Button, ButtonVariant } from "../../components/button.slint";
 import { IconButton, IconButtonVariant } from "../../components/icon-button.slint";
 import { LinearProgress } from "../../components/feedback.slint";
+import { Label } from "../../components/label.slint";
 import { Lib } from "../../state/library-state.slint";
 
 export component ImportDialog inherits Dialog {
     open: Lib.import-open;
     title: "Импорт в медиатеку";
-    text: "Выберите один или несколько роликов, папку или укажите URL. Пути — на сервере вещания; длительность и формат определяются автоматически.";
+    text: "Выберите один или несколько роликов, папку или укажите URL. Пути — на сервере вещания; длительность и формат определяются автоматически. Копирование идёт в фоне — прогресс виден в шапке.";
     has-icon: true;
     icon: Icons.upload;
     dialog-width: 520px;
@@ -74,6 +75,24 @@ export component ImportDialog inherits Dialog {
             text <=> Lib.import-category;
             container-color: Theme.color.surface-container-high;
         }
+    }
+    Select {
+        label: "Папка медиатеки";
+        options: Lib.folder-options;
+        current-index <=> Lib.import-folder;
+        container-color: Theme.color.surface-container-high;
+    }
+    Switch {
+        text: "Копировать в хранилище канала";
+        checked <=> Lib.import-copy;
+    }
+    Label {
+        text: Lib.import-copy
+            ? "Файлы копируются в папку канала под служебными именами — медиатека не зависит от исходных файлов. В списке остаются исходное имя и ваше название."
+            : "Файлы остаются на месте: если их переместить или удалить, ролик пропадёт из эфира.";
+        wrap: word-wrap;
+        type-style: Theme.body-small;
+        color: Theme.color.on-surface-variant;
     }
     Switch {
         text: "Включая вложенные папки";

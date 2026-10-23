@@ -21,9 +21,22 @@ export struct TileLine {
     tiles: [MediaRow],
 }
 
+// One folder of the tree (depth = nesting level).
+export struct FolderRow {
+    path: string,
+    name: string,
+    depth: int,
+    // items in the folder and its subfolders
+    count: int,
+}
+
 export struct MediaEdit {
     id: string,
     path: string,
+    // file name before copying into the channel's storage
+    original: string,
+    // the file is the channel's own copy (deleted with the item)
+    own: bool,
     info: string,
     problem: string,
 }
@@ -51,6 +64,20 @@ export global Lib {
     in-out property <int> focused: -1;
     in property <[string]> playlists;
 
+    // folders: tree, selected folder ("" = whole library), and the list
+    // offered by selects (index 0 = top level)
+    in property <[FolderRow]> folders;
+    in property <int> items-total;
+    in-out property <string> folder;
+    in property <[string]> folder-options;
+    callback select-folder(string);
+    // folder name dialog: "" closed, "new" (inside the selected folder), "rename"
+    in-out property <string> folder-dialog;
+    in-out property <string> f-name;
+    in property <string> f-error;
+    callback folder-save();
+    callback folder-delete();
+
     // edit sheet
     in-out property <bool> edit-open;
     in property <MediaEdit> edit;
@@ -60,6 +87,7 @@ export global Lib {
     in-out property <string> e-volume;
     in-out property <string> e-weight;
     in-out property <bool> e-enabled;
+    in-out property <int> e-folder;
     in property <string> e-volume-error;
     in property <string> e-weight-error;
 
@@ -70,6 +98,9 @@ export global Lib {
     in-out property <int> import-kind;
     in-out property <string> import-category;
     in-out property <bool> import-recursive: true;
+    // copy into the channel's own storage (otherwise files stay where they are)
+    in-out property <bool> import-copy: true;
+    in-out property <int> import-folder;
     in property <bool> importing;
     in property <bool> can-browse;
     in property <bool> checking;
@@ -84,7 +115,8 @@ export global Lib {
     callback save-edit();
     // "edit", "queue", "play-now", "add-to-open-playlist", "toggle", "delete"
     callback row-action(int, string);
-    // "playlist" (arg = playlist index), "queue", "enable", "disable", "kind" (arg = kind), "delete"
+    // "playlist" (arg = playlist index), "queue", "enable", "disable", "kind" (arg = kind),
+    // "folder" (arg = index in folder-options), "delete"
     callback bulk(string, int);
     callback browse-import(bool);
     callback do-import();

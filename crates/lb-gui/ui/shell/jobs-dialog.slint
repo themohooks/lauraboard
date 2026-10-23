@@ -1,0 +1,109 @@
+// Background jobs: an app-bar indicator while something runs, and the list
+// with progress, cancel and dismiss.
+
+import { Theme } from "../theme/tokens.slint";
+import { Icons } from "../theme/icons.slint";
+import { Dialog, DialogActions } from "../components/dialog.slint";
+import { Label } from "../components/label.slint";
+import { IconButton } from "../components/icon-button.slint";
+import { Button, ButtonVariant } from "../components/button.slint";
+import { Interactive } from "../components/interactive.slint";
+import { LinearProgress, CircularProgress } from "../components/feedback.slint";
+import { Jobs, JobRow } from "../state/jobs-state.slint";
+
+// App-bar chip: spinner, what runs and how far.
+export component JobsIndicator inherits Interactive {
+    height: 32px;
+    radius: 16px;
+    background: Theme.color.secondary-container;
+    state-tint: Theme.color.on-secondary-container;
+    clicked => {
+        Jobs.open = true;
+    }
+    HorizontalLayout {
+        padding-left: Theme.sp2;
+        padding-right: Theme.sp3;
+        spacing: Theme.sp2;
+        VerticalLayout {
+            alignment: center;
+            CircularProgress {
+                size: 18px;
+                fill: Theme.color.on-secondary-container;
+            }
+        }
+        Label {
+            text: Jobs.summary;
+            vertical-alignment: center;
+            type-style: Theme.label-large;
+            color: Theme.color.on-secondary-container;
+            max-width: 280px;
+            overflow: elide;
+        }
+    }
+}
+
+component JobLine inherits VerticalLayout {
+    in property <JobRow> job;
+    spacing: 4px;
+    padding-top: Theme.sp2;
+    padding-bottom: Theme.sp2;
+    HorizontalLayout {
+        spacing: Theme.sp2;
+        VerticalLayout {
+            horizontal-stretch: 1;
+            Label {
+                text: job.title + (job.channel != "" ? " · " + job.channel : "");
+                type-style: Theme.title-medium;
+                overflow: elide;
+            }
+            Label {
+                text: job.text;
+                type-style: Theme.body-small;
+                color: job.state == "failed" ? Theme.color.error : Theme.color.on-surface-variant;
+                wrap: word-wrap;
+            }
+        }
+        VerticalLayout {
+            alignment: center;
+            IconButton {
+                icon: job.state == "running" ? Icons.stop : Icons.close;
+                tooltip: job.state == "running" ? "Отменить" : "Убрать из списка";
+                clicked => {
+                    Jobs.cancel(job.id);
+                }
+            }
+        }
+    }
+    if job.state == "running": LinearProgress {
+        progress: job.progress;
+    }
+}
+
+export component JobsDialog inherits Dialog {
+    open: Jobs.open;
+    dialog-width: 560px;
+    title: "Фоновые задачи";
+    text: "Копирование файлов, экспорт и импорт каналов идут на сервере; окно можно закрыть — работа продолжится.";
+    dismissed => {
+        Jobs.open = false;
+    }
+
+    if Jobs.rows.length == 0: Label {
+        text: "Задач нет";
+        color: Theme.color.on-surface-variant;
+    }
+    VerticalLayout {
+        for job in Jobs.rows: JobLine {
+            job: job;
+        }
+    }
+    DialogActions {
+        Button {
+            text: "Закрыть";
+            variant: ButtonVariant.text;
+            clicked => {
+                Jobs.open = false;
+            }
+        }
+    }
+}

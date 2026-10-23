@@ -14,7 +14,9 @@
 pub mod air;
 pub mod channels;
 pub mod encoder;
+pub mod folders;
 pub mod graphics;
+pub mod jobs;
 pub mod library;
 pub mod log;
 pub mod picker;
@@ -72,6 +74,7 @@ pub struct Ctx {
     pub settings: settings::SettingsState,
     pub src: sources::SourcesState,
     pub picker: picker::PickerState,
+    pub jobs: jobs::JobsState,
     /// The notification-area icon is up (closing hides the window).
     pub has_tray: bool,
     /// Channel configuration (admin only; `None` when not available).
@@ -141,6 +144,7 @@ pub fn start(ui: &AppWindow, opts: &GuiOptions, prefs: UiPrefs) {
         settings: Default::default(),
         src: Default::default(),
         picker: Default::default(),
+        jobs: Default::default(),
         has_tray: false,
         channel_config: None,
         last_load: Default::default(),
@@ -149,9 +153,11 @@ pub fn start(ui: &AppWindow, opts: &GuiOptions, prefs: UiPrefs) {
     CTX.with(|c| *c.borrow_mut() = Some(ctx));
     shell::connect(ui);
     channels::connect(ui);
+    jobs::connect(ui);
     air::connect(ui);
     playlists::connect(ui);
     library::connect(ui);
+    folders::connect(ui);
     schedule::connect(ui);
     rules::connect(ui);
     graphics::connect(ui);
@@ -348,6 +354,7 @@ impl Ctx {
                 self.toast(e, true);
             }
             Msg::Apply(f) => f(self),
+            Msg::Jobs(list) => jobs::changed(self, list),
             Msg::Connection(ok) => {
                 self.model.online = ok;
                 shell::status_changed(self);
@@ -395,6 +402,7 @@ impl Ctx {
         self.last_load.set(Some(std::time::Instant::now()));
         let c = ch.clone();
         self.worker.spawn(move |api| Ok(Msg::Library(api.get(&format!("/channels/{c}/media"))?)));
+        folders::load(self);
         let c = ch.clone();
         self.worker.spawn(move |api| {
             let list: Vec<Value> = api.get(&format!("/channels/{c}/playlists"))?;

@@ -123,6 +123,18 @@ export component LibraryToolbar inherits VerticalLayout {
                 }
                 VerticalLayout {
                     alignment: center;
+                    Select {
+                        width: 200px;
+                        placeholder: "В папку…";
+                        options: Lib.folder-options;
+                        container-color: Theme.color.secondary-container;
+                        selected(i, _) => {
+                            Lib.bulk("folder", i);
+                        }
+                    }
+                }
+                VerticalLayout {
+                    alignment: center;
                     Button {
                         text: "В очередь";
                         variant: ButtonVariant.text;

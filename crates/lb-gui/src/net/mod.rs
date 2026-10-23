@@ -44,6 +44,8 @@ pub enum Msg {
     Rules(RuleSet),
     Graphics(GraphicsConfig),
     Preview(Frame),
+    /// Background jobs of the server (sent when the list changes).
+    Jobs(Vec<crate::model::JobView>),
     /// Media thumbnail (`None`: not available for this item).
     Thumb(String, Option<Frame>),
     Event(Value),
