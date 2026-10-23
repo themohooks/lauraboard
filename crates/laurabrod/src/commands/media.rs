@@ -80,7 +80,7 @@ fn add(ctx: &Ctx, paths: Vec<String>, kind: Option<String>, category: Option<Str
         return Err(bail(Code::Invalid, "no paths given"));
     }
     let (p, mut ch) = ctx.channel_data()?;
-    let opt = ImportOptions { kind: kind.map(|k| parse_kind(&k)).transpose()?, category, recursive, image_duration: None };
+    let opt = ImportOptions { kind: kind.map(|k| parse_kind(&k)).transpose()?, category, recursive, image_duration: None, folder: String::new() };
     let (added, errors) = block_on(library::import(&mut ch, &p.root, &p.app.ffmpeg.ffprobe, &paths, &opt));
     if !added.is_empty() {
         ctx.save_channel(&p, &ch)?;

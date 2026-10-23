@@ -45,9 +45,11 @@
 | POST | `/start`, `/stop`, `/skip` | короткие формы команд |
 | PUT | `/var/{key}` | `{"value": "…"}` — переменная графики (`null` — удалить) |
 | GET, POST | `/media` | список; добавить или заменить элемент (`MediaItem`) |
-| GET, PUT, DELETE | `/media/{media}` | элемент |
+| GET, PUT, DELETE | `/media/{media}` | элемент; при удалении копия файла в хранилище канала тоже удаляется |
 | GET | `/media/{media}/thumb.jpg?w=320` | миниатюра (JPEG, кадр на 10 % длительности, ширина 32…1280). Кэшируется в `<проект>/cache/thumbs/<канал>/`, не более двух ffmpeg одновременно; 404 для потоков, аудио и отсутствующих файлов |
-| POST | `/media/import` | `{"paths": [...], "kind": "ad", "category": "x", "recursive": true}` — импорт с анализом |
+| POST | `/media/import` | `{"paths": [...], "kind": "ad", "category": "x", "recursive": true, "folder": "Фильмы", "copy": true}` — импорт с анализом. С `copy` файлы копируются в `channels/<id>/media/<uuid>.<ext>` фоновой задачей (ответ `{"job": id}`), исходное имя сохраняется в `original_name` |
+| GET | `/media/folders` | все папки медиатеки |
+| POST | `/media/folders` | `{"op": "create"/"rename"/"delete"/"move", "path", "to", "ids"}` — папки виртуальные: файлы на диске не перемещаются; при удалении содержимое переходит в родительскую папку |
 | POST | `/media/check` | перепроверка всех файлов |
 | GET, POST | `/playlists` | список (с длительностями); создать |
 | GET, PUT, DELETE | `/playlists/{pl}` | плейлист |

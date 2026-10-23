@@ -228,3 +228,45 @@ async fn channels_are_renamed_duplicated_and_deleted() {
     assert!(!body.contains("\"second\""), "{body}");
     assert_eq!(call(&app, "POST", "/api/v1/channels/main/command", None, Some(r#"{"cmd":"shutdown"}"#)).await.0, StatusCode::BAD_REQUEST);
 }
+
+#[tokio::test]
+async fn media_copies_and_folders() {
+    let dir = project(vec![]);
+    let app = app(&dir).await;
+    let src = dir.path().join("Логотип.png");
+    image::RgbaImage::from_pixel(4, 4, image::Rgba([1, 2, 3, 255])).save(&src).unwrap();
+    let body = serde_json::json!({ "paths": [src.to_string_lossy()], "copy": true, "folder": "Графика/Логотипы" }).to_string();
+    let (st, body) = call(&app, "POST", "/api/v1/channels/main/media/import", None, Some(&body)).await;
+    assert_eq!(st, StatusCode::OK, "{body}");
+    let job: serde_json::Value = serde_json::from_str(&body).unwrap();
+    let job = job["job"].as_u64().unwrap();
+    let mut state = String::new();
+    for _ in 0..100 {
+        let (_, b) = call(&app, "GET", &format!("/api/v1/jobs/{job}"), None, None).await;
+        let v: serde_json::Value = serde_json::from_str(&b).unwrap();
+        state = v["state"].as_str().unwrap().to_string();
+        if state != "running" {
+            break;
+        }
+        tokio::time::sleep(std::time::Duration::from_millis(20)).await;
+    }
+    assert_eq!(state, "done");
+    let (_, body) = call(&app, "GET", "/api/v1/channels/main/media", None, None).await;
+    let items: Vec<serde_json::Value> = serde_json::from_str(&body).unwrap();
+    let it = items.iter().find(|m| m["original_name"] == "Логотип.png").expect("copied item");
+    let path = it["path"].as_str().unwrap();
+    assert!(path.starts_with("channels/main/media/") && path.ends_with(".png"), "{path}");
+    assert_eq!(it["folder"], "Графика/Логотипы");
+    assert!(dir.path().join(path).exists());
+
+    let (_, body) = call(&app, "GET", "/api/v1/channels/main/media/folders", None, None).await;
+    assert_eq!(body, r#"["Графика","Графика/Логотипы"]"#);
+    let (st, body) = call(&app, "POST", "/api/v1/channels/main/media/folders", None, Some(r#"{"op":"rename","path":"Графика","to":"Оформление"}"#)).await;
+    assert_eq!(st, StatusCode::OK, "{body}");
+    assert_eq!(body, r#"["Оформление","Оформление/Логотипы"]"#);
+
+    let id = it["id"].as_str().unwrap();
+    let (st, _) = call(&app, "DELETE", &format!("/api/v1/channels/main/media/{id}"), None, None).await;
+    assert_eq!(st, StatusCode::OK);
+    assert!(!dir.path().join(path).exists(), "own copy removed with the item");
+}

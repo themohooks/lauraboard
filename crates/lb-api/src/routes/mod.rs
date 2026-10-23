@@ -51,6 +51,7 @@ pub fn router(state: AppState) -> Router {
         .route("/media", get(library::list).post(library::add))
         .route("/media/import", post(library::import))
         .route("/media/check", post(library::check))
+        .route("/media/folders", get(library::folders).post(library::folder_op))
         .route("/media/{media}/thumb.jpg", get(thumbs::thumb))
         .route("/media/{media}", get(library::get_one).put(library::update).delete(library::remove))
         .route("/playlists", get(playlists::list).post(playlists::create))

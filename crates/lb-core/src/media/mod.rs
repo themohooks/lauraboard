@@ -1,4 +1,8 @@
 //! Media library model.
+//!
+//! * [`folders`] — virtual folders of the library
+
+pub mod folders;
 
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -106,6 +110,13 @@ pub struct MediaItem {
     pub probe: ProbeInfo,
     #[serde(default = "yes")]
     pub enabled: bool,
+    /// Library folder (`Фильмы/Комедии`; empty = top level).
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub folder: String,
+    /// File name the media had before it was copied into the channel's
+    /// storage under a generated name.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub original_name: Option<String>,
 }
 
 fn one() -> f64 {
@@ -134,6 +145,8 @@ impl MediaItem {
             meta: HashMap::new(),
             probe: ProbeInfo::default(),
             enabled: true,
+            folder: String::new(),
+            original_name: None,
         }
     }
 
@@ -167,13 +180,16 @@ pub fn is_url(p: &str) -> bool {
 pub struct Library {
     #[serde(default)]
     pub items: Vec<MediaItem>,
+    /// Folders that exist even when empty (folders of items exist anyway).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub folders: Vec<String>,
     #[serde(skip)]
     index: HashMap<String, usize>,
 }
 
 impl Library {
     pub fn new(items: Vec<MediaItem>) -> Self {
-        let mut l = Library { items, index: HashMap::new() };
+        let mut l = Library { items, folders: vec![], index: HashMap::new() };
         l.reindex();
         l
     }
