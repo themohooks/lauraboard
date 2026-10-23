@@ -1,0 +1,236 @@
+// Statistics → "Система": load of the computer the server runs on (CPU
+// with per-core bars and history, memory, network, uptime), disks,
+// Laurabrod and FFmpeg processes, host details. Refreshed every 2 s.
+
+import { ScrollView } from "std-widgets.slint";
+import { Theme } from "../../theme/tokens.slint";
+import { Icons } from "../../theme/icons.slint";
+import { Label } from "../../components/label.slint";
+import { Icon } from "../../components/icon.slint";
+import { Card, CardHeader, CardStyle } from "../../components/card.slint";
+import { LinearProgress } from "../../components/feedback.slint";
+import { Stats, SysCard } from "../../state/stats-state.slint";
+
+global Load {
+    // calm until 70 %, warning until 90 %, then error
+    public pure function color(v: float) -> color {
+        return v >= 0.9 ? Theme.color.error : v >= 0.7 ? Theme.status.warning : Theme.color.primary;
+    }
+}
+
+component Figure inherits Card {
+    in property <SysCard> item;
+    horizontal-stretch: 1;
+    min-width: 170px;
+    card-style: CardStyle.low;
+    gap: Theme.sp1;
+    Label {
+        text: root.item.label;
+        type-style: Theme.label-medium;
+        color: Theme.color.on-surface-variant;
+    }
+    Label {
+        text: root.item.value;
+        type-style: Theme.headline-small;
+        mono: true;
+    }
+    if root.item.share >= 0: LinearProgress {
+        progress: root.item.share;
+        fill: Load.color(root.item.share);
+    }
+    Label {
+        text: root.item.detail;
+        type-style: Theme.body-small;
+        color: Theme.color.on-surface-variant;
+        wrap: word-wrap;
+    }
+}
+
+// Bars of the last samples (0..1), oldest on the left.
+component History inherits Rectangle {
+    in property <[float]> values;
+    in property <string> title;
+    in property <color> bar: Theme.color.primary;
+    height: 96px;
+    border-radius: Theme.radius-s;
+    background: Theme.color.surface-container;
+    clip: true;
+    Label {
+        x: Theme.sp2;
+        y: Theme.sp1;
+        text: root.title;
+        type-style: Theme.label-small;
+        color: Theme.color.on-surface-variant;
+    }
+    for v[i] in root.values: Rectangle {
+        property <length> w: root.width / max(60, root.values.length);
+        x: root.width - (root.values.length - i) * self.w;
+        width: max(1px, self.w - 1px);
+        height: max(1px, clamp(v, 0, 1) * (root.height - 20px));
+        y: root.height - self.height;
+        background: root.bar.with-alpha(0.75);
+    }
+}
+
+export component SystemPanel inherits ScrollView {
+    VerticalLayout {
+        width: root.visible-width;
+        spacing: Theme.sp3;
+        alignment: start;
+
+        if Stats.sys-error != "": HorizontalLayout {
+            spacing: Theme.sp2;
+            Icon {
+                size: 18px;
+                source: Icons.error;
+                tint: Theme.color.error;
+            }
+            Label {
+                horizontal-stretch: 1;
+                text: Stats.sys-error;
+                color: Theme.color.error;
+                wrap: word-wrap;
+            }
+        }
+
+        HorizontalLayout {
+            spacing: Theme.sp3;
+            for c in Stats.sys-cards: Figure {
+                item: c;
+            }
+        }
+
+        HorizontalLayout {
+            spacing: Theme.sp3;
+            History {
+                horizontal-stretch: 1;
+                title: "Процессор, последние 2 минуты";
+                values: Stats.sys-cpu-history;
+            }
+            History {
+                horizontal-stretch: 1;
+                title: "Память, последние 2 минуты";
+                values: Stats.sys-mem-history;
+                bar: Theme.color.tertiary;
+            }
+        }
+
+        Card {
+            card-style: CardStyle.low;
+            CardHeader {
+                title: "Ядра процессора";
+                subtitle: "Загрузка каждого логического ядра";
+            }
+            HorizontalLayout {
+                spacing: 3px;
+                height: 64px;
+                for v in Stats.sys-cores: Rectangle {
+                    horizontal-stretch: 1;
+                    border-radius: 2px;
+                    background: Theme.color.surface-container-highest;
+                    Rectangle {
+                        y: parent.height - self.height;
+                        height: max(2px, clamp(v, 0, 1) * parent.height);
+                        border-radius: 2px;
+                        background: Load.color(v);
+                    }
+                }
+            }
+        }
+
+        HorizontalLayout {
+            spacing: Theme.sp3;
+            Card {
+                horizontal-stretch: 1;
+                card-style: CardStyle.low;
+                CardHeader {
+                    title: "Диски";
+                    subtitle: "Занято, свободно и скорость чтения / записи";
+                }
+                for d in Stats.sys-disks: VerticalLayout {
+                    spacing: 4px;
+                    HorizontalLayout {
+                        spacing: Theme.sp2;
+                        Label {
+                            text: d.mount;
+                            mono: true;
+                            type-style: Theme.title-small;
+                        }
+                        Label {
+                            horizontal-stretch: 1;
+                            text: d.detail;
+                            color: Theme.color.on-surface-variant;
+                        }
+                        Label {
+                            text: d.io;
+                            mono: true;
+                            type-style: Theme.body-small;
+                            color: Theme.color.on-surface-variant;
+                        }
+                    }
+                    LinearProgress {
+                        progress: d.share;
+                        fill: Load.color(d.share);
+                    }
+                }
+            }
+            Card {
+                horizontal-stretch: 1;
+                card-style: CardStyle.low;
+                CardHeader {
+                    title: "Процессы Laurabrod";
+                    subtitle: "Программа и её FFmpeg (кодировщик, декодеры)";
+                }
+                for p in Stats.sys-procs: HorizontalLayout {
+                    spacing: Theme.sp2;
+                    Label {
+                        horizontal-stretch: 1;
+                        text: p.name;
+                        mono: true;
+                    }
+                    VerticalLayout {
+                        width: 90px;
+                        alignment: center;
+                        LinearProgress {
+                            progress: p.share;
+                            fill: Load.color(p.share);
+                        }
+                    }
+                    Label {
+                        width: 64px;
+                        text: p.cpu;
+                        mono: true;
+                        horizontal-alignment: right;
+                    }
+                    Label {
+                        width: 90px;
+                        text: p.memory;
+                        mono: true;
+                        horizontal-alignment: right;
+                        color: Theme.color.on-surface-variant;
+                    }
+                }
+            }
+        }
+
+        Card {
+            card-style: CardStyle.low;
+            CardHeader {
+                title: "Компьютер";
+            }
+            for l in Stats.sys-info: HorizontalLayout {
+                spacing: Theme.sp3;
+                Label {
+                    width: 220px;
+                    text: l.label;
+                    color: Theme.color.on-surface-variant;
+                }
+                Label {
+                    horizontal-stretch: 1;
+                    text: l.value;
+                    wrap: word-wrap;
+                }
+            }
+        }
+    }
+}

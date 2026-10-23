@@ -21,7 +21,51 @@ export struct Kpi {
     tone: string,
 }
 
+// System view: a headline figure with an optional usage bar.
+export struct SysCard {
+    label: string,
+    value: string,
+    detail: string,
+    // 0..1, or -1 without a bar
+    share: float,
+}
+
+export struct SysDisk {
+    mount: string,
+    detail: string,
+    // used part, 0..1
+    share: float,
+    io: string,
+}
+
+export struct SysProc {
+    name: string,
+    cpu: string,
+    memory: string,
+    // CPU relative to the whole machine, 0..1
+    share: float,
+}
+
+export struct SysLine {
+    label: string,
+    value: string,
+}
+
 export global Stats {
+    // 0 broadcast statistics, 1 system
+    in-out property <int> view;
+    callback view-changed();
+    in property <[SysCard]> sys-cards;
+    // per logical core, 0..1
+    in property <[float]> sys-cores;
+    // last samples, oldest first, 0..1
+    in property <[float]> sys-cpu-history;
+    in property <[float]> sys-mem-history;
+    in property <[SysDisk]> sys-disks;
+    in property <[SysProc]> sys-procs;
+    in property <[SysLine]> sys-info;
+    in property <string> sys-error;
+
     in-out property <string> from;
     in-out property <string> to;
     in property <string> from-error;

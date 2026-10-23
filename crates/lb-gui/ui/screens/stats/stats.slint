@@ -17,6 +17,7 @@ import { EmptyState, LinearProgress } from "../../components/feedback.slint";
 import { Page, PageHeader } from "../../shell/page.slint";
 import { Stats, StatRow, Kpi } from "../../state/stats-state.slint";
 import { App } from "../../state/app-state.slint";
+import { SystemPanel } from "system-panel.slint";
 
 component KpiCard inherits Card {
     in property <Kpi> kpi;
@@ -202,8 +203,19 @@ export component StatsScreen inherits Page {
 
         PageHeader {
             title: "Статистика";
-            subtitle: Stats.period-text;
+            subtitle: Stats.view == 0 ? Stats.period-text : "Загрузка компьютера, на котором работает сервер";
             VerticalLayout {
+                alignment: center;
+                SegmentedButton {
+                    width: 240px;
+                    segments: [{ text: "Эфир" }, { text: "Система" }];
+                    selected <=> Stats.view;
+                    changed => {
+                        Stats.view-changed();
+                    }
+                }
+            }
+            if Stats.view == 0: VerticalLayout {
                 alignment: center;
                 Button {
                     text: "Журнал эфира, CSV";
@@ -217,7 +229,7 @@ export component StatsScreen inherits Page {
                     }
                 }
             }
-            VerticalLayout {
+            if Stats.view == 0: VerticalLayout {
                 alignment: center;
                 Button {
                     text: "Статистика, CSV";
@@ -233,102 +245,109 @@ export component StatsScreen inherits Page {
             }
         }
 
-        HorizontalLayout {
-            spacing: Theme.sp3;
-            VerticalLayout {
-                alignment: start;
-                padding-top: 8px;
-                SegmentedButton {
-                    width: 420px;
-                    segments: [{ text: "Сегодня" }, { text: "Вчера" }, { text: "7 дней" }, { text: "30 дней" }];
-                    selected <=> Stats.preset;
-                    changed(i) => {
-                        Stats.preset-picked(i);
-                    }
-                }
-            }
-            if !App.narrow: PeriodFields { }
-            Rectangle {
-                horizontal-stretch: 1;
-            }
-        }
-
-        if App.narrow: HorizontalLayout {
-            PeriodFields { }
-            Rectangle {
-                horizontal-stretch: 1;
-            }
-        }
-
-        if Stats.loading: LinearProgress {
-            height: 4px;
-            indeterminate: true;
-        }
-
-        if Stats.has-data: HorizontalLayout {
-            spacing: Theme.sp3;
-            for k in Stats.kpis: KpiCard {
-                kpi: k;
-            }
-        }
-
-        if Stats.has-data: HorizontalLayout {
-            SegmentedButton {
-                width: 480px;
-                segments: [{ text: Stats.tab-names[0] }, { text: Stats.tab-names[1] }, { text: Stats.tab-names[2] }];
-                selected <=> Stats.tab;
-                changed => {
-                    Stats.tab-changed();
-                }
-            }
-            Rectangle {
-                horizontal-stretch: 1;
-            }
-        }
-
-        Rectangle {
+        if Stats.view == 0: VerticalLayout {
             vertical-stretch: 1;
-            border-radius: Theme.radius-l;
-            background: Theme.color.surface-container-lowest;
-            border-width: 1px;
-            border-color: Theme.color.outline-variant;
-            clip: true;
+            spacing: Theme.sp3;
+            HorizontalLayout {
+                spacing: Theme.sp3;
+                VerticalLayout {
+                    alignment: start;
+                    padding-top: 8px;
+                    SegmentedButton {
+                        width: 420px;
+                        segments: [{ text: "Сегодня" }, { text: "Вчера" }, { text: "7 дней" }, { text: "30 дней" }];
+                        selected <=> Stats.preset;
+                        changed(i) => {
+                            Stats.preset-picked(i);
+                        }
+                    }
+                }
+                if !App.narrow: PeriodFields { }
+                Rectangle {
+                    horizontal-stretch: 1;
+                }
+            }
 
-            if !Stats.has-data && !Stats.loading: EmptyState {
-                icon: Icons.monitoring;
-                title: "Нет данных за период";
-                text: "Статистика строится по журналу эфира. Выберите другой период.";
-            }
-            if Stats.has-data: VerticalLayout {
-                ListHeader {
-                    gap: Theme.sp3;
-                    SortHeader {
-                        horizontal-stretch: 1;
-                        text: "Ролик";
-                        key: 0;
-                    }
-                    SortHeader {
-                        width: 130px;
-                        text: "Тип";
-                        key: 1;
-                    }
-                    SortHeader { width: 84px; text: "Показов"; key: 2; right: true; }
-                    SortHeader { width: 84px; text: "Полностью"; key: 3; right: true; }
-                    SortHeader { width: 84px; text: "Прервано"; key: 4; right: true; }
-                    SortHeader { width: 84px; text: "Пропущено"; key: 5; right: true; }
-                    SortHeader { width: 150px; text: "В эфире"; key: 6; right: true; }
-                }
-                if Stats.rows.length == 0: EmptyState {
-                    icon: Icons.campaign;
-                    title: Stats.tab == 0 ? "Реклама не выходила" : Stats.tab == 1 ? "Анонсы не выходили" : "Ничего не выходило";
-                    text: "За выбранный период в журнале эфира нет таких записей.";
-                }
-                if Stats.rows.length > 0: ListView {
-                    for r in Stats.rows: StatRowView {
-                        item: r;
-                    }
+            if App.narrow: HorizontalLayout {
+                PeriodFields { }
+                Rectangle {
+                    horizontal-stretch: 1;
                 }
             }
+
+            if Stats.loading: LinearProgress {
+                height: 4px;
+                indeterminate: true;
+            }
+
+            if Stats.has-data: HorizontalLayout {
+                spacing: Theme.sp3;
+                for k in Stats.kpis: KpiCard {
+                    kpi: k;
+                }
+            }
+
+            if Stats.has-data: HorizontalLayout {
+                SegmentedButton {
+                    width: 480px;
+                    segments: [{ text: Stats.tab-names[0] }, { text: Stats.tab-names[1] }, { text: Stats.tab-names[2] }];
+                    selected <=> Stats.tab;
+                    changed => {
+                        Stats.tab-changed();
+                    }
+                }
+                Rectangle {
+                    horizontal-stretch: 1;
+                }
+            }
+
+            Rectangle {
+                vertical-stretch: 1;
+                border-radius: Theme.radius-l;
+                background: Theme.color.surface-container-lowest;
+                border-width: 1px;
+                border-color: Theme.color.outline-variant;
+                clip: true;
+
+                if !Stats.has-data && !Stats.loading: EmptyState {
+                    icon: Icons.monitoring;
+                    title: "Нет данных за период";
+                    text: "Статистика строится по журналу эфира. Выберите другой период.";
+                }
+                if Stats.has-data: VerticalLayout {
+                    ListHeader {
+                        gap: Theme.sp3;
+                        SortHeader {
+                            horizontal-stretch: 1;
+                            text: "Ролик";
+                            key: 0;
+                        }
+                        SortHeader {
+                            width: 130px;
+                            text: "Тип";
+                            key: 1;
+                        }
+                        SortHeader { width: 84px; text: "Показов"; key: 2; right: true; }
+                        SortHeader { width: 84px; text: "Полностью"; key: 3; right: true; }
+                        SortHeader { width: 84px; text: "Прервано"; key: 4; right: true; }
+                        SortHeader { width: 84px; text: "Пропущено"; key: 5; right: true; }
+                        SortHeader { width: 150px; text: "В эфире"; key: 6; right: true; }
+                    }
+                    if Stats.rows.length == 0: EmptyState {
+                        icon: Icons.campaign;
+                        title: Stats.tab == 0 ? "Реклама не выходила" : Stats.tab == 1 ? "Анонсы не выходили" : "Ничего не выходило";
+                        text: "За выбранный период в журнале эфира нет таких записей.";
+                    }
+                    if Stats.rows.length > 0: ListView {
+                        for r in Stats.rows: StatRowView {
+                            item: r;
+                        }
+                    }
+                }
+            }
+        }
+        if Stats.view == 1: SystemPanel {
+            vertical-stretch: 1;
         }
     }
 }

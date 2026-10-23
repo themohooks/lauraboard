@@ -79,6 +79,7 @@ pub fn router(state: AppState) -> Router {
         .route("/events", get(crate::ws::events_all))
         .route("/logs", get(reports::logs))
         .route("/version", get(status::version))
+        .route("/system", get(status::system))
         .route("/archives/inspect", post(transfer::inspect))
         .route("/archives/import", post(transfer::import))
         .route("/jobs", get(jobs::list))

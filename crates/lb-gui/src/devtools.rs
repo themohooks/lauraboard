@@ -346,6 +346,16 @@ fn prepare_live(section: &str) {
             crate::bridge::log::opened(c);
         });
     }
+    if section == "stats"
+        && let Ok(view) = std::env::var("LB_SNAPSHOT_TAB")
+    {
+        crate::bridge::with(move |c| {
+            if let Some(ui) = c.window() {
+                ui.global::<crate::shell::Stats>().set_view(view.parse().unwrap_or(0));
+            }
+            crate::bridge::system::opened(c);
+        });
+    }
     if section == "playlists" {
         crate::bridge::with(|c| {
             if let Some(id) = c.model.playlists.first().map(|p| p.id.clone()) {

@@ -31,6 +31,7 @@ pub mod settings;
 pub mod shell;
 pub mod sources;
 pub mod stats;
+pub mod system;
 pub mod thumbs;
 
 use std::cell::RefCell;
@@ -79,6 +80,7 @@ pub struct Ctx {
     pub src: sources::SourcesState,
     pub picker: picker::PickerState,
     pub notify: notifications::NotifyState,
+    pub system: system::SystemState,
     pub jobs: jobs::JobsState,
     /// The notification-area icon is up (closing hides the window).
     pub has_tray: bool,
@@ -150,6 +152,7 @@ pub fn start(ui: &AppWindow, opts: &GuiOptions, prefs: UiPrefs) {
         src: Default::default(),
         picker: Default::default(),
         notify: Default::default(),
+        system: Default::default(),
         jobs: Default::default(),
         has_tray: false,
         channel_config: None,
@@ -170,6 +173,7 @@ pub fn start(ui: &AppWindow, opts: &GuiOptions, prefs: UiPrefs) {
     graphics::connect(ui);
     log::connect(ui);
     stats::connect(ui);
+    system::connect(ui);
     sources::connect(ui);
     encoder::connect(ui);
     record::connect(ui);

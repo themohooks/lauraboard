@@ -23,6 +23,15 @@ pub async fn version() -> Json<serde_json::Value> {
     Json(serde_json::json!({ "name": "laurabrod", "version": env!("CARGO_PKG_VERSION"), "api": 1 }))
 }
 
+/// Host metrics: CPU, memory, disks, network, Laurabrod and FFmpeg processes.
+pub async fn system(c: Caller) -> ApiResult<Json<lb_engine::system::SystemInfo>> {
+    c.require(Role::Viewer)?;
+    let info = tokio::task::spawn_blocking(lb_engine::system::snapshot)
+        .await
+        .map_err(|e| ApiError::new(axum::http::StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+    Ok(Json(info))
+}
+
 pub async fn channels(State(s): State<AppState>, c: Caller) -> ApiResult<Json<Vec<ChannelStatus>>> {
     c.require(Role::Viewer)?;
     Ok(Json(s.engine.channels().iter().map(|h| h.status()).collect()))
