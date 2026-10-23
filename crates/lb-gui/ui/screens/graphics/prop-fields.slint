@@ -1,9 +1,10 @@
 // Inputs of the graphics properties panel: a text field that applies on
-// every edit, and a colour field with a swatch.
+// every edit, and a colour field with a swatch that opens a colour picker.
 
 import { Theme } from "../../theme/tokens.slint";
 import { TextField } from "../../components/text-field.slint";
 import { Gfx } from "../../state/graphics-state.slint";
+import { ColorPicker } from "../../components/color-picker.slint";
 
 export component Field inherits TextField {
     container-color: Theme.color.surface-container-low;
@@ -22,13 +23,61 @@ export component ColorField inherits HorizontalLayout {
     VerticalLayout {
         alignment: start;
         padding-top: 8px;
-        Rectangle {
+        swatch-box := Rectangle {
             width: 32px;
             height: 32px;
             border-radius: Theme.radius-xs;
-            border-width: 1px;
-            border-color: Theme.color.outline;
+            border-width: touch.has-hover ? 2px : 1px;
+            border-color: touch.has-hover ? Theme.color.primary : Theme.color.outline;
             background: root.swatch;
+            touch := TouchArea {
+                mouse-cursor: MouseCursor.pointer;
+                clicked => {
+                    popup.show();
+                }
+            }
+            popup := PopupWindow {
+                x: 0;
+                y: swatch-box.height + 4px;
+                width: 264px;
+                close-policy: close-on-click-outside;
+                Rectangle {
+                    background: Theme.color.surface-container-high;
+                    border-radius: Theme.radius-m;
+                    drop-shadow-blur: 12px;
+                    drop-shadow-offset-y: 4px;
+                    drop-shadow-color: Theme.color.shadow.with-alpha(Theme.dark ? 0.5 : 0.25);
+                    VerticalLayout {
+                        padding: Theme.sp3;
+                        spacing: Theme.sp2;
+                        picker := ColorPicker {
+                            init => {
+                                self.set-color(root.swatch);
+                            }
+                            changed(c) => {
+                                root.value = Gfx.color-hex(c);
+                                Gfx.props-changed();
+                            }
+                        }
+                        HorizontalLayout {
+                            spacing: Theme.sp2;
+                            Field {
+                                horizontal-stretch: 1;
+                                label: root.label;
+                                text <=> root.value;
+                                placeholder: root.placeholder;
+                                mono: true;
+                                edited => {
+                                    // only complete #RRGGBB / #RRGGBBAA
+                                    if root.value.character-count == 7 || root.value.character-count == 9 {
+                                        picker.set-color(Gfx.parse-color(root.value));
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
     Field {

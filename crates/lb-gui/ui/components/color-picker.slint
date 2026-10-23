@@ -1,0 +1,171 @@
+// HSV colour picker: saturation / brightness square, hue strip, optional
+// opacity strip and a row of presets. Drag or click anywhere on a strip.
+// `set-color` loads a colour; `changed` fires on every user change.
+
+import { Theme } from "../theme/tokens.slint";
+
+// Round marker on a strip / the square.
+component Knob inherits Rectangle {
+    width: 14px;
+    height: 14px;
+    border-radius: 7px;
+    border-width: 2px;
+    border-color: #ffffff;
+    drop-shadow-blur: 2px;
+    drop-shadow-color: #00000080;
+}
+
+// Grey checkerboard behind translucent colours.
+component Checker inherits Rectangle {
+    clip: true;
+    background: #ffffff;
+    for i in 64: Rectangle {
+        x: mod(i, 32) * 8px;
+        y: floor(i / 32) * 8px;
+        width: 8px;
+        height: 8px;
+        background: mod(mod(i, 32) + floor(i / 32), 2) == 0 ? #cccccc : #ffffff;
+    }
+}
+
+// Horizontal strip with a draggable knob; `pos` is 0…1.
+component Strip inherits Rectangle {
+    in-out property <float> pos;
+    in property <brush> fill;
+    in property <bool> checker;
+    out property <bool> dragging: touch.pressed;
+    callback moved(float);
+
+    height: 16px;
+    if root.checker: Checker {
+        border-radius: 8px;
+    }
+    Rectangle {
+        border-radius: 8px;
+        background: root.fill;
+        border-width: 1px;
+        border-color: Theme.color.outline-variant;
+    }
+    Knob {
+        x: root.pos * (parent.width - self.width);
+        y: (parent.height - self.height) / 2;
+    }
+    touch := TouchArea {
+        mouse-cursor: MouseCursor.pointer;
+        function pick() {
+            root.pos = clamp((self.mouse-x - 7px) / (self.width - 14px), 0, 1);
+            root.moved(root.pos);
+        }
+        pointer-event(e) => {
+            if e.kind == PointerEventKind.down && e.button == PointerEventButton.left {
+                self.pick();
+            }
+        }
+        moved => {
+            if self.pressed {
+                self.pick();
+            }
+        }
+    }
+}
+
+export component ColorPicker inherits VerticalLayout {
+    in property <bool> with-alpha: true;
+    // 0…360
+    in-out property <float> hue;
+    in-out property <float> sat: 1;
+    in-out property <float> val: 1;
+    in-out property <float> alpha: 1;
+    out property <color> current: hsv(root.hue, root.sat, root.val, root.alpha);
+    out property <bool> dragging: square-touch.pressed || hue-strip.dragging || alpha-strip.dragging;
+    callback changed(color);
+
+    public function set-color(c: color) {
+        let h = c.to-hsv();
+        // greys have no hue: keep the strip where it is
+        if h.saturation > 0.001 && h.value > 0.001 {
+            root.hue = h.hue;
+        }
+        root.sat = h.saturation;
+        root.val = h.value;
+        root.alpha = h.alpha;
+    }
+
+    spacing: Theme.sp2;
+
+    square := Rectangle {
+        height: 150px;
+        border-radius: Theme.radius-xs;
+        clip: true;
+        background: hsv(root.hue, 1, 1);
+        Rectangle {
+            background: @linear-gradient(90deg, #ffffff 0%, #ffffff00 100%);
+        }
+        Rectangle {
+            background: @linear-gradient(180deg, #00000000 0%, #000000 100%);
+        }
+        Knob {
+            x: root.sat * parent.width - self.width / 2;
+            y: (1 - root.val) * parent.height - self.height / 2;
+            background: hsv(root.hue, root.sat, root.val);
+        }
+        square-touch := TouchArea {
+            mouse-cursor: MouseCursor.crosshair;
+            function pick() {
+                root.sat = clamp(self.mouse-x / self.width, 0, 1);
+                root.val = 1 - clamp(self.mouse-y / self.height, 0, 1);
+                root.changed(root.current);
+            }
+            pointer-event(e) => {
+                if e.kind == PointerEventKind.down && e.button == PointerEventButton.left {
+                    self.pick();
+                }
+            }
+            moved => {
+                if self.pressed {
+                    self.pick();
+                }
+            }
+        }
+    }
+    hue-strip := Strip {
+        pos: root.hue / 360;
+        fill: @linear-gradient(90deg, #ff0000 0%, #ffff00 16.7%, #00ff00 33.3%, #00ffff 50%, #0000ff 66.7%, #ff00ff 83.3%, #ff0000 100%);
+        moved(p) => {
+            root.hue = p * 360;
+            root.changed(root.current);
+        }
+    }
+    alpha-strip := Strip {
+        visible: root.with-alpha;
+        height: root.with-alpha ? 16px : 0;
+        checker: true;
+        pos: root.alpha;
+        fill: @linear-gradient(90deg, hsv(root.hue, root.sat, root.val, 0) 0%, hsv(root.hue, root.sat, root.val, 1) 100%);
+        moved(p) => {
+            root.alpha = p;
+            root.changed(root.current);
+        }
+    }
+    HorizontalLayout {
+        spacing: 3px;
+        alignment: space-between;
+        for c in [#ffffff, #000000, #c0182b, #e53935, #fb8c00, #fdd835, #43a047, #00acc1, #1e88e5, #3949ab, #8e24aa, #757575]: Rectangle {
+            width: 16px;
+            height: 16px;
+            border-radius: 8px;
+            background: c;
+            border-width: 1px;
+            border-color: Theme.color.outline-variant;
+            TouchArea {
+                mouse-cursor: MouseCursor.pointer;
+                clicked => {
+                    let a = root.alpha;
+                    root.set-color(c);
+                    root.alpha = a;
+                    root.changed(root.current);
+                }
+            }
+        }
+    }
+}

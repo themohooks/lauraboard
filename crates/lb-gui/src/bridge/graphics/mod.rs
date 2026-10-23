@@ -108,7 +108,7 @@ fn label(e: &Element) -> String {
 }
 
 /// `#RRGGBB[AA]` → colour for swatches.
-fn color_of(hex: &str) -> Color {
+pub(crate) fn color_of(hex: &str) -> Color {
     if !placement::valid_color(hex) {
         return Color::from_argb_u8(0, 0, 0, 0);
     }
@@ -117,10 +117,18 @@ fn color_of(hex: &str) -> Color {
     Color::from_argb_u8(if h.len() == 8 { b(6) } else { 255 }, b(0), b(2), b(4))
 }
 
+/// Colour → `#RRGGBB`, or `#RRGGBBAA` when translucent.
+fn hex_of(c: Color) -> String {
+    let base = format!("#{:02X}{:02X}{:02X}", c.red(), c.green(), c.blue());
+    if c.alpha() == 255 { base } else { format!("{base}{:02X}", c.alpha()) }
+}
+
 pub fn connect(ui: &AppWindow) {
     design::connect(ui);
     fonts::connect(ui);
     let g = ui.global::<Gfx>();
+    g.on_color_hex(|c| hex_of(c).into());
+    g.on_parse_color(|s| color_of(&s));
     g.on_select(|i| {
         with(move |c| {
             let sel = usize::try_from(i).ok();

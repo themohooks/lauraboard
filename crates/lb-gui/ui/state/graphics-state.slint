@@ -211,6 +211,9 @@ export global Gfx {
     callback drag-end();
     callback nudge(float, float);
     callback props-changed();
+    // colour picker: colour → "#RRGGBB" / "#RRGGBBAA", and back
+    pure callback color-hex(color) -> string;
+    pure callback parse-color(string) -> color;
     // append a {variable} to the selected element's text
     callback insert-var(string);
     // file dialog for the image element
