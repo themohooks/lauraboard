@@ -39,6 +39,10 @@ pub struct OutputStatus {
     #[serde(default)]
     pub last_error: Option<String>,
     pub targets: Vec<String>,
+    /// Network outputs that are failing right now (the encoder keeps
+    /// running and retries them).
+    #[serde(default)]
+    pub problems: Vec<String>,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]

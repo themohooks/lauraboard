@@ -152,7 +152,7 @@ pub fn copy_dir(from: &Path, to: &Path, skip: &[PathBuf]) -> std::io::Result<()>
     for e in std::fs::read_dir(from)? {
         let e = e?;
         let src = e.path();
-        if skip.iter().any(|s| *s == src) {
+        if skip.contains(&src) {
             continue;
         }
         let dst = to.join(e.file_name());

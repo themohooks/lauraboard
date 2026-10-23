@@ -265,11 +265,18 @@ pub fn status_changed(c: &mut Ctx) {
         state: state.into(),
         state_text: state_text.into(),
         manual: s.manual,
-        encoder_ok: o.running && o.last_error.is_none(),
+        encoder_ok: o.running && o.last_error.is_none() && o.problems.is_empty(),
         encoder_text: encoder_text.into(),
         encoder_detail: encoder_detail.into(),
         plan_warnings: s.plan_warnings as i32,
-        last_error: s.last_error.clone().or_else(|| o.last_error.clone()).unwrap_or_default().into(),
+        last_error: s
+            .last_error
+            .clone()
+            .or_else(|| o.last_error.clone())
+            .or_else(|| o.problems.first().cloned())
+            .map(|e| crate::ru::server(&e))
+            .unwrap_or_default()
+            .into(),
         clock: g.get_status().clock,
         to_next_program: s.time_to_next_program_ms.map(|t| hms(t.max(0))).unwrap_or_default().into(),
         outputs: o.targets.join(", ").into(),

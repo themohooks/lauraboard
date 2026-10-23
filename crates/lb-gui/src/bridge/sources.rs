@@ -298,7 +298,8 @@ pub fn refresh(c: &mut Ctx) {
     }
     enc.push(fact("Перезапусков", o.restarts.to_string()));
     g.set_encoder(vec_model(enc));
-    g.set_last_error(o.last_error.clone().unwrap_or_default().into());
+    let errors: Vec<String> = o.last_error.iter().chain(&o.problems).map(|e| crate::ru::server(e)).collect();
+    g.set_last_error(errors.join("\n").into());
     g.set_active_targets(vec_model(o.targets.iter().map(|t| SharedString::from(mask_url(t))).collect()));
 
     let cfg: Option<ChannelConfig> = c.channel_config.clone().and_then(|v| serde_json::from_value(v).ok());

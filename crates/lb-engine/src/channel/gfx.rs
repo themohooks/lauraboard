@@ -1,6 +1,11 @@
 //! Graphics thread: renders overlay frames and streams them to the encoder
-//! over a local TCP connection. Writing blocks when ffmpeg has enough
-//! frames, which paces rendering to the encoder's consumption.
+//! over a local TCP connection.
+//!
+//! The thread paces itself: frames go out at the wall-clock rate, a little
+//! ahead, and never further ahead of the encoder's progress than a couple of
+//! seconds. Socket back-pressure cannot be relied on: Windows loopback
+//! accepts writes without limit and aborts the connection once gigabytes
+//! pile up (the overlay then vanished after ~20 s).
 //!
 //! Frames are timed by their index (`start + n / fps`), not by the moment
 //! they happen to be rendered, so motion (tickers, slides) advances by the
@@ -13,9 +18,10 @@ use std::io::Write;
 use std::net::{TcpListener, TcpStream};
 use std::path::PathBuf;
 use std::panic::{AssertUnwindSafe, catch_unwind};
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard};
 use std::thread::JoinHandle;
+use std::time::Duration;
 
 use lb_core::graphics::{self, ActiveGraphic, GfxContext, GraphicsConfig, Manual};
 use lb_core::rundown::RundownItem;
@@ -40,6 +46,9 @@ pub type SharedGfx = Arc<Mutex<GfxState>>;
 
 pub struct GfxThread {
     pub port: u16,
+    /// Frames the connected encoder has processed (from its progress
+    /// reports); reset when an encoder starts.
+    pub consumed: Arc<AtomicU64>,
     stop: Arc<AtomicBool>,
     handle: Option<JoinHandle<()>>,
 }
@@ -47,6 +56,12 @@ pub struct GfxThread {
 /// A frame clock drifting further than this from the wall clock is resynced
 /// (encoder stalled or restarted).
 const MAX_DRIFT_MS: i64 = 750;
+/// Frames are sent this much ahead of the wall clock, so the overlay never
+/// holds the video back.
+const LEAD_MS: i64 = 300;
+/// Seconds of frames allowed beyond the encoder's reported progress
+/// (reports come once a second).
+const MAX_AHEAD_S: f64 = 2.5;
 
 fn lock(shared: &SharedGfx) -> MutexGuard<'_, GfxState> {
     shared.lock().unwrap_or_else(|e| e.into_inner())
@@ -78,6 +93,8 @@ impl GfxThread {
         let port = listener.local_addr()?.port();
         let stop = Arc::new(AtomicBool::new(false));
         let stop2 = stop.clone();
+        let consumed = Arc::new(AtomicU64::new(0));
+        let consumed2 = consumed.clone();
         let handle = std::thread::Builder::new().name(format!("gfx-{channel}")).spawn(move || {
             let cfg = lock(&shared).cfg.clone();
             let mut comp = Compositor::new(width, height, cfg, &root);
@@ -88,10 +105,10 @@ impl GfxThread {
                 }
                 let Ok(stream) = conn else { continue };
                 tracing::debug!(channel = %channel, "graphics consumer connected");
-                serve(&shared, &mut comp, &mut version, stream, fps, &stop2, &channel);
+                serve(&shared, &mut comp, &mut version, stream, fps, &stop2, &consumed2, &channel);
             }
         })?;
-        Ok(GfxThread { port, stop, handle: Some(handle) })
+        Ok(GfxThread { port, consumed, stop, handle: Some(handle) })
     }
 
     /// The thread ended unexpectedly (it must be respawned).
@@ -119,25 +136,40 @@ fn serve(
     mut stream: TcpStream,
     fps: f64,
     stop: &AtomicBool,
+    consumed: &AtomicU64,
     channel: &str,
 ) {
     let _ = stream.set_nodelay(true);
     let frame_ms = 1000.0 / fps.max(1.0);
+    let max_ahead = (fps * MAX_AHEAD_S).ceil() as u64;
     let mut start = now();
     let mut n: u64 = 0;
+    // frames written on this connection (`n` restarts on a resync)
+    let mut sent: u64 = 0;
     let mut failing = false;
     loop {
+        // the encoder is behind (slower than real time, or stalled): wait
+        // rather than queue frames in the socket
+        while sent > consumed.load(Ordering::Relaxed) + max_ahead {
+            if stop.load(Ordering::Relaxed) {
+                return;
+            }
+            std::thread::sleep(Duration::from_millis(10));
+        }
         if stop.load(Ordering::Relaxed) {
             return;
         }
-        let wall = now();
         let mut at = lb_core::add_ms(start, (n as f64 * frame_ms).round() as i64);
-        if diff_ms(at, wall).abs() > MAX_DRIFT_MS {
-            start = wall;
+        let ahead = diff_ms(at, now());
+        if ahead > LEAD_MS {
+            std::thread::sleep(Duration::from_millis((ahead - LEAD_MS) as u64));
+        } else if ahead < -MAX_DRIFT_MS {
+            start = now();
             n = 0;
-            at = wall;
+            at = start;
         }
         n += 1;
+        sent += 1;
         let rendered = catch_unwind(AssertUnwindSafe(|| render_frame(shared, comp, version, at)));
         let frame: &[u8] = match rendered {
             Ok(()) => {
@@ -153,7 +185,8 @@ fn serve(
                 comp.clear()
             }
         };
-        if stream.write_all(frame).is_err() {
+        if let Err(e) = stream.write_all(frame) {
+            tracing::warn!(channel = %channel, "graphics consumer gone: {e}");
             return;
         }
     }

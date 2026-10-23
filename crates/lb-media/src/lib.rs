@@ -21,5 +21,6 @@ pub mod jpeg;
 pub mod probe;
 pub mod process;
 pub mod progress;
+pub mod redact;
 
 pub use error::{MediaError, Result};

@@ -40,6 +40,7 @@ impl Runtime {
         if self.output.running() {
             if self.encoder_up_since.is_some_and(|t| t.elapsed() >= HEALTHY_AFTER) {
                 self.output.mark_healthy();
+                self.last_error = None;
             }
             return;
         }
@@ -53,9 +54,9 @@ impl Runtime {
 
     pub(super) async fn start_encoder(&mut self) {
         let data = self.shared.data.read().unwrap_or_else(|e| e.into_inner()).clone();
-        let port = self.gfx_thread.as_ref().map(|g| g.port);
+        let gfx = self.gfx_thread.as_ref().map(|g| (g.port, g.consumed.clone()));
         self.encoder_config = Some(data.config.clone());
-        match self.output.start(&self.shared.app.ffmpeg, &data, &self.shared.root, port).await {
+        match self.output.start(&self.shared.app.ffmpeg, &data, &self.shared.root, gfx).await {
             Ok(()) => {
                 self.encoder_up_since = Some(Instant::now());
                 let codec = self.output.status().video_codec;
