@@ -14,7 +14,7 @@ use serde::Deserialize;
 use tokio::sync::Semaphore;
 
 use lb_core::config::Role;
-use lb_core::media::{MediaItem, MediaKind};
+use lb_core::media::{MediaDisplay, MediaItem, MediaKind};
 use lb_core::project::paths;
 
 use super::channel;
@@ -84,6 +84,53 @@ pub async fn thumb(
     remove_stale(&dir, &key).await;
     let _ = tokio::fs::rename(&tmp, &file).await;
     Ok(jpeg(bytes))
+}
+
+/// One frame of the media as it would look on air with `display` (body):
+/// channel size and scaling, crop and picture filters. Not cached.
+pub async fn preview(
+    State(s): State<AppState>,
+    c: Caller,
+    Path((id, media)): Path<(String, String)>,
+    Query(q): Query<ThumbQuery>,
+    axum::Json(display): axum::Json<MediaDisplay>,
+) -> ApiResult<Response> {
+    c.require(Role::Viewer)?;
+    let h = channel(&s, &id)?;
+    let (item, video) = h
+        .read(|d| d.library.get(&media).cloned().map(|m| (m, d.config.video.clone())))
+        .ok_or_else(|| ApiError::not_found(format!("media '{media}'")))?;
+    if item.kind == MediaKind::Stream || item.is_url() {
+        return Err(ApiError::not_found("no preview for streams"));
+    }
+    let src = paths::resolve(&h.shared.root, &item.path);
+    if !src.exists() {
+        return Err(ApiError::not_found("media file not found"));
+    }
+    let w = q.w.unwrap_or(480).clamp(32, 1280);
+    let chain = lb_media::args::filters::video_chain(&video, &display, 0, 0, 0);
+    let graph = format!("[0:v:0]{chain},scale={w}:-2[v]");
+    static SLOTS: OnceLock<Semaphore> = OnceLock::new();
+    let _slot = SLOTS.get_or_init(|| Semaphore::new(PARALLEL)).acquire().await.map_err(|_| ApiError::not_found("shutting down"))?;
+    let mut cmd = lb_media::process::command(&s.engine.app.ffmpeg.ffmpeg);
+    cmd.args(["-hide_banner", "-loglevel", "error", "-nostdin"]);
+    let at = seek_ms(&item);
+    if at > 0 {
+        cmd.args(["-ss", &lb_media::args::secs(at)]);
+    }
+    cmd.arg("-i").arg(&src);
+    cmd.args(["-filter_complex", &graph, "-map", "[v]", "-frames:v", "1", "-an", "-q:v", "4", "-f", "image2", "-c:v", "mjpeg", "pipe:1"]);
+    cmd.stdout(std::process::Stdio::piped()).stderr(std::process::Stdio::piped());
+    let out = match tokio::time::timeout(TIMEOUT, cmd.output()).await {
+        Ok(Ok(o)) => o,
+        Ok(Err(e)) => return Err(internal(e)),
+        Err(_) => return Err(internal("ffmpeg timed out")),
+    };
+    if !out.status.success() || out.stdout.is_empty() {
+        let err = String::from_utf8_lossy(&out.stderr).lines().last().unwrap_or("could not render a frame").to_string();
+        return Err(ApiError::bad_request(err));
+    }
+    Ok(([(header::CONTENT_TYPE, "image/jpeg"), (header::CACHE_CONTROL, "no-store")], out.stdout).into_response())
 }
 
 fn jpeg(b: Vec<u8>) -> Response {

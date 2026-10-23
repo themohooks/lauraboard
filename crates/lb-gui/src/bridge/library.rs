@@ -30,6 +30,8 @@ pub struct LibraryState {
     edit_id: Option<String>,
     /// Explicit folders from the server (empty ones included).
     pub folders: Vec<String>,
+    /// Display settings section of the edit sheet.
+    pub display: super::media_display::DisplayState,
 }
 
 pub fn connect(ui: &AppWindow) {
@@ -291,6 +293,7 @@ fn open_edit(c: &mut Ctx, row: i32) {
     g.set_focused(row);
     g.set_edit_open(true);
     c.lib.edit_id = Some(id);
+    super::media_display::load(c, &m);
 }
 
 fn parse_num(s: &str) -> Option<f64> {
@@ -328,6 +331,9 @@ fn save_edit(c: &mut Ctx) {
     m.weight = parse_num(&g.get_e_weight()).unwrap_or(1.0);
     m.enabled = g.get_e_enabled();
     m.folder = folders::option_path(c, g.get_e_folder());
+    if let Some(d) = super::media_display::read(c) {
+        m.display = d;
+    }
     g.set_edit_open(false);
     put_media(c, m, "Сохранено");
 }

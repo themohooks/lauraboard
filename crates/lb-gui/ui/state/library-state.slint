@@ -91,6 +91,38 @@ export global Lib {
     in property <string> e-volume-error;
     in property <string> e-weight-error;
 
+    // edit sheet, display settings (scaling, crop, picture filters)
+    // 0 = channel setting, 1 fit, 2 fill, 3 stretch, 4 blurred background
+    in-out property <int> d-scale;
+    // index in d-aspect-options (0 = from the file)
+    in-out property <int> d-aspect;
+    in property <[string]> d-aspect-options;
+    // 0 none, 1 90° cw, 2 180°, 3 90° ccw
+    in-out property <int> d-rotate;
+    in-out property <bool> d-flip-h;
+    in-out property <bool> d-flip-v;
+    in-out property <bool> d-deinterlace;
+    in-out property <float> d-crop-left;
+    in-out property <float> d-crop-top;
+    in-out property <float> d-crop-right;
+    in-out property <float> d-crop-bottom;
+    in-out property <float> d-brightness;
+    in-out property <float> d-contrast: 1;
+    in-out property <float> d-saturation: 1;
+    in-out property <float> d-gamma: 1;
+    in-out property <float> d-sharpen;
+    in-out property <float> d-denoise;
+    // all settings at their defaults
+    in property <bool> d-default: true;
+    // the item has a picture the server can render
+    in property <bool> d-can-preview;
+    in property <image> d-preview;
+    in property <bool> d-has-preview;
+    in property <bool> d-previewing;
+    in property <string> d-preview-note;
+    callback d-changed();
+    callback d-reset();
+
     // import dialog
     in-out property <bool> import-open;
     in-out property <string> import-path;

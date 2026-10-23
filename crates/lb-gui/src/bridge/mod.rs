@@ -20,6 +20,7 @@ pub mod graphics;
 pub mod jobs;
 pub mod library;
 pub mod log;
+pub mod media_display;
 pub mod picker;
 pub mod playlists;
 pub mod rules;
@@ -158,6 +159,7 @@ pub fn start(ui: &AppWindow, opts: &GuiOptions, prefs: UiPrefs) {
     air::connect(ui);
     playlists::connect(ui);
     library::connect(ui);
+    media_display::connect(ui);
     folders::connect(ui);
     schedule::connect(ui);
     rules::connect(ui);
