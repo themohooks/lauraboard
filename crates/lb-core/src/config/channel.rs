@@ -5,6 +5,8 @@ use serde::{Deserialize, Serialize};
 use crate::Dur;
 use crate::planner::PlanMode;
 
+use super::RecordConfig;
+
 fn yes() -> bool {
     true
 }
@@ -223,33 +225,6 @@ pub struct OutputTarget {
     /// Container format override (`flv`, `mpegts`, `hls`); guessed from url.
     #[serde(default)]
     pub format: Option<String>,
-}
-
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct RecordConfig {
-    #[serde(default)]
-    pub enabled: bool,
-    /// Directory for recordings (relative to the channel dir).
-    #[serde(default = "RecordConfig::dir")]
-    pub dir: String,
-    /// Files are split by this length.
-    #[serde(default = "RecordConfig::seg")]
-    pub segment: Dur,
-}
-
-impl RecordConfig {
-    fn dir() -> String {
-        "recordings".into()
-    }
-    fn seg() -> Dur {
-        Dur::mins(60)
-    }
-}
-
-impl Default for RecordConfig {
-    fn default() -> Self {
-        RecordConfig { enabled: false, dir: Self::dir(), segment: Self::seg() }
-    }
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

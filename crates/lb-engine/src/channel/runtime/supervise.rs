@@ -21,6 +21,9 @@ impl Runtime {
                 self.restart_encoder().await;
             }
             self.check_encoder().await;
+            for p in self.output.housekeep() {
+                tracing::info!(channel = %self.shared.id, "old recording deleted: {}", p.display());
+            }
             self.watchdog().await;
             if self.last_save.elapsed() >= SAVE_EVERY {
                 self.save_state();

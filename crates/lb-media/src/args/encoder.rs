@@ -226,7 +226,7 @@ fn double_rate(r: &str) -> String {
 fn tee_spec(j: &EncodeJob) -> String {
     let mut slaves: Vec<String> = j.outputs.iter().filter(|o| o.enabled).map(tee_slave).collect();
     if let Some((rec, dir)) = &j.record {
-        slaves.push(record_slave(rec, dir, j.channel));
+        slaves.push(record_slave(rec, dir, j.channel, lb_core::config::expected_bitrate(j.encoder)));
     }
     if slaves.is_empty() {
         // nothing configured: still run the pipeline (preview, monitoring)

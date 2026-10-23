@@ -1,6 +1,6 @@
 //! Output targets → `tee` muxer slave specifications.
 
-use lb_core::config::{OutputTarget, RecordConfig};
+use lb_core::config::{OutputTarget, RecordConfig, RecordFormat};
 
 /// Guess the container from the URL when not configured.
 pub fn guess_format(url: &str) -> &'static str {
@@ -62,11 +62,20 @@ pub fn tee_slave(o: &OutputTarget) -> String {
     format!("[{opts}]{}", escape_tee(&o.url))
 }
 
-/// Tee slave for time-segmented local recording into `dir` (resolved).
-pub fn record_slave(rec: &RecordConfig, dir: &str, channel: &str) -> String {
-    let seg = (rec.segment.ms() / 1000).max(60);
-    let pattern = format!("{}/{channel}-%Y%m%d-%H%M%S.ts", dir.trim_end_matches(['/', '\\']));
-    format!("[f=segment:segment_time={seg}:segment_format=mpegts:strftime=1:reset_timestamps=1:onfail=ignore]{}", escape_tee(&pattern))
+/// Tee slave for segmented local recording into `dir` (resolved). Files
+/// are cut by time; with a size limit the length follows from `bitrate`
+/// (expected bits/s of the output).
+pub fn record_slave(rec: &RecordConfig, dir: &str, channel: &str, bitrate: Option<f64>) -> String {
+    let seg = rec.segment_secs(bitrate);
+    let ext = rec.format.extension();
+    let pattern = format!("{}/{}-%Y%m%d-%H%M%S.{ext}", dir.trim_end_matches(['/', '\\']), rec.file_prefix(channel));
+    let format = match rec.format {
+        // fragmented: a file cut short by a crash or power loss still plays
+        RecordFormat::Mp4 => "segment_format=mp4:segment_format_options=movflags=+frag_keyframe+empty_moov+default_base_moof",
+        RecordFormat::Mkv => "segment_format=matroska",
+        RecordFormat::Ts => "segment_format=mpegts",
+    };
+    format!("[f=segment:segment_time={seg}:{format}:strftime=1:reset_timestamps=1:onfail=ignore]{}", escape_tee(&pattern))
 }
 
 #[cfg(test)]
@@ -93,9 +102,13 @@ mod tests {
 
     #[test]
     fn record_pattern() {
-        let rec = RecordConfig { enabled: true, dir: "rec".into(), segment: Dur::mins(30) };
-        let s = record_slave(&rec, "D:\\tv\\rec\\", "main");
+        let rec = RecordConfig { enabled: true, dir: "rec".into(), segment: Dur::mins(30), format: RecordFormat::Ts, ..Default::default() };
+        let s = record_slave(&rec, "D:\\tv\\rec\\", "main", None);
         assert!(s.contains("segment_time=1800"));
         assert!(s.ends_with("]D:/tv/rec/main-%Y%m%d-%H%M%S.ts"));
+        let mp4 = RecordConfig { max_file_mb: 500, prefix: "laura".into(), format: RecordFormat::Mp4, ..rec };
+        let s = record_slave(&mp4, "rec", "main", Some(4_000_000.0));
+        assert!(s.contains("segment_time=970:segment_format=mp4:segment_format_options=movflags=+frag_keyframe"), "{s}");
+        assert!(s.ends_with("]rec/laura-%Y%m%d-%H%M%S.mp4"));
     }
 }

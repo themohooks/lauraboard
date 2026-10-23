@@ -43,6 +43,9 @@ pub struct OutputStatus {
     /// running and retries them).
     #[serde(default)]
     pub problems: Vec<String>,
+    /// Recording to files, while it is on and the encoder runs.
+    #[serde(default)]
+    pub recording: Option<super::recordings::RecordingStatus>,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
