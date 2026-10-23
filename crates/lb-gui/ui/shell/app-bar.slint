@@ -10,6 +10,9 @@ import { StatusChip, StatusTone } from "../components/indicators.slint";
 import { IconButton } from "../components/icon-button.slint";
 import { TimeDisplay } from "../components/monitor.slint";
 import { App } from "../state/app-state.slint";
+import { Chan } from "../state/channels-state.slint";
+import { Jobs } from "../state/jobs-state.slint";
+import { JobsIndicator } from "jobs-dialog.slint";
 
 export global StateTone {
     public pure function of(state: string) -> StatusTone {
@@ -42,14 +45,12 @@ export component AppBar inherits TopAppBar {
     VerticalLayout {
         alignment: center;
         IconButton {
-            icon: Icons.add;
-            tooltip: "Новый канал";
+            icon: Icons.tune;
+            tooltip: "Каналы: переименование, копия, удаление, экспорт";
             enabled: App.online;
             clicked => {
-                App.new-channel-id = "";
-                App.new-channel-name = "";
-                App.validate-new-channel("");
-                App.new-channel-open = true;
+                Chan.open = true;
+                Chan.opened();
             }
         }
     }
@@ -81,6 +82,10 @@ export component AppBar inherits TopAppBar {
                 tone: App.status.encoder-ok ? StatusTone.success : StatusTone.error;
                 icon: App.status.encoder-ok ? Icons.speed : Icons.error;
             }
+        }
+        if Jobs.running > 0: VerticalLayout {
+            alignment: center;
+            JobsIndicator { }
         }
         if App.status.plan-warnings > 0: VerticalLayout {
             alignment: center;

@@ -1,0 +1,63 @@
+// Data contract of the channel manager (src/bridge/channels.rs): list of
+// channels with their actions, and the rename / duplicate form.
+
+export struct ChannelRow {
+    id: string,
+    name: string,
+    // formatted state ("В эфире", "Остановлен" …)
+    state-text: string,
+    on-air: bool,
+    autostart: bool,
+    current: bool,
+}
+
+export global Chan {
+    in-out property <bool> open;
+    in property <[ChannelRow]> rows;
+
+    // form: "" (closed), "rename", "duplicate", "export" or "import"
+    in-out property <string> form;
+    // channel the form acts on
+    in property <string> form-source;
+    in property <bool> form-on-air;
+    in-out property <string> e-id;
+    in-out property <string> e-name;
+    in property <string> e-error;
+
+    // the manager was opened: refresh the list
+    callback opened();
+    // file dialogs are available (the server runs on this computer)
+    in property <bool> can-browse;
+
+    // export: parts and the archive path
+    in-out property <bool> x-settings: true;
+    in-out property <bool> x-outputs: false;
+    in-out property <bool> x-library: true;
+    in-out property <bool> x-media: true;
+    in-out property <bool> x-playlists: true;
+    in-out property <bool> x-schedules: true;
+    in-out property <bool> x-rules: true;
+    in-out property <bool> x-graphics: true;
+    in-out property <bool> x-history: false;
+    in-out property <string> x-path;
+    callback export(string);
+    callback browse-export();
+    callback start-export();
+
+    // import: archive, what it holds, new id / name
+    in-out property <string> i-path;
+    in property <string> i-info;
+    in property <bool> i-valid;
+    callback open-import();
+    callback browse-import();
+    callback inspect-import();
+    callback start-import();
+
+    callback select(string);
+    callback rename(string);
+    callback duplicate(string);
+    callback remove(string);
+    callback autostart(string, bool);
+    callback validate-id(string);
+    callback save-form();
+}

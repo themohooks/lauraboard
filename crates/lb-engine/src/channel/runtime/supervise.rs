@@ -16,6 +16,10 @@ const HEALTHY_AFTER: Duration = Duration::from_secs(60);
 impl Runtime {
     pub(super) async fn on_tick(&mut self) {
         if self.running {
+            if self.ensure_graphics() {
+                // the overlay thread was respawned on a new port
+                self.restart_encoder().await;
+            }
             self.check_encoder().await;
             self.watchdog().await;
             if self.last_save.elapsed() >= SAVE_EVERY {

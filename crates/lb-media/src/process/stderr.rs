@@ -35,7 +35,10 @@ where
             }
             tracing::warn!(target: "ffmpeg", process = %label, "{l}");
             if let Ok(mut g) = last_error.lock() {
-                *g = Some(l.to_string());
+                // a generic closing line must not hide the real cause
+                if g.is_none() || !is_trailer(l) {
+                    *g = Some(l.to_string());
+                }
             }
         }
     });
@@ -47,11 +50,26 @@ fn is_benign(l: &str) -> bool {
     PATTERNS.iter().any(|p| l.contains(p))
 }
 
+/// Summary lines ffmpeg prints on the way out after the actual error.
+fn is_trailer(l: &str) -> bool {
+    const PATTERNS: &[&str] = &[
+        "Nothing was written into output file",
+        "Conversion failed",
+        "Terminating thread with return code",
+        "Error closing file",
+        "Error writing trailer",
+        "Exiting normally",
+    ];
+    PATTERNS.iter().any(|p| l.contains(p))
+}
+
 #[cfg(test)]
 mod tests {
     #[test]
     fn benign_patterns() {
         assert!(super::is_benign("[in#0/mpegts] timestamp discontinuity (stream id=257)"));
         assert!(!super::is_benign("Connection refused"));
+        assert!(super::is_trailer("[out#1/image2pipe @ 0000] Nothing was written into output file, because at least one of its streams received no packets."));
+        assert!(!super::is_trailer("tcp://127.0.0.1:5000: Connection refused"));
     }
 }

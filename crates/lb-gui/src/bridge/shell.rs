@@ -219,7 +219,13 @@ fn tick_clock(c: &mut Ctx) {
 pub fn channels_changed(c: &mut Ctx) {
     let Some(ui) = c.window() else { return };
     let g = ui.global::<App>();
-    let list: Vec<slint::SharedString> = c.model.channels.iter().map(|s| s.into()).collect();
+    // the switcher shows names; the index maps back to `model.channels`
+    let list: Vec<slint::SharedString> = c
+        .model
+        .channels
+        .iter()
+        .map(|id| c.model.channel_info.iter().find(|e| &e.id == id).map(|e| e.label()).unwrap_or(id).into())
+        .collect();
     g.set_channels(slint::ModelRc::new(slint::VecModel::from(list)));
     let idx = c.model.channel.as_ref().and_then(|ch| c.model.channels.iter().position(|x| x == ch)).map(|i| i as i32).unwrap_or(-1);
     g.set_channel_index(idx);

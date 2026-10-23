@@ -1,9 +1,11 @@
 //! Frame assembly: draws active elements by layer onto a transparent canvas.
 
 use std::collections::HashMap;
+use std::panic::{AssertUnwindSafe, catch_unwind};
 use std::path::Path;
+use std::sync::Arc;
 
-use tiny_skia::{Pixmap, PixmapPaint, Transform};
+use tiny_skia::{FilterQuality, Pixmap, PixmapPaint, Transform};
 
 use lb_core::graphics::{ActiveGraphic, Element, ElementKind, GraphicsConfig, render_template};
 use lb_core::{Ms, WallTime};
@@ -26,7 +28,7 @@ pub struct FrameContext<'a> {
 
 pub struct Compositor {
     canvas: Pixmap,
-    cfg: GraphicsConfig,
+    cfg: Arc<GraphicsConfig>,
     sprites: SpriteFactory,
     /// Whether the last frame was empty (lets callers skip work).
     empty: bool,
@@ -38,7 +40,7 @@ impl Compositor {
     pub fn new(width: u32, height: u32, cfg: GraphicsConfig, root: &Path) -> Self {
         Compositor {
             canvas: Pixmap::new(width.max(1), height.max(1)).expect("canvas size"),
-            cfg,
+            cfg: Arc::new(cfg),
             sprites: SpriteFactory::new(FontStore::new(root), ImageCache::new(root)),
             empty: true,
             out: vec![0; (width.max(1) * height.max(1) * 4) as usize],
@@ -47,8 +49,21 @@ impl Compositor {
 
     /// Replace the graphics configuration (clears caches).
     pub fn set_config(&mut self, cfg: GraphicsConfig) {
-        self.cfg = cfg;
+        self.cfg = Arc::new(cfg);
         self.sprites.clear();
+    }
+
+    /// The last rendered frame (straight-alpha RGBA).
+    pub fn last_frame(&self) -> &[u8] {
+        &self.out
+    }
+
+    /// Reset to a fully transparent frame and return it.
+    pub fn clear(&mut self) -> &[u8] {
+        self.canvas.fill(tiny_skia::Color::TRANSPARENT);
+        self.out.fill(0);
+        self.empty = true;
+        &self.out
     }
 
     pub fn width(&self) -> u32 {
@@ -81,13 +96,16 @@ impl Compositor {
         }
         self.empty = ctx.active.is_empty();
         let region = Bx::new(0.0, 0.0, self.canvas.width() as f32, self.canvas.height() as f32);
-        let cfg = std::mem::take(&mut self.cfg);
+        let cfg = self.cfg.clone();
         for a in ctx.active {
             if let Some(el) = cfg.element(&a.element) {
-                self.draw(&cfg, el, region, ctx, a.shown_ms, a.hide_in_ms, 1.0, 0);
+                // one broken element must not take the whole overlay down
+                let drawn = catch_unwind(AssertUnwindSafe(|| self.draw(&cfg, el, region, ctx, a.shown_ms, a.hide_in_ms, 1.0, 0)));
+                if drawn.is_err() {
+                    tracing::warn!(element = %el.id, "graphics element failed to render");
+                }
             }
         }
-        self.cfg = cfg;
     }
 
     /// Current canvas as straight-alpha RGBA PNG (for thumbnails / tests).
@@ -132,23 +150,27 @@ impl Compositor {
                 let st = anim::state(&el.animation, shown, hide_in, band_w, h);
                 let Some(mut band) = Pixmap::new(band_w as u32, h as u32) else { return };
                 let cycle = sprite.width() as f32 + band_w;
-                let offset = ((shown.max(0) as f32 / 1000.0) * speed) % cycle;
+                let offset = ((shown.max(0) as f64 / 1000.0) * *speed as f64) % cycle as f64;
+                // sub-pixel position: whole-pixel steps alternate between
+                // two distances per frame and look jerky
+                let sx = band_w as f64 - offset;
+                let whole = sx.floor();
+                let paint = PixmapPaint { quality: FilterQuality::Bilinear, ..Default::default() };
                 band.draw_pixmap(
-                    (band_w - offset) as i32,
+                    whole as i32,
                     0,
                     Pixmap::as_ref(&sprite),
-                    &PixmapPaint::default(),
-                    Transform::identity(),
+                    &paint,
+                    Transform::from_translate((sx - whole) as f32, 0.0),
                     None,
                 );
                 self.blit(&band, x + st.dx, y + st.dy, parent_alpha * el.opacity * st.alpha);
             }
             _ => {
                 let Some(sprite) = self.sprites.sprite(el, ctx) else { return };
-                let (w, h) = (sprite.width() as f32, sprite.height() as f32);
-                let (x, y) = place(&el.placement, region, w, h);
-                let st = anim::state(&el.animation, shown, hide_in, w, h);
-                self.blit(&sprite, x + st.dx, y + st.dy, parent_alpha * el.opacity * st.alpha);
+                let (x, y) = place(&el.placement, region, sprite.w, sprite.h);
+                let st = anim::state(&el.animation, shown, hide_in, sprite.w, sprite.h);
+                self.blit(&sprite.pixmap, x - sprite.ox + st.dx, y - sprite.oy + st.dy, parent_alpha * el.opacity * st.alpha);
             }
         }
     }
@@ -188,7 +210,7 @@ mod tests {
         Element {
             id: id.into(),
             name: id.into(),
-            kind: ElementKind::Rect { color: color.into(), width: 10.0, height: 10.0, radius: 0.0 },
+            kind: ElementKind::Rect { color: color.into(), width: 10.0, height: 10.0, radius: 0.0, shape: Default::default() },
             placement: Placement { anchor, x: 0.0, y: 0.0, width: None, height: None },
             opacity: 1.0,
             layer: 0,

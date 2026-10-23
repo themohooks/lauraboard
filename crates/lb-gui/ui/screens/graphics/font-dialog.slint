@@ -1,0 +1,100 @@
+// Font picker: system families (shown in their own typeface) and font
+// files of the channel; a font file can be added from this computer.
+
+import { Theme } from "../../theme/tokens.slint";
+import { Icons } from "../../theme/icons.slint";
+import { Dialog, DialogActions } from "../../components/dialog.slint";
+import { Label } from "../../components/label.slint";
+import { ListRow } from "../../components/list-row.slint";
+import { SearchField } from "../../components/search-field.slint";
+import { Button, ButtonVariant } from "../../components/button.slint";
+import { CircularProgress } from "../../components/feedback.slint";
+import { Icon } from "../../components/icon.slint";
+import { Gfx, FontRow } from "../../state/graphics-state.slint";
+
+component FontLine inherits ListRow {
+    in property <FontRow> f;
+    height: 44px;
+    selected: Gfx.s-font == f.value;
+    clicked => {
+        Gfx.font-pick(f.value);
+    }
+    VerticalLayout {
+        alignment: center;
+        Icon {
+            source: f.file ? Icons.upload : Icons.text-fields;
+            tint: Theme.color.on-surface-variant;
+        }
+    }
+    Text {
+        horizontal-stretch: 1;
+        vertical-alignment: center;
+        text: f.name;
+        // system families preview in their own typeface
+        font-family: f.file ? "" : f.value;
+        font-size: 16px;
+        color: Theme.color.on-surface;
+        overflow: elide;
+    }
+    if f.file: Label {
+        text: "файл канала";
+        vertical-alignment: center;
+        type-style: Theme.body-small;
+        color: Theme.color.on-surface-variant;
+    }
+}
+
+export component FontDialog inherits Dialog {
+    open: Gfx.font-open;
+    dialog-width: 520px;
+    title: "Шрифт";
+    text: "Шрифты сервера вещания и файлы шрифтов канала (.ttf, .otf). Свой файл копируется в папку канала и переносится вместе с ним при экспорте.";
+    dismissed => {
+        Gfx.font-open = false;
+    }
+
+    SearchField {
+        placeholder: "Название шрифта";
+        text <=> Gfx.font-query;
+        edited => {
+            Gfx.font-search(self.text);
+        }
+    }
+    Rectangle {
+        height: 320px;
+        border-radius: Theme.radius-m;
+        border-width: 1px;
+        border-color: Theme.color.outline-variant;
+        clip: true;
+        if Gfx.font-loading: CircularProgress { }
+        Flickable {
+            VerticalLayout {
+                alignment: start;
+                FontLine {
+                    f: { value: "", name: "По умолчанию", file: false };
+                }
+                for f in Gfx.font-list: FontLine {
+                    f: f;
+                }
+            }
+        }
+    }
+    DialogActions {
+        Button {
+            text: "Загрузить файл шрифта…";
+            variant: ButtonVariant.outlined;
+            icon: Icons.upload;
+            has-icon: true;
+            clicked => {
+                Gfx.font-upload();
+            }
+        }
+        Button {
+            text: "Готово";
+            variant: ButtonVariant.text;
+            clicked => {
+                Gfx.font-open = false;
+            }
+        }
+    }
+}

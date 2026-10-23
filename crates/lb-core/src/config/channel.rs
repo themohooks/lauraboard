@@ -255,16 +255,26 @@ pub struct PreviewConfig {
     pub enabled: bool,
     #[serde(default = "PreviewConfig::w")]
     pub width: u32,
+    /// Frames per second; see [`PreviewConfig::effective_fps`].
     #[serde(default = "PreviewConfig::fps")]
     pub fps: f64,
 }
 
 impl PreviewConfig {
+    /// Fewer frames than this looks like a slideshow to the operator.
+    pub const MIN_FPS: f64 = 10.0;
+
     fn w() -> u32 {
-        480
+        640
     }
     fn fps() -> f64 {
-        5.0
+        15.0
+    }
+
+    /// Rate actually produced: at least [`Self::MIN_FPS`] (older channels
+    /// stored 5), never above the video rate.
+    pub fn effective_fps(&self, video_fps: f64) -> f64 {
+        self.fps.max(Self::MIN_FPS).min(video_fps.max(1.0))
     }
 }
 
@@ -320,7 +330,8 @@ impl Default for PlanningConfig {
 pub struct GraphicsOutput {
     #[serde(default = "yes")]
     pub enabled: bool,
-    /// Frame rate of the overlay layer.
+    /// Legacy and ignored: the overlay is rendered at the video frame rate
+    /// (a slower overlay makes tickers and slides stutter).
     #[serde(default = "GraphicsOutput::fps")]
     pub fps: f64,
     /// Active design profile.

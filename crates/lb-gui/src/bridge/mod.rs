@@ -12,8 +12,12 @@
 //! [`thumbs`] (media thumbnails).
 
 pub mod air;
+pub mod archive;
+pub mod channels;
 pub mod encoder;
+pub mod folders;
 pub mod graphics;
+pub mod jobs;
 pub mod library;
 pub mod log;
 pub mod picker;
@@ -71,6 +75,7 @@ pub struct Ctx {
     pub settings: settings::SettingsState,
     pub src: sources::SourcesState,
     pub picker: picker::PickerState,
+    pub jobs: jobs::JobsState,
     /// The notification-area icon is up (closing hides the window).
     pub has_tray: bool,
     /// Channel configuration (admin only; `None` when not available).
@@ -140,6 +145,7 @@ pub fn start(ui: &AppWindow, opts: &GuiOptions, prefs: UiPrefs) {
         settings: Default::default(),
         src: Default::default(),
         picker: Default::default(),
+        jobs: Default::default(),
         has_tray: false,
         channel_config: None,
         last_load: Default::default(),
@@ -147,9 +153,12 @@ pub fn start(ui: &AppWindow, opts: &GuiOptions, prefs: UiPrefs) {
     ui.global::<App>().set_api_url(api.base.clone().into());
     CTX.with(|c| *c.borrow_mut() = Some(ctx));
     shell::connect(ui);
+    channels::connect(ui);
+    jobs::connect(ui);
     air::connect(ui);
     playlists::connect(ui);
     library::connect(ui);
+    folders::connect(ui);
     schedule::connect(ui);
     rules::connect(ui);
     graphics::connect(ui);
@@ -253,7 +262,9 @@ impl Ctx {
 
     fn apply(&mut self, m: Msg) {
         match m {
-            Msg::Channels(list) => {
+            Msg::Channels(info) => {
+                let list: Vec<String> = info.iter().map(|c| c.id.clone()).collect();
+                self.model.channel_info = info;
                 if self.model.channel.as_ref().is_none_or(|c| !list.contains(c)) {
                     self.model.channel = list.first().cloned();
                 }
@@ -262,6 +273,7 @@ impl Ctx {
                     self.channel_selected(&c);
                 }
                 shell::channels_changed(self);
+                channels::refresh(self);
                 self.load_all();
             }
             Msg::Status(s) => {
@@ -343,6 +355,7 @@ impl Ctx {
                 self.toast(e, true);
             }
             Msg::Apply(f) => f(self),
+            Msg::Jobs(list) => jobs::changed(self, list),
             Msg::Connection(ok) => {
                 self.model.online = ok;
                 shell::status_changed(self);
@@ -373,7 +386,7 @@ impl Ctx {
     pub fn load_channels(&self) {
         self.worker.spawn(|api| {
             let list: Vec<Value> = api.get("/channels")?;
-            Ok(Msg::Channels(list.iter().filter_map(|c| c["channel"].as_str().map(str::to_string)).collect()))
+            Ok(Msg::Channels(list.iter().filter_map(crate::model::ChannelEntry::from_json).collect()))
         });
     }
 
@@ -390,6 +403,7 @@ impl Ctx {
         self.last_load.set(Some(std::time::Instant::now()));
         let c = ch.clone();
         self.worker.spawn(move |api| Ok(Msg::Library(api.get(&format!("/channels/{c}/media"))?)));
+        folders::load(self);
         let c = ch.clone();
         self.worker.spawn(move |api| {
             let list: Vec<Value> = api.get(&format!("/channels/{c}/playlists"))?;
@@ -479,16 +493,44 @@ impl Ctx {
         g.set_toast_shown(true);
     }
 
+    /// The server runs on this computer (its paths are our paths, so file
+    /// dialogs make sense).
+    pub fn server_is_local(&self) -> bool {
+        let base = self.worker.api().base.to_lowercase();
+        base.contains("://127.0.0.1") || base.contains("://localhost") || base.contains("://[::1]")
+    }
+
     /// Ask before running a risky action.
     pub fn ask(&mut self, title: &str, text: &str, action_label: &str, action: impl FnOnce(&mut Ctx) + 'static) {
         let Some(ui) = self.window() else { return };
         self.pending_confirm = Some(Box::new(action));
         let g = ui.global::<App>();
+        g.set_confirm_option("".into());
         g.set_confirm_title(title.into());
         g.set_confirm_text(text.into());
         g.set_confirm_action(action_label.into());
         g.set_confirm_danger(true);
         g.set_confirm_open(true);
+    }
+
+    /// [`Ctx::ask`] with a checkbox; the action gets its state.
+    pub fn ask_with_option(
+        &mut self,
+        title: &str,
+        text: &str,
+        action_label: &str,
+        option: &str,
+        action: impl FnOnce(&mut Ctx, bool) + 'static,
+    ) {
+        self.ask(title, text, action_label, move |c| {
+            let checked = c.window().is_some_and(|ui| ui.global::<App>().get_confirm_option_checked());
+            action(c, checked)
+        });
+        if let Some(ui) = self.window() {
+            let g = ui.global::<App>();
+            g.set_confirm_option(option.into());
+            g.set_confirm_option_checked(false);
+        }
     }
 
     fn confirm_result(&mut self, ok: bool) {

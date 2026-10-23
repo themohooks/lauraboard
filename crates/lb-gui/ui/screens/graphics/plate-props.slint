@@ -1,0 +1,149 @@
+// Plate content: background colour and layout, and its text lines. The
+// selected line's text is edited here; its look in the "Текст" section.
+
+import { Theme } from "../../theme/tokens.slint";
+import { Icons } from "../../theme/icons.slint";
+import { Label } from "../../components/label.slint";
+import { Select } from "../../components/select.slint";
+import { ListRow } from "../../components/list-row.slint";
+import { IconButton } from "../../components/icon-button.slint";
+import { Button, ButtonVariant } from "../../components/button.slint";
+import { Gfx, PlateFieldRow } from "../../state/graphics-state.slint";
+import { FormSection } from "../rules/form-parts.slint";
+import { Field, ColorField } from "prop-fields.slint";
+
+component FieldLine inherits ListRow {
+    in property <PlateFieldRow> f;
+    in property <int> index;
+    in property <int> count;
+    height: 48px;
+    radius: Theme.radius-m;
+    selected: Gfx.pl-field == index;
+    padding-x: Theme.sp2;
+    gap: Theme.sp1;
+    clicked => {
+        Gfx.plate-field-select(index);
+    }
+    VerticalLayout {
+        horizontal-stretch: 1;
+        alignment: center;
+        Label {
+            text: f.label != "" ? f.label : "Строка " + (index + 1);
+            type-style: Theme.label-large;
+            overflow: elide;
+        }
+        Label {
+            text: f.text != "" ? f.text : "пусто";
+            type-style: Theme.body-small;
+            color: Theme.color.on-surface-variant;
+            overflow: elide;
+        }
+    }
+    VerticalLayout {
+        alignment: center;
+        IconButton {
+            icon: Icons.arrow-upward;
+            tooltip: "Выше";
+            enabled: index > 0;
+            clicked => {
+                Gfx.plate-field-move(index, -1);
+            }
+        }
+    }
+    VerticalLayout {
+        alignment: center;
+        IconButton {
+            icon: Icons.arrow-downward;
+            tooltip: "Ниже";
+            enabled: index < count - 1;
+            clicked => {
+                Gfx.plate-field-move(index, 1);
+            }
+        }
+    }
+    VerticalLayout {
+        alignment: center;
+        IconButton {
+            icon: Icons.delete;
+            tooltip: "Удалить строку";
+            icon-tint: Theme.color.error;
+            enabled: count > 1;
+            clicked => {
+                Gfx.plate-field-remove(index);
+            }
+        }
+    }
+}
+
+export component PlateSection inherits FormSection {
+    title: "Плашка";
+    icon: Icons.subtitles;
+
+    ColorField {
+        label: "Цвет фона";
+        value <=> Gfx.p-color;
+        swatch: Gfx.sw-p-color;
+    }
+    HorizontalLayout {
+        spacing: Theme.sp2;
+        Field { min-width: 56px; label: "Ширина"; text <=> Gfx.pl-width; placeholder: "по тексту"; mono: true; }
+        Field { min-width: 56px; label: "Мин. ширина"; text <=> Gfx.pl-min-width; mono: true; }
+        Field { min-width: 56px; label: "Скругление"; text <=> Gfx.p-radius; mono: true; }
+    }
+    HorizontalLayout {
+        spacing: Theme.sp2;
+        Field { min-width: 56px; label: "Поля ↔"; text <=> Gfx.pl-pad-x; mono: true; }
+        Field { min-width: 56px; label: "Поля ↕"; text <=> Gfx.pl-pad-y; mono: true; }
+        Field { min-width: 56px; label: "Между строк"; text <=> Gfx.pl-spacing; mono: true; }
+    }
+    Select {
+        label: "Выравнивание текста";
+        options: ["По левому краю", "По центру", "По правому краю"];
+        current-index <=> Gfx.pl-align;
+        container-color: Theme.color.surface-container-low;
+        selected => {
+            Gfx.props-changed();
+        }
+    }
+
+    Label {
+        text: "СТРОКИ ТЕКСТА";
+        type-style: Theme.label-small;
+        color: Theme.color.on-surface-variant;
+    }
+    Rectangle {
+        border-radius: Theme.radius-m;
+        background: Theme.color.surface-container;
+        VerticalLayout {
+            padding: Theme.sp1;
+            for f[i] in Gfx.pl-fields: FieldLine {
+                f: f;
+                index: i;
+                count: Gfx.pl-fields.length;
+            }
+        }
+    }
+    HorizontalLayout {
+        alignment: start;
+        Button {
+            text: "Добавить строку";
+            icon: Icons.add;
+            has-icon: true;
+            variant: ButtonVariant.text;
+            clicked => {
+                Gfx.plate-field-add();
+            }
+        }
+    }
+    Field {
+        label: "Название строки";
+        text <=> Gfx.pl-label;
+        placeholder: "Имя, Должность…";
+        supporting: "для оператора; в эфир не выводится";
+    }
+    Field {
+        label: "Текст строки";
+        text <=> Gfx.p-text;
+        supporting: "{переменные} заменяются в эфире; пустая строка не показывается";
+    }
+}

@@ -7,16 +7,20 @@
 //! * [`channel`] — channel actor and its handle
 //! * [`persist`] — runtime state, as-run log, instance lock
 //! * [`library`] — media import / probing
+//! * [`jobs`] — background jobs with progress
+//! * [`transfer`] — channel export / import (ZIP)
 //! * [`stats`] — reports and CSV export
 //! * [`notify`] — critical event notifications
 
 pub mod channel;
 pub mod engine;
 pub mod error;
+pub mod jobs;
 pub mod library;
 pub mod notify;
 pub mod persist;
 pub mod stats;
+pub mod transfer;
 
 pub use channel::{ChannelHandle, ChannelStatus, Command, Event};
 pub use engine::Engine;

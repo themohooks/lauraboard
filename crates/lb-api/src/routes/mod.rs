@@ -8,17 +8,23 @@
 //! | playlists | [`playlists`] |
 //! | schedules, rules, graphics, channel config | [`config`] |
 //! | graphics render (draft preview) | [`render`] |
+//! | fonts for graphics | [`fonts`] |
 //! | media thumbnails | [`thumbs`] |
 //! | as-run, statistics, logs | [`reports`] |
+//! | background jobs | [`jobs`] |
+//! | channel export / import | [`transfer`] |
 
 pub mod config;
 pub mod control;
+pub mod fonts;
+pub mod jobs;
 pub mod library;
 pub mod playlists;
 pub mod render;
 pub mod reports;
 pub mod status;
 pub mod thumbs;
+pub mod transfer;
 
 use axum::Router;
 use axum::routing::{get, post, put};
@@ -35,6 +41,9 @@ pub(crate) fn channel(state: &AppState, id: &str) -> ApiResult<ChannelHandle> {
 
 pub fn router(state: AppState) -> Router {
     let ch = Router::new()
+        .route("/", put(status::update_channel).delete(status::delete_channel))
+        .route("/duplicate", post(status::duplicate_channel))
+        .route("/export", post(transfer::export))
         .route("/status", get(status::status))
         .route("/rundown", get(status::rundown))
         .route("/preview.jpg", get(status::preview))
@@ -47,6 +56,7 @@ pub fn router(state: AppState) -> Router {
         .route("/media", get(library::list).post(library::add))
         .route("/media/import", post(library::import))
         .route("/media/check", post(library::check))
+        .route("/media/folders", get(library::folders).post(library::folder_op))
         .route("/media/{media}/thumb.jpg", get(thumbs::thumb))
         .route("/media/{media}", get(library::get_one).put(library::update).delete(library::remove))
         .route("/playlists", get(playlists::list).post(playlists::create))
@@ -59,6 +69,7 @@ pub fn router(state: AppState) -> Router {
         .route("/rules", get(config::get_rules).put(config::put_rules))
         .route("/graphics", get(config::get_graphics).put(config::put_graphics))
         .route("/graphics/render", post(render::render))
+        .route("/fonts", get(fonts::list).post(fonts::add))
         .route("/config", get(config::get_config).put(config::put_config))
         .route("/asrun", get(reports::asrun))
         .route("/stats", get(reports::stats));
@@ -67,6 +78,10 @@ pub fn router(state: AppState) -> Router {
         .route("/events", get(crate::ws::events_all))
         .route("/logs", get(reports::logs))
         .route("/version", get(status::version))
+        .route("/archives/inspect", post(transfer::inspect))
+        .route("/archives/import", post(transfer::import))
+        .route("/jobs", get(jobs::list))
+        .route("/jobs/{job}", get(jobs::get_one).delete(jobs::cancel))
         .nest("/channels/{id}", ch.route("/events", get(crate::ws::events_channel)))
         .route("/channels/{id}/var/{key}", put(control::set_var));
     Router::new().nest("/api/v1", api).layer(CorsLayer::permissive()).with_state(state)

@@ -48,6 +48,7 @@ impl Runtime {
         let status = ChannelStatus {
             channel: self.shared.id.clone(),
             name: data.config.name.clone(),
+            autostart: data.config.autostart,
             state,
             manual: self.sched.manual,
             force_schedule: self.sched.force_schedule.clone(),

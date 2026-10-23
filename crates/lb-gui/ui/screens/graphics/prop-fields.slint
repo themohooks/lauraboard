@@ -1,0 +1,41 @@
+// Inputs of the graphics properties panel: a text field that applies on
+// every edit, and a colour field with a swatch.
+
+import { Theme } from "../../theme/tokens.slint";
+import { TextField } from "../../components/text-field.slint";
+import { Gfx } from "../../state/graphics-state.slint";
+
+export component Field inherits TextField {
+    container-color: Theme.color.surface-container-low;
+    edited => {
+        Gfx.props-changed();
+    }
+}
+
+export component ColorField inherits HorizontalLayout {
+    in-out property <string> value;
+    in property <string> label;
+    in property <string> placeholder: "#RRGGBB";
+    // parsed colour from Rust (strings cannot be converted in .slint)
+    in property <color> swatch;
+    spacing: Theme.sp2;
+    VerticalLayout {
+        alignment: start;
+        padding-top: 8px;
+        Rectangle {
+            width: 32px;
+            height: 32px;
+            border-radius: Theme.radius-xs;
+            border-width: 1px;
+            border-color: Theme.color.outline;
+            background: root.swatch;
+        }
+    }
+    Field {
+        horizontal-stretch: 1;
+        label: root.label;
+        text <=> root.value;
+        placeholder: root.placeholder;
+        mono: true;
+    }
+}

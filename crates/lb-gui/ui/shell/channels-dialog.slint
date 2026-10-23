@@ -1,0 +1,204 @@
+// Channel manager: every channel with its state, autostart switch and
+// actions (switch to, rename, duplicate, delete), plus "new channel".
+
+import { Theme } from "../theme/tokens.slint";
+import { Icons } from "../theme/icons.slint";
+import { Dialog, DialogActions } from "../components/dialog.slint";
+import { Label } from "../components/label.slint";
+import { ListRow } from "../components/list-row.slint";
+import { Switch } from "../components/switch.slint";
+import { IconButton } from "../components/icon-button.slint";
+import { StatusChip, StatusTone } from "../components/indicators.slint";
+import { Button, ButtonVariant } from "../components/button.slint";
+import { TextField } from "../components/text-field.slint";
+import { App } from "../state/app-state.slint";
+import { Chan, ChannelRow } from "../state/channels-state.slint";
+
+component ChannelLine inherits ListRow {
+    in property <ChannelRow> ch;
+    height: 64px;
+    current: ch.current;
+    divider: true;
+    clicked => {
+        Chan.select(ch.id);
+    }
+
+    VerticalLayout {
+        horizontal-stretch: 1;
+        alignment: center;
+        Label {
+            text: ch.name;
+            type-style: Theme.title-medium;
+            overflow: elide;
+        }
+        Label {
+            text: ch.id;
+            mono: true;
+            type-style: Theme.body-small;
+            color: Theme.color.on-surface-variant;
+        }
+    }
+    VerticalLayout {
+        alignment: center;
+        width: 150px;
+        StatusChip {
+            text: ch.state-text;
+            tone: ch.on-air ? StatusTone.live : StatusTone.idle;
+        }
+    }
+    VerticalLayout {
+        alignment: center;
+        Switch {
+            text: "Автозапуск";
+            checked: ch.autostart;
+            toggled(v) => {
+                Chan.autostart(ch.id, v);
+            }
+        }
+    }
+    VerticalLayout {
+        alignment: center;
+        IconButton {
+            icon: Icons.edit;
+            tooltip: "Переименовать";
+            clicked => {
+                Chan.rename(ch.id);
+            }
+        }
+    }
+    VerticalLayout {
+        alignment: center;
+        IconButton {
+            icon: Icons.content-copy;
+            tooltip: "Дублировать со всем содержимым";
+            clicked => {
+                Chan.duplicate(ch.id);
+            }
+        }
+    }
+    VerticalLayout {
+        alignment: center;
+        IconButton {
+            icon: Icons.download;
+            tooltip: "Экспорт в архив ZIP";
+            clicked => {
+                Chan.export(ch.id);
+            }
+        }
+    }
+    VerticalLayout {
+        alignment: center;
+        IconButton {
+            icon: Icons.delete;
+            tooltip: "Удалить канал";
+            icon-tint: Theme.color.error;
+            clicked => {
+                Chan.remove(ch.id);
+            }
+        }
+    }
+}
+
+export component ChannelsDialog inherits Dialog {
+    open: Chan.open && Chan.form == "";
+    dialog-width: 760px;
+    title: "Каналы";
+    text: "Щелчок по строке переключает на канал. Автозапуск — канал выходит в эфир сам при запуске программы.";
+    dismissed => {
+        Chan.open = false;
+    }
+
+    Rectangle {
+        border-radius: Theme.radius-m;
+        border-width: 1px;
+        border-color: Theme.color.outline-variant;
+        clip: true;
+        height: min(list.preferred-height, 360px);
+        list := VerticalLayout {
+            for row in Chan.rows: ChannelLine {
+                ch: row;
+            }
+        }
+    }
+
+    DialogActions {
+        Button {
+            text: "Импорт из архива";
+            variant: ButtonVariant.outlined;
+            has-icon: true;
+            icon: Icons.upload;
+            clicked => {
+                Chan.open-import();
+            }
+        }
+        Button {
+            text: "Новый канал";
+            variant: ButtonVariant.tonal;
+            has-icon: true;
+            icon: Icons.add;
+            clicked => {
+                App.new-channel-id = "";
+                App.new-channel-name = "";
+                App.validate-new-channel("");
+                App.new-channel-open = true;
+            }
+        }
+        Button {
+            text: "Закрыть";
+            variant: ButtonVariant.text;
+            clicked => {
+                Chan.open = false;
+            }
+        }
+    }
+}
+
+// Rename (name, id) or duplicate (new id, name) form.
+export component ChannelFormDialog inherits Dialog {
+    property <bool> dup: Chan.form == "duplicate";
+    open: Chan.form == "rename" || Chan.form == "duplicate";
+    dialog-width: 480px;
+    title: root.dup ? "Копия канала «" + Chan.form-source + "»" : "Канал «" + Chan.form-source + "»";
+    text: root.dup
+        ? "Копируются медиатека, плейлисты, сетка, правила, графика и собственные файлы канала. Выходы (ключи трансляций) не копируются, автозапуск выключен."
+        : "Название видно в программе. Идентификатор — имя папки канала и часть адресов API; его можно сменить только при остановленном эфире.";
+    has-icon: true;
+    icon: root.dup ? Icons.content-copy : Icons.edit;
+    dismissed => {
+        Chan.form = "";
+    }
+
+    TextField {
+        label: "Название";
+        text <=> Chan.e-name;
+        container-color: Theme.color.surface-container-high;
+    }
+    TextField {
+        label: "Идентификатор";
+        mono: true;
+        enabled: root.dup || !Chan.form-on-air;
+        text <=> Chan.e-id;
+        error: Chan.e-error;
+        supporting: !root.dup && Chan.form-on-air ? "Канал в эфире — остановите его, чтобы сменить идентификатор" : "Латиница, цифры, «-» и «_»";
+        container-color: Theme.color.surface-container-high;
+        edited(t) => {
+            Chan.validate-id(t);
+        }
+    }
+    DialogActions {
+        Button {
+            text: "Отмена";
+            variant: ButtonVariant.text;
+            clicked => {
+                Chan.form = "";
+            }
+        }
+        Button {
+            text: root.dup ? "Создать копию" : "Сохранить";
+            enabled: Chan.e-error == "" && Chan.e-id != "";
+            clicked => {
+                Chan.save-form();
+            }
+        }
+    }
+}

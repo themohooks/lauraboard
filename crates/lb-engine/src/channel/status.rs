@@ -45,6 +45,9 @@ pub struct OutputStatus {
 pub struct ChannelStatus {
     pub channel: String,
     pub name: String,
+    /// Starts airing when the program starts.
+    #[serde(default)]
+    pub autostart: bool,
     pub state: RunState,
     /// Schedule paused, operator in control.
     pub manual: bool,

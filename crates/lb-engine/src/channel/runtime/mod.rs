@@ -6,6 +6,7 @@
 //! * [`publish`] — status snapshots, events, notifications, state file
 
 mod control;
+mod graphics;
 mod items;
 mod publish;
 mod supervise;
@@ -24,7 +25,7 @@ use super::gfx::{GfxState, GfxThread, SharedGfx};
 use super::output::Output;
 use super::playout::PlayOutcome;
 use super::scheduler::Scheduler;
-use super::{ChannelShared, ChannelStatus, Event, Request};
+use super::{ChannelShared, ChannelStatus, Command, Event, Request};
 use crate::persist::lock::InstanceLock;
 use crate::persist::{asrun, state};
 
@@ -131,7 +132,13 @@ impl Runtime {
         loop {
             tokio::select! {
                 req = self.rx.recv() => match req {
-                    Some(r) => self.handle(r).await,
+                    Some(r) => {
+                        let quit = r.cmd == Command::Shutdown;
+                        self.handle(r).await;
+                        if quit {
+                            break;
+                        }
+                    }
                     None => break,
                 },
                 Some((generation, outcome)) = self.done_rx.recv() => self.on_finished(generation, outcome).await,

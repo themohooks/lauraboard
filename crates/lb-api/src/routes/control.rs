@@ -10,7 +10,7 @@ use lb_engine::Command;
 use super::channel;
 use crate::AppState;
 use crate::auth::Caller;
-use crate::error::ApiResult;
+use crate::error::{ApiError, ApiResult};
 
 type Reply = Json<serde_json::Value>;
 
@@ -27,6 +27,9 @@ async fn run(s: &AppState, c: &Caller, id: &str, cmd: Command) -> ApiResult<Repl
 /// `POST /channels/{id}/command` with a JSON command, e.g.
 /// `{"cmd":"play_now","media":"intro"}`.
 pub async fn command(State(s): State<AppState>, c: Caller, Path(id): Path<String>, Json(cmd): Json<Command>) -> ApiResult<Reply> {
+    if cmd == Command::Shutdown {
+        return Err(ApiError::bad_request("use DELETE /channels/{id} to remove a channel"));
+    }
     run(&s, &c, &id, cmd).await
 }
 

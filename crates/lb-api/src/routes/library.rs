@@ -7,7 +7,7 @@ use serde::Deserialize;
 use lb_core::Dur;
 use lb_core::config::Role;
 use lb_core::media::{MediaItem, MediaKind};
-use lb_engine::library::{self, ImportOptions};
+use lb_engine::library::{self, ImportOptions, storage};
 
 use super::channel;
 use crate::AppState;
@@ -56,12 +56,12 @@ pub async fn remove(State(s): State<AppState>, c: Caller, Path((id, media)): Pat
         return Err(ApiError::bad_request(format!("media '{media}' is used in playlists: {}", used.join(", "))));
     }
     let m = media.clone();
-    channel(&s, &id)?
-        .modify(move |d| {
-            d.library.remove(&m).ok_or_else(|| lb_core::CoreError::NotFound(format!("media '{m}'")))?;
-            Ok(())
-        })
+    let h = channel(&s, &id)?;
+    let removed = h
+        .modify(move |d| d.library.remove(&m).ok_or_else(|| lb_core::CoreError::NotFound(format!("media '{m}'")).into()))
         .await?;
+    // a copy in the channel's storage belongs to the item
+    storage::remove_own_file(&h.shared.root, &id, &removed.path);
     Ok(Json(serde_json::json!({ "ok": true, "removed": media })))
 }
 
@@ -77,6 +77,13 @@ pub struct ImportBody {
     pub recursive: bool,
     #[serde(default)]
     pub image_duration: Option<Dur>,
+    /// Library folder for the new items.
+    #[serde(default)]
+    pub folder: String,
+    /// Copy files into the channel's own storage (a background job; the
+    /// reply is `{"job": id}`) instead of referencing them in place.
+    #[serde(default)]
+    pub copy: bool,
 }
 
 /// Import and probe files on the server.
@@ -88,8 +95,16 @@ pub async fn import(
 ) -> ApiResult<Json<serde_json::Value>> {
     c.require(Role::Operator)?;
     let h = channel(&s, &id)?;
+    let opt =
+        ImportOptions { kind: b.kind, category: b.category, recursive: b.recursive, image_duration: b.image_duration, folder: b.folder };
+    if b.copy {
+        let ffprobe = s.engine.app.ffmpeg.ffprobe.clone();
+        let n = b.paths.len();
+        let title = if n == 1 { "Копирование файла в медиатеку".to_string() } else { format!("Копирование файлов в медиатеку ({n})") };
+        let job = s.engine.jobs.spawn("import_media", &title, Some(&id), move |ctl| storage::import_copies(h, ffprobe, b.paths, opt, ctl));
+        return Ok(Json(serde_json::json!({ "job": job })));
+    }
     let mut data = h.read(|d| d.clone());
-    let opt = ImportOptions { kind: b.kind, category: b.category, recursive: b.recursive, image_duration: b.image_duration };
     let (added, errors) = library::import(&mut data, &h.shared.root, &s.engine.app.ffmpeg.ffprobe, &b.paths, &opt).await;
     let lib = data.library;
     h.modify(move |d| {
@@ -113,4 +128,54 @@ pub async fn check(State(s): State<AppState>, c: Caller, Path(id): Path<String>)
     })
     .await?;
     Ok(Json(serde_json::json!({ "problems": problems })))
+}
+
+/// All folders of the library (explicit and used by items).
+pub async fn folders(State(s): State<AppState>, c: Caller, Path(id): Path<String>) -> ApiResult<Json<Vec<String>>> {
+    c.require(Role::Viewer)?;
+    Ok(Json(channel(&s, &id)?.read(|d| d.library.all_folders())))
+}
+
+#[derive(Deserialize)]
+pub struct FolderOp {
+    /// `create`, `rename`, `delete` or `move` (items into `path`).
+    pub op: String,
+    #[serde(default)]
+    pub path: String,
+    /// New path for `rename`.
+    #[serde(default)]
+    pub to: String,
+    /// Media ids for `move`.
+    #[serde(default)]
+    pub ids: Vec<String>,
+}
+
+/// Folder operations; files on disk are not touched.
+pub async fn folder_op(
+    State(s): State<AppState>,
+    c: Caller,
+    Path(id): Path<String>,
+    Json(b): Json<FolderOp>,
+) -> ApiResult<Json<Vec<String>>> {
+    c.require(Role::Operator)?;
+    let h = channel(&s, &id)?;
+    h.modify(move |d| {
+        let lib = &mut d.library;
+        let r = match b.op.as_str() {
+            "create" => lib.create_folder(&b.path).map(drop),
+            "rename" => lib.rename_folder(&b.path, &b.to).map(drop),
+            "delete" => {
+                lib.delete_folder(&b.path);
+                Ok(())
+            }
+            "move" => {
+                lib.move_to_folder(&b.ids, &b.path);
+                Ok(())
+            }
+            other => Err(format!("unknown folder operation '{other}'")),
+        };
+        r.map_err(|e| lb_core::CoreError::Invalid(e).into())
+    })
+    .await?;
+    Ok(Json(h.read(|d| d.library.all_folders())))
 }

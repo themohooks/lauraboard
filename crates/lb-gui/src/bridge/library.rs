@@ -1,5 +1,6 @@
 //! Media library: filtered / sorted table and tiles, multi-select with
-//! bulk actions, metadata editing, import and file check.
+//! bulk actions, metadata editing, import (copying into the channel's
+//! storage as a background job) and file check. Folders: [`super::folders`].
 
 use std::collections::HashSet;
 use std::rc::Rc;
@@ -15,6 +16,7 @@ use crate::fmt::{KINDS, hms, kind_id};
 use crate::logic::filter::{self, MediaFilter, SortKey};
 use crate::net::Msg;
 use crate::shell::{AppWindow, Lib, MediaEdit, MediaRow, TileLine};
+use super::folders;
 
 #[derive(Default)]
 pub struct LibraryState {
@@ -26,6 +28,8 @@ pub struct LibraryState {
     rows: Rc<VecModel<MediaRow>>,
     categories: Vec<String>,
     edit_id: Option<String>,
+    /// Explicit folders from the server (empty ones included).
+    pub folders: Vec<String>,
 }
 
 pub fn connect(ui: &AppWindow) {
@@ -111,6 +115,11 @@ fn item(c: &Ctx, id: &str) -> Option<MediaItem> {
     c.model.library.iter().find(|m| m.id == id).cloned()
 }
 
+/// The file is the channel's own copy (`channels/<id>/media/…`).
+fn is_own(c: &Ctx, path: &str) -> bool {
+    path.replace('\\', "/").starts_with(&format!("channels/{}/media/", c.model.ch()))
+}
+
 fn format_of(m: &MediaItem) -> String {
     let p = &m.probe;
     let mut parts = Vec::new();
@@ -157,6 +166,7 @@ pub fn refresh(c: &mut Ctx) {
         kinds: usize::try_from(g.get_kind_filter()).ok().and_then(|i| KINDS.get(i).copied()).into_iter().collect(),
         category: (cat_idx > 0).then(|| cats[cat_idx].clone()),
         problems_only: g.get_problems_only(),
+        folder: Some(g.get_folder().to_string()),
     };
     c.lib.shown = filter::select(&c.model.library, &f, SortKey::from_index(g.get_sort_key()), g.get_sort_desc());
     let ids: HashSet<&str> = c.model.library.iter().map(|m| m.id.as_str()).collect();
@@ -182,12 +192,9 @@ pub fn refresh(c: &mut Ctx) {
         c.model.playlists.iter().map(|p| SharedString::from(if p.name.is_empty() { p.id.clone() } else { p.name.clone() })).collect(),
     ));
     g.set_loading(!c.lib.loaded);
+    folders::show(c);
     g.set_checked_count(c.lib.checked.len() as i32);
-    let local = {
-        let base = c.worker.api().base.to_lowercase();
-        base.contains("://127.0.0.1") || base.contains("://localhost") || base.contains("://[::1]")
-    };
-    g.set_can_browse(local);
+    g.set_can_browse(c.server_is_local());
     if c.prefs.library_grid != g.get_grid() {
         c.prefs.library_grid = g.get_grid();
         c.prefs.save();
@@ -267,6 +274,8 @@ fn open_edit(c: &mut Ctx, row: i32) {
     g.set_edit(MediaEdit {
         id: m.id.clone().into(),
         path: m.path.clone().into(),
+        original: m.original_name.clone().unwrap_or_default().into(),
+        own: is_own(c, &m.path),
         info: info.into_iter().filter(|s| !s.is_empty()).collect::<Vec<_>>().join("\n").into(),
         problem: p.error.clone().unwrap_or_default().into(),
     });
@@ -276,6 +285,7 @@ fn open_edit(c: &mut Ctx, row: i32) {
     g.set_e_volume(format!("{}", m.volume_db).into());
     g.set_e_weight(format!("{}", m.weight).into());
     g.set_e_enabled(m.enabled);
+    g.set_e_folder(folders::option_index(c, &m.folder));
     g.set_e_volume_error(SharedString::new());
     g.set_e_weight_error(SharedString::new());
     g.set_focused(row);
@@ -317,6 +327,7 @@ fn save_edit(c: &mut Ctx) {
     m.volume_db = parse_num(&g.get_e_volume()).unwrap_or(0.0) as f32;
     m.weight = parse_num(&g.get_e_weight()).unwrap_or(1.0);
     m.enabled = g.get_e_enabled();
+    m.folder = folders::option_path(c, g.get_e_folder());
     g.set_edit_open(false);
     put_media(c, m, "Сохранено");
 }
@@ -354,7 +365,14 @@ fn row_action(c: &mut Ctx, row: i32, action: &str) {
         }
         "delete" => c.ask(
             "Удалить из медиатеки?",
-            &format!("«{title}» будет удалён из медиатеки. Файл на диске останется."),
+            &format!(
+                "«{title}» будет удалён из медиатеки. {}",
+                if item(c, &id).is_some_and(|m| is_own(c, &m.path)) {
+                    "Его копия в хранилище канала тоже будет удалена."
+                } else {
+                    "Файл на диске останется."
+                }
+            ),
             "Удалить",
             move |c| delete_ids(c, vec![id]),
         ),
@@ -414,6 +432,17 @@ fn bulk(c: &mut Ctx, action: &str, arg: i32) {
                 Ok(format!("{}: {}", if on { "Включено" } else { "Выключено" }, items.len()))
             });
         }
+        "folder" => {
+            let path = folders::option_path(c, arg);
+            let n = ids.len();
+            let body = json!({ "op": "move", "path": path, "ids": ids });
+            let label = if path.is_empty() { "верхний уровень".to_string() } else { format!("«{path}»") };
+            c.change(move |api| {
+                api.post(&format!("/channels/{ch}/media/folders"), &body)?;
+                Ok(format!("Перемещено в {label}: {n}"))
+            });
+            c.lib.checked.clear();
+        }
         "kind" => {
             let Some(k) = KINDS.get(arg as usize).copied() else { return };
             let items: Vec<MediaItem> = ids.iter().filter_map(|id| item(c, id)).map(|mut m| {
@@ -431,7 +460,7 @@ fn bulk(c: &mut Ctx, action: &str, arg: i32) {
             let n = ids.len();
             c.ask(
                 "Удалить выбранные ролики?",
-                &format!("Из медиатеки будет удалено элементов: {n}. Файлы на диске останутся."),
+                &format!("Из медиатеки будет удалено элементов: {n}. Копии в хранилище канала удаляются, остальные файлы на диске останутся."),
                 "Удалить",
                 move |c| delete_ids(c, ids),
             );
@@ -460,11 +489,14 @@ fn do_import(c: &mut Ctx) {
     }
     let kind: Option<MediaKind> = usize::try_from(g.get_import_kind() - 1).ok().and_then(|i| KINDS.get(i).copied());
     let cat = g.get_import_category().trim().to_string();
+    let copy = g.get_import_copy();
     let body = json!({
         "paths": paths,
         "kind": kind,
         "category": if cat.is_empty() { Value::Null } else { json!(cat) },
         "recursive": g.get_import_recursive(),
+        "folder": folders::option_path(c, g.get_import_folder()),
+        "copy": copy,
     });
     g.set_importing(true);
     let ch = c.model.ch();
@@ -475,6 +507,15 @@ fn do_import(c: &mut Ctx) {
                 ui.global::<Lib>().set_importing(false);
             }
             match r {
+                Ok(r) if r["job"].is_u64() => {
+                    super::jobs::started(c, r["job"].as_u64().unwrap_or_default());
+                    if let Some(ui) = c.window() {
+                        let g = ui.global::<Lib>();
+                        g.set_import_open(false);
+                        g.set_import_path(SharedString::new());
+                    }
+                    c.toast("Копирование началось — прогресс в шапке окна", false);
+                }
                 Ok(r) => {
                     let added = r["added"].as_array().map(|a| a.len()).unwrap_or(0);
                     let errors: Vec<String> =

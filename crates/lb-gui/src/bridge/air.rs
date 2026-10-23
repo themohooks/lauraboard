@@ -244,7 +244,8 @@ pub fn element_kind_name(k: &ElementKind) -> &'static str {
         ElementKind::Ticker { .. } => "бегущая строка",
         ElementKind::Clock { .. } => "часы",
         ElementKind::Countdown { .. } => "таймер",
-        ElementKind::Rect { .. } => "плашка",
+        ElementKind::Rect { .. } => "фигура",
+        ElementKind::Plate { .. } => "плашка",
         ElementKind::Group { .. } => "композиция",
     }
 }

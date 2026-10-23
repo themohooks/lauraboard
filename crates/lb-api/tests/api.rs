@@ -199,3 +199,135 @@ async fn media_thumbnails() {
     let cached = std::fs::read_dir(dir.path().join("cache/thumbs/main")).unwrap().count();
     assert_eq!(cached, 1);
 }
+
+#[tokio::test]
+async fn channels_are_renamed_duplicated_and_deleted() {
+    let dir = project(vec![]);
+    let app = app(&dir).await;
+    let (st, body) = call(&app, "PUT", "/api/v1/channels/main", None, Some(r#"{"name":"Главный","autostart":true}"#)).await;
+    assert_eq!(st, StatusCode::OK, "{body}");
+    assert!(body.contains("\"name\":\"Главный\"") && body.contains("\"autostart\":true"), "{body}");
+
+    let (st, body) = call(&app, "POST", "/api/v1/channels/main/duplicate", None, Some(r#"{"id":"copy"}"#)).await;
+    assert_eq!(st, StatusCode::OK, "{body}");
+    assert!(body.contains("Главный (копия)"), "{body}");
+    let (_, body) = call(&app, "GET", "/api/v1/channels/copy/media", None, None).await;
+    assert!(body.contains("media/a.mp4"), "library copied: {body}");
+
+    let (st, body) = call(&app, "PUT", "/api/v1/channels/copy", None, Some(r#"{"id":"second"}"#)).await;
+    assert_eq!(st, StatusCode::OK, "{body}");
+    assert!(dir.path().join("channels/second/channel.toml").exists());
+    assert!(!dir.path().join("channels/copy").exists());
+    assert_eq!(call(&app, "GET", "/api/v1/channels/copy/status", None, None).await.0, StatusCode::NOT_FOUND);
+
+    let (st, body) = call(&app, "DELETE", "/api/v1/channels/second", None, None).await;
+    assert_eq!(st, StatusCode::OK, "{body}");
+    assert!(body.contains("deleted"), "{body}");
+    assert!(!dir.path().join("channels/second").exists());
+    let (_, body) = call(&app, "GET", "/api/v1/channels", None, None).await;
+    assert!(!body.contains("\"second\""), "{body}");
+    assert_eq!(call(&app, "POST", "/api/v1/channels/main/command", None, Some(r#"{"cmd":"shutdown"}"#)).await.0, StatusCode::BAD_REQUEST);
+}
+
+#[tokio::test]
+async fn media_copies_and_folders() {
+    let dir = project(vec![]);
+    let app = app(&dir).await;
+    let src = dir.path().join("Логотип.png");
+    image::RgbaImage::from_pixel(4, 4, image::Rgba([1, 2, 3, 255])).save(&src).unwrap();
+    let body = serde_json::json!({ "paths": [src.to_string_lossy()], "copy": true, "folder": "Графика/Логотипы" }).to_string();
+    let (st, body) = call(&app, "POST", "/api/v1/channels/main/media/import", None, Some(&body)).await;
+    assert_eq!(st, StatusCode::OK, "{body}");
+    let job: serde_json::Value = serde_json::from_str(&body).unwrap();
+    let job = job["job"].as_u64().unwrap();
+    let mut state = String::new();
+    for _ in 0..100 {
+        let (_, b) = call(&app, "GET", &format!("/api/v1/jobs/{job}"), None, None).await;
+        let v: serde_json::Value = serde_json::from_str(&b).unwrap();
+        state = v["state"].as_str().unwrap().to_string();
+        if state != "running" {
+            break;
+        }
+        tokio::time::sleep(std::time::Duration::from_millis(20)).await;
+    }
+    assert_eq!(state, "done");
+    let (_, body) = call(&app, "GET", "/api/v1/channels/main/media", None, None).await;
+    let items: Vec<serde_json::Value> = serde_json::from_str(&body).unwrap();
+    let it = items.iter().find(|m| m["original_name"] == "Логотип.png").expect("copied item");
+    let path = it["path"].as_str().unwrap();
+    assert!(path.starts_with("channels/main/media/") && path.ends_with(".png"), "{path}");
+    assert_eq!(it["folder"], "Графика/Логотипы");
+    assert!(dir.path().join(path).exists());
+
+    let (_, body) = call(&app, "GET", "/api/v1/channels/main/media/folders", None, None).await;
+    assert_eq!(body, r#"["Графика","Графика/Логотипы"]"#);
+    let (st, body) = call(&app, "POST", "/api/v1/channels/main/media/folders", None, Some(r#"{"op":"rename","path":"Графика","to":"Оформление"}"#)).await;
+    assert_eq!(st, StatusCode::OK, "{body}");
+    assert_eq!(body, r#"["Оформление","Оформление/Логотипы"]"#);
+
+    let id = it["id"].as_str().unwrap();
+    let (st, _) = call(&app, "DELETE", &format!("/api/v1/channels/main/media/{id}"), None, None).await;
+    assert_eq!(st, StatusCode::OK);
+    assert!(!dir.path().join(path).exists(), "own copy removed with the item");
+}
+
+async fn wait_job(app: &axum::Router, body: &str) -> serde_json::Value {
+    let v: serde_json::Value = serde_json::from_str(body).unwrap();
+    let job = v["job"].as_u64().unwrap_or_else(|| panic!("no job: {body}"));
+    for _ in 0..300 {
+        let (_, b) = call(app, "GET", &format!("/api/v1/jobs/{job}"), None, None).await;
+        let v: serde_json::Value = serde_json::from_str(&b).unwrap();
+        if v["state"] != "running" {
+            return v;
+        }
+        tokio::time::sleep(std::time::Duration::from_millis(20)).await;
+    }
+    panic!("job {job} did not finish");
+}
+
+#[tokio::test]
+async fn channel_export_and_import() {
+    let dir = project(vec![]);
+    // an external file referenced by the library: travels with the archive
+    let ext = dir.path().join("external.png");
+    image::RgbaImage::from_pixel(2, 2, image::Rgba([9, 9, 9, 255])).save(&ext).unwrap();
+    let mut p = Project::load(dir.path()).unwrap();
+    let ch = p.channel_mut("main").unwrap();
+    ch.library.upsert(lb_core::media::MediaItem::new("ext", "external.png", lb_core::media::MediaKind::Image, lb_core::Dur::secs(5)));
+    ch.config.outputs.push(lb_core::config::OutputTarget { name: "yt".into(), url: "rtmp://x/key".into(), enabled: true, format: None });
+    ch.save().unwrap();
+    let app = app(&dir).await;
+
+    let zip = dir.path().join("out/main.zip");
+    let body = serde_json::json!({ "path": zip.to_string_lossy(), "parts": { "history": false } }).to_string();
+    let (st, body) = call(&app, "POST", "/api/v1/channels/main/export", None, Some(&body)).await;
+    assert_eq!(st, StatusCode::OK, "{body}");
+    let job = wait_job(&app, &body).await;
+    assert_eq!(job["state"], "done", "{job}");
+    assert!(zip.exists());
+
+    let body = serde_json::json!({ "path": zip.to_string_lossy() }).to_string();
+    let (st, body) = call(&app, "POST", "/api/v1/archives/inspect", None, Some(&body)).await;
+    assert_eq!(st, StatusCode::OK, "{body}");
+    assert!(body.contains("\"channel\":\"main\"") && body.contains("\"media_files\":1"), "{body}");
+
+    // same id is taken
+    let same = serde_json::json!({ "path": zip.to_string_lossy() }).to_string();
+    let (st, _) = call(&app, "POST", "/api/v1/archives/import", None, Some(&same)).await;
+    assert_eq!(st, StatusCode::BAD_REQUEST);
+    let body = serde_json::json!({ "path": zip.to_string_lossy(), "id": "restored", "name": "Восстановленный" }).to_string();
+    let (st, body) = call(&app, "POST", "/api/v1/archives/import", None, Some(&body)).await;
+    assert_eq!(st, StatusCode::OK, "{body}");
+    let job = wait_job(&app, &body).await;
+    assert_eq!(job["state"], "done", "{job}");
+
+    let (_, body) = call(&app, "GET", "/api/v1/channels/restored/media", None, None).await;
+    let items: Vec<serde_json::Value> = serde_json::from_str(&body).unwrap();
+    let ext = items.iter().find(|m| m["id"] == "ext").unwrap();
+    let path = ext["path"].as_str().unwrap();
+    assert!(path.starts_with("channels/restored/media/"), "{path}");
+    assert!(dir.path().join(path).exists());
+    let (_, cfg) = call(&app, "GET", "/api/v1/channels/restored/config", None, None).await;
+    assert!(cfg.contains("Восстановленный") && !cfg.contains("rtmp://x/key"), "outputs are not exported by default: {cfg}");
+    assert!(!std::fs::read_dir(dir.path().join("channels")).unwrap().flatten().any(|e| e.file_name().to_string_lossy().starts_with('.')));
+}

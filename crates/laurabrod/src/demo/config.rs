@@ -214,27 +214,31 @@ fn graphics(ch: &mut ChannelData) {
         Placement { anchor: Anchor::TopLeft, x: 30.0, y: 30.0, width: None, height: None },
         10,
     );
-    let lt_bg =
-        el("lt-bg", ElementKind::Rect { color: "#101828D0".into(), width: 620.0, height: 90.0, radius: 8.0 }, Placement::default(), 20);
-    let lt_title = el(
-        "lt-title",
-        ElementKind::Text { text: "{title}".into(), style: TextStyle { size: 34.0, ..style(34.0) } },
-        Placement { anchor: Anchor::TopLeft, x: 20.0, y: 8.0, width: None, height: None },
-        20,
-    );
-    let lt_sub = el(
-        "lt-sub",
-        ElementKind::Text {
-            text: "{block} · ведущая: {presenter}".into(),
-            style: TextStyle { size: 22.0, color: "#FFD166".into(), ..style(22.0) },
-        },
-        Placement { anchor: Anchor::TopLeft, x: 20.0, y: 52.0, width: None, height: None },
-        20,
-    );
+    // lower third: one plate whose lines follow the programme
+    let mut title = PlateField::new("Передача", "{title}", 34.0, "#FFFFFF");
+    title.style.bold = true;
     let mut lower = el(
         "lower-third",
-        ElementKind::Group { children: vec!["lt-bg".into(), "lt-title".into(), "lt-sub".into()] },
-        Placement { anchor: Anchor::BottomLeft, x: 60.0, y: 110.0, width: Some(620.0), height: Some(90.0) },
+        ElementKind::Plate {
+            fields: vec![title, PlateField::new("Подпись", "{block} · ведущая: {presenter}", 22.0, "#FFD166")],
+            color: "#101828E0".into(),
+            radius: 8.0,
+            shape: ShapeStyle {
+                gradient: Some("#1E3A8AE0".into()),
+                accent: Some(Accent { side: Side::Left, size: 10.0, color: "#C0182B".into() }),
+                shadow_color: Some("#00000080".into()),
+                shadow_blur: 12.0,
+                shadow_offset: (0.0, 4.0),
+                ..Default::default()
+            },
+            width: None,
+            min_width: 520.0,
+            padding_x: 24.0,
+            padding_y: 12.0,
+            spacing: 2.0,
+            align: TextAlign::Left,
+        },
+        Placement { anchor: Anchor::BottomLeft, x: 60.0, y: 110.0, width: None, height: None },
         20,
     );
     lower.animation = Animation { anim_in: AnimKind::SlideRight, anim_out: AnimKind::Fade, duration: Dur(600) };
@@ -265,7 +269,7 @@ fn graphics(ch: &mut ChannelData) {
     ticker_rule.conditions.exclude_categories = vec!["commercials".into()];
     ch.graphics = GraphicsConfig {
         layers: vec![Layer { id: 20, name: "Плашки".into(), exclusive: true }],
-        elements: vec![logo, clock, lt_bg, lt_title, lt_sub, lower, next, ticker],
+        elements: vec![logo, clock, lower, next, ticker],
         rules: vec![
             grule("logo", "logo", GfxTiming::default(), programs.clone()),
             grule("clock", "clock", GfxTiming::default(), programs.clone()),

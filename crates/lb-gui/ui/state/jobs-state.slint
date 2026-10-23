@@ -1,0 +1,25 @@
+// Background jobs of the server (src/bridge/jobs.rs): copying media,
+// channel export / import.
+
+export struct JobRow {
+    id: int,
+    title: string,
+    channel: string,
+    // running / done / failed / cancelled
+    state: string,
+    // progress and current step, or the result
+    text: string,
+    progress: float,
+}
+
+export global Jobs {
+    in property <[JobRow]> rows;
+    in property <int> running;
+    // average progress of the running jobs, and a one-line summary
+    in property <float> progress;
+    in property <string> summary;
+    in-out property <bool> open;
+
+    // cancel a running job / dismiss a finished one
+    callback cancel(int);
+}

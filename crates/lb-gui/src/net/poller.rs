@@ -31,20 +31,53 @@ pub fn decode_jpeg(bytes: &[u8]) -> Option<Frame> {
     Some(Frame { width: img.width(), height: img.height(), rgba: img.into_raw() })
 }
 
+/// Interval between preview requests (the engine produces 15 frames/s).
+const PREVIEW_EVERY: Duration = Duration::from_millis(66);
+
+/// Separate loop for the live picture: much faster than the status poll,
+/// and an unchanged frame is neither decoded nor sent to the window.
+fn spawn_preview(api: Api, tx: std::sync::mpsc::Sender<Msg>, wake: Wake, target: Arc<Mutex<PollTarget>>, stop: Arc<AtomicBool>) {
+    std::thread::spawn(move || {
+        let mut last: Vec<u8> = Vec::new();
+        while !stop.load(Ordering::Relaxed) {
+            let started = Instant::now();
+            let (channel, wanted) = {
+                let g = target.lock().unwrap_or_else(|e| e.into_inner());
+                (g.channel.clone(), g.preview)
+            };
+            let mut pause = PREVIEW_EVERY;
+            match channel.filter(|_| wanted) {
+                Some(ch) => match api.get_bytes(&format!("/channels/{ch}/preview.jpg")) {
+                    Ok(bytes) if bytes != last => {
+                        if let Some(img) = decode_jpeg(&bytes) {
+                            let _ = tx.send(Msg::Preview(img));
+                            wake();
+                        }
+                        last = bytes;
+                    }
+                    Ok(_) => {}
+                    // no frame yet / offline: back off
+                    Err(_) => pause = Duration::from_secs(1),
+                },
+                None => pause = Duration::from_millis(300),
+            }
+            std::thread::sleep(pause.saturating_sub(started.elapsed()));
+        }
+    });
+}
+
 impl Poller {
     pub fn start(api: Api, tx: std::sync::mpsc::Sender<Msg>, wake: Wake) -> Self {
         let target = Arc::new(Mutex::new(PollTarget { channel: None, preview: true }));
         let stop = Arc::new(AtomicBool::new(false));
+        spawn_preview(api.clone(), tx.clone(), wake.clone(), target.clone(), stop.clone());
         let (t2, s2) = (target.clone(), stop.clone());
         std::thread::spawn(move || {
             let mut last_rundown = Instant::now() - Duration::from_secs(60);
-            let mut last_preview = Instant::now() - Duration::from_secs(60);
             let mut online = None;
+            let mut last_jobs = String::new();
             while !s2.load(Ordering::Relaxed) {
-                let (channel, preview) = {
-                    let g = t2.lock().unwrap_or_else(|e| e.into_inner());
-                    (g.channel.clone(), g.preview)
-                };
+                let channel = t2.lock().unwrap_or_else(|e| e.into_inner()).channel.clone();
                 let Some(ch) = channel else {
                     std::thread::sleep(Duration::from_millis(300));
                     continue;
@@ -58,16 +91,21 @@ impl Poller {
                 if let Ok(s) = status {
                     let _ = tx.send(Msg::Status(Box::new(s)));
                 }
+                if ok
+                    && let Ok(body) = api.get_bytes("/jobs")
+                {
+                    let text = String::from_utf8_lossy(&body).into_owned();
+                    if text != last_jobs
+                        && let Ok(jobs) = serde_json::from_str(&text)
+                    {
+                        last_jobs = text;
+                        let _ = tx.send(Msg::Jobs(jobs));
+                    }
+                }
                 if ok && last_rundown.elapsed() >= Duration::from_secs(2) {
                     last_rundown = Instant::now();
                     if let Ok(r) = api.get(&format!("/channels/{ch}/rundown?limit=300")) {
                         let _ = tx.send(Msg::Rundown(r));
-                    }
-                }
-                if ok && preview && last_preview.elapsed() >= Duration::from_millis(900) {
-                    last_preview = Instant::now();
-                    if let Some(img) = api.get_bytes(&format!("/channels/{ch}/preview.jpg")).ok().and_then(|b| decode_jpeg(&b)) {
-                        let _ = tx.send(Msg::Preview(img));
                     }
                 }
                 wake();

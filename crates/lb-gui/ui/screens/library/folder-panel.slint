@@ -1,0 +1,140 @@
+// Folder tree of the library: "whole library" plus nested folders with
+// item counts; new / rename / delete for the selected folder. Folders are
+// virtual — files on disk do not move.
+
+import { Theme } from "../../theme/tokens.slint";
+import { Icons } from "../../theme/icons.slint";
+import { Icon } from "../../components/icon.slint";
+import { Label } from "../../components/label.slint";
+import { ListRow } from "../../components/list-row.slint";
+import { IconButton } from "../../components/icon-button.slint";
+import { Dialog, DialogActions } from "../../components/dialog.slint";
+import { TextField } from "../../components/text-field.slint";
+import { Button, ButtonVariant } from "../../components/button.slint";
+import { Lib, FolderRow } from "../../state/library-state.slint";
+
+component FolderLine inherits ListRow {
+    in property <FolderRow> f;
+    in property <image> glyph: Icons.folder-open;
+    height: 36px;
+    radius: Theme.radius-full;
+    selected: Lib.folder == f.path;
+    padding-x: Theme.sp3 + f.depth * 16px;
+    gap: Theme.sp2;
+    clicked => {
+        Lib.select-folder(f.path);
+    }
+    VerticalLayout {
+        alignment: center;
+        Icon {
+            source: root.glyph;
+            tint: root.selected ? Theme.color.on-secondary-container : Theme.color.on-surface-variant;
+        }
+    }
+    Label {
+        horizontal-stretch: 1;
+        text: f.name;
+        vertical-alignment: center;
+        overflow: elide;
+        color: root.selected ? Theme.color.on-secondary-container : Theme.color.on-surface;
+    }
+    Label {
+        text: f.count;
+        vertical-alignment: center;
+        type-style: Theme.body-small;
+        color: Theme.color.on-surface-variant;
+    }
+}
+
+export component FolderPanel inherits VerticalLayout {
+    spacing: Theme.sp1;
+    HorizontalLayout {
+        spacing: 0;
+        Label {
+            horizontal-stretch: 1;
+            text: "Папки";
+            type-style: Theme.title-medium;
+            vertical-alignment: center;
+        }
+        IconButton {
+            icon: Icons.add;
+            tooltip: Lib.folder == "" ? "Новая папка" : "Новая папка внутри выбранной";
+            clicked => {
+                Lib.f-name = "";
+                Lib.folder-dialog = "new";
+            }
+        }
+        IconButton {
+            icon: Icons.edit;
+            tooltip: "Переименовать или переместить папку";
+            enabled: Lib.folder != "";
+            clicked => {
+                Lib.folder-dialog = "rename";
+            }
+        }
+        IconButton {
+            icon: Icons.delete;
+            tooltip: "Удалить папку (содержимое перейдёт на уровень выше)";
+            enabled: Lib.folder != "";
+            icon-tint: Theme.color.error;
+            clicked => {
+                Lib.folder-delete();
+            }
+        }
+    }
+    Flickable {
+        vertical-stretch: 1;
+        VerticalLayout {
+            alignment: start;
+            FolderLine {
+                f: { path: "", name: "Вся медиатека", depth: 0, count: Lib.items-total };
+                glyph: Icons.video-library;
+            }
+            for f in Lib.folders: FolderLine {
+                f: f;
+            }
+        }
+    }
+}
+
+// Name of a new folder, or the full path of a renamed / moved one.
+export component FolderDialog inherits Dialog {
+    open: Lib.folder-dialog != "";
+    dialog-width: 440px;
+    title: Lib.folder-dialog == "new" ? "Новая папка" : "Папка «" + Lib.folder + "»";
+    text: Lib.folder-dialog == "new"
+        ? (Lib.folder == "" ? "Папка верхнего уровня." : "Внутри «" + Lib.folder + "». «/» в имени создаёт вложенные папки.")
+        : "Полный путь через «/»: так папку можно и переименовать, и перенести. Ролики внутри остаются в ней.";
+    has-icon: true;
+    icon: Icons.folder-open;
+    dismissed => {
+        Lib.folder-dialog = "";
+    }
+
+    TextField {
+        label: Lib.folder-dialog == "new" ? "Имя" : "Путь";
+        placeholder: "Фильмы/Комедии";
+        text <=> Lib.f-name;
+        error: Lib.f-error;
+        container-color: Theme.color.surface-container-high;
+        accepted => {
+            Lib.folder-save();
+        }
+    }
+    DialogActions {
+        Button {
+            text: "Отмена";
+            variant: ButtonVariant.text;
+            clicked => {
+                Lib.folder-dialog = "";
+            }
+        }
+        Button {
+            text: Lib.folder-dialog == "new" ? "Создать" : "Сохранить";
+            enabled: Lib.f-name != "";
+            clicked => {
+                Lib.folder-save();
+            }
+        }
+    }
+}

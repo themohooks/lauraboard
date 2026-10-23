@@ -12,6 +12,8 @@ pub struct MediaFilter {
     pub kinds: Vec<MediaKind>,
     pub category: Option<String>,
     pub problems_only: bool,
+    /// Library folder: its items and those of its subfolders.
+    pub folder: Option<String>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -54,6 +56,11 @@ impl MediaFilter {
         if self.problems_only && !has_problem(m) {
             return false;
         }
+        if let Some(f) = self.folder.as_deref().filter(|f| !f.is_empty())
+            && !(m.folder == f || m.folder.strip_prefix(f).is_some_and(|r| r.starts_with('/')))
+        {
+            return false;
+        }
         let t = self.text.trim().to_lowercase();
         t.is_empty()
             || m.title.to_lowercase().contains(&t)
@@ -61,6 +68,7 @@ impl MediaFilter {
             || m.category.as_deref().is_some_and(|c| c.to_lowercase().contains(&t))
             || m.tags.iter().any(|x| x.to_lowercase().contains(&t))
             || m.path.to_lowercase().contains(&t)
+            || m.original_name.as_deref().is_some_and(|n| n.to_lowercase().contains(&t))
     }
 }
 

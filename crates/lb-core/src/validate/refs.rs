@@ -148,10 +148,21 @@ fn graphics(ch: &ChannelData, r: &mut Report) {
         }
     }
     for e in &g.elements {
+        if let ElementKind::Clock { format, .. } = &e.kind
+            && !valid_time_format(format)
+        {
+            r.warn(format!("graphics/{}", e.id), format!("invalid clock format '{format}'"));
+        }
         if let ElementKind::Group { children } = &e.kind {
             for c in children.iter().filter(|c| g.element(c).is_none()) {
                 r.error(format!("graphics/{}", e.id), format!("unknown child element '{c}'"));
             }
         }
     }
+}
+
+/// `strftime` pattern chrono can format (`%Q` or a trailing `%` cannot).
+fn valid_time_format(f: &str) -> bool {
+    use chrono::format::{Item, StrftimeItems};
+    !StrftimeItems::new(f).any(|i| matches!(i, Item::Error))
 }

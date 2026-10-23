@@ -40,6 +40,9 @@ pub enum Command {
     SwitchSchedule { schedule: Option<String> },
     /// Configuration / data changed: reload and replan.
     Reload,
+    /// Stop broadcasting and end the actor (channel deleted or renamed).
+    /// Not accepted from API clients.
+    Shutdown,
 }
 
 pub type Reply = Result<String, String>;

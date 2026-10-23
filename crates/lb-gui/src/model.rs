@@ -115,10 +115,54 @@ impl LogLine {
     }
 }
 
+/// One channel of the project (from `GET /channels`).
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct ChannelEntry {
+    pub id: String,
+    pub name: String,
+    pub state: String,
+    pub autostart: bool,
+}
+
+impl ChannelEntry {
+    pub fn from_json(v: &serde_json::Value) -> Option<Self> {
+        Some(ChannelEntry {
+            id: v["channel"].as_str()?.to_string(),
+            name: v["name"].as_str().unwrap_or_default().to_string(),
+            state: v["state"].as_str().unwrap_or("stopped").to_string(),
+            autostart: v["autostart"].as_bool().unwrap_or(false),
+        })
+    }
+
+    /// Name for lists: the display name, or the id when it has none.
+    pub fn label(&self) -> &str {
+        if self.name.trim().is_empty() { &self.id } else { &self.name }
+    }
+}
+
+/// A background job on the server (`GET /jobs`).
+#[derive(Debug, Clone, PartialEq, serde::Deserialize)]
+pub struct JobView {
+    pub id: u64,
+    pub kind: String,
+    pub title: String,
+    #[serde(default)]
+    pub channel: Option<String>,
+    /// running / done / failed / cancelled
+    pub state: String,
+    pub progress: f32,
+    #[serde(default)]
+    pub message: String,
+    #[serde(default)]
+    pub result: Option<serde_json::Value>,
+}
+
 /// Everything the GUI knows about the selected channel.
 #[derive(Default)]
 pub struct Model {
+    /// Channel ids, in list order.
     pub channels: Vec<String>,
+    pub channel_info: Vec<ChannelEntry>,
     pub channel: Option<String>,
     pub online: bool,
     pub status: StatusView,

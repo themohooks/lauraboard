@@ -69,14 +69,32 @@ export component MediaEditSheet inherits SideSheet {
             }
         }
     }
+    Select {
+        label: "Папка";
+        options: Lib.folder-options;
+        current-index <=> Lib.e-folder;
+        container-color: Theme.color.surface-container-low;
+    }
     Switch {
         text: "Используется в эфире";
         checked <=> Lib.e-enabled;
     }
+    if Lib.edit.original != "": VerticalLayout {
+        spacing: 2px;
+        Label {
+            text: "ИСХОДНЫЙ ФАЙЛ";
+            type-style: Theme.label-small;
+            color: Theme.color.on-surface-variant;
+        }
+        Label {
+            text: Lib.edit.original;
+            wrap: word-wrap;
+        }
+    }
     VerticalLayout {
         spacing: 2px;
         Label {
-            text: "ФАЙЛ";
+            text: Lib.edit.own ? "КОПИЯ В ХРАНИЛИЩЕ КАНАЛА" : "ФАЙЛ";
             type-style: Theme.label-small;
             color: Theme.color.on-surface-variant;
         }

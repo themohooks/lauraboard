@@ -86,8 +86,9 @@ impl Output {
             video_codec: &codec,
             outputs: &outputs,
             record: cfg.record.enabled.then(|| (&cfg.record, rec_dir.to_string_lossy().into_owned())),
-            gfx: gfx_port.map(|port| GfxInput { port, fps: cfg.graphics.fps }),
-            preview: cfg.preview.enabled.then_some(PreviewOut { width: cfg.preview.width, fps: cfg.preview.fps }),
+            // overlay at the video rate: anything slower makes motion stutter
+            gfx: gfx_port.map(|port| GfxInput { port, fps: cfg.video.fps }),
+            preview: cfg.preview.enabled.then_some(PreviewOut { width: cfg.preview.width, fps: cfg.preview.effective_fps(cfg.video.fps) }),
             loglevel: &ff.loglevel,
         };
         let args = encoder_args(&job);
