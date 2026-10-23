@@ -133,6 +133,10 @@ impl Runtime {
                 Ok("schedule switched".into())
             }
             Command::Reload => self.reload().await,
+            Command::Shutdown => {
+                self.stop().await;
+                Ok("shut down".into())
+            }
         }
     }
 

@@ -45,6 +45,75 @@ pub async fn create_channel(State(s): State<AppState>, c: Caller, Json(v): Json<
     Ok(Json(h.status()))
 }
 
+#[derive(Deserialize)]
+pub struct ChannelMeta {
+    /// New display name (empty = unchanged).
+    #[serde(default)]
+    pub name: String,
+    /// New id / folder name (empty = unchanged; channel must be stopped).
+    #[serde(default)]
+    pub id: String,
+    #[serde(default)]
+    pub autostart: Option<bool>,
+}
+
+/// Rename a channel, change its id or autostart (admin).
+pub async fn update_channel(
+    State(s): State<AppState>,
+    c: Caller,
+    Path(id): Path<String>,
+    Json(v): Json<ChannelMeta>,
+) -> ApiResult<Json<ChannelStatus>> {
+    c.require(Role::Admin)?;
+    let h = s.engine.rename_channel(&id, &v.id, &v.name).await?;
+    if let Some(a) = v.autostart {
+        h.modify(move |d| {
+            d.config.autostart = a;
+            Ok(())
+        })
+        .await?;
+    }
+    Ok(Json(h.status()))
+}
+
+#[derive(Deserialize)]
+pub struct Duplicate {
+    pub id: String,
+    #[serde(default)]
+    pub name: String,
+}
+
+/// Copy a channel with all its content (admin).
+pub async fn duplicate_channel(
+    State(s): State<AppState>,
+    c: Caller,
+    Path(id): Path<String>,
+    Json(v): Json<Duplicate>,
+) -> ApiResult<Json<ChannelStatus>> {
+    c.require(Role::Admin)?;
+    let h = s.engine.duplicate_channel(&id, v.id.trim(), &v.name).await?;
+    Ok(Json(h.status()))
+}
+
+#[derive(Deserialize)]
+pub struct DeleteQuery {
+    /// Erase the folder instead of moving it to `deleted/`.
+    #[serde(default)]
+    pub purge: bool,
+}
+
+/// Remove a channel (admin).
+pub async fn delete_channel(
+    State(s): State<AppState>,
+    c: Caller,
+    Path(id): Path<String>,
+    Query(q): Query<DeleteQuery>,
+) -> ApiResult<Json<serde_json::Value>> {
+    c.require(Role::Admin)?;
+    let moved = s.engine.delete_channel(&id, q.purge).await?;
+    Ok(Json(serde_json::json!({ "ok": true, "moved_to": moved.map(|p| p.to_string_lossy().into_owned()) })))
+}
+
 pub async fn status(State(s): State<AppState>, c: Caller, Path(id): Path<String>) -> ApiResult<Json<ChannelStatus>> {
     c.require(Role::Viewer)?;
     Ok(Json(channel(&s, &id)?.status()))

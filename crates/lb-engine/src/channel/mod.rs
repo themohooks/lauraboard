@@ -61,9 +61,10 @@ impl ChannelHandle {
     /// Spawn the channel actor on the current tokio runtime.
     pub fn spawn(app: AppConfig, root: PathBuf, data: ChannelData) -> Self {
         let id = data.id().to_string();
+        let (name, autostart) = (data.config.name.clone(), data.config.autostart);
         let shared = Arc::new(ChannelShared { id: id.clone(), root, app, data: RwLock::new(data) });
         let (tx, rx) = mpsc::channel(64);
-        let (status_tx, status) = watch::channel(ChannelStatus { channel: id, ..Default::default() });
+        let (status_tx, status) = watch::channel(ChannelStatus { channel: id, name, autostart, ..Default::default() });
         let (rundown_tx, rundown) = watch::channel(Arc::new(Rundown::default()));
         let (events, _) = broadcast::channel(512);
         let (preview_tx, preview) = watch::channel(None);

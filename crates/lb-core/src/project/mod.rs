@@ -15,6 +15,7 @@
 pub mod files;
 pub mod m3u;
 pub mod paths;
+pub mod rebase;
 
 use std::fs;
 use std::path::{Path, PathBuf};

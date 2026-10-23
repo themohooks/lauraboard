@@ -35,6 +35,8 @@ pub(crate) fn channel(state: &AppState, id: &str) -> ApiResult<ChannelHandle> {
 
 pub fn router(state: AppState) -> Router {
     let ch = Router::new()
+        .route("/", put(status::update_channel).delete(status::delete_channel))
+        .route("/duplicate", post(status::duplicate_channel))
         .route("/status", get(status::status))
         .route("/rundown", get(status::rundown))
         .route("/preview.jpg", get(status::preview))

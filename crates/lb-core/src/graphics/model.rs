@@ -152,6 +152,29 @@ pub enum ElementKind {
     Group { children: Vec<String> },
 }
 
+impl ElementKind {
+    /// Text style of text-drawing kinds.
+    pub fn style(&self) -> Option<&TextStyle> {
+        match self {
+            ElementKind::Text { style, .. }
+            | ElementKind::Ticker { style, .. }
+            | ElementKind::Clock { style, .. }
+            | ElementKind::Countdown { style, .. } => Some(style),
+            _ => None,
+        }
+    }
+
+    pub fn style_mut(&mut self) -> Option<&mut TextStyle> {
+        match self {
+            ElementKind::Text { style, .. }
+            | ElementKind::Ticker { style, .. }
+            | ElementKind::Clock { style, .. }
+            | ElementKind::Countdown { style, .. } => Some(style),
+            _ => None,
+        }
+    }
+}
+
 fn default_speed() -> f32 {
     120.0
 }

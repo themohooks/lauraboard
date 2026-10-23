@@ -1,4 +1,6 @@
 //! Multi-channel engine: loads a project and runs one actor per channel.
+//!
+//! * [`manage`] — rename, duplicate and delete channels
 
 use std::collections::BTreeMap;
 use std::path::Path;
@@ -9,6 +11,8 @@ use lb_core::project::{APP_FILE, CHANNELS_DIR, ChannelData, Project, files};
 
 use crate::channel::ChannelHandle;
 use crate::error::{EngineError, Result};
+
+pub mod manage;
 
 pub struct Engine {
     pub project_root: std::path::PathBuf,
@@ -59,16 +63,7 @@ impl Engine {
     /// given, without its outputs (they may hold stream keys of another
     /// channel). New channels do not start airing on their own.
     pub fn create_channel(&self, id: &str, name: &str, template: Option<&str>) -> Result<ChannelHandle> {
-        if id.is_empty() || !id.chars().all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_') {
-            return Err(EngineError::InvalidConfig(format!("channel id '{id}': use latin letters, digits, '-' and '_'")));
-        }
-        if self.map().contains_key(id) {
-            return Err(EngineError::InvalidConfig(format!("channel '{id}' already exists")));
-        }
-        let dir = self.project_root.join(CHANNELS_DIR).join(id);
-        if dir.join("channel.toml").exists() {
-            return Err(EngineError::InvalidConfig(format!("{} already exists (channel disabled?)", dir.display())));
-        }
+        let dir = self.check_new_id(id)?;
         let mut config = match template {
             Some(t) => self.channel(t)?.read(|d| d.config.clone()),
             None => ChannelConfig::new(id),
@@ -80,19 +75,50 @@ impl Engine {
         config.outputs.clear();
         let data = ChannelData::new(dir, config);
         data.save()?;
-        // an explicit channel list in laurabrod.toml must name it, or it is lost on restart
-        if !self.app.channels.is_empty() {
-            let path = self.project_root.join(APP_FILE);
-            let mut app: lb_core::config::AppConfig = files::read_toml(&path)?;
-            if !app.channels.iter().any(|c| c == id) {
-                app.channels.push(id.to_string());
-                files::write_toml(&path, &app)?;
+        self.edit_channel_list(|l| {
+            if !l.iter().any(|c| c == id) {
+                l.push(id.to_string());
             }
-        }
-        let handle = ChannelHandle::spawn(self.app.clone(), self.project_root.clone(), data);
-        self.channels.write().unwrap_or_else(|e| e.into_inner()).insert(id.to_string(), handle.clone());
+        })?;
+        let handle = self.register(data);
         tracing::info!(channel = %id, "channel created");
         Ok(handle)
+    }
+
+    /// A valid, unused channel id; returns its future directory.
+    fn check_new_id(&self, id: &str) -> Result<std::path::PathBuf> {
+        if id.is_empty() || !id.chars().all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_') {
+            return Err(EngineError::InvalidConfig(format!("channel id '{id}': use latin letters, digits, '-' and '_'")));
+        }
+        if self.map().contains_key(id) {
+            return Err(EngineError::InvalidConfig(format!("channel '{id}' already exists")));
+        }
+        let dir = self.project_root.join(CHANNELS_DIR).join(id);
+        if dir.exists() {
+            return Err(EngineError::InvalidConfig(format!("{} already exists (channel disabled?)", dir.display())));
+        }
+        Ok(dir)
+    }
+
+    /// Start an actor for loaded channel data and list it.
+    fn register(&self, data: ChannelData) -> ChannelHandle {
+        let id = data.id().to_string();
+        let handle = ChannelHandle::spawn(self.app.clone(), self.project_root.clone(), data);
+        self.channels.write().unwrap_or_else(|e| e.into_inner()).insert(id, handle.clone());
+        handle
+    }
+
+    /// An explicit channel list in laurabrod.toml must follow channels
+    /// being added, renamed or removed (an empty list means "all folders").
+    fn edit_channel_list(&self, f: impl FnOnce(&mut Vec<String>)) -> Result<()> {
+        let path = self.project_root.join(APP_FILE);
+        let mut app: lb_core::config::AppConfig = files::read_toml(&path)?;
+        if app.channels.is_empty() {
+            return Ok(());
+        }
+        f(&mut app.channels);
+        files::write_toml(&path, &app)?;
+        Ok(())
     }
 
     /// Stop every channel gracefully.

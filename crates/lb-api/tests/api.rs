@@ -199,3 +199,32 @@ async fn media_thumbnails() {
     let cached = std::fs::read_dir(dir.path().join("cache/thumbs/main")).unwrap().count();
     assert_eq!(cached, 1);
 }
+
+#[tokio::test]
+async fn channels_are_renamed_duplicated_and_deleted() {
+    let dir = project(vec![]);
+    let app = app(&dir).await;
+    let (st, body) = call(&app, "PUT", "/api/v1/channels/main", None, Some(r#"{"name":"Главный","autostart":true}"#)).await;
+    assert_eq!(st, StatusCode::OK, "{body}");
+    assert!(body.contains("\"name\":\"Главный\"") && body.contains("\"autostart\":true"), "{body}");
+
+    let (st, body) = call(&app, "POST", "/api/v1/channels/main/duplicate", None, Some(r#"{"id":"copy"}"#)).await;
+    assert_eq!(st, StatusCode::OK, "{body}");
+    assert!(body.contains("Главный (копия)"), "{body}");
+    let (_, body) = call(&app, "GET", "/api/v1/channels/copy/media", None, None).await;
+    assert!(body.contains("media/a.mp4"), "library copied: {body}");
+
+    let (st, body) = call(&app, "PUT", "/api/v1/channels/copy", None, Some(r#"{"id":"second"}"#)).await;
+    assert_eq!(st, StatusCode::OK, "{body}");
+    assert!(dir.path().join("channels/second/channel.toml").exists());
+    assert!(!dir.path().join("channels/copy").exists());
+    assert_eq!(call(&app, "GET", "/api/v1/channels/copy/status", None, None).await.0, StatusCode::NOT_FOUND);
+
+    let (st, body) = call(&app, "DELETE", "/api/v1/channels/second", None, None).await;
+    assert_eq!(st, StatusCode::OK, "{body}");
+    assert!(body.contains("deleted"), "{body}");
+    assert!(!dir.path().join("channels/second").exists());
+    let (_, body) = call(&app, "GET", "/api/v1/channels", None, None).await;
+    assert!(!body.contains("\"second\""), "{body}");
+    assert_eq!(call(&app, "POST", "/api/v1/channels/main/command", None, Some(r#"{"cmd":"shutdown"}"#)).await.0, StatusCode::BAD_REQUEST);
+}
