@@ -66,8 +66,8 @@ pub fn changed(c: &mut Ctx, list: Vec<JobView>) {
     g.set_summary(
         match running.as_slice() {
             [] => String::new(),
-            [one] => format!("{} · {:.0} %", one.title, one.progress * 100.0),
-            many => format!("Задач: {} · {:.0} %", many.len(), progress * 100.0),
+            [one] => format!("{:.0} % · {}", one.progress * 100.0, one.title),
+            many => format!("{:.0} % · задач: {}", progress * 100.0, many.len()),
         }
         .into(),
     );

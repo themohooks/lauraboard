@@ -1,0 +1,221 @@
+// Channel export (choose what goes into the ZIP and where) and import
+// (pick an archive, see what it holds, choose the new id and name). Both
+// run as background jobs on the server.
+
+import { Theme } from "../theme/tokens.slint";
+import { Icons } from "../theme/icons.slint";
+import { Dialog, DialogActions } from "../components/dialog.slint";
+import { Label } from "../components/label.slint";
+import { TextField } from "../components/text-field.slint";
+import { Checkbox } from "../components/checkbox.slint";
+import { IconButton, IconButtonVariant } from "../components/icon-button.slint";
+import { Button, ButtonVariant } from "../components/button.slint";
+import { Chan } from "../state/channels-state.slint";
+
+// Path field with a "browse" button.
+component PathRow inherits HorizontalLayout {
+    in property <string> label;
+    in property <string> placeholder;
+    in-out property <string> path;
+    callback browse();
+    callback edited();
+    spacing: Theme.sp2;
+    TextField {
+        horizontal-stretch: 1;
+        label: root.label;
+        placeholder: root.placeholder;
+        mono: true;
+        text <=> root.path;
+        container-color: Theme.color.surface-container-high;
+        edited => {
+            root.edited();
+        }
+    }
+    if Chan.can-browse: VerticalLayout {
+        alignment: start;
+        padding-top: 4px;
+        IconButton {
+            icon: Icons.folder-open;
+            variant: IconButtonVariant.tonal;
+            tooltip: "Выбрать файл";
+            clicked => {
+                root.browse();
+            }
+        }
+    }
+}
+
+component SectionLabel inherits Label {
+    type-style: Theme.label-small;
+    color: Theme.color.on-surface-variant;
+}
+
+export component ChannelExportDialog inherits Dialog {
+    open: Chan.form == "export";
+    dialog-width: 560px;
+    title: "Экспорт канала «" + Chan.form-source + "»";
+    text: "Канал сохраняется в один ZIP-архив, который можно импортировать на этом или другом компьютере. Экспорт идёт в фоне — прогресс виден в шапке окна.";
+    has-icon: true;
+    icon: Icons.download;
+    dismissed => {
+        Chan.form = "";
+    }
+
+    SectionLabel {
+        text: "ЧТО ЭКСПОРТИРОВАТЬ";
+    }
+    HorizontalLayout {
+        spacing: Theme.sp4;
+        VerticalLayout {
+            horizontal-stretch: 1;
+            Checkbox {
+                text: "Настройки канала";
+                checked <=> Chan.x-settings;
+            }
+            Checkbox {
+                text: "Выходы и ключи трансляций";
+                enabled: Chan.x-settings;
+                checked <=> Chan.x-outputs;
+            }
+            Checkbox {
+                text: "Медиатека";
+                checked <=> Chan.x-library;
+            }
+            Checkbox {
+                text: "Медиафайлы";
+                checked <=> Chan.x-media;
+            }
+            Checkbox {
+                text: "Плейлисты";
+                checked <=> Chan.x-playlists;
+            }
+        }
+        VerticalLayout {
+            horizontal-stretch: 1;
+            Checkbox {
+                text: "Сетка вещания";
+                checked <=> Chan.x-schedules;
+            }
+            Checkbox {
+                text: "Правила вставок и реклама";
+                checked <=> Chan.x-rules;
+            }
+            Checkbox {
+                text: "Экранная графика";
+                checked <=> Chan.x-graphics;
+            }
+            Checkbox {
+                text: "Журнал эфира (статистика)";
+                checked <=> Chan.x-history;
+            }
+        }
+    }
+    Label {
+        text: Chan.x-media
+            ? "Файлы роликов, картинок и шрифтов попадут в архив — в том числе лежащие вне папки канала. Архив может быть большим."
+            : "Без медиафайлов архив маленький, но ролики придётся положить на место вручную.";
+        wrap: word-wrap;
+        type-style: Theme.body-small;
+        color: Theme.color.on-surface-variant;
+    }
+    PathRow {
+        label: "Файл архива";
+        placeholder: "D:/backup/channel.zip";
+        path <=> Chan.x-path;
+        browse => {
+            Chan.browse-export();
+        }
+    }
+    DialogActions {
+        Button {
+            text: "Отмена";
+            variant: ButtonVariant.text;
+            clicked => {
+                Chan.form = "";
+            }
+        }
+        Button {
+            text: "Экспортировать";
+            has-icon: true;
+            icon: Icons.download;
+            enabled: Chan.x-path != "";
+            clicked => {
+                Chan.start-export();
+            }
+        }
+    }
+}
+
+export component ChannelImportDialog inherits Dialog {
+    open: Chan.form == "import";
+    dialog-width: 560px;
+    title: "Импорт канала";
+    text: "Канал из ZIP-архива появится рядом с остальными, без автозапуска. Импорт идёт в фоне — прогресс виден в шапке окна.";
+    has-icon: true;
+    icon: Icons.upload;
+    dismissed => {
+        Chan.form = "";
+    }
+
+    PathRow {
+        label: "Архив канала";
+        placeholder: "D:/backup/channel.zip";
+        path <=> Chan.i-path;
+        browse => {
+            Chan.browse-import();
+        }
+        edited => {
+            Chan.inspect-import();
+        }
+    }
+    if Chan.i-info != "": Rectangle {
+        border-radius: Theme.radius-m;
+        background: Chan.i-valid ? Theme.color.surface-container : Theme.color.error-container;
+        VerticalLayout {
+            padding: Theme.sp3;
+            Label {
+                text: Chan.i-info;
+                wrap: word-wrap;
+                color: Chan.i-valid ? Theme.color.on-surface : Theme.color.on-error-container;
+            }
+        }
+    }
+    if Chan.i-valid: HorizontalLayout {
+        spacing: Theme.sp3;
+        TextField {
+            horizontal-stretch: 1;
+            label: "Название";
+            text <=> Chan.e-name;
+            container-color: Theme.color.surface-container-high;
+        }
+        TextField {
+            horizontal-stretch: 1;
+            label: "Идентификатор";
+            mono: true;
+            text <=> Chan.e-id;
+            error: Chan.e-error;
+            container-color: Theme.color.surface-container-high;
+            edited(t) => {
+                Chan.validate-id(t);
+            }
+        }
+    }
+    DialogActions {
+        Button {
+            text: "Отмена";
+            variant: ButtonVariant.text;
+            clicked => {
+                Chan.form = "";
+            }
+        }
+        Button {
+            text: "Импортировать";
+            has-icon: true;
+            icon: Icons.upload;
+            enabled: Chan.i-valid && Chan.e-id != "" && Chan.e-error == "";
+            clicked => {
+                Chan.start-import();
+            }
+        }
+    }
+}

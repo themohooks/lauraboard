@@ -12,6 +12,7 @@ import { App } from "state/app-state.slint";
 import { AppBar } from "shell/app-bar.slint";
 import { NewChannelDialog } from "shell/new-channel-dialog.slint";
 import { ChannelsDialog, ChannelFormDialog } from "shell/channels-dialog.slint";
+import { ChannelExportDialog, ChannelImportDialog } from "shell/channel-archive-dialog.slint";
 import { JobsDialog } from "shell/jobs-dialog.slint";
 import { SourceEditDialog } from "screens/sources/edit-dialog.slint";
 import { EncoderDialog } from "screens/sources/encoder-dialog.slint";
@@ -196,6 +197,10 @@ export component AppWindow inherits Window {
     RuleWizard { }
 
     ChannelsDialog { }
+
+    ChannelExportDialog { }
+
+    ChannelImportDialog { }
 
     JobsDialog { }
 

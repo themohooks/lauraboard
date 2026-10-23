@@ -194,11 +194,7 @@ pub fn refresh(c: &mut Ctx) {
     g.set_loading(!c.lib.loaded);
     folders::show(c);
     g.set_checked_count(c.lib.checked.len() as i32);
-    let local = {
-        let base = c.worker.api().base.to_lowercase();
-        base.contains("://127.0.0.1") || base.contains("://localhost") || base.contains("://[::1]")
-    };
-    g.set_can_browse(local);
+    g.set_can_browse(c.server_is_local());
     if c.prefs.library_grid != g.get_grid() {
         c.prefs.library_grid = g.get_grid();
         c.prefs.save();

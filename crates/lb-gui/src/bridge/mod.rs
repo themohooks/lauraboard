@@ -12,6 +12,7 @@
 //! [`thumbs`] (media thumbnails).
 
 pub mod air;
+pub mod archive;
 pub mod channels;
 pub mod encoder;
 pub mod folders;
@@ -490,6 +491,13 @@ impl Ctx {
         g.set_toast_action(action.into());
         g.set_toast_serial(self.toast_serial);
         g.set_toast_shown(true);
+    }
+
+    /// The server runs on this computer (its paths are our paths, so file
+    /// dialogs make sense).
+    pub fn server_is_local(&self) -> bool {
+        let base = self.worker.api().base.to_lowercase();
+        base.contains("://127.0.0.1") || base.contains("://localhost") || base.contains("://[::1]")
     }
 
     /// Ask before running a risky action.

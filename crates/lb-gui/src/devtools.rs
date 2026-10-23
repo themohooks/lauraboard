@@ -164,6 +164,32 @@ fn demo_overlay(ui: &AppWindow, name: &str) {
             c.set_e_name("Основной канал (копия)".into());
             c.set_form("duplicate".into());
         }
+        "jobs" => {
+            use crate::shell::{JobRow, Jobs};
+            let j = ui.global::<Jobs>();
+            j.set_running(1);
+            j.set_progress(0.42);
+            j.set_summary("42 % · Экспорт канала «Основной канал»".into());
+            j.set_rows(model(vec![
+                JobRow { id: 2, title: "Экспорт канала «Основной канал»".into(), channel: "main".into(), state: "running".into(), text: "42 % · 17/42: media/5f1c….mp4".into(), progress: 0.42 },
+                JobRow { id: 1, title: "Копирование файлов в медиатеку (3)".into(), channel: "main".into(), state: "done".into(), text: "Готово".into(), progress: 1.0 },
+            ]));
+            j.set_open(true);
+        }
+        "channel-export" => {
+            c.set_form_source("Основной канал".into());
+            c.set_x_path("C:/Users/operator/Documents/main-2026-10-23.zip".into());
+            c.set_form("export".into());
+        }
+        "channel-import" => {
+            c.set_i_path("C:/Users/operator/Documents/main-2026-10-23.zip".into());
+            c.set_i_info("Канал «Основной канал» (main), экспортирован 2026-10-23 17:40:12.
+В архиве: настройки, медиатека, плейлисты, сетка, правила, графика; медиафайлов: 42 (3.4 ГБ).".into());
+            c.set_i_valid(true);
+            c.set_e_id("main-2".into());
+            c.set_e_name("Основной канал".into());
+            c.set_form("import".into());
+        }
         _ => return,
     }
     ui.set_section("home".into());

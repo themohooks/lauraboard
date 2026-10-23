@@ -30,6 +30,7 @@ pub fn connect(ui: &AppWindow) {
     g.on_save_form(|| with(save_form));
     g.on_autostart(|id, on| with(move |c| set_autostart(c, id.to_string(), on)));
     g.on_remove(|id| with(move |c| remove(c, id.to_string())));
+    super::archive::connect(ui);
 }
 
 /// Fetch the channel list without reloading the documents of the channel.
@@ -75,10 +76,12 @@ pub fn refresh(c: &mut Ctx) {
             current: c.model.channel.as_deref() == Some(e.id.as_str()),
         })
         .collect();
-    ui.global::<Chan>().set_rows(vec_model(rows));
+    let g = ui.global::<Chan>();
+    g.set_rows(vec_model(rows));
+    g.set_can_browse(c.server_is_local());
 }
 
-fn entry(c: &Ctx, id: &str) -> Option<ChannelEntry> {
+pub fn entry(c: &Ctx, id: &str) -> Option<ChannelEntry> {
     c.model.channel_info.iter().find(|e| e.id == id).cloned()
 }
 
@@ -100,8 +103,17 @@ fn open_form(c: &mut Ctx, form: &str, id: &str) {
         g.set_e_name(e.name.as_str().into());
     }
     g.set_e_error("".into());
-    FORM_SOURCE.with(|s| *s.borrow_mut() = e.id.clone());
+    set_form_source(&e.id);
     g.set_form(form.into());
+}
+
+/// Channel the open form acts on.
+pub fn form_source() -> String {
+    FORM_SOURCE.with(|s| s.borrow().clone())
+}
+
+pub fn set_form_source(id: &str) {
+    FORM_SOURCE.with(|s| *s.borrow_mut() = id.to_string());
 }
 
 thread_local! {
@@ -109,7 +121,7 @@ thread_local! {
     static FORM_SOURCE: std::cell::RefCell<String> = const { std::cell::RefCell::new(String::new()) };
 }
 
-fn validate(c: &mut Ctx, id: &str) {
+pub fn validate(c: &mut Ctx, id: &str) {
     let Some(ui) = c.window() else { return };
     let id = id.trim();
     let source = FORM_SOURCE.with(|s| s.borrow().clone());

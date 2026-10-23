@@ -79,6 +79,16 @@ component ChannelLine inherits ListRow {
     VerticalLayout {
         alignment: center;
         IconButton {
+            icon: Icons.download;
+            tooltip: "Экспорт в архив ZIP";
+            clicked => {
+                Chan.export(ch.id);
+            }
+        }
+    }
+    VerticalLayout {
+        alignment: center;
+        IconButton {
             icon: Icons.delete;
             tooltip: "Удалить канал";
             icon-tint: Theme.color.error;
@@ -113,6 +123,15 @@ export component ChannelsDialog inherits Dialog {
 
     DialogActions {
         Button {
+            text: "Импорт из архива";
+            variant: ButtonVariant.outlined;
+            has-icon: true;
+            icon: Icons.upload;
+            clicked => {
+                Chan.open-import();
+            }
+        }
+        Button {
             text: "Новый канал";
             variant: ButtonVariant.tonal;
             has-icon: true;
@@ -137,7 +156,7 @@ export component ChannelsDialog inherits Dialog {
 // Rename (name, id) or duplicate (new id, name) form.
 export component ChannelFormDialog inherits Dialog {
     property <bool> dup: Chan.form == "duplicate";
-    open: Chan.form != "";
+    open: Chan.form == "rename" || Chan.form == "duplicate";
     dialog-width: 480px;
     title: root.dup ? "Копия канала «" + Chan.form-source + "»" : "Канал «" + Chan.form-source + "»";
     text: root.dup
