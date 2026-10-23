@@ -8,6 +8,7 @@
 //! * [`persist`] — runtime state, as-run log, instance lock
 //! * [`library`] — media import / probing
 //! * [`jobs`] — background jobs with progress
+//! * [`transfer`] — channel export / import (ZIP)
 //! * [`stats`] — reports and CSV export
 //! * [`notify`] — critical event notifications
 
@@ -19,6 +20,7 @@ pub mod library;
 pub mod notify;
 pub mod persist;
 pub mod stats;
+pub mod transfer;
 
 pub use channel::{ChannelHandle, ChannelStatus, Command, Event};
 pub use engine::Engine;

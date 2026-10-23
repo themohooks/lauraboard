@@ -24,6 +24,8 @@
 | POST | `/channels` | создать канал (admin): `{"id", "name", "copy_from"}` — настройки копируются без выходов, автозапуск выключен |
 | GET | `/events` | WebSocket: события всех каналов |
 | GET | `/logs?lines=N` | хвост журнала программы (текст) |
+| POST | `/archives/inspect` | содержимое архива канала (admin): `{"path"}` → `manifest` (канал, части, число и объём файлов) |
+| POST | `/archives/import` | импорт канала из архива (admin, фоновая задача): `{"path", "id", "name"}` — `id` по умолчанию из архива; канал создаётся без автозапуска |
 | GET | `/jobs`, `/jobs/{job}` | фоновые задачи (копирование медиа, экспорт и импорт каналов): `state` = `running`/`done`/`failed`/`cancelled`, `progress` 0…1, `message`, `result` |
 | DELETE | `/jobs/{job}` | отменить идущую задачу или убрать завершённую из списка |
 
@@ -33,6 +35,7 @@
 |---|---|---|
 | PUT | `` (сам канал) | изменить канал (admin): `{"name", "id", "autostart"}` — пустые поля не меняются; новый `id` (имя папки) — только при остановленном эфире, пути к собственным файлам канала переписываются |
 | DELETE | `?purge=false` | удалить канал (admin): папка переносится в `deleted/<id>-<время>`, с `purge=true` — стирается |
+| POST | `/export` | экспорт в ZIP (admin, фоновая задача): `{"path": "D:/backup/main.zip", "parts": {"settings": true, "outputs": false, "library": true, "media": true, "playlists": true, "schedules": true, "rules": true, "graphics": true, "history": false}}` — `media` кладёт в архив сами файлы (и копии канала, и файлы из других папок), `outputs` — выходы с ключами трансляций |
 | POST | `/duplicate` | копия канала со всем содержимым (admin): `{"id", "name"}` — без выходов и журналов, автозапуск выключен |
 | GET | `/status` | эфир сейчас и далее, отсчёты, энкодер, графика, ошибки |
 | GET | `/rundown?limit=N` | ближайший эфир с расчётным временем |

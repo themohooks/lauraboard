@@ -88,7 +88,7 @@ impl Engine {
     }
 
     /// A valid, unused channel id; returns its future directory.
-    fn check_new_id(&self, id: &str) -> Result<std::path::PathBuf> {
+    pub(crate) fn check_new_id(&self, id: &str) -> Result<std::path::PathBuf> {
         if id.is_empty() || !id.chars().all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_') {
             return Err(EngineError::InvalidConfig(format!("channel id '{id}': use latin letters, digits, '-' and '_'")));
         }
@@ -103,7 +103,7 @@ impl Engine {
     }
 
     /// Start an actor for loaded channel data and list it.
-    fn register(&self, data: ChannelData) -> ChannelHandle {
+    pub(crate) fn register(&self, data: ChannelData) -> ChannelHandle {
         let id = data.id().to_string();
         let handle = ChannelHandle::spawn(self.app.clone(), self.project_root.clone(), data);
         self.channels.write().unwrap_or_else(|e| e.into_inner()).insert(id, handle.clone());
@@ -112,7 +112,7 @@ impl Engine {
 
     /// An explicit channel list in laurabrod.toml must follow channels
     /// being added, renamed or removed (an empty list means "all folders").
-    fn edit_channel_list(&self, f: impl FnOnce(&mut Vec<String>)) -> Result<()> {
+    pub(crate) fn edit_channel_list(&self, f: impl FnOnce(&mut Vec<String>)) -> Result<()> {
         let path = self.project_root.join(APP_FILE);
         let mut app: lb_core::config::AppConfig = files::read_toml(&path)?;
         if app.channels.is_empty() {

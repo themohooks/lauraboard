@@ -158,7 +158,8 @@ impl Project {
             let mut v: Vec<String> = fs::read_dir(&ch_root)
                 .map(|rd| {
                     rd.flatten()
-                        .filter(|e| e.path().join("channel.toml").exists())
+                        // `.import-…`: an unfinished import, not a channel
+                        .filter(|e| !e.file_name().to_string_lossy().starts_with('.') && e.path().join("channel.toml").exists())
                         .map(|e| e.file_name().to_string_lossy().into_owned())
                         .collect()
                 })

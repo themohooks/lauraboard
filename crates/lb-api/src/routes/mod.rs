@@ -11,6 +11,7 @@
 //! | media thumbnails | [`thumbs`] |
 //! | as-run, statistics, logs | [`reports`] |
 //! | background jobs | [`jobs`] |
+//! | channel export / import | [`transfer`] |
 
 pub mod config;
 pub mod control;
@@ -21,6 +22,7 @@ pub mod render;
 pub mod reports;
 pub mod status;
 pub mod thumbs;
+pub mod transfer;
 
 use axum::Router;
 use axum::routing::{get, post, put};
@@ -39,6 +41,7 @@ pub fn router(state: AppState) -> Router {
     let ch = Router::new()
         .route("/", put(status::update_channel).delete(status::delete_channel))
         .route("/duplicate", post(status::duplicate_channel))
+        .route("/export", post(transfer::export))
         .route("/status", get(status::status))
         .route("/rundown", get(status::rundown))
         .route("/preview.jpg", get(status::preview))
@@ -72,6 +75,8 @@ pub fn router(state: AppState) -> Router {
         .route("/events", get(crate::ws::events_all))
         .route("/logs", get(reports::logs))
         .route("/version", get(status::version))
+        .route("/archives/inspect", post(transfer::inspect))
+        .route("/archives/import", post(transfer::import))
         .route("/jobs", get(jobs::list))
         .route("/jobs/{job}", get(jobs::get_one).delete(jobs::cancel))
         .nest("/channels/{id}", ch.route("/events", get(crate::ws::events_channel)))
