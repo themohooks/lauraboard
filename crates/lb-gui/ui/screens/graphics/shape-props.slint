@@ -1,0 +1,108 @@
+// Design of rectangles and plate backgrounds: gradient, border, corners,
+// slant, soft shadow, accent bar and a texture picture.
+
+import { Theme } from "../../theme/tokens.slint";
+import { Icons } from "../../theme/icons.slint";
+import { Select } from "../../components/select.slint";
+import { Button, ButtonVariant } from "../../components/button.slint";
+import { Gfx } from "../../state/graphics-state.slint";
+import { FormSection } from "../rules/form-parts.slint";
+import { Field, ColorField } from "prop-fields.slint";
+
+export component ShapeSection inherits FormSection {
+    title: "Оформление";
+    icon: Icons.palette;
+
+    HorizontalLayout {
+        spacing: Theme.sp2;
+        ColorField {
+            horizontal-stretch: 2;
+            label: "Градиент до цвета";
+            placeholder: "нет";
+            value <=> Gfx.sh-gradient;
+            swatch: Gfx.sw-sh-gradient;
+        }
+        Field { min-width: 56px; horizontal-stretch: 1; label: "Угол, °"; text <=> Gfx.sh-angle; mono: true; supporting: "0 → , 90 ↓"; }
+    }
+    HorizontalLayout {
+        spacing: Theme.sp2;
+        ColorField {
+            horizontal-stretch: 2;
+            label: "Рамка";
+            placeholder: "нет";
+            value <=> Gfx.sh-border;
+            swatch: Gfx.sw-sh-border;
+        }
+        Field { min-width: 56px; horizontal-stretch: 1; label: "Толщина"; text <=> Gfx.sh-border-w; mono: true; }
+    }
+    HorizontalLayout {
+        spacing: Theme.sp2;
+        Field {
+            horizontal-stretch: 2;
+            label: "Углы по отдельности";
+            text <=> Gfx.sh-corners;
+            placeholder: "как скругление";
+            supporting: "лв пв пн лн, напр. 24 0 24 0";
+            mono: true;
+        }
+        Field { min-width: 56px; horizontal-stretch: 1; label: "Наклон, °"; text <=> Gfx.sh-skew; mono: true; supporting: "−45…45"; }
+    }
+    HorizontalLayout {
+        spacing: Theme.sp2;
+        ColorField {
+            horizontal-stretch: 2;
+            label: "Тень";
+            placeholder: "нет";
+            value <=> Gfx.sh-shadow;
+            swatch: Gfx.sw-sh-shadow;
+        }
+        Field { min-width: 48px; horizontal-stretch: 1; label: "Размытие"; text <=> Gfx.sh-shadow-blur; mono: true; }
+    }
+    HorizontalLayout {
+        spacing: Theme.sp2;
+        Field { label: "Тень dx"; text <=> Gfx.sh-shadow-x; mono: true; }
+        Field { label: "Тень dy"; text <=> Gfx.sh-shadow-y; mono: true; }
+    }
+    HorizontalLayout {
+        spacing: Theme.sp2;
+        Select {
+            horizontal-stretch: 1;
+            label: "Акцентная полоса";
+            options: ["Нет", "Слева", "Сверху", "Справа", "Снизу"];
+            current-index <=> Gfx.sh-accent-side;
+            container-color: Theme.color.surface-container-low;
+            selected => {
+                Gfx.props-changed();
+            }
+        }
+        if Gfx.sh-accent-side > 0: Field { min-width: 56px; horizontal-stretch: 1; label: "Ширина"; text <=> Gfx.sh-accent-size; mono: true; }
+    }
+    if Gfx.sh-accent-side > 0: ColorField {
+        label: "Цвет полосы";
+        value <=> Gfx.sh-accent-color;
+        swatch: Gfx.sw-sh-accent;
+    }
+    HorizontalLayout {
+        spacing: Theme.sp2;
+        Field {
+            horizontal-stretch: 1;
+            label: "Картинка-фон";
+            text <=> Gfx.sh-image;
+            placeholder: "нет";
+            supporting: "заполняет фигуру с обрезкой краёв";
+        }
+        VerticalLayout {
+            alignment: start;
+            padding-top: 4px;
+            Button {
+                text: "Обзор…";
+                icon: Icons.folder-open;
+                has-icon: true;
+                variant: ButtonVariant.tonal;
+                clicked => {
+                    Gfx.pick-shape-image();
+                }
+            }
+        }
+    }
+}

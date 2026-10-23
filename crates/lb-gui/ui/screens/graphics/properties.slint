@@ -5,7 +5,6 @@ import { ScrollView } from "std-widgets.slint";
 import { Theme } from "../../theme/tokens.slint";
 import { Icons } from "../../theme/icons.slint";
 import { Label } from "../../components/label.slint";
-import { TextField } from "../../components/text-field.slint";
 import { Select } from "../../components/select.slint";
 import { Slider } from "../../components/slider.slint";
 import { Interactive } from "../../components/interactive.slint";
@@ -15,6 +14,10 @@ import { Gfx } from "../../state/graphics-state.slint";
 import { App } from "../../state/app-state.slint";
 import { VarList } from "var-help.slint";
 import { FormSection } from "../rules/form-parts.slint";
+import { Checkbox } from "../../components/checkbox.slint";
+import { Field, ColorField } from "prop-fields.slint";
+import { ShapeSection } from "shape-props.slint";
+import { PlateSection } from "plate-props.slint";
 
 component AnchorGrid inherits Rectangle {
     width: 3 * 28px + 2 * 4px;
@@ -39,40 +42,6 @@ component AnchorGrid inherits Rectangle {
             border-radius: 4px;
             background: Gfx.p-anchor == i ? Theme.color.on-primary : Theme.color.on-surface-variant;
         }
-    }
-}
-
-component Field inherits TextField {
-    container-color: Theme.color.surface-container-low;
-    edited => {
-        Gfx.props-changed();
-    }
-}
-
-component ColorField inherits HorizontalLayout {
-    in-out property <string> value;
-    in property <string> label;
-    // parsed colour from Rust (strings cannot be converted in .slint)
-    in property <color> swatch;
-    spacing: Theme.sp2;
-    VerticalLayout {
-        alignment: start;
-        padding-top: 8px;
-        Rectangle {
-            width: 32px;
-            height: 32px;
-            border-radius: Theme.radius-xs;
-            border-width: 1px;
-            border-color: Theme.color.outline;
-            background: root.swatch;
-        }
-    }
-    Field {
-        horizontal-stretch: 1;
-        label: root.label;
-        text <=> root.value;
-        placeholder: "#RRGGBB";
-        mono: true;
     }
 }
 
@@ -249,15 +218,77 @@ export component PropertiesPanel inherits Rectangle {
                     label: "Элементы группы (id через запятую)";
                     text <=> Gfx.p-children;
                 }
+                if Gfx.p-kind == 7: Label {
+                    text: "Плашка растёт по тексту своих строк. Строки и фон — ниже, вид выбранной строки — в разделе «Текст строки».";
+                    wrap: word-wrap;
+                    type-style: Theme.body-small;
+                    color: Theme.color.on-surface-variant;
+                }
             }
 
-            if Gfx.p-kind <= 3: FormSection {
-                title: "Текст";
+            if Gfx.p-kind == 7: PlateSection { }
+            if Gfx.p-kind == 7: HorizontalLayout {
+                alignment: start;
+                Button {
+                    text: root.show-vars ? "Скрыть переменные" : "Вставить переменную в строку";
+                    icon: root.show-vars ? Icons.expand-less : Icons.expand-more;
+                    has-icon: true;
+                    variant: ButtonVariant.text;
+                    clicked => {
+                        root.show-vars = !root.show-vars;
+                    }
+                }
+            }
+            if Gfx.p-kind == 7 && root.show-vars: Rectangle {
+                border-radius: Theme.radius-m;
+                background: Theme.color.surface-container;
+                VerticalLayout {
+                    padding: Theme.sp1;
+                    VarList {
+                        insertable: true;
+                        insert(v) => {
+                            Gfx.insert-var(v);
+                        }
+                    }
+                }
+            }
+            if Gfx.p-kind == 5 || Gfx.p-kind == 7: ShapeSection { }
+
+            if Gfx.p-kind <= 3 || Gfx.p-kind == 7: FormSection {
+                title: Gfx.p-kind == 7 ? "Текст строки" : "Текст";
                 icon: Icons.format-size;
                 HorizontalLayout {
                     spacing: Theme.sp2;
                     Field { horizontal-stretch: 2; label: "Шрифт"; text <=> Gfx.s-font; placeholder: "по умолчанию"; }
-                    Field { horizontal-stretch: 1; label: "Размер"; text <=> Gfx.s-size; mono: true; }
+                    VerticalLayout {
+                        alignment: start;
+                        padding-top: 4px;
+                        Button {
+                            text: "Выбрать…";
+                            variant: ButtonVariant.tonal;
+                            clicked => {
+                                Gfx.open-fonts();
+                            }
+                        }
+                    }
+                }
+                HorizontalLayout {
+                    spacing: Theme.sp3;
+                    Field { width: 96px; label: "Размер"; text <=> Gfx.s-size; mono: true; }
+                    Checkbox {
+                        text: "Жирный";
+                        checked <=> Gfx.s-bold;
+                        toggled => {
+                            Gfx.props-changed();
+                        }
+                    }
+                    Checkbox {
+                        text: "Курсив";
+                        checked <=> Gfx.s-italic;
+                        toggled => {
+                            Gfx.props-changed();
+                        }
+                    }
                 }
                 ColorField { label: "Цвет текста"; value <=> Gfx.s-color; swatch: Gfx.sw-s-color; }
                 HorizontalLayout {

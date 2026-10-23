@@ -12,7 +12,28 @@ use crate::compositor::FrameContext;
 use crate::fonts::FontStore;
 use crate::images::ImageCache;
 use crate::layout::fit_size;
-use crate::text::{render_rect, render_text};
+use crate::plate::{PlateLook, render_plate};
+use crate::shape::render_shape;
+use crate::text::render_text;
+
+/// A pre-rendered element. The pixmap may be larger than the element box
+/// (shadow, slant): the box is `w` x `h` at (`ox`, `oy`) inside it.
+#[derive(Clone)]
+pub struct Sprite {
+    pub pixmap: Arc<Pixmap>,
+    pub ox: f32,
+    pub oy: f32,
+    pub w: f32,
+    pub h: f32,
+}
+
+impl Sprite {
+    /// The whole pixmap is the element.
+    pub fn plain(pixmap: Arc<Pixmap>) -> Self {
+        let (w, h) = (pixmap.width() as f32, pixmap.height() as f32);
+        Sprite { pixmap, ox: 0.0, oy: 0.0, w, h }
+    }
+}
 
 /// `strftime`-style formatting that never panics: an invalid pattern
 /// (`%Q`, a lone `%` typed while editing) yields `None` instead.
@@ -27,7 +48,7 @@ pub fn format_time(now: lb_core::WallTime, pattern: &str) -> Option<String> {
 pub struct SpriteFactory {
     pub fonts: FontStore,
     pub images: ImageCache,
-    cache: HashMap<String, Arc<Pixmap>>,
+    cache: HashMap<String, Sprite>,
 }
 
 const CACHE_LIMIT: usize = 512;
@@ -43,20 +64,20 @@ impl SpriteFactory {
     }
 
     /// Sprite for non-ticker, non-group elements.
-    pub fn sprite(&mut self, el: &Element, ctx: &FrameContext) -> Option<Arc<Pixmap>> {
+    pub fn sprite(&mut self, el: &Element, ctx: &FrameContext) -> Option<Sprite> {
         match &el.kind {
             ElementKind::Image { path } => {
                 let orig = self.images.original(path)?;
                 let (w, h) = fit_size(&el.placement, orig.width() as f32, orig.height() as f32);
-                self.images.scaled(path, w.round().max(1.0) as u32, h.round().max(1.0) as u32)
+                self.images.scaled(path, w.round().max(1.0) as u32, h.round().max(1.0) as u32).map(Sprite::plain)
             }
             ElementKind::Text { text, style } => {
                 let s = render_template(text, ctx.vars);
-                self.text(&el.id, style, &s)
+                self.text(&el.id, style, &s).map(Sprite::plain)
             }
             ElementKind::Clock { format, style } => {
                 let s = format_time(ctx.now, format)?;
-                self.text(&el.id, style, &s)
+                self.text(&el.id, style, &s).map(Sprite::plain)
             }
             ElementKind::Countdown { target, style, prefix } => {
                 let ms = match target {
@@ -64,11 +85,40 @@ impl SpriteFactory {
                     CountdownTarget::NextProgram => ctx.next_program_ms,
                 }?;
                 let s = format!("{}{}", render_template(prefix, ctx.vars), lb_core::fmt_ms(ms.max(0) + 999));
-                self.text(&el.id, style, &s)
+                self.text(&el.id, style, &s).map(Sprite::plain)
             }
-            ElementKind::Rect { color, width, height, radius } => {
-                let key = format!("rect|{}|{color}|{width}|{height}|{radius}", el.id);
-                self.cached(key, || render_rect(color, *width, *height, *radius))
+            ElementKind::Rect { color, width, height, radius, shape } => {
+                // placement size, when set, wins over the stored one
+                let w = el.placement.width.unwrap_or(*width);
+                let h = el.placement.height.unwrap_or(*height);
+                let key = format!("rect|{}|{w}|{h}", el.id);
+                if let Some(s) = self.cache.get(&key) {
+                    return Some(s.clone());
+                }
+                let s = render_shape(color, w, h, *radius, shape, &mut self.images)?;
+                let sprite = Sprite { pixmap: Arc::new(s.pixmap), ox: s.ox, oy: s.oy, w: w.max(1.0), h: h.max(1.0) };
+                self.store(key, sprite)
+            }
+            ElementKind::Plate { fields, color, radius, shape, width, min_width, padding_x, padding_y, spacing, align } => {
+                let texts: Vec<String> = fields.iter().map(|f| render_template(&f.text, ctx.vars)).collect();
+                let key = format!("plate|{}|{}", el.id, texts.join("\u{1f}"));
+                if let Some(s) = self.cache.get(&key) {
+                    return Some(s.clone());
+                }
+                let look = PlateLook {
+                    color,
+                    radius: *radius,
+                    shape,
+                    width: el.placement.width.or(*width),
+                    min_width: *min_width,
+                    min_height: el.placement.height.unwrap_or(0.0),
+                    padding_x: *padding_x,
+                    padding_y: *padding_y,
+                    spacing: *spacing,
+                    align: *align,
+                };
+                let p = render_plate(&look, fields, &texts, &mut self.fonts, &mut self.images)?;
+                self.store(key, Sprite { pixmap: Arc::new(p.pixmap), ox: p.ox, oy: p.oy, w: p.w, h: p.h })
             }
             ElementKind::Ticker { .. } | ElementKind::Group { .. } => None,
         }
@@ -81,22 +131,20 @@ impl SpriteFactory {
         }
         let key = format!("text|{id}|{}|{s}", style.size);
         if let Some(p) = self.cache.get(&key) {
-            return Some(p.clone());
+            return Some(p.pixmap.clone());
         }
-        let font = self.fonts.get(style.font.as_deref())?;
-        self.cached(key, || render_text(&font, style, s))
+        let font = self.fonts.get_styled(style.font.as_deref(), style.bold, style.italic)?;
+        let pm = Arc::new(render_text(&font, style, s)?);
+        self.store(key, Sprite::plain(pm.clone()));
+        Some(pm)
     }
 
-    fn cached(&mut self, key: String, make: impl FnOnce() -> Option<Pixmap>) -> Option<Arc<Pixmap>> {
-        if let Some(p) = self.cache.get(&key) {
-            return Some(p.clone());
-        }
+    fn store(&mut self, key: String, sprite: Sprite) -> Option<Sprite> {
         if self.cache.len() > CACHE_LIMIT {
             self.cache.clear();
         }
-        let p = Arc::new(make()?);
-        self.cache.insert(key, p.clone());
-        Some(p)
+        self.cache.insert(key, sprite.clone());
+        Some(sprite)
     }
 }
 

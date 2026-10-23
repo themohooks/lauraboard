@@ -8,6 +8,7 @@
 //! | playlists | [`playlists`] |
 //! | schedules, rules, graphics, channel config | [`config`] |
 //! | graphics render (draft preview) | [`render`] |
+//! | fonts for graphics | [`fonts`] |
 //! | media thumbnails | [`thumbs`] |
 //! | as-run, statistics, logs | [`reports`] |
 //! | background jobs | [`jobs`] |
@@ -15,6 +16,7 @@
 
 pub mod config;
 pub mod control;
+pub mod fonts;
 pub mod jobs;
 pub mod library;
 pub mod playlists;
@@ -67,6 +69,7 @@ pub fn router(state: AppState) -> Router {
         .route("/rules", get(config::get_rules).put(config::put_rules))
         .route("/graphics", get(config::get_graphics).put(config::put_graphics))
         .route("/graphics/render", post(render::render))
+        .route("/fonts", get(fonts::list).post(fonts::add))
         .route("/config", get(config::get_config).put(config::put_config))
         .route("/asrun", get(reports::asrun))
         .route("/stats", get(reports::stats));

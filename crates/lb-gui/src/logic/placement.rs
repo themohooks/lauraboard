@@ -48,7 +48,9 @@ pub const ANCHORS: [Anchor; 9] = [
 
 fn text_box(sample: &str, st: &TextStyle) -> (f32, f32) {
     let chars = sample.chars().count().max(1) as f32;
-    (chars * st.size * 0.55 + 2.0 * st.padding, st.size * 1.25 + 2.0 * st.padding)
+    // like the renderer: the padding belongs to the background plate
+    let pad = if st.background.as_deref().is_some_and(|b| !b.trim().is_empty()) { 2.0 * st.padding } else { 0.0 };
+    (chars * st.size * 0.55 + pad, st.size * 1.25 + pad)
 }
 
 /// Approximate natural size inside `region` (exact sizes come from the
@@ -60,6 +62,13 @@ fn natural_size(e: &Element, region: Rect) -> (f32, f32) {
         ElementKind::Clock { format, style } => text_box(&format.replace("%H", "00").replace("%M", "00").replace("%S", "00"), style),
         ElementKind::Countdown { style, prefix, .. } => text_box(&format!("{prefix}00:00:00"), style),
         ElementKind::Rect { width, height, .. } => (*width, *height),
+        ElementKind::Plate { fields, width, min_width, padding_x, padding_y, spacing, shape, .. } => {
+            let lines: Vec<(f32, f32)> = fields.iter().filter(|f| !f.text.trim().is_empty()).map(|f| text_box(&f.text, &f.style)).collect();
+            let accent = shape.accent.as_ref().map_or(0.0, |a| a.size);
+            let w = width.unwrap_or(lines.iter().map(|l| l.0).fold(0.0, f32::max) + 2.0 * padding_x + accent).max(*min_width);
+            let h = lines.iter().map(|l| l.1).sum::<f32>() + spacing * lines.len().saturating_sub(1) as f32 + 2.0 * padding_y;
+            (w, h)
+        }
         ElementKind::Image { .. } => (320.0, 180.0),
         // a group without a size fills its region, like the compositor
         ElementKind::Group { .. } => (region.w, region.h),
@@ -79,6 +88,8 @@ pub fn rect_in(e: &Element, region: Rect) -> Rect {
     let (w, h) = match (&e.kind, p.width, p.height) {
         (ElementKind::Group { .. }, w, h) => (w.unwrap_or(nw), h.unwrap_or(nh)),
         (ElementKind::Ticker { .. }, _, _) => (nw, nh),
+        // shapes take a set size as it is (no aspect ratio to keep)
+        (ElementKind::Rect { .. } | ElementKind::Plate { .. }, w, h) => (w.unwrap_or(nw), h.unwrap_or(nh).max(if matches!(e.kind, ElementKind::Plate { .. }) { nh } else { 0.0 })),
         (_, Some(w), Some(h)) => (w, h),
         (_, Some(w), None) if nw > 0.0 => (w, nh * w / nw),
         (_, None, Some(h)) if nh > 0.0 => (nw * h / nh, h),

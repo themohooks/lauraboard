@@ -2,6 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 
+use super::shape::{PlateField, ShapeStyle, TextAlign, plate_color, plate_pad_x, plate_pad_y, plate_spacing};
 use crate::Dur;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
@@ -41,6 +42,10 @@ pub struct TextStyle {
     /// Font family name (system) or path to a .ttf/.otf file.
     #[serde(default)]
     pub font: Option<String>,
+    #[serde(default, skip_serializing_if = "is_false")]
+    pub bold: bool,
+    #[serde(default, skip_serializing_if = "is_false")]
+    pub italic: bool,
     #[serde(default = "default_size")]
     pub size: f32,
     #[serde(default = "white")]
@@ -62,6 +67,10 @@ pub struct TextStyle {
     pub corner_radius: f32,
 }
 
+fn is_false(v: &bool) -> bool {
+    !*v
+}
+
 fn default_size() -> f32 {
     36.0
 }
@@ -79,6 +88,8 @@ impl Default for TextStyle {
     fn default() -> Self {
         TextStyle {
             font: None,
+            bold: false,
+            italic: false,
             size: default_size(),
             color: white(),
             outline_color: None,
@@ -140,13 +151,41 @@ pub enum ElementKind {
         #[serde(default)]
         prefix: String,
     },
-    /// Solid (rounded) rectangle, e.g. lower-third background.
+    /// Rectangle (gradient, border, slant, shadow… in `shape`).
     Rect {
         color: String,
         width: f32,
         height: f32,
         #[serde(default)]
         radius: f32,
+        #[serde(default, skip_serializing_if = "ShapeStyle::is_plain")]
+        shape: ShapeStyle,
+    },
+    /// Plate (lower third): a designed background with lines of text that
+    /// it grows to fit.
+    Plate {
+        #[serde(default)]
+        fields: Vec<PlateField>,
+        #[serde(default = "plate_color")]
+        color: String,
+        #[serde(default)]
+        radius: f32,
+        #[serde(default, skip_serializing_if = "ShapeStyle::is_plain")]
+        shape: ShapeStyle,
+        /// Fixed width; `None` = as wide as the longest line.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        width: Option<f32>,
+        #[serde(default)]
+        min_width: f32,
+        #[serde(default = "plate_pad_x")]
+        padding_x: f32,
+        #[serde(default = "plate_pad_y")]
+        padding_y: f32,
+        /// Gap between the lines.
+        #[serde(default = "plate_spacing")]
+        spacing: f32,
+        #[serde(default)]
+        align: TextAlign,
     },
     /// Composition: children are placed relative to this element.
     Group { children: Vec<String> },
@@ -161,6 +200,29 @@ impl ElementKind {
             | ElementKind::Clock { style, .. }
             | ElementKind::Countdown { style, .. } => Some(style),
             _ => None,
+        }
+    }
+
+    /// Design of shape kinds (rectangle, plate).
+    pub fn shape(&self) -> Option<&ShapeStyle> {
+        match self {
+            ElementKind::Rect { shape, .. } | ElementKind::Plate { shape, .. } => Some(shape),
+            _ => None,
+        }
+    }
+
+    pub fn shape_mut(&mut self) -> Option<&mut ShapeStyle> {
+        match self {
+            ElementKind::Rect { shape, .. } | ElementKind::Plate { shape, .. } => Some(shape),
+            _ => None,
+        }
+    }
+
+    /// Every text style of the element (a plate has one per field).
+    pub fn styles_mut(&mut self) -> Vec<&mut TextStyle> {
+        match self {
+            ElementKind::Plate { fields, .. } => fields.iter_mut().map(|f| &mut f.style).collect(),
+            other => other.style_mut().into_iter().collect(),
         }
     }
 

@@ -2,7 +2,7 @@
 //! plus an optional rounded background plate.
 
 use ab_glyph::{Font, FontArc, OutlineCurve, PxScale, ScaleFont};
-use tiny_skia::{FillRule, LineCap, LineJoin, Paint, PathBuilder, Pixmap, Rect, Stroke, Transform};
+use tiny_skia::{FillRule, LineCap, LineJoin, Paint, PathBuilder, Pixmap, Stroke, Transform};
 
 use lb_core::graphics::TextStyle;
 
@@ -107,20 +107,5 @@ pub fn render_text(font: &FontArc, style: &TextStyle, text: &str) -> Option<Pixm
     }
     paint.set_color(parse_color(&style.color));
     pm.fill_path(&path, &paint, FillRule::Winding, base, None);
-    Some(pm)
-}
-
-/// Solid rectangle sprite.
-pub fn render_rect(color: &str, w: f32, h: f32, radius: f32) -> Option<Pixmap> {
-    let mut pm = Pixmap::new(w.max(1.0) as u32, h.max(1.0) as u32)?;
-    let mut paint = Paint::default();
-    paint.set_color(parse_color(color));
-    paint.anti_alias = true;
-    if radius > 0.0 {
-        let p = rounded_rect(0.0, 0.0, w, h, radius)?;
-        pm.fill_path(&p, &paint, FillRule::Winding, Transform::identity(), None);
-    } else {
-        pm.fill_rect(Rect::from_xywh(0.0, 0.0, w, h)?, &paint, Transform::identity(), None);
-    }
     Some(pm)
 }

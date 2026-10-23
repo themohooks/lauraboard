@@ -26,6 +26,7 @@ import { CreatePlaylistDialog } from "screens/playlists/create-dialog.slint";
 import { LibraryScreen } from "screens/library/library.slint";
 import { ImportDialog } from "screens/library/import-dialog.slint";
 import { FolderDialog } from "screens/library/folder-panel.slint";
+import { FontDialog } from "screens/graphics/font-dialog.slint";
 import { ScheduleScreen } from "screens/schedule/schedule.slint";
 import { RulesScreen } from "screens/rules/rules.slint";
 import { RuleWizard } from "screens/rules/wizard.slint";
@@ -43,7 +44,7 @@ export { Lib, MediaRow, TileLine, MediaEdit, FolderRow } from "state/library-sta
 export { Grid, BlockRow, BlockDetails, DayChip } from "state/schedule-state.slint";
 export { TimelineSegment, DayRow } from "components/timeline.slint";
 export { Rules, RuleRow } from "state/rules-state.slint";
-export { Gfx, CanvasItem, LayerRow, GRuleRow, VarRow } from "state/graphics-state.slint";
+export { Gfx, CanvasItem, LayerRow, GRuleRow, VarRow, PlateFieldRow, FontRow } from "state/graphics-state.slint";
 export { Log } from "state/log-state.slint";
 export { Stats, StatRow, Kpi } from "state/stats-state.slint";
 export { Src, SceneRow, OutRow, StreamRow, Fact } from "state/sources-state.slint";
@@ -193,6 +194,8 @@ export component AppWindow inherits Window {
     ImportDialog { }
 
     FolderDialog { }
+
+    FontDialog { }
 
     RuleWizard { }
 

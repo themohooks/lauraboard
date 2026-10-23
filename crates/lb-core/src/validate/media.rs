@@ -29,6 +29,11 @@ pub fn check_media_files(ch: &ChannelData, root: &Path, r: &mut Report) {
         {
             r.error(format!("graphics/{}", e.id), format!("image not found: {path}"));
         }
+        if let Some(img) = e.kind.shape().and_then(|s| s.image.as_ref())
+            && !paths::resolve(root, img).exists()
+        {
+            r.warn(format!("graphics/{}", e.id), format!("image not found: {img}"));
+        }
     }
     if let Some(img) = &ch.config.fallback.image
         && !paths::resolve(root, img).exists()

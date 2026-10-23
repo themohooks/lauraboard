@@ -342,8 +342,51 @@ conditions = { kinds = ["program"] }
 - `ticker` — бегущая строка (`speed` в пикселях в секунду);
 - `clock` — часы и дата (`format` в формате strftime, например `"%H:%M"` или `"%d.%m.%Y"`);
 - `countdown` — таймер (`target = "item_remaining" | "next_program"`);
-- `rect` — подложка;
+- `rect` — фигура (`color`, `width`, `height`, `radius`, оформление в `shape`);
+- `plate` — плашка с несколькими строками текста, растущая по тексту (см. ниже);
 - `group` — композиция из `children`.
+
+Стиль текста (`style`): `font` — имя системного шрифта или путь к файлу `.ttf`/`.otf` (свои шрифты канала лежат в `channels/<id>/fonts/`), `bold`, `italic`, `size`, `color`, `outline_color`/`outline_width`, `shadow_color`/`shadow_offset`, `background`, `padding`, `corner_radius`.
+
+Плашка:
+
+```toml
+[[elements]]
+id = "lower-third"
+type = "plate"
+color = "#101828E0"        # фон (начало градиента)
+radius = 8.0
+min_width = 520.0          # width = … — фиксированная ширина; без неё — по тексту
+padding_x = 24.0
+padding_y = 12.0
+spacing = 2.0              # между строками
+align = "left"             # left | center | right
+
+[elements.shape]           # оформление (так же у rect)
+gradient = "#1E3A8AE0"     # второй цвет градиента
+gradient_angle = 0.0       # 0 — слева направо, 90 — сверху вниз
+border_color = "#FFFFFF"
+border_width = 2.0
+corners = [16.0, 0.0, 16.0, 0.0]   # углы: лв, пв, пн, лн
+skew = -12.0               # наклон, градусы
+shadow_color = "#00000080"
+shadow_blur = 12.0
+shadow_offset = [0.0, 4.0]
+image = "media/texture.png"        # картинка внутри фигуры
+accent = { side = "left", size = 10.0, color = "#C0182B" }
+
+[[elements.fields]]
+label = "Имя"              # для оператора
+text = "{presenter}"
+style = { size = 40.0, bold = true }
+
+[[elements.fields]]
+label = "Должность"
+text = "{title}"
+style = { size = 24.0, color = "#FFD166" }
+```
+
+Пустая после подстановки строка не показывается, плашка становится ниже.
 
 Привязка `anchor`: `top_left`, `top_center`, `top_right`, `center_left`, `center`, `center_right`, `bottom_left`, `bottom_center`, `bottom_right`.
 

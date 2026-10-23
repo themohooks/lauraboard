@@ -21,7 +21,10 @@ impl ChannelData {
             if let ElementKind::Image { path } = &mut e.kind {
                 f(path);
             }
-            if let Some(font) = e.kind.style_mut().and_then(|s| s.font.as_mut()) {
+            if let Some(img) = e.kind.shape_mut().and_then(|s| s.image.as_mut()) {
+                f(img);
+            }
+            for font in e.kind.styles_mut().into_iter().filter_map(|s| s.font.as_mut()) {
                 f(font);
             }
         }

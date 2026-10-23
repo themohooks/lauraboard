@@ -43,6 +43,20 @@ export struct GRuleRow {
     error: string,
 }
 
+// One text line of a plate (properties list).
+export struct PlateFieldRow {
+    label: string,
+    text: string,
+}
+
+// A font offered by the picker: a system family or a font file.
+export struct FontRow {
+    // value stored in the style (family name or file path)
+    value: string,
+    name: string,
+    file: bool,
+}
+
 export struct VarRow {
     key: string,
     value: string,
@@ -76,7 +90,7 @@ export global Gfx {
     in property <bool> p-has;
     in property <string> p-id;
     in-out property <string> p-name;
-    // 0 text, 1 ticker, 2 clock, 3 countdown, 4 image, 5 rect, 6 group
+    // 0 text, 1 ticker, 2 clock, 3 countdown, 4 image, 5 rect, 6 group, 7 plate
     in property <int> p-kind;
     in-out property <int> p-anchor;
     in-out property <string> p-x;
@@ -98,6 +112,8 @@ export global Gfx {
     in-out property <string> p-radius;
     in-out property <string> p-children;
     in-out property <string> s-font;
+    in-out property <bool> s-bold;
+    in-out property <bool> s-italic;
     in-out property <string> s-size;
     in-out property <string> s-color;
     in-out property <string> s-outline;
@@ -108,6 +124,56 @@ export global Gfx {
     in-out property <string> s-bg;
     in-out property <string> s-padding;
     in-out property <string> s-corner;
+    // shape design (rectangle, plate)
+    in-out property <string> sh-gradient;
+    in-out property <string> sh-angle;
+    in-out property <string> sh-border;
+    in-out property <string> sh-border-w;
+    // "tl tr br bl"; empty = the single radius
+    in-out property <string> sh-corners;
+    in-out property <string> sh-skew;
+    in-out property <string> sh-shadow;
+    in-out property <string> sh-shadow-blur;
+    in-out property <string> sh-shadow-x;
+    in-out property <string> sh-shadow-y;
+    // 0 none, 1 left, 2 top, 3 right, 4 bottom
+    in-out property <int> sh-accent-side;
+    in-out property <string> sh-accent-size;
+    in-out property <string> sh-accent-color;
+    in-out property <string> sh-image;
+    in property <color> sw-sh-gradient;
+    in property <color> sw-sh-border;
+    in property <color> sw-sh-shadow;
+    in property <color> sw-sh-accent;
+
+    // plate: layout and its text lines; the selected line is edited with
+    // p-text / pl-label and the text style fields
+    in-out property <string> pl-width;
+    in-out property <string> pl-min-width;
+    in-out property <string> pl-pad-x;
+    in-out property <string> pl-pad-y;
+    in-out property <string> pl-spacing;
+    // 0 left, 1 centre, 2 right
+    in-out property <int> pl-align;
+    in property <[PlateFieldRow]> pl-fields;
+    in-out property <int> pl-field;
+    in-out property <string> pl-label;
+    callback plate-field-select(int);
+    callback plate-field-add();
+    callback plate-field-remove(int);
+    callback plate-field-move(int, int);
+    callback pick-shape-image();
+
+    // font picker
+    in-out property <bool> font-open;
+    in-out property <string> font-query;
+    in property <[FontRow]> font-list;
+    in property <bool> font-loading;
+    callback open-fonts();
+    callback font-search(string);
+    callback font-pick(string);
+    callback font-upload();
+
     // 0 none, 1 fade, 2 slide left, 3 slide right, 4 slide up, 5 slide down
     in-out property <int> a-in;
     in-out property <int> a-out;

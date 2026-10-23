@@ -1,6 +1,12 @@
 //! On-screen graphics editor: canvas (drag / resize with snapping),
 //! layers, properties, exact server render and animation preview, live
 //! control, display rules, template variables, saved design templates.
+//!
+//! * [`design`] — shape design fields and plate text lines
+//! * [`fonts`] — font picker
+
+mod design;
+mod fonts;
 
 use std::collections::HashSet;
 use std::path::PathBuf;
@@ -45,6 +51,9 @@ pub struct GraphicsState {
     render_again: bool,
     last_edit: Option<(String, Instant)>,
     templates: Vec<PathBuf>,
+    /// Selected text line of a plate.
+    field: usize,
+    fonts: fonts::FontList,
 }
 
 impl GraphicsState {
@@ -77,6 +86,7 @@ fn kind_id(k: &ElementKind) -> &'static str {
         ElementKind::Image { .. } => "image",
         ElementKind::Rect { .. } => "rect",
         ElementKind::Group { .. } => "group",
+        ElementKind::Plate { .. } => "plate",
     }
 }
 
@@ -89,6 +99,7 @@ fn kind_index(k: &ElementKind) -> i32 {
         ElementKind::Image { .. } => 4,
         ElementKind::Rect { .. } => 5,
         ElementKind::Group { .. } => 6,
+        ElementKind::Plate { .. } => 7,
     }
 }
 
@@ -107,10 +118,16 @@ fn color_of(hex: &str) -> Color {
 }
 
 pub fn connect(ui: &AppWindow) {
+    design::connect(ui);
+    fonts::connect(ui);
     let g = ui.global::<Gfx>();
     g.on_select(|i| {
         with(move |c| {
-            c.gfx.selected = usize::try_from(i).ok();
+            let sel = usize::try_from(i).ok();
+            if sel != c.gfx.selected {
+                c.gfx.field = 0;
+            }
+            c.gfx.selected = sel;
             props(c);
             if let Some(ui) = c.window() {
                 ui.global::<Gfx>().set_selected(i);
@@ -386,14 +403,16 @@ fn props(c: &mut Ctx) {
             g.set_p_path(s(path.clone()));
             None
         }
-        ElementKind::Rect { color, width, height, radius } => {
+        ElementKind::Rect { color, width, height, radius, shape } => {
             g.set_p_color(s(color.clone()));
             g.set_sw_p_color(color_of(color));
             g.set_p_rw(s(fmt_num(*width)));
             g.set_p_rh(s(fmt_num(*height)));
             g.set_p_radius(s(fmt_num(*radius)));
+            design::show_shape(&g, shape);
             None
         }
+        ElementKind::Plate { .. } => design::show_plate(c, &g, &e.kind),
         ElementKind::Group { children } => {
             g.set_p_children(s(children.join(", ")));
             None
@@ -401,6 +420,8 @@ fn props(c: &mut Ctx) {
     };
     if let Some(st) = st {
         g.set_s_font(s(st.font.clone().unwrap_or_default()));
+        g.set_s_bold(st.bold);
+        g.set_s_italic(st.italic);
         g.set_s_size(s(fmt_num(st.size)));
         g.set_s_color(s(st.color.clone()));
         g.set_s_outline(s(st.outline_color.clone().unwrap_or_default()));
@@ -437,6 +458,7 @@ fn swatches(c: &Ctx) {
     g.set_sw_s_outline(color_of(&g.get_s_outline()));
     g.set_sw_s_shadow(color_of(&g.get_s_shadow()));
     g.set_sw_s_bg(color_of(&g.get_s_bg()));
+    design::swatches(&g);
 }
 
 /// Read the property fields into the selected element.
@@ -486,6 +508,8 @@ fn props_changed(c: &mut Ctx) {
     let style_from = |st: &TextStyle, g: &Gfx, color: &mut dyn FnMut(&str, SharedString, bool) -> Option<String>, num: &mut dyn FnMut(&str, SharedString, f32) -> f32| -> TextStyle {
         TextStyle {
             font: Some(g.get_s_font().trim().to_string()).filter(|x| !x.is_empty()),
+            bold: g.get_s_bold(),
+            italic: g.get_s_italic(),
             size: num("Размер", g.get_s_size(), st.size).clamp(4.0, 400.0),
             color: color("Цвет текста", g.get_s_color(), true).unwrap_or_else(|| st.color.clone()),
             outline_color: color("Обводка", g.get_s_outline(), false),
@@ -512,12 +536,46 @@ fn props_changed(c: &mut Ctx) {
             style: style_from(&style, &g, &mut color, &mut num),
         },
         ElementKind::Image { .. } => ElementKind::Image { path: g.get_p_path().trim().to_string() },
-        ElementKind::Rect { color: old, width, height, radius } => ElementKind::Rect {
-            color: color("Цвет плашки", g.get_p_color(), true).unwrap_or(old),
-            width: num("Ширина плашки", g.get_p_rw(), width).max(1.0),
-            height: num("Высота плашки", g.get_p_rh(), height).max(1.0),
-            radius: num("Скругление", g.get_p_radius(), radius).max(0.0),
-        },
+        ElementKind::Rect { color: old, width, height, radius, shape } => {
+            let mut extra = Vec::new();
+            let shape = design::read_shape(&g, &shape, &mut num, &mut color, &mut extra);
+            errors.borrow_mut().extend(extra);
+            ElementKind::Rect {
+                color: color("Цвет фигуры", g.get_p_color(), true).unwrap_or(old),
+                width: num("Ширина фигуры", g.get_p_rw(), width).max(1.0),
+                height: num("Высота фигуры", g.get_p_rh(), height).max(1.0),
+                radius: num("Скругление", g.get_p_radius(), radius).max(0.0),
+                shape,
+            }
+        }
+        kind @ ElementKind::Plate { .. } => {
+            let mut extra = Vec::new();
+            let mut style_num = |l: &str, v: SharedString, o: f32| -> f32 {
+                match v.trim().replace(',', ".").parse::<f32>() {
+                    Ok(x) if x.is_finite() => x,
+                    _ => {
+                        errors.borrow_mut().push(format!("{l}: нужно число"));
+                        o
+                    }
+                }
+            };
+            let mut style_color = |l: &str, v: SharedString, required: bool| -> Option<String> {
+                let t = v.trim().to_string();
+                if t.is_empty() && !required {
+                    return None;
+                }
+                if placement::valid_color(&t) {
+                    Some(t)
+                } else {
+                    errors.borrow_mut().push(format!("{l}: цвет в формате #RRGGBB или #RRGGBBAA"));
+                    None
+                }
+            };
+            let style = |st: &TextStyle| style_from(st, &g, &mut style_color, &mut style_num);
+            let k = design::read_plate(c, &g, kind, style, &mut num, &mut color, &mut extra);
+            errors.borrow_mut().extend(extra);
+            k
+        }
         ElementKind::Group { .. } => ElementKind::Group { children: g.get_p_children().split(',').map(|x| x.trim().to_string()).filter(|x| !x.is_empty()).collect() },
     };
     e.animation = Animation {
@@ -658,7 +716,14 @@ fn add(c: &mut Ctx, kind: &str) {
     let layer = cfg.elements.iter().map(|e| e.layer).max().unwrap_or(0) + 1;
     let style = TextStyle { size: 40.0, background: Some("#00000099".into()), ..Default::default() };
     let (k, name, anchor, x, y) = match kind {
-        "rect" => (ElementKind::Rect { color: "#1E3A8ACC".into(), width: 600.0, height: 90.0, radius: 12.0 }, "Плашка", lb_core::graphics::Anchor::BottomLeft, 96.0, 120.0),
+        "rect" => (
+            ElementKind::Rect { color: "#1E3A8ACC".into(), width: 600.0, height: 90.0, radius: 12.0, shape: Default::default() },
+            "Фигура",
+            lb_core::graphics::Anchor::BottomLeft,
+            96.0,
+            120.0,
+        ),
+        "plate" => (design::new_plate(), "Плашка", lb_core::graphics::Anchor::BottomLeft, 96.0, 110.0),
         "image" => (ElementKind::Image { path: "logo.png".into() }, "Логотип", lb_core::graphics::Anchor::TopRight, 60.0, 50.0),
         "clock" => (ElementKind::Clock { format: "%H:%M".into(), style: style.clone() }, "Часы", lb_core::graphics::Anchor::TopRight, 60.0, 50.0),
         "countdown" => (

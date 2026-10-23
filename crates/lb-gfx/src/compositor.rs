@@ -168,10 +168,9 @@ impl Compositor {
             }
             _ => {
                 let Some(sprite) = self.sprites.sprite(el, ctx) else { return };
-                let (w, h) = (sprite.width() as f32, sprite.height() as f32);
-                let (x, y) = place(&el.placement, region, w, h);
-                let st = anim::state(&el.animation, shown, hide_in, w, h);
-                self.blit(&sprite, x + st.dx, y + st.dy, parent_alpha * el.opacity * st.alpha);
+                let (x, y) = place(&el.placement, region, sprite.w, sprite.h);
+                let st = anim::state(&el.animation, shown, hide_in, sprite.w, sprite.h);
+                self.blit(&sprite.pixmap, x - sprite.ox + st.dx, y - sprite.oy + st.dy, parent_alpha * el.opacity * st.alpha);
             }
         }
     }
@@ -211,7 +210,7 @@ mod tests {
         Element {
             id: id.into(),
             name: id.into(),
-            kind: ElementKind::Rect { color: color.into(), width: 10.0, height: 10.0, radius: 0.0 },
+            kind: ElementKind::Rect { color: color.into(), width: 10.0, height: 10.0, radius: 0.0, shape: Default::default() },
             placement: Placement { anchor, x: 0.0, y: 0.0, width: None, height: None },
             opacity: 1.0,
             layer: 0,
