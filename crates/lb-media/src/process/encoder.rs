@@ -9,7 +9,7 @@ use tokio::process::{Child, ChildStdin};
 use tokio::sync::watch;
 
 use super::command;
-use super::stderr::{LastError, spawn_reader};
+use super::stderr::{LastError, OutputLog, spawn_reader};
 use crate::error::{MediaError, Result};
 use crate::jpeg::JpegSplitter;
 use crate::progress::EncoderStats;
@@ -24,6 +24,8 @@ pub struct Encoder {
     pub stats: watch::Receiver<EncoderStats>,
     pub preview: watch::Receiver<PreviewFrame>,
     pub last_error: LastError,
+    /// Recent problems of network outputs.
+    pub outputs: OutputLog,
 }
 
 impl Encoder {
@@ -39,8 +41,9 @@ impl Encoder {
         let (stats_tx, stats) = watch::channel(EncoderStats::default());
         let (prev_tx, preview) = watch::channel(None);
         let last_error: LastError = Arc::new(Mutex::new(None));
+        let outputs: OutputLog = Arc::new(Mutex::new(Vec::new()));
         if let Some(err) = child.stderr.take() {
-            spawn_reader(err, "encoder".into(), Some(stats_tx), last_error.clone());
+            spawn_reader(err, "encoder".into(), Some(stats_tx), last_error.clone(), Some(outputs.clone()));
         }
         if let Some(mut out) = child.stdout.take() {
             tokio::spawn(async move {
@@ -56,7 +59,7 @@ impl Encoder {
                 }
             });
         }
-        Ok(Encoder { child, stdin, stats, preview, last_error })
+        Ok(Encoder { child, stdin, stats, preview, last_error, outputs })
     }
 
     /// Non-blocking exit check.

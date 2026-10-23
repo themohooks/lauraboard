@@ -2,6 +2,7 @@
 
 use std::path::Path;
 use std::sync::Arc;
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{Duration, Instant};
 
 use tokio::sync::Mutex;
@@ -17,6 +18,9 @@ use super::playout::SharedStdin;
 use super::status::OutputStatus;
 
 const BACKOFF: &[u64] = &[1, 2, 5, 10, 20, 30];
+/// A failing network output reports again on every retry (5 s); one not
+/// heard of for this long is considered back.
+const PROBLEM_FRESH: Duration = Duration::from_secs(15);
 
 pub struct Output {
     pub stdin: SharedStdin,
@@ -27,6 +31,8 @@ pub struct Output {
     retry_at: Option<Instant>,
     last_error: Option<String>,
     targets: Vec<String>,
+    /// Enabled network outputs: (name, URL).
+    network: Vec<(String, String)>,
     /// Latest preview frame (kept across encoder restarts).
     pub preview: tokio::sync::watch::Sender<PreviewFrame>,
 }
@@ -42,6 +48,7 @@ impl Output {
             retry_at: None,
             last_error: None,
             targets: vec![],
+            network: vec![],
             preview,
         }
     }
@@ -50,8 +57,16 @@ impl Output {
         self.encoder.is_some()
     }
 
-    /// Start the encoder. `gfx_port` enables the graphics overlay input.
-    pub async fn start(&mut self, ff: &FfmpegConfig, data: &ChannelData, root: &Path, gfx_port: Option<u16>) -> Result<(), String> {
+    /// Start the encoder. `gfx` (port, consumed-frames counter) enables the
+    /// graphics overlay input; the counter follows the encoder's progress.
+    pub async fn start(
+        &mut self,
+        ff: &FfmpegConfig,
+        data: &ChannelData,
+        root: &Path,
+        gfx: Option<(u16, Arc<AtomicU64>)>,
+    ) -> Result<(), String> {
+        let gfx_port = gfx.as_ref().map(|g| g.0);
         let cfg = &data.config;
         if self.codec.is_none() {
             self.codec = Some(lb_media::hw::resolve_codec(&ff.ffmpeg, &cfg.encoder.video_codec).await);
@@ -78,6 +93,8 @@ impl Output {
             })
             .collect();
         self.targets = outputs.iter().filter(|o| o.enabled).map(|o| o.name.clone()).collect();
+        self.network =
+            outputs.iter().filter(|o| o.enabled && lb_core::media::is_url(&o.url)).map(|o| (o.name.clone(), o.url.clone())).collect();
         let job = EncodeJob {
             channel: &cfg.id,
             video: &cfg.video,
@@ -92,10 +109,20 @@ impl Output {
             loglevel: &ff.loglevel,
         };
         let args = encoder_args(&job);
-        tracing::info!(channel = %cfg.id, "starting encoder: {} {}", ff.ffmpeg, args.join(" "));
+        tracing::info!(channel = %cfg.id, "starting encoder: {} {}", ff.ffmpeg, lb_media::redact::urls(&args.join(" ")));
         match Encoder::spawn(&ff.ffmpeg, &args) {
             Ok(mut enc) => {
                 *self.stdin.lock().await = enc.stdin.take();
+                if let Some((_, consumed)) = gfx {
+                    consumed.store(0, Ordering::Relaxed);
+                    let mut stats = enc.stats.clone();
+                    tokio::spawn(async move {
+                        while stats.changed().await.is_ok() {
+                            let frame = stats.borrow().frame;
+                            consumed.store(frame, Ordering::Relaxed);
+                        }
+                    });
+                }
                 let mut prev = enc.preview.clone();
                 let tx = self.preview.clone();
                 tokio::spawn(async move {
@@ -134,9 +161,30 @@ impl Output {
         self.retry_at = Some(Instant::now() + Duration::from_secs(delay));
     }
 
-    /// The encoder has been stable for a while: reset back-off.
+    /// The encoder has been stable for a while: reset back-off, forget the
+    /// error it recovered from.
     pub fn mark_healthy(&mut self) {
         self.failures_in_row = 0;
+        self.last_error = None;
+    }
+
+    /// Network outputs failing right now: "output '<name>' unreachable: <why>".
+    fn problems(&self) -> Vec<String> {
+        let Some(enc) = &self.encoder else { return vec![] };
+        let Ok(log) = enc.outputs.lock() else { return vec![] };
+        self.network
+            .iter()
+            .filter_map(|(name, url)| {
+                let (at, line) = log.iter().rev().find(|(_, l)| l.contains(url.as_str()))?;
+                if at.elapsed() > PROBLEM_FRESH {
+                    return None;
+                }
+                // "[fifo @ …] Error opening <url>: I/O error" → "I/O error"
+                let why = line.split_once(url.as_str()).map(|(_, r)| r.trim_start_matches([':', ' ', '\'', ']'])).unwrap_or_default();
+                let why = if why.is_empty() { "connection failed" } else { why };
+                Some(format!("output '{name}' unreachable: {why}"))
+            })
+            .collect()
     }
 
     pub fn retry_due(&self) -> bool {
@@ -164,6 +212,7 @@ impl Output {
             stats: self.stats(),
             last_error: self.last_error.clone(),
             targets: self.targets.clone(),
+            problems: self.problems(),
         }
     }
 

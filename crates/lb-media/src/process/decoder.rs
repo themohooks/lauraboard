@@ -28,7 +28,7 @@ impl Decoder {
         let stdout = child.stdout.take().ok_or_else(|| MediaError::Other("decoder stdout missing".into()))?;
         let last_error: LastError = Arc::new(Mutex::new(None));
         if let Some(err) = child.stderr.take() {
-            spawn_reader(err, label.to_string(), None, last_error.clone());
+            spawn_reader(err, label.to_string(), None, last_error.clone(), None);
         }
         Ok(Decoder { child, stdout, last_error })
     }

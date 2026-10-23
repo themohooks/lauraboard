@@ -51,6 +51,9 @@ pub struct OutputView {
     pub last_error: Option<String>,
     #[serde(default)]
     pub targets: Vec<String>,
+    /// Network outputs failing right now (the encoder keeps running).
+    #[serde(default)]
+    pub problems: Vec<String>,
 }
 
 #[derive(Debug, Clone, Deserialize, Default)]

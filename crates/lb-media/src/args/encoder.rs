@@ -265,7 +265,7 @@ mod tests {
         assert!(s.contains("overlay=x=0:y=0"));
         assert!(s.contains("[vprev]fps=5,scale=480:-2[pv]"));
         assert!(s.contains("-c:v libx264 -preset veryfast -tune zerolatency -b:v 3000k -maxrate 3000k -bufsize 6000k -g 50"));
-        assert!(s.contains("-f tee [f=flv:onfail=abort]rtmp://x/live/key"));
+        assert!(s.contains("-f tee [f=flv:onfail=ignore:use_fifo=1:") && s.contains("]rtmp://x/live/key"));
         assert!(s.ends_with("-f image2pipe pipe:1"));
         assert!(!s.contains("-nostdin"));
     }
