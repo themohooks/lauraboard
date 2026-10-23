@@ -32,6 +32,7 @@ const TABLE: &[(&str, &str)] = &[
     ("no thumbnails for streams", "Для потоков миниатюр нет"),
     ("render failed", "Не удалось отрисовать кадр"),
     ("unsupported frame size {}", "Неподдерживаемый размер кадра {0}"),
+    ("invalid clock format '{}'", "Неверный формат часов «{0}» (например, %H:%M или %d.%m.%Y)"),
     // command results
     ("started", "Вещание запущено"),
     ("stopped", "Вещание остановлено"),

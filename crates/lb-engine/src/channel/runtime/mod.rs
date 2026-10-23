@@ -6,6 +6,7 @@
 //! * [`publish`] — status snapshots, events, notifications, state file
 
 mod control;
+mod graphics;
 mod items;
 mod publish;
 mod supervise;

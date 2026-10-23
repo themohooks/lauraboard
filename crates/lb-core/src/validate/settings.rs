@@ -45,9 +45,6 @@ pub(super) fn check(ch: &ChannelData, r: &mut Report) {
     if c.encoder.pix_fmt.trim().is_empty() {
         r.error(loc, "encoder.pix_fmt is empty");
     }
-    if c.graphics.fps <= 0.0 || c.graphics.fps > c.video.fps {
-        r.warn(loc, "graphics.fps should be between 1 and the video fps");
-    }
     if let PlanMode::Sequential { playlist } = &c.planning.mode
         && ch.playlist(playlist).is_none()
     {

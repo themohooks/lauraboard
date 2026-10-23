@@ -6,7 +6,6 @@ use lb_core::validate::{Severity, validate_channel_full};
 
 use super::super::commands::{Command, Reply, Request};
 use super::super::events::{EventKind, Level};
-use super::super::gfx::GfxThread;
 use super::{Runtime, now};
 use crate::persist::lock::InstanceLock;
 
@@ -174,7 +173,13 @@ impl Runtime {
             }
         }
         self.update_graphics_state();
-        if encoder_changed && self.running {
+        // graphics added to a channel that had none (or switched on / off):
+        // the encoder needs its overlay input reconnected
+        if encoder_changed && let Some(t) = self.gfx_thread.take() {
+            t.shutdown(); // frame size or rate may have changed
+        }
+        let overlay_changed = self.running && self.ensure_graphics();
+        if (encoder_changed || overlay_changed) && self.running {
             self.output.reset_codec();
             self.restart_encoder().await;
             return Ok("reloaded (encoder restarted)".into());
@@ -204,7 +209,7 @@ impl Runtime {
         }
         let lock = InstanceLock::acquire(&dir, &self.shared.id).map_err(|e| e.to_string())?;
         self.lock = Some(lock);
-        self.spawn_graphics();
+        self.ensure_graphics();
         self.running = true;
         self.emit(Level::Info, EventKind::Started);
         self.start_encoder().await;
@@ -247,20 +252,6 @@ impl Runtime {
                 }
             }
             None => self.start_next().await,
-        }
-    }
-
-    fn spawn_graphics(&mut self) {
-        let (enabled, w, h) = {
-            let d = self.shared.data.read().unwrap_or_else(|e| e.into_inner());
-            (d.config.graphics.enabled && !d.graphics.elements.is_empty(), d.config.video.width, d.config.video.height)
-        };
-        if !enabled || self.gfx_thread.is_some() {
-            return;
-        }
-        match GfxThread::spawn(self.gfx.clone(), w, h, self.shared.root.clone(), self.shared.id.clone()) {
-            Ok(t) => self.gfx_thread = Some(t),
-            Err(e) => tracing::warn!("graphics disabled: {e}"),
         }
     }
 

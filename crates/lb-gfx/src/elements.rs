@@ -14,6 +14,15 @@ use crate::images::ImageCache;
 use crate::layout::fit_size;
 use crate::text::{render_rect, render_text};
 
+/// `strftime`-style formatting that never panics: an invalid pattern
+/// (`%Q`, a lone `%` typed while editing) yields `None` instead.
+pub fn format_time(now: lb_core::WallTime, pattern: &str) -> Option<String> {
+    use std::fmt::Write;
+    let mut s = String::new();
+    write!(s, "{}", now.format(pattern)).ok()?;
+    Some(s)
+}
+
 /// Renders and caches sprites.
 pub struct SpriteFactory {
     pub fonts: FontStore,
@@ -46,7 +55,7 @@ impl SpriteFactory {
                 self.text(&el.id, style, &s)
             }
             ElementKind::Clock { format, style } => {
-                let s = ctx.now.format(format).to_string();
+                let s = format_time(ctx.now, format)?;
                 self.text(&el.id, style, &s)
             }
             ElementKind::Countdown { target, style, prefix } => {
@@ -88,5 +97,16 @@ impl SpriteFactory {
         let p = Arc::new(make()?);
         self.cache.insert(key, p.clone());
         Some(p)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn invalid_clock_format_does_not_panic() {
+        let t = chrono::NaiveDate::from_ymd_opt(2026, 10, 23).unwrap().and_hms_opt(9, 5, 0).unwrap();
+        assert_eq!(super::format_time(t, "%H:%M").as_deref(), Some("09:05"));
+        assert_eq!(super::format_time(t, "%H:%Q"), None);
+        assert_eq!(super::format_time(t, "%"), None);
     }
 }

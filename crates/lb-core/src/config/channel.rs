@@ -320,7 +320,8 @@ impl Default for PlanningConfig {
 pub struct GraphicsOutput {
     #[serde(default = "yes")]
     pub enabled: bool,
-    /// Frame rate of the overlay layer.
+    /// Legacy and ignored: the overlay is rendered at the video frame rate
+    /// (a slower overlay makes tickers and slides stutter).
     #[serde(default = "GraphicsOutput::fps")]
     pub fps: f64,
     /// Active design profile.
