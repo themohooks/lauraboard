@@ -71,7 +71,7 @@ pub fn to_delete(files: &[RecFile], rec: &RecordConfig, now: SystemTime) -> Vec<
     let mut out: Vec<PathBuf> = Vec::new();
     let mut total: u64 = files.iter().map(|f| f.bytes).sum();
     let max_age = (rec.keep_days > 0).then(|| Duration::from_secs(rec.keep_days as u64 * 86_400));
-    let max_total = (rec.max_total_gb > 0.0).then(|| (rec.max_total_gb * 1e9) as u64);
+    let max_total = (rec.max_total_gb > 0.0).then_some((rec.max_total_gb * 1e9) as u64);
     for f in older {
         let too_old = max_age.is_some_and(|age| now.duration_since(f.modified).is_ok_and(|d| d > age));
         let too_big = max_total.is_some_and(|m| total > m);
