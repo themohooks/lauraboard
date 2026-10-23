@@ -21,6 +21,7 @@ pub mod jobs;
 pub mod library;
 pub mod log;
 pub mod media_display;
+pub mod notifications;
 pub mod picker;
 pub mod playlists;
 pub mod record;
@@ -77,6 +78,7 @@ pub struct Ctx {
     pub settings: settings::SettingsState,
     pub src: sources::SourcesState,
     pub picker: picker::PickerState,
+    pub notify: notifications::NotifyState,
     pub jobs: jobs::JobsState,
     /// The notification-area icon is up (closing hides the window).
     pub has_tray: bool,
@@ -147,6 +149,7 @@ pub fn start(ui: &AppWindow, opts: &GuiOptions, prefs: UiPrefs) {
         settings: Default::default(),
         src: Default::default(),
         picker: Default::default(),
+        notify: Default::default(),
         jobs: Default::default(),
         has_tray: false,
         channel_config: None,
@@ -286,6 +289,7 @@ impl Ctx {
                 shell::status_changed(self);
                 air::status_changed(self);
                 sources::refresh(self);
+                notifications::status(self);
                 if schedule_changed {
                     air::config_changed(self);
                 }
@@ -347,6 +351,7 @@ impl Ctx {
                 }
             }
             Msg::Event(v) => {
+                notifications::event(self, &v);
                 self.model.push_log(LogLine::from_event(&v));
                 air::log_changed(self);
                 log::changed(self);
@@ -361,6 +366,7 @@ impl Ctx {
             Msg::Apply(f) => f(self),
             Msg::Jobs(list) => jobs::changed(self, list),
             Msg::Connection(ok) => {
+                notifications::connection(self, ok);
                 self.model.online = ok;
                 shell::status_changed(self);
                 if self.section() == "settings" {

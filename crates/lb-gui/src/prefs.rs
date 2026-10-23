@@ -25,6 +25,33 @@ pub enum MotionMode {
     Off,
 }
 
+/// Which events raise a system notification.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
+pub struct NotifyPrefs {
+    pub enabled: bool,
+    /// Encoder stopped / restored, connection to the server lost.
+    pub errors: bool,
+    /// Items skipped or cut short (missing file, decoder failure).
+    pub skipped: bool,
+    /// Broadcast points (RTMP, SRT…) unreachable.
+    pub outputs: bool,
+    /// Little free space left on the recording disk.
+    pub disk: bool,
+    /// Air started / stopped, manual mode, schedule switched.
+    pub air: bool,
+    /// Every new programme on air (not interstitials).
+    pub programs: bool,
+    /// Only while the window is hidden or minimised.
+    pub only_hidden: bool,
+}
+
+impl Default for NotifyPrefs {
+    fn default() -> Self {
+        NotifyPrefs { enabled: true, errors: true, skipped: true, outputs: true, disk: true, air: true, programs: false, only_hidden: false }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(default)]
 pub struct UiPrefs {
@@ -42,6 +69,8 @@ pub struct UiPrefs {
     /// The close button hides the window into the notification area
     /// (playout keeps running); quit from the tray menu.
     pub close_to_tray: bool,
+    /// System notifications (Windows / Linux / macOS).
+    pub notify: NotifyPrefs,
     /// Written to disk on change (off for headless tools).
     #[serde(skip)]
     pub persist: bool,
@@ -59,6 +88,7 @@ impl Default for UiPrefs {
             panels: HashMap::new(),
             library_grid: false,
             close_to_tray: true,
+            notify: NotifyPrefs::default(),
             persist: true,
         }
     }

@@ -27,6 +27,11 @@ export global Settings {
     callback motion-changed(int);
     callback nav-changed(bool);
     callback close-to-tray-changed(bool);
+    // system notifications: 0 on, 1 errors, 2 skipped, 3 outputs, 4 disk,
+    // 5 air, 6 programmes, 7 only while hidden
+    in property <[bool]> notify: [true, true, true, true, true, true, false, false];
+    callback notify-changed(int, bool);
+    callback notify-test();
     callback reset-layout();
     callback reset-all();
 }
