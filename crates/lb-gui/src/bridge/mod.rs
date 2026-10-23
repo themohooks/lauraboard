@@ -12,6 +12,7 @@
 //! [`thumbs`] (media thumbnails).
 
 pub mod air;
+pub mod channels;
 pub mod encoder;
 pub mod graphics;
 pub mod library;
@@ -147,6 +148,7 @@ pub fn start(ui: &AppWindow, opts: &GuiOptions, prefs: UiPrefs) {
     ui.global::<App>().set_api_url(api.base.clone().into());
     CTX.with(|c| *c.borrow_mut() = Some(ctx));
     shell::connect(ui);
+    channels::connect(ui);
     air::connect(ui);
     playlists::connect(ui);
     library::connect(ui);
@@ -253,7 +255,9 @@ impl Ctx {
 
     fn apply(&mut self, m: Msg) {
         match m {
-            Msg::Channels(list) => {
+            Msg::Channels(info) => {
+                let list: Vec<String> = info.iter().map(|c| c.id.clone()).collect();
+                self.model.channel_info = info;
                 if self.model.channel.as_ref().is_none_or(|c| !list.contains(c)) {
                     self.model.channel = list.first().cloned();
                 }
@@ -262,6 +266,7 @@ impl Ctx {
                     self.channel_selected(&c);
                 }
                 shell::channels_changed(self);
+                channels::refresh(self);
                 self.load_all();
             }
             Msg::Status(s) => {
@@ -373,7 +378,7 @@ impl Ctx {
     pub fn load_channels(&self) {
         self.worker.spawn(|api| {
             let list: Vec<Value> = api.get("/channels")?;
-            Ok(Msg::Channels(list.iter().filter_map(|c| c["channel"].as_str().map(str::to_string)).collect()))
+            Ok(Msg::Channels(list.iter().filter_map(crate::model::ChannelEntry::from_json).collect()))
         });
     }
 
@@ -484,11 +489,32 @@ impl Ctx {
         let Some(ui) = self.window() else { return };
         self.pending_confirm = Some(Box::new(action));
         let g = ui.global::<App>();
+        g.set_confirm_option("".into());
         g.set_confirm_title(title.into());
         g.set_confirm_text(text.into());
         g.set_confirm_action(action_label.into());
         g.set_confirm_danger(true);
         g.set_confirm_open(true);
+    }
+
+    /// [`Ctx::ask`] with a checkbox; the action gets its state.
+    pub fn ask_with_option(
+        &mut self,
+        title: &str,
+        text: &str,
+        action_label: &str,
+        option: &str,
+        action: impl FnOnce(&mut Ctx, bool) + 'static,
+    ) {
+        self.ask(title, text, action_label, move |c| {
+            let checked = c.window().is_some_and(|ui| ui.global::<App>().get_confirm_option_checked());
+            action(c, checked)
+        });
+        if let Some(ui) = self.window() {
+            let g = ui.global::<App>();
+            g.set_confirm_option(option.into());
+            g.set_confirm_option_checked(false);
+        }
     }
 
     fn confirm_result(&mut self, ok: bool) {

@@ -83,6 +83,7 @@ pub fn snapshot(out: &Path, section: &str, width: u32, height: u32, scale: f32, 
         None => {
             demo_state(&ui);
             demo_air(&ui);
+            demo_overlay(&ui, name);
         }
     }
     // `LB_SNAPSHOT_CLICKS="x,y;x,y,2"`: logical-pixel clicks before rendering
@@ -139,6 +140,33 @@ fn demo_state(ui: &AppWindow) {
         manual_queue: 0,
         force_schedule: "".into(),
     });
+}
+
+/// Dialog "sections" (`channels`, `channel-form`) over the home screen.
+fn demo_overlay(ui: &AppWindow, name: &str) {
+    use crate::shell::{Chan, ChannelRow};
+    let c = ui.global::<Chan>();
+    let r = |id: &str, name: &str, on: bool, auto: bool, cur: bool| ChannelRow {
+        id: id.into(),
+        name: name.into(),
+        state_text: if on { "В эфире" } else { "Остановлен" }.into(),
+        on_air: on,
+        autostart: auto,
+        current: cur,
+    };
+    c.set_rows(model(vec![r("main", "Основной канал", true, true, true), r("kids", "Детский", false, false, false)]));
+    match name {
+        "channels" => c.set_open(true),
+        "channel-form" => {
+            c.set_open(true);
+            c.set_form_source("Основной канал".into());
+            c.set_e_id("main-2".into());
+            c.set_e_name("Основной канал (копия)".into());
+            c.set_form("duplicate".into());
+        }
+        _ => return,
+    }
+    ui.set_section("home".into());
 }
 
 fn model<T: Clone + 'static>(v: Vec<T>) -> slint::ModelRc<T> {

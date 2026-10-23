@@ -8,6 +8,7 @@ import { Icons } from "../theme/icons.slint";
 import { Icon } from "icon.slint";
 import { Label } from "label.slint";
 import { Button, ButtonVariant } from "button.slint";
+import { Checkbox } from "checkbox.slint";
 
 export component Dialog inherits Rectangle {
     in property <bool> open;
@@ -106,6 +107,9 @@ export component ConfirmDialog inherits Dialog {
     in property <string> confirm-text: "Подтвердить";
     in property <string> cancel-text: "Отмена";
     in property <bool> danger: false;
+    // optional checkbox under the text (e.g. "erase files for good")
+    in property <string> option-text;
+    in-out property <bool> option-checked;
     callback confirmed();
     callback cancelled();
 
@@ -116,6 +120,10 @@ export component ConfirmDialog inherits Dialog {
         root.cancelled();
     }
 
+    if root.option-text != "": Checkbox {
+        text: root.option-text;
+        checked <=> root.option-checked;
+    }
     DialogActions {
         Button {
             text: root.cancel-text;

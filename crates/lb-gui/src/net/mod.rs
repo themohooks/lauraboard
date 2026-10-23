@@ -35,7 +35,7 @@ pub struct Frame {
 
 /// Results delivered to the UI thread.
 pub enum Msg {
-    Channels(Vec<String>),
+    Channels(Vec<crate::model::ChannelEntry>),
     Status(Box<StatusView>),
     Rundown(Rundown),
     Library(Vec<MediaItem>),

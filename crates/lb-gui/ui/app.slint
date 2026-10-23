@@ -11,6 +11,7 @@ import { TooltipLayer } from "components/tooltip.slint";
 import { App } from "state/app-state.slint";
 import { AppBar } from "shell/app-bar.slint";
 import { NewChannelDialog } from "shell/new-channel-dialog.slint";
+import { ChannelsDialog, ChannelFormDialog } from "shell/channels-dialog.slint";
 import { SourceEditDialog } from "screens/sources/edit-dialog.slint";
 import { EncoderDialog } from "screens/sources/encoder-dialog.slint";
 import { MediaPickerDialog } from "shell/media-picker-dialog.slint";
@@ -44,6 +45,7 @@ export { Log } from "state/log-state.slint";
 export { Stats, StatRow, Kpi } from "state/stats-state.slint";
 export { Src, SceneRow, OutRow, StreamRow, Fact } from "state/sources-state.slint";
 export { Settings } from "state/settings-state.slint";
+export { Chan, ChannelRow } from "state/channels-state.slint";
 export { Picker, PickRow } from "state/picker-state.slint";
 
 export component AppWindow inherits Window {
@@ -188,6 +190,10 @@ export component AppWindow inherits Window {
 
     RuleWizard { }
 
+    ChannelsDialog { }
+
+    ChannelFormDialog { }
+
     NewChannelDialog { }
 
     SourceEditDialog { }
@@ -204,6 +210,8 @@ export component AppWindow inherits Window {
         text: App.confirm-text;
         confirm-text: App.confirm-action;
         danger: App.confirm-danger;
+        option-text: App.confirm-option;
+        option-checked <=> App.confirm-option-checked;
         confirmed => {
             App.confirm-open = false;
             App.confirm-result(true);

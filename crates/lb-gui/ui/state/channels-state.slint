@@ -1,0 +1,36 @@
+// Data contract of the channel manager (src/bridge/channels.rs): list of
+// channels with their actions, and the rename / duplicate form.
+
+export struct ChannelRow {
+    id: string,
+    name: string,
+    // formatted state ("В эфире", "Остановлен" …)
+    state-text: string,
+    on-air: bool,
+    autostart: bool,
+    current: bool,
+}
+
+export global Chan {
+    in-out property <bool> open;
+    in property <[ChannelRow]> rows;
+
+    // form: "" (closed), "rename" or "duplicate"
+    in-out property <string> form;
+    // channel the form acts on
+    in property <string> form-source;
+    in property <bool> form-on-air;
+    in-out property <string> e-id;
+    in-out property <string> e-name;
+    in property <string> e-error;
+
+    // the manager was opened: refresh the list
+    callback opened();
+    callback select(string);
+    callback rename(string);
+    callback duplicate(string);
+    callback remove(string);
+    callback autostart(string, bool);
+    callback validate-id(string);
+    callback save-form();
+}

@@ -83,6 +83,8 @@ export global App {
     in property <string> confirm-text;
     in property <string> confirm-action: "Подтвердить";
     in property <bool> confirm-danger: true;
+    in property <string> confirm-option;
+    in-out property <bool> confirm-option-checked;
     callback confirm-result(bool);
 
     // window

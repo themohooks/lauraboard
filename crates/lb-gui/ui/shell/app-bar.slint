@@ -10,6 +10,7 @@ import { StatusChip, StatusTone } from "../components/indicators.slint";
 import { IconButton } from "../components/icon-button.slint";
 import { TimeDisplay } from "../components/monitor.slint";
 import { App } from "../state/app-state.slint";
+import { Chan } from "../state/channels-state.slint";
 
 export global StateTone {
     public pure function of(state: string) -> StatusTone {
@@ -42,14 +43,12 @@ export component AppBar inherits TopAppBar {
     VerticalLayout {
         alignment: center;
         IconButton {
-            icon: Icons.add;
-            tooltip: "Новый канал";
+            icon: Icons.tune;
+            tooltip: "Каналы: переименование, копия, удаление, экспорт";
             enabled: App.online;
             clicked => {
-                App.new-channel-id = "";
-                App.new-channel-name = "";
-                App.validate-new-channel("");
-                App.new-channel-open = true;
+                Chan.open = true;
+                Chan.opened();
             }
         }
     }
