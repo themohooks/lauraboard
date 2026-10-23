@@ -19,6 +19,9 @@ pub enum ScaleMode {
     Fill,
     /// Ignore aspect ratio.
     Stretch,
+    /// Keep aspect ratio; the bars show a blurred, zoomed copy of the
+    /// picture instead of a flat colour.
+    Blur,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

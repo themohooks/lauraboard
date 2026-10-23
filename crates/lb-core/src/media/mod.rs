@@ -1,13 +1,16 @@
 //! Media library model.
 //!
 //! * [`folders`] — virtual folders of the library
+//! * [`display`] — per-item display settings (scaling, crop, filters)
 
+pub mod display;
 pub mod folders;
 
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 use crate::{Dur, Ms};
+pub use display::MediaDisplay;
 
 /// What role a media item plays on air.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Default)]
@@ -117,6 +120,9 @@ pub struct MediaItem {
     /// storage under a generated name.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub original_name: Option<String>,
+    /// How the picture is shown (scaling, crop, filters).
+    #[serde(default, skip_serializing_if = "MediaDisplay::is_default")]
+    pub display: MediaDisplay,
 }
 
 fn one() -> f64 {
@@ -147,6 +153,7 @@ impl MediaItem {
             enabled: true,
             folder: String::new(),
             original_name: None,
+            display: MediaDisplay::default(),
         }
     }
 

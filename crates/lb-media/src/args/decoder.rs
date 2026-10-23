@@ -29,6 +29,8 @@ pub struct DecodeJob {
     pub volume_db: f32,
     pub fade_in_ms: i64,
     pub fade_out_ms: i64,
+    /// Scaling override, crop and picture filters of the item.
+    pub display: lb_core::media::MediaDisplay,
 }
 
 /// Build decoder arguments (without the program name).
@@ -58,7 +60,7 @@ pub fn decoder_args(job: &DecodeJob, v: &VideoFormat, a: &AudioFormat, loglevel:
         args.extend(sv(&["-f", "lavfi", "-i", &silence_src(a)]));
     }
     let dur = if job.duration_ms > 0 { frame_align_ms(job.duration_ms, v.fps) } else { 0 };
-    let vf = video_chain(v, job.fade_in_ms, job.fade_out_ms, dur);
+    let vf = video_chain(v, &job.display, job.fade_in_ms, job.fade_out_ms, dur);
     let af = audio_chain(a, job.volume_db, job.fade_in_ms, job.fade_out_ms, dur);
     let a_in = if audio_from_input { "0:a:0" } else { "1:a:0" };
     let fc = format!("[0:v:0]{vf}[v];[{a_in}]{af}[a]");
@@ -84,6 +86,7 @@ mod tests {
             volume_db: 0.0,
             fade_in_ms: 0,
             fade_out_ms: 0,
+            display: Default::default(),
         }
     }
 

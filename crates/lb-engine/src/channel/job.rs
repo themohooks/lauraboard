@@ -59,6 +59,7 @@ pub fn build(data: &ChannelData, root: &Path, item: &RundownItem, offset_ms: i64
         volume_db: m.volume_db,
         fade_in_ms: if offset_ms == 0 { item.fade_in_ms } else { 0 },
         fade_out_ms: fade_out,
+        display: m.display.clone(),
     };
     Ok(decoder_args(&job, &cfg.video, &cfg.audio, loglevel))
 }
