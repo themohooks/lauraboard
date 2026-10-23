@@ -18,6 +18,7 @@ mod fmt;
 mod logic;
 mod model;
 mod net;
+mod notify;
 mod prefs;
 mod shell;
 mod ru;

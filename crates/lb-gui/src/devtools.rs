@@ -280,6 +280,16 @@ fn demo_air(ui: &AppWindow) {
 
 /// Put a screen into a representative state for review (live mode).
 fn prepare_live(section: &str) {
+    if section == "library"
+        && let Some(row) = std::env::var("LB_SNAPSHOT_EDIT").ok().and_then(|v| v.parse().ok())
+    {
+        crate::bridge::with(move |c| {
+            crate::bridge::library::refresh(c);
+            if let Some(ui) = c.window() {
+                ui.global::<crate::shell::Lib>().invoke_open_edit(row);
+            }
+        });
+    }
     if section == "library" && std::env::var("LB_SNAPSHOT_GRID").is_ok() {
         crate::bridge::with(|c| {
             if let Some(ui) = c.window() {
@@ -296,8 +306,15 @@ fn prepare_live(section: &str) {
                 ui.global::<crate::shell::Rules>().set_tab(tab.parse().unwrap_or(0));
             }
             crate::bridge::rules::select_first(c);
-            if std::env::var("LB_SNAPSHOT_WIZARD").is_ok() {
+            if let Ok(step) = std::env::var("LB_SNAPSHOT_WIZARD") {
                 crate::bridge::rules::new_rule(c);
+                if let Some(ui) = c.window() {
+                    ui.global::<crate::shell::Rules>().set_wizard_step(step.parse().unwrap_or(0));
+                }
+            }
+            if let Ok(ids) = std::env::var("LB_SNAPSHOT_RULE_ITEMS") {
+                let ids = ids.split(',').map(String::from).collect();
+                crate::bridge::rules::picked(c, crate::bridge::picker::Target::RuleItems, ids);
             }
             if std::env::var("LB_SNAPSHOT_SPOTS").is_ok() {
                 let ids = ["ad-1", "ad-3", "gone"].map(String::from).to_vec();
@@ -327,6 +344,16 @@ fn prepare_live(section: &str) {
                 ui.global::<crate::shell::Log>().set_tab(tab.parse().unwrap_or(0));
             }
             crate::bridge::log::opened(c);
+        });
+    }
+    if section == "stats"
+        && let Ok(view) = std::env::var("LB_SNAPSHOT_TAB")
+    {
+        crate::bridge::with(move |c| {
+            if let Some(ui) = c.window() {
+                ui.global::<crate::shell::Stats>().set_view(view.parse().unwrap_or(0));
+            }
+            crate::bridge::system::opened(c);
         });
     }
     if section == "playlists" {

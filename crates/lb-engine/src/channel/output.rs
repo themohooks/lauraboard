@@ -15,6 +15,7 @@ use lb_media::process::encoder::PreviewFrame;
 use lb_media::progress::EncoderStats;
 
 use super::playout::SharedStdin;
+use super::recordings::Recordings;
 use super::status::OutputStatus;
 
 const BACKOFF: &[u64] = &[1, 2, 5, 10, 20, 30];
@@ -35,6 +36,7 @@ pub struct Output {
     network: Vec<(String, String)>,
     /// Latest preview frame (kept across encoder restarts).
     pub preview: tokio::sync::watch::Sender<PreviewFrame>,
+    recordings: Recordings,
 }
 
 impl Output {
@@ -50,6 +52,7 @@ impl Output {
             targets: vec![],
             network: vec![],
             preview,
+            recordings: Recordings::default(),
         }
     }
 
@@ -76,6 +79,7 @@ impl Output {
         if cfg.record.enabled {
             let _ = std::fs::create_dir_all(&rec_dir);
         }
+        self.recordings.set(cfg.record.enabled.then(|| (rec_dir.clone(), cfg.record.file_prefix(&cfg.id), cfg.record.clone())));
         for o in cfg.outputs.iter().filter(|o| o.enabled && !lb_core::media::is_url(&o.url)) {
             if let Some(parent) = paths::resolve(root, &o.url).parent() {
                 let _ = std::fs::create_dir_all(parent);
@@ -213,7 +217,13 @@ impl Output {
             last_error: self.last_error.clone(),
             targets: self.targets.clone(),
             problems: self.problems(),
+            recording: self.running().then(|| self.recordings.status()).flatten(),
         }
+    }
+
+    /// Refresh the recording status, delete recordings past their limits.
+    pub fn housekeep(&mut self) -> Vec<std::path::PathBuf> {
+        if self.running() { self.recordings.tick() } else { vec![] }
     }
 
     /// Forget the resolved codec (configuration changed).

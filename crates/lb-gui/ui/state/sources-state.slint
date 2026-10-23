@@ -116,6 +116,24 @@ export global Src {
     // x264 / x265: tune applies
     in property <bool> k-has-tune;
     in property <string> k-error;
+    // recording settings dialog (dialog == "record")
+    in-out property <bool> r-enabled;
+    // 0 MP4, 1 MKV, 2 TS
+    in-out property <int> r-format;
+    in-out property <string> r-dir;
+    // minutes per file
+    in-out property <string> r-segment;
+    // limits; empty = none
+    in-out property <string> r-max-mb;
+    in-out property <string> r-keep-days;
+    in-out property <string> r-max-gb;
+    in-out property <string> r-prefix;
+    in property <string> r-prefix-hint;
+    in property <string> r-error;
+    callback record-edit();
+    callback record-browse();
+    callback record-save();
+
     callback encoder-edit();
     callback encoder-codec-changed();
     callback encoder-save();

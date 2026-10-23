@@ -1,0 +1,277 @@
+// "Показ на экране" part of the media edit sheet: scaling override, crop,
+// picture adjustments and clean-up filters, with a preview frame rendered
+// by the server through the same filters as on air.
+
+import { Theme } from "../../theme/tokens.slint";
+import { Icons } from "../../theme/icons.slint";
+import { Label } from "../../components/label.slint";
+import { Select } from "../../components/select.slint";
+import { Switch } from "../../components/switch.slint";
+import { Slider } from "../../components/slider.slint";
+import { Button, ButtonVariant } from "../../components/button.slint";
+import { Lib } from "../../state/library-state.slint";
+
+component SectionTitle inherits Label {
+    type-style: Theme.label-small;
+    color: Theme.color.on-surface-variant;
+}
+
+// Caption with the current value above a slider.
+component Adjust inherits VerticalLayout {
+    in property <string> label;
+    in property <string> value-text;
+    in property <float> minimum;
+    in property <float> maximum;
+    in property <float> step;
+    in-out property <float> value;
+    callback changed();
+
+    spacing: 0;
+    Label {
+        text: root.label + ": " + root.value-text;
+        type-style: Theme.label-medium;
+        color: Theme.color.on-surface-variant;
+    }
+    Slider {
+        minimum: root.minimum;
+        maximum: root.maximum;
+        step: root.step;
+        value <=> root.value;
+        value-text: root.value-text;
+        changed => {
+            root.changed();
+        }
+    }
+}
+
+export component DisplaySection inherits VerticalLayout {
+    spacing: Theme.sp3;
+
+    HorizontalLayout {
+        SectionTitle {
+            horizontal-stretch: 1;
+            vertical-alignment: center;
+            text: "ПОКАЗ НА ЭКРАНЕ";
+        }
+        Button {
+            text: "Сбросить";
+            icon: Icons.replay;
+            has-icon: true;
+            variant: ButtonVariant.text;
+            enabled: !Lib.d-default;
+            clicked => {
+                Lib.d-reset();
+            }
+        }
+    }
+
+    // preview frame (16:9 box; the picture keeps its own aspect)
+    if Lib.d-can-preview: Rectangle {
+        height: self.width * 9 / 16;
+        border-radius: Theme.radius-s;
+        background: #000;
+        clip: true;
+        if Lib.d-has-preview: Image {
+            width: parent.width;
+            height: parent.height;
+            source: Lib.d-preview;
+            image-fit: contain;
+        }
+        if !Lib.d-has-preview || Lib.d-previewing: Label {
+            text: Lib.d-previewing ? "Рендер кадра…" : Lib.d-preview-note;
+            color: #ffffffb0;
+            wrap: word-wrap;
+            horizontal-alignment: center;
+            vertical-alignment: center;
+        }
+    }
+
+    Select {
+        label: "Масштаб";
+        options: ["Как в настройках канала", "Вписать (с полями)", "Заполнить (обрезать края)", "Растянуть на весь экран", "Вписать, поля — размытый фон"];
+        current-index <=> Lib.d-scale;
+        supporting: "«Растянуть» заполняет экран 16:9 роликом 4:3";
+        container-color: Theme.color.surface-container-low;
+        selected => {
+            Lib.d-changed();
+        }
+    }
+    HorizontalLayout {
+        spacing: Theme.sp3;
+        Select {
+            label: "Пропорции источника";
+            options: Lib.d-aspect-options;
+            current-index <=> Lib.d-aspect;
+            container-color: Theme.color.surface-container-low;
+            selected => {
+                Lib.d-changed();
+            }
+        }
+        Select {
+            label: "Поворот";
+            options: ["Нет", "90° по часовой", "180°", "90° против часовой"];
+            current-index <=> Lib.d-rotate;
+            container-color: Theme.color.surface-container-low;
+            selected => {
+                Lib.d-changed();
+            }
+        }
+    }
+    HorizontalLayout {
+        spacing: Theme.sp3;
+        Switch {
+            text: "Отразить ↔";
+            checked <=> Lib.d-flip-h;
+            toggled => {
+                Lib.d-changed();
+            }
+        }
+        Switch {
+            text: "Отразить ↕";
+            checked <=> Lib.d-flip-v;
+            toggled => {
+                Lib.d-changed();
+            }
+        }
+    }
+    Switch {
+        text: "Убрать чересстрочность (деинтерлейс)";
+        checked <=> Lib.d-deinterlace;
+        toggled => {
+            Lib.d-changed();
+        }
+    }
+
+    SectionTitle {
+        text: "ОБРЕЗКА КРАЁВ, % ИСТОЧНИКА";
+    }
+    HorizontalLayout {
+        spacing: Theme.sp3;
+        Adjust {
+            label: "Слева";
+            minimum: 0;
+            maximum: 45;
+            step: 0.5;
+            value <=> Lib.d-crop-left;
+            value-text: round(Lib.d-crop-left * 10) / 10 + "%";
+            changed => {
+                Lib.d-changed();
+            }
+        }
+        Adjust {
+            label: "Справа";
+            minimum: 0;
+            maximum: 45;
+            step: 0.5;
+            value <=> Lib.d-crop-right;
+            value-text: round(Lib.d-crop-right * 10) / 10 + "%";
+            changed => {
+                Lib.d-changed();
+            }
+        }
+    }
+    HorizontalLayout {
+        spacing: Theme.sp3;
+        Adjust {
+            label: "Сверху";
+            minimum: 0;
+            maximum: 45;
+            step: 0.5;
+            value <=> Lib.d-crop-top;
+            value-text: round(Lib.d-crop-top * 10) / 10 + "%";
+            changed => {
+                Lib.d-changed();
+            }
+        }
+        Adjust {
+            label: "Снизу";
+            minimum: 0;
+            maximum: 45;
+            step: 0.5;
+            value <=> Lib.d-crop-bottom;
+            value-text: round(Lib.d-crop-bottom * 10) / 10 + "%";
+            changed => {
+                Lib.d-changed();
+            }
+        }
+    }
+
+    SectionTitle {
+        text: "ИЗОБРАЖЕНИЕ";
+    }
+    HorizontalLayout {
+        spacing: Theme.sp3;
+        Adjust {
+            label: "Яркость";
+            minimum: -0.5;
+            maximum: 0.5;
+            step: 0.01;
+            value <=> Lib.d-brightness;
+            value-text: round(Lib.d-brightness * 100);
+            changed => {
+                Lib.d-changed();
+            }
+        }
+        Adjust {
+            label: "Контраст";
+            minimum: 0.5;
+            maximum: 2;
+            step: 0.05;
+            value <=> Lib.d-contrast;
+            value-text: round(Lib.d-contrast * 100) + "%";
+            changed => {
+                Lib.d-changed();
+            }
+        }
+    }
+    HorizontalLayout {
+        spacing: Theme.sp3;
+        Adjust {
+            label: "Насыщенность";
+            minimum: 0;
+            maximum: 3;
+            step: 0.05;
+            value <=> Lib.d-saturation;
+            value-text: Lib.d-saturation < 0.01 ? "ч/б" : round(Lib.d-saturation * 100) + "%";
+            changed => {
+                Lib.d-changed();
+            }
+        }
+        Adjust {
+            label: "Гамма";
+            minimum: 0.3;
+            maximum: 3;
+            step: 0.05;
+            value <=> Lib.d-gamma;
+            value-text: round(Lib.d-gamma * 100) / 100;
+            changed => {
+                Lib.d-changed();
+            }
+        }
+    }
+    HorizontalLayout {
+        spacing: Theme.sp3;
+        Adjust {
+            label: "Резкость";
+            minimum: 0;
+            maximum: 2;
+            step: 0.05;
+            value <=> Lib.d-sharpen;
+            value-text: Lib.d-sharpen < 0.01 ? "выкл" : round(Lib.d-sharpen * 100) / 100;
+            changed => {
+                Lib.d-changed();
+            }
+        }
+        Adjust {
+            label: "Шумоподавление";
+            minimum: 0;
+            maximum: 10;
+            step: 0.5;
+            value <=> Lib.d-denoise;
+            value-text: Lib.d-denoise < 0.01 ? "выкл" : round(Lib.d-denoise * 10) / 10;
+            changed => {
+                Lib.d-changed();
+            }
+        }
+    }
+}

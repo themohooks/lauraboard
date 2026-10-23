@@ -152,6 +152,7 @@ pub fn navigate(c: &mut Ctx, id: &str) {
     }
     if id == "stats" {
         super::stats::opened(c);
+        super::system::opened(c);
     }
     if id == "sources" {
         super::sources::refresh(c);

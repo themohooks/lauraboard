@@ -1,0 +1,86 @@
+// Ordered list of picked library items (ad break spots, rule items):
+// number, kind, title, duration; move up / down, remove.
+
+import { Theme } from "../../theme/tokens.slint";
+import { Icons } from "../../theme/icons.slint";
+import { Label } from "../../components/label.slint";
+import { IconButton } from "../../components/icon-button.slint";
+import { ListRow } from "../../components/list-row.slint";
+import { KindTag } from "../../components/indicators.slint";
+import { MediaPick } from "../../state/air-state.slint";
+
+export component MediaPickList inherits Rectangle {
+    in property <[MediaPick]> items;
+    in property <string> remove-tooltip: "Убрать";
+    in property <color> row-bg: Theme.color.surface-container-low;
+    // "up", "down", "remove" with the row index
+    callback action(string, int);
+
+    border-radius: Theme.radius-m;
+    background: root.row-bg;
+    clip: true;
+    VerticalLayout {
+        for m[i] in root.items: ListRow {
+            height: Theme.compact ? 40px : 48px;
+            divider: i < root.items.length - 1;
+            focusable: false;
+            Label {
+                width: 24px;
+                text: i + 1;
+                vertical-alignment: center;
+                color: Theme.color.on-surface-variant;
+            }
+            KindTag {
+                kind: m.kind;
+                show-name: false;
+            }
+            VerticalLayout {
+                horizontal-stretch: 1;
+                alignment: center;
+                Label {
+                    text: m.title;
+                    overflow: elide;
+                    color: m.kind == "gap" ? Theme.color.error : Theme.color.on-surface;
+                }
+            }
+            Label {
+                text: m.duration;
+                mono: true;
+                vertical-alignment: center;
+                color: Theme.color.on-surface-variant;
+            }
+            VerticalLayout {
+                alignment: center;
+                IconButton {
+                    icon: Icons.arrow-upward;
+                    enabled: i > 0;
+                    tooltip: "Выше";
+                    clicked => {
+                        root.action("up", i);
+                    }
+                }
+            }
+            VerticalLayout {
+                alignment: center;
+                IconButton {
+                    icon: Icons.arrow-downward;
+                    enabled: i < root.items.length - 1;
+                    tooltip: "Ниже";
+                    clicked => {
+                        root.action("down", i);
+                    }
+                }
+            }
+            VerticalLayout {
+                alignment: center;
+                IconButton {
+                    icon: Icons.close;
+                    tooltip: root.remove-tooltip;
+                    clicked => {
+                        root.action("remove", i);
+                    }
+                }
+            }
+        }
+    }
+}

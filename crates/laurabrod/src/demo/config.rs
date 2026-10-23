@@ -196,6 +196,8 @@ fn grule(id: &str, element: &str, timing: GfxTiming, kinds: Vec<MediaKind>) -> G
         timing,
         conditions: Conditions { kinds, ..Default::default() },
         profiles: vec![],
+        texts: vec![],
+        hide_if_empty: false,
     }
 }
 

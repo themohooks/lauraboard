@@ -20,10 +20,11 @@ use lb_core::Dur;
 use lb_core::graphics::{Animation, AnimKind, CountdownTarget, Element, ElementKind, GraphicRule, GraphicsConfig, Placement, TextStyle};
 
 use super::{Ctx, vec_model, with};
+use crate::fmt::KINDS;
 use crate::logic::placement::{self, ANCHORS, Rect};
 use crate::logic::undo::History;
 use crate::net::Msg;
-use crate::shell::{App, AppWindow, CanvasItem, GRuleRow, Gfx, LayerRow, VarRow};
+use crate::shell::{App, AppWindow, CanvasItem, GRuleRow, Gfx, LayerRow, RuleTextRow, VarRow};
 
 struct Drag {
     index: usize,
@@ -108,7 +109,7 @@ fn label(e: &Element) -> String {
 }
 
 /// `#RRGGBB[AA]` → colour for swatches.
-fn color_of(hex: &str) -> Color {
+pub(crate) fn color_of(hex: &str) -> Color {
     if !placement::valid_color(hex) {
         return Color::from_argb_u8(0, 0, 0, 0);
     }
@@ -117,10 +118,18 @@ fn color_of(hex: &str) -> Color {
     Color::from_argb_u8(if h.len() == 8 { b(6) } else { 255 }, b(0), b(2), b(4))
 }
 
+/// Colour → `#RRGGBB`, or `#RRGGBBAA` when translucent.
+fn hex_of(c: Color) -> String {
+    let base = format!("#{:02X}{:02X}{:02X}", c.red(), c.green(), c.blue());
+    if c.alpha() == 255 { base } else { format!("{base}{:02X}", c.alpha()) }
+}
+
 pub fn connect(ui: &AppWindow) {
     design::connect(ui);
     fonts::connect(ui);
     let g = ui.global::<Gfx>();
+    g.on_color_hex(|c| hex_of(c).into());
+    g.on_parse_color(|s| color_of(&s));
     g.on_select(|i| {
         with(move |c| {
             let sel = usize::try_from(i).ok();
@@ -989,10 +998,35 @@ fn rules_rows(c: &mut Ctx) {
             every: s(dur_txt(r.timing.every)),
             at: s(r.timing.at.iter().map(|t| t.format("%H:%M").to_string()).collect::<Vec<_>>().join(", ")),
             categories: s(r.conditions.categories.join(", ")),
+            xcategories: s(r.conditions.exclude_categories.join(", ")),
+            from: s(r.conditions.from.map(|t| t.format("%H:%M").to_string()).unwrap_or_default()),
+            to: s(r.conditions.to.map(|t| t.format("%H:%M").to_string()).unwrap_or_default()),
+            kinds: vec_model(KINDS.iter().map(|k| r.conditions.kinds.contains(k)).collect()),
+            texts: vec_model(rule_texts(&cfg, r)),
+            hide_empty: r.hide_if_empty,
             error: s(if cfg.elements.iter().any(|e| e.id == r.element) { "" } else { "Элемент не найден" }),
         })
         .collect();
     ui.global::<Gfx>().set_rules(vec_model(rows));
+}
+
+/// Text fields of the rule's element (plate lines, text, ticker).
+fn rule_texts(cfg: &GraphicsConfig, r: &GraphicRule) -> Vec<RuleTextRow> {
+    let Some(el) = cfg.element(&r.element) else { return vec![] };
+    let labels: Vec<String> = match &el.kind {
+        ElementKind::Plate { fields, .. } => {
+            fields.iter().enumerate().map(|(i, f)| if f.label.is_empty() { format!("Строка {}", i + 1) } else { f.label.clone() }).collect()
+        }
+        ElementKind::Ticker { .. } => vec!["Текст бегущей строки".into()],
+        _ => vec!["Текст".into()],
+    };
+    lb_core::graphics::element_texts(el)
+        .unwrap_or_default()
+        .into_iter()
+        .zip(labels)
+        .enumerate()
+        .map(|(k, (design, label))| RuleTextRow { label: s(label), design: s(design.to_string()), text: s(r.texts.get(k).cloned().unwrap_or_default()) })
+        .collect()
 }
 
 fn rule_edited(c: &mut Ctx, i: usize, field: &str, v: &str) {
@@ -1013,6 +1047,7 @@ fn rule_edited(c: &mut Ctx, i: usize, field: &str, v: &str) {
     match field.as_str() {
         "after" | "duration" | "before-end" | "last" | "every" => bad = parsed_dur.is_none(),
         "at" => bad = parsed_at.is_none(),
+        "from" | "to" => bad = crate::logic::timeline::parse_time(&v).is_err(),
         "priority" => bad = v.trim().parse::<i32>().is_err(),
         _ => {}
     }
@@ -1036,18 +1071,49 @@ fn rule_edited(c: &mut Ctx, i: usize, field: &str, v: &str) {
             "last" => r.timing.last = parsed_dur.flatten(),
             "every" => r.timing.every = parsed_dur.flatten(),
             "at" => r.timing.at = parsed_at.unwrap_or_default(),
-            "categories" => r.conditions.categories = v.split(',').map(|x| x.trim().to_string()).filter(|x| !x.is_empty()).collect(),
-            _ => {}
+            "categories" => r.conditions.categories = list(&v),
+            "xcategories" => r.conditions.exclude_categories = list(&v),
+            "from" => r.conditions.from = crate::logic::timeline::parse_time(&v).ok().flatten(),
+            "to" => r.conditions.to = crate::logic::timeline::parse_time(&v).ok().flatten(),
+            "kind" => {
+                if let Some(k) = v.parse::<usize>().ok().and_then(|k| KINDS.get(k)) {
+                    match r.conditions.kinds.iter().position(|x| x == k) {
+                        Some(p) => {
+                            r.conditions.kinds.remove(p);
+                        }
+                        None => r.conditions.kinds.push(*k),
+                    }
+                }
+            }
+            "hide-empty" => r.hide_if_empty = v == "1",
+            f => {
+                if let Some(k) = f.strip_prefix("text:").and_then(|k| k.parse::<usize>().ok()) {
+                    if r.texts.len() <= k {
+                        r.texts.resize(k + 1, String::new());
+                    }
+                    r.texts[k] = v.clone();
+                    while r.texts.last().is_some_and(|t| t.is_empty()) {
+                        r.texts.pop();
+                    }
+                }
+            }
         }
     });
-    if matches!(c.gfx.last_edit.as_ref(), Some((k, _)) if !k.ends_with("-categories") && !k.ends_with("-at")) || field_is_structural(&key) {
+    // typed text stays as typed (rebuilding the rows would reset the cursor)
+    let typed = |k: &str| ["-categories", "-xcategories", "-at", "-from", "-to"].iter().any(|t| k.ends_with(t)) || k.contains("-text:");
+    if matches!(c.gfx.last_edit.as_ref(), Some((k, _)) if !typed(k)) || field_is_structural(&key) {
         rules_rows(c);
     }
     flags(c);
 }
 
 fn field_is_structural(key: &str) -> bool {
-    key.ends_with("-enabled") || key.ends_with("-element")
+    key.ends_with("-enabled") || key.ends_with("-element") || key.ends_with("-kind") || key.ends_with("-hide-empty")
+}
+
+/// "a, b" → ["a", "b"].
+fn list(v: &str) -> Vec<String> {
+    v.split(',').map(|x| x.trim().to_string()).filter(|x| !x.is_empty()).collect()
 }
 
 fn rule_add(c: &mut Ctx) {

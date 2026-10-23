@@ -228,6 +228,61 @@ export component SettingsScreen inherits Page {
                 Card {
                     card-style: CardStyle.low;
                     CardHeader {
+                        title: "Уведомления";
+                        subtitle: "Системные уведомления Windows / Linux / macOS о событиях эфира — видны, даже когда окно свёрнуто в трей";
+                        Button {
+                            text: "Проверить";
+                            variant: ButtonVariant.text;
+                            icon: Icons.campaign;
+                            has-icon: true;
+                            clicked => {
+                                Settings.notify-test();
+                            }
+                        }
+                    }
+                    Setting {
+                        title: "Показывать";
+                        VerticalLayout {
+                            horizontal-stretch: 1;
+                            alignment: center;
+                            Switch {
+                                text: "Системные уведомления";
+                                checked: Settings.notify[0];
+                                toggled(v) => {
+                                    Settings.notify-changed(0, v);
+                                }
+                            }
+                        }
+                    }
+                    Setting {
+                        title: "О чём";
+                        hint: "Одинаковое уведомление не повторяется чаще раза в минуту";
+                        VerticalLayout {
+                            horizontal-stretch: 1;
+                            spacing: Theme.sp2;
+                            for item[i] in [
+                                "Сбои: кодировщик остановлен и восстановлен, нет связи с сервером",
+                                "Пропущенные ролики (нет файла, ошибка чтения)",
+                                "Недоступные точки вещания (RTMP, SRT…)",
+                                "Мало места на диске для записи (меньше 5 ГБ)",
+                                "Эфир запущен / остановлен, ручной режим",
+                                "Каждая новая передача в эфире",
+                                "Только когда окно свёрнуто или скрыто",
+                            ]: Switch {
+                                text: item;
+                                enabled: Settings.notify[0];
+                                checked: Settings.notify[i + 1];
+                                toggled(v) => {
+                                    Settings.notify-changed(i + 1, v);
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Card {
+                    card-style: CardStyle.low;
+                    CardHeader {
                         title: "Компоновка";
                         subtitle: "Ширина панелей, вид медиатеки и навигации сохраняются между запусками";
                     }

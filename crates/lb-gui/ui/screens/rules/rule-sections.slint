@@ -11,6 +11,9 @@ import { Radio } from "../../components/checkbox.slint";
 import { Slider } from "../../components/slider.slint";
 import { Rules } from "../../state/rules-state.slint";
 import { FormSection, ToggleChips } from "form-parts.slint";
+import { MediaPickList } from "media-list.slint";
+import { Button, ButtonVariant } from "../../components/button.slint";
+import { IconButton } from "../../components/icon-button.slint";
 
 export component WhenSection inherits FormSection {
     in property <color> field-bg: Theme.color.surface-container-low;
@@ -121,12 +124,38 @@ export component WhatSection inherits FormSection {
             }
         }
     }
-    if Rules.f-action == 0 || Rules.f-action == 3: TextField {
-        label: Rules.f-action == 0 ? "Конкретные заставки (id через запятую)" : "Ролики (id через запятую, выбирается один)";
-        text <=> Rules.f-items;
-        container-color: root.field-bg;
-        edited => {
-            Rules.form-changed();
+    if Rules.f-action == 0 || Rules.f-action == 3: HorizontalLayout {
+        spacing: Theme.sp2;
+        Label {
+            horizontal-stretch: 1;
+            vertical-alignment: center;
+            text: Rules.f-media.length > 0 ? (Rules.f-action == 0 ? "Заставок: " : "Роликов (выбирается один): ") + Rules.f-media.length
+                : Rules.f-action == 0 ? "Конкретные заставки не выбраны — берутся из категории" : "Выберите ролики — в эфир пойдёт один из них";
+            color: Theme.color.on-surface-variant;
+            wrap: word-wrap;
+        }
+        if Rules.f-media.length > 0: Button {
+            text: "Очистить";
+            variant: ButtonVariant.text;
+            clicked => {
+                Rules.rule-item("clear", 0);
+            }
+        }
+        Button {
+            text: "Выбрать из медиатеки";
+            variant: ButtonVariant.tonal;
+            icon: Icons.video-library;
+            has-icon: true;
+            clicked => {
+                Rules.pick("rule-items");
+            }
+        }
+    }
+    if (Rules.f-action == 0 || Rules.f-action == 3) && Rules.f-media.length > 0: MediaPickList {
+        items: Rules.f-media;
+        row-bg: root.field-bg;
+        action(a, i) => {
+            Rules.rule-item(a, i);
         }
     }
 }
@@ -184,6 +213,17 @@ export component ConditionsSection inherits FormSection {
             container-color: root.field-bg;
             edited => {
                 Rules.form-changed();
+            }
+        }
+        VerticalLayout {
+            alignment: start;
+            padding-top: 4px;
+            IconButton {
+                icon: Icons.video-library;
+                tooltip: "Выбрать из медиатеки";
+                clicked => {
+                    Rules.pick("rule-exclude");
+                }
             }
         }
     }

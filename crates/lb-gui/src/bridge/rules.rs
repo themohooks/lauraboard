@@ -89,9 +89,14 @@ pub fn connect(ui: &AppWindow) {
     g.on_break_add(|| with(break_add));
     g.on_break_remove(|| with(break_remove));
     g.on_break_item(|a, i| with(move |c| break_item(c, a.as_str(), i as usize)));
+    g.on_rule_item(|a, i| with(move |c| rule_item(c, a.as_str(), i as usize)));
     g.on_pick(|what| {
         with(move |c| {
+            let jingles = c.window().is_some_and(|ui| ui.global::<Rules>().get_f_action() == 0);
             let (t, title) = match what.as_str() {
+                "rule-items" if jingles => (Target::RuleItems, "Заставки правила"),
+                "rule-items" => (Target::RuleItems, "Ролики правила"),
+                "rule-exclude" => (Target::RuleExclude, "Ролики, после которых правило не срабатывает"),
                 "ad-intro" => (Target::AdIntro, "Заставка в начале блока"),
                 "ad-outro" => (Target::AdOutro, "Заставка в конце блока"),
                 _ => (Target::AdItems, "Ролики рекламного блока"),
@@ -294,6 +299,7 @@ fn load_form(c: &Ctx, r: &InsertionRule) {
     };
     g.set_f_action(a);
     g.set_f_jcat(s(jcat));
+    g.set_f_media(media_picks(c, &split(&items)));
     g.set_f_items(s(items));
     g.set_f_ab(ab);
     g.set_f_pcount(s(pcount));
@@ -715,15 +721,7 @@ fn breaks(c: &mut Ctx) {
     g.set_b_id(s(b.id.clone()));
     g.set_b_name(s(b.name.clone()));
     g.set_b_items(s(join(&b.items)));
-    g.set_b_media(vec_model(
-        b.items
-            .iter()
-            .map(|id| {
-                let (title, kind, duration) = picker::describe(c, id);
-                MediaPick { id: s(id.clone()), title: s(title), kind: s(kind), duration: s(duration) }
-            })
-            .collect(),
-    ));
+    g.set_b_media(media_picks(c, &b.items));
     g.set_b_category(s(b.category.clone().unwrap_or_default()));
     g.set_b_order(match b.order {
         AdOrder::Listed => 0,
@@ -814,8 +812,68 @@ fn break_item(c: &mut Ctx, action: &str, i: usize) {
     refresh(c);
 }
 
+/// Library items as list rows (missing ones flagged).
+fn media_picks(c: &Ctx, ids: &[String]) -> slint::ModelRc<MediaPick> {
+    vec_model(
+        ids.iter()
+            .map(|id| {
+                let (title, kind, duration) = picker::describe(c, id);
+                MediaPick { id: s(id.clone()), title: s(title), kind: s(kind), duration: s(duration) }
+            })
+            .collect(),
+    )
+}
+
+/// Edit the item list of the rule form (`f-items`).
+fn rule_item(c: &mut Ctx, action: &str, i: usize) {
+    let Some(ui) = c.window() else { return };
+    let g = ui.global::<Rules>();
+    let mut items = split(&g.get_f_items());
+    match action {
+        "up" if i > 0 && i < items.len() => items.swap(i - 1, i),
+        "down" if i + 1 < items.len() => items.swap(i, i + 1),
+        "remove" if i < items.len() => {
+            items.remove(i);
+        }
+        "clear" => items.clear(),
+        _ => return,
+    }
+    set_rule_items(c, items);
+}
+
+fn set_rule_items(c: &mut Ctx, items: Vec<String>) {
+    let Some(ui) = c.window() else { return };
+    let g = ui.global::<Rules>();
+    g.set_f_media(media_picks(c, &items));
+    g.set_f_items(s(join(&items)));
+    form_changed(c);
+}
+
 /// Result of the library picker.
 pub fn picked(c: &mut Ctx, target: Target, ids: Vec<String>) {
+    if target == Target::RuleExclude {
+        let Some(ui) = c.window() else { return };
+        let g = ui.global::<Rules>();
+        let mut list = split(&g.get_f_xmedia());
+        list.extend(ids.into_iter().filter(|id| !list.contains(id)).collect::<Vec<_>>());
+        g.set_f_xmedia(s(join(&list)));
+        form_changed(c);
+        return;
+    }
+    if target == Target::RuleItems {
+        let Some(ui) = c.window() else { return };
+        let mut items = split(&ui.global::<Rules>().get_f_items());
+        let before = items.len();
+        for id in ids {
+            if !items.contains(&id) {
+                items.push(id);
+            }
+        }
+        let n = items.len() - before;
+        set_rule_items(c, items);
+        c.toast(format!("Добавлено роликов: {n}"), false);
+        return;
+    }
     let Some(b) = c.rules.brk else { return };
     let n = ids.len();
     mutate(c, None, move |set| {

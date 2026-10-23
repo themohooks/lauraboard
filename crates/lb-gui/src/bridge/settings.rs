@@ -79,6 +79,25 @@ pub fn connect(ui: &AppWindow) {
             super::tray_refresh(c);
         })
     });
+    g.on_notify_changed(|i, v| {
+        with(move |c| {
+            let n = &mut c.prefs.notify;
+            match i {
+                0 => n.enabled = v,
+                1 => n.errors = v,
+                2 => n.skipped = v,
+                3 => n.outputs = v,
+                4 => n.disk = v,
+                5 => n.air = v,
+                6 => n.programs = v,
+                7 => n.only_hidden = v,
+                _ => return,
+            }
+            c.prefs.save();
+            show(c);
+        })
+    });
+    g.on_notify_test(super::notifications::test);
     g.on_reset_layout(|| {
         with(|c| {
             reset_layout(c);
@@ -164,6 +183,8 @@ pub fn show(c: &mut Ctx) {
     g.set_system_reduce_motion(crate::sysprefs::reduce_motion());
     g.set_nav_expanded(c.prefs.nav_expanded);
     g.set_close_to_tray(c.prefs.close_to_tray);
+    let n = &c.prefs.notify;
+    g.set_notify(super::vec_model(vec![n.enabled, n.errors, n.skipped, n.outputs, n.disk, n.air, n.programs, n.only_hidden]));
     g.set_has_tray(c.has_tray);
     g.set_api_url(ui.global::<App>().get_api_url());
     g.set_online(c.model.online);

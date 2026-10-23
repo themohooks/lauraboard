@@ -44,6 +44,10 @@ export global Rules {
     in-out property <int> f-action;
     in-out property <string> f-jcat;
     in-out property <string> f-items;
+    // f-items as library entries; edited with rule-item / pick("rule-items")
+    in property <[MediaPick]> f-media;
+    // "up", "down", "remove", "clear" (index ignored)
+    callback rule-item(string, int);
     in-out property <int> f-ab;
     in-out property <string> f-pcount;
     in-out property <string> f-pcat;

@@ -24,6 +24,9 @@ pub struct GfxContext<'a> {
     pub remaining_ms: Ms,
     pub profile: Option<&'a str>,
     pub manual: &'a HashMap<String, Manual>,
+    /// Template variables, for rules that hide empty text (`None`: such
+    /// rules are not checked).
+    pub vars: Option<&'a HashMap<String, String>>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -97,6 +100,13 @@ fn rule_window(r: &GraphicRule, ctx: &GfxContext) -> Option<(Ms, Option<Ms>)> {
     Some((since, hide_in))
 }
 
+/// All text the rule would show for `el` renders empty.
+fn text_is_empty(r: &GraphicRule, el: &super::model::Element, vars: &HashMap<String, String>) -> bool {
+    let applied = r.apply_texts(el);
+    let el = applied.as_ref().unwrap_or(el);
+    super::config::element_texts(el).is_some_and(|t| t.iter().all(|t| super::render_template(t, vars).trim().is_empty()))
+}
+
 /// Compute visible elements, ordered by layer then priority.
 pub fn evaluate(cfg: &GraphicsConfig, ctx: &GfxContext) -> Vec<ActiveGraphic> {
     let mctx = MatchCtx {
@@ -117,6 +127,9 @@ pub fn evaluate(cfg: &GraphicsConfig, ctx: &GfxContext) -> Vec<ActiveGraphic> {
             continue;
         }
         let Some((shown, hide_in)) = rule_window(r, ctx) else { continue };
+        if r.hide_if_empty && ctx.vars.is_some_and(|vars| text_is_empty(r, el, vars)) {
+            continue;
+        }
         let layer = r.layer.unwrap_or(el.layer);
         if let Some(existing) = out.iter_mut().find(|a| a.element == el.id) {
             if r.priority > existing.priority {

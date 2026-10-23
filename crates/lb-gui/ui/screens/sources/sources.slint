@@ -394,6 +394,16 @@ export component SourcesScreen inherits Page {
                     card-style: CardStyle.low;
                     CardHeader {
                         title: "Запись эфира и резерв";
+                        if Src.has-config: Button {
+                            text: "Запись";
+                            icon: Icons.radio-button-checked;
+                            has-icon: true;
+                            variant: ButtonVariant.tonal;
+                            tooltip: "Формат, папка, длина и размер файлов, хранение";
+                            clicked => {
+                                Src.record-edit();
+                            }
+                        }
                     }
                     if Src.has-config: Facts {
                         facts: Src.recording;

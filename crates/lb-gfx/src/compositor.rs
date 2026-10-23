@@ -34,6 +34,11 @@ pub struct Compositor {
     empty: bool,
     /// Straight-alpha copy of the canvas handed to the encoder.
     out: Vec<u8>,
+    /// Tickers on screen: element id → (scroll origin, still visible).
+    /// Scrolling runs from the moment a ticker appears, not from the rule's
+    /// window (that restarts with every item, and is constant for manual
+    /// shows), so the text keeps moving across item changes.
+    tickers: HashMap<String, (WallTime, bool)>,
 }
 
 impl Compositor {
@@ -44,6 +49,7 @@ impl Compositor {
             sprites: SpriteFactory::new(FontStore::new(root), ImageCache::new(root)),
             empty: true,
             out: vec![0; (width.max(1) * height.max(1) * 4) as usize],
+            tickers: HashMap::new(),
         }
     }
 
@@ -97,8 +103,12 @@ impl Compositor {
         self.empty = ctx.active.is_empty();
         let region = Bx::new(0.0, 0.0, self.canvas.width() as f32, self.canvas.height() as f32);
         let cfg = self.cfg.clone();
+        self.tickers.values_mut().for_each(|t| t.1 = false);
         for a in ctx.active {
             if let Some(el) = cfg.element(&a.element) {
+                // the rule that shows it may give it its own text
+                let applied = a.rule.as_deref().and_then(|id| cfg.rules.iter().find(|r| r.id == id)).and_then(|r| r.apply_texts(el));
+                let el = applied.as_ref().unwrap_or(el);
                 // one broken element must not take the whole overlay down
                 let drawn = catch_unwind(AssertUnwindSafe(|| self.draw(&cfg, el, region, ctx, a.shown_ms, a.hide_in_ms, 1.0, 0)));
                 if drawn.is_err() {
@@ -106,6 +116,7 @@ impl Compositor {
                 }
             }
         }
+        self.tickers.retain(|_, t| t.1);
     }
 
     /// Current canvas as straight-alpha RGBA PNG (for thumbnails / tests).
@@ -150,7 +161,10 @@ impl Compositor {
                 let st = anim::state(&el.animation, shown, hide_in, band_w, h);
                 let Some(mut band) = Pixmap::new(band_w as u32, h as u32) else { return };
                 let cycle = sprite.width() as f32 + band_w;
-                let offset = ((shown.max(0) as f64 / 1000.0) * *speed as f64) % cycle as f64;
+                let origin = self.tickers.entry(el.id.clone()).or_insert((lb_core::add_ms(ctx.now, -shown.max(0)), true));
+                origin.1 = true;
+                let scrolled = lb_core::diff_ms(ctx.now, origin.0).max(0);
+                let offset = ((scrolled as f64 / 1000.0) * *speed as f64) % cycle as f64;
                 // sub-pixel position: whole-pixel steps alternate between
                 // two distances per frame and look jerky
                 let sx = band_w as f64 - offset;
@@ -284,6 +298,45 @@ mod tests {
         c.render(&FrameContext { now: now(), active: &[active("g")], vars: &vars, item_remaining_ms: 0, next_program_ms: None });
         assert_eq!(px(&c, 26, 12), [0, 255, 0, 255]);
         assert_eq!(px(&c, 22, 12), [0, 0, 0, 0]);
+    }
+
+    #[test]
+    fn ticker_scrolls_across_item_changes() {
+        let el = Element {
+            id: "tk".into(),
+            name: "tk".into(),
+            kind: ElementKind::Ticker {
+                text: "TICKER TEXT".into(),
+                style: TextStyle { background: Some("#FFFFFF".into()), ..Default::default() },
+                speed: 100.0,
+                width: None,
+            },
+            placement: Placement::default(),
+            opacity: 1.0,
+            layer: 0,
+            animation: Animation::default(),
+            profiles: vec![],
+        };
+        let cfg = GraphicsConfig { layers: vec![], elements: vec![el], rules: vec![], vars: Default::default() };
+        let mut c = Compositor::new(400, 100, cfg, Path::new("."));
+        if c.sprites.fonts.get(None).is_none() {
+            return;
+        }
+        let vars = HashMap::new();
+        // leftmost opaque column of the band
+        let left_edge = |c: &mut Compositor, at: WallTime, shown: Ms| {
+            let act = [ActiveGraphic { shown_ms: shown, ..active("tk") }];
+            c.render(&FrameContext { now: at, active: &act, vars: &vars, item_remaining_ms: 0, next_program_ms: None });
+            (0..c.width()).find(|x| (0..c.height()).any(|y| px(c, *x, y)[3] > 0)).unwrap_or(c.width())
+        };
+        let t0 = now();
+        let a = left_edge(&mut c, t0, 1_000);
+        // a new item started: the rule's window restarts, the text must not
+        let b = left_edge(&mut c, lb_core::add_ms(t0, 1_000), 0);
+        assert!(b + 50 < a, "ticker should keep moving left: {a} -> {b}");
+        // manual show: constant window, still moving
+        let d = left_edge(&mut c, lb_core::add_ms(t0, 1_500), 0);
+        assert!(d < b, "{b} -> {d}");
     }
 
     #[test]

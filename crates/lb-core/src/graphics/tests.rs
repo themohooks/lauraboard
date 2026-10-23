@@ -62,6 +62,8 @@ fn rule(id: &str, el: &str, prio: i32) -> GraphicRule {
         timing: GfxTiming::default(),
         conditions: Conditions::default(),
         profiles: vec![],
+        texts: vec![],
+        hide_if_empty: false,
     }
 }
 
@@ -73,7 +75,7 @@ fn logo_hidden_on_ads() {
     let manual = HashMap::new();
     let prog = item(MediaKind::Program, "news");
     let ad = item(MediaKind::Ad, "ads");
-    let ctx = |i| GfxContext { now: now(), item: Some(i), elapsed_ms: 1000, remaining_ms: 1000, profile: None, manual: &manual };
+    let ctx = |i| GfxContext { now: now(), item: Some(i), elapsed_ms: 1000, remaining_ms: 1000, profile: None, manual: &manual, vars: None };
     assert_eq!(evaluate(&cfg, &ctx(&prog)).len(), 1);
     assert_eq!(evaluate(&cfg, &ctx(&ad)).len(), 0);
 }
@@ -87,7 +89,7 @@ fn timing_after_start_and_before_end() {
     let manual = HashMap::new();
     let it = item(MediaKind::Program, "x");
     let at = |e, rem| {
-        evaluate(&cfg, &GfxContext { now: now(), item: Some(&it), elapsed_ms: e, remaining_ms: rem, profile: None, manual: &manual })
+        evaluate(&cfg, &GfxContext { now: now(), item: Some(&it), elapsed_ms: e, remaining_ms: rem, profile: None, manual: &manual, vars: None })
     };
     assert!(at(5_000, 500_000).is_empty());
     let a = at(12_000, 500_000);
@@ -106,11 +108,11 @@ fn exclusive_layer_and_manual() {
     };
     let mut manual = HashMap::new();
     let it = item(MediaKind::Program, "x");
-    let r = evaluate(&cfg, &GfxContext { now: now(), item: Some(&it), elapsed_ms: 0, remaining_ms: 1, profile: None, manual: &manual });
+    let r = evaluate(&cfg, &GfxContext { now: now(), item: Some(&it), elapsed_ms: 0, remaining_ms: 1, profile: None, manual: &manual, vars: None });
     assert_eq!(r.iter().map(|a| a.element.as_str()).collect::<Vec<_>>(), ["b"]);
     manual.insert("b".to_string(), Manual::Hide);
     manual.insert("c".to_string(), Manual::Show);
-    let r = evaluate(&cfg, &GfxContext { now: now(), item: Some(&it), elapsed_ms: 0, remaining_ms: 1, profile: None, manual: &manual });
+    let r = evaluate(&cfg, &GfxContext { now: now(), item: Some(&it), elapsed_ms: 0, remaining_ms: 1, profile: None, manual: &manual, vars: None });
     assert_eq!(r.iter().map(|a| a.element.as_str()).collect::<Vec<_>>(), ["c", "a"]);
 }
 
@@ -121,7 +123,7 @@ fn absolute_time_rule() {
     r.timing.duration = Some(Dur::mins(2));
     let cfg = GraphicsConfig { layers: vec![], elements: vec![el("a", 0)], rules: vec![r], vars: Default::default() };
     let manual = HashMap::new();
-    let r = evaluate(&cfg, &GfxContext { now: now(), item: None, elapsed_ms: 0, remaining_ms: 0, profile: None, manual: &manual });
+    let r = evaluate(&cfg, &GfxContext { now: now(), item: None, elapsed_ms: 0, remaining_ms: 0, profile: None, manual: &manual, vars: None });
     assert_eq!(r.len(), 1);
     assert_eq!(r[0].shown_ms, 60_000);
 }
@@ -143,11 +145,55 @@ fn last_window_for_next_up_plate() {
     let manual = HashMap::new();
     let it = item(MediaKind::Program, "x");
     let at =
-        |rem| evaluate(&cfg, &GfxContext { now: now(), item: Some(&it), elapsed_ms: 0, remaining_ms: rem, profile: None, manual: &manual });
+        |rem| evaluate(&cfg, &GfxContext { now: now(), item: Some(&it), elapsed_ms: 0, remaining_ms: rem, profile: None, manual: &manual, vars: None });
     assert!(at(40_000).is_empty());
     let a = at(20_000);
     assert_eq!(a.len(), 1);
     assert_eq!(a[0].shown_ms, 10_000);
     assert_eq!(a[0].hide_in_ms, Some(18_000));
     assert!(at(1_000).is_empty());
+}
+
+fn plate(id: &str) -> Element {
+    Element {
+        kind: ElementKind::Plate {
+            fields: vec![PlateField::new("Имя", "{presenter}", 32.0, "#FFFFFF"), PlateField::new("Подпись", "ведущий", 20.0, "#FFFFFF")],
+            color: "#000000".into(),
+            radius: 0.0,
+            shape: Default::default(),
+            width: None,
+            min_width: 0.0,
+            padding_x: 10.0,
+            padding_y: 10.0,
+            spacing: 4.0,
+            align: Default::default(),
+        },
+        ..el(id, 0)
+    }
+}
+
+#[test]
+fn rule_texts_replace_plate_lines() {
+    let mut r = rule("r", "p", 0);
+    r.texts = vec!["Погода".into(), String::new()];
+    let el = r.apply_texts(&plate("p")).unwrap();
+    assert_eq!(element_texts(&el).unwrap(), vec!["Погода", "ведущий"]);
+    r.texts = vec![" ".into()];
+    assert!(r.apply_texts(&plate("p")).is_none(), "blank entries keep the design's text");
+}
+
+#[test]
+fn empty_text_hides_the_plate() {
+    let mut r = rule("r", "p", 0);
+    r.hide_if_empty = true;
+    r.texts = vec!["{presenter}".into(), "{role}".into()];
+    let cfg = GraphicsConfig { layers: vec![], elements: vec![plate("p")], rules: vec![r], vars: Default::default() };
+    let manual = HashMap::new();
+    let it = item(MediaKind::Program, "news");
+    let shown = |vars: &HashMap<String, String>| {
+        let ctx = GfxContext { now: now(), item: Some(&it), elapsed_ms: 1000, remaining_ms: 1000, profile: None, manual: &manual, vars: Some(vars) };
+        evaluate(&cfg, &ctx).len()
+    };
+    assert_eq!(shown(&HashMap::new()), 0);
+    assert_eq!(shown(&HashMap::from([("presenter".to_string(), "Лаура".to_string())])), 1);
 }

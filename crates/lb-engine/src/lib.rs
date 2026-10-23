@@ -11,6 +11,7 @@
 //! * [`transfer`] — channel export / import (ZIP)
 //! * [`stats`] — reports and CSV export
 //! * [`notify`] — critical event notifications
+//! * [`system`] — host metrics (CPU, memory, disks, network)
 
 pub mod channel;
 pub mod engine;
@@ -20,6 +21,7 @@ pub mod library;
 pub mod notify;
 pub mod persist;
 pub mod stats;
+pub mod system;
 pub mod transfer;
 
 pub use channel::{ChannelHandle, ChannelStatus, Command, Event};

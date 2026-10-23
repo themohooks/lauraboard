@@ -1,0 +1,146 @@
+// Recording of the broadcast to files: on / off, format, folder, file
+// length and size, how long and how much to keep. Saving restarts the
+// encoder (short break on air).
+
+import { Theme } from "../../theme/tokens.slint";
+import { Icons } from "../../theme/icons.slint";
+import { Dialog, DialogActions } from "../../components/dialog.slint";
+import { TextField } from "../../components/text-field.slint";
+import { Select } from "../../components/select.slint";
+import { Switch } from "../../components/switch.slint";
+import { Label } from "../../components/label.slint";
+import { Button, ButtonVariant } from "../../components/button.slint";
+import { IconButton } from "../../components/icon-button.slint";
+import { Src } from "../../state/sources-state.slint";
+
+component Field inherits TextField {
+    horizontal-stretch: 1;
+    container-color: Theme.color.surface-container-high;
+}
+
+component Heading inherits Label {
+    type-style: Theme.title-small;
+    color: Theme.color.primary;
+}
+
+export component RecordDialog inherits Dialog {
+    open: Src.dialog == "record";
+    dialog-width: 640px;
+    title: "Запись эфира";
+    text: "Пишется то же, что уходит в эфир: с графикой и звуком. Файлы делятся по времени и размеру и называются по дате начала.";
+    has-icon: true;
+    icon: Icons.radio-button-checked;
+    dismissed => {
+        Src.dialog = "";
+    }
+
+    Switch {
+        text: "Записывать эфир";
+        checked <=> Src.r-enabled;
+    }
+
+    Heading {
+        text: "Файлы";
+    }
+    HorizontalLayout {
+        spacing: Theme.sp3;
+        Select {
+            horizontal-stretch: 1;
+            label: "Формат";
+            options: ["MP4 — открывается везде", "MKV (Matroska)", "TS — самый надёжный, крупнее"];
+            current-index <=> Src.r-format;
+            container-color: Theme.color.surface-container-high;
+            supporting: "MP4 пишется фрагментами: файл читается даже после сбоя";
+        }
+        Field {
+            label: "Префикс имени";
+            text <=> Src.r-prefix;
+            placeholder: Src.r-prefix-hint;
+            supporting: "Имя: префикс-дата-время";
+        }
+    }
+    HorizontalLayout {
+        spacing: Theme.sp2;
+        Field {
+            label: "Папка";
+            text <=> Src.r-dir;
+            mono: true;
+            supporting: "Полный путь или папка внутри папки канала";
+        }
+        VerticalLayout {
+            alignment: start;
+            padding-top: 4px;
+            IconButton {
+                icon: Icons.folder-open;
+                tooltip: "Выбрать папку";
+                clicked => {
+                    Src.record-browse();
+                }
+            }
+        }
+    }
+    HorizontalLayout {
+        spacing: Theme.sp3;
+        Field {
+            label: "Длина файла";
+            suffix: "мин";
+            text <=> Src.r-segment;
+            mono: true;
+            supporting: "Новый файл через это время";
+        }
+        Field {
+            label: "Максимальный размер файла";
+            suffix: "МБ";
+            text <=> Src.r-max-mb;
+            placeholder: "без ограничения";
+            mono: true;
+            supporting: "Длина файла сокращается по битрейту кодировщика";
+        }
+    }
+
+    Heading {
+        text: "Хранение";
+    }
+    HorizontalLayout {
+        spacing: Theme.sp3;
+        Field {
+            label: "Хранить";
+            suffix: "дней";
+            text <=> Src.r-keep-days;
+            placeholder: "всегда";
+            mono: true;
+        }
+        Field {
+            label: "Всего на диске не больше";
+            suffix: "ГБ";
+            text <=> Src.r-max-gb;
+            placeholder: "без ограничения";
+            mono: true;
+            supporting: "Старые записи удаляются, текущая — никогда";
+        }
+    }
+
+    if Src.r-error != "": Label {
+        text: Src.r-error;
+        color: Theme.color.error;
+        wrap: word-wrap;
+    }
+
+    DialogActions {
+        Button {
+            text: "Отмена";
+            variant: ButtonVariant.text;
+            clicked => {
+                Src.dialog = "";
+            }
+        }
+        Button {
+            text: "Сохранить";
+            icon: Icons.save;
+            has-icon: true;
+            clicked => {
+                Src.record-save();
+            }
+        }
+    }
+}

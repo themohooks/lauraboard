@@ -18,7 +18,7 @@ pub fn slate_args(image: Option<&str>, duration_ms: i64, v: &VideoFormat, a: &Au
         }
     }
     args.extend(sv(&["-f", "lavfi", "-i", &silence_src(a)]));
-    let fc = format!("[0:v:0]{}[v]", video_chain(v, 0, 0, duration_ms));
+    let fc = format!("[0:v:0]{}[v]", video_chain(v, &lb_core::media::MediaDisplay::default(), 0, 0, duration_ms));
     args.extend(sv(&["-filter_complex", &fc, "-map", "[v]", "-map", "1:a:0"]));
     args.extend(sv(&["-ar", &a.sample_rate.to_string(), "-ac", &a.channels.to_string()]));
     if duration_ms > 0 {

@@ -10,11 +10,12 @@ import { Switch } from "../../components/switch.slint";
 import { Button, ButtonVariant } from "../../components/button.slint";
 import { StatusChip, StatusTone } from "../../components/indicators.slint";
 import { Lib } from "../../state/library-state.slint";
+import { DisplaySection } from "display-section.slint";
 
 export component MediaEditSheet inherits SideSheet {
     open: Lib.edit-open;
     title: "Свойства ролика";
-    sheet-width: 380px;
+    sheet-width: 420px;
     close => {
         Lib.edit-open = false;
     }
@@ -79,6 +80,7 @@ export component MediaEditSheet inherits SideSheet {
         text: "Используется в эфире";
         checked <=> Lib.e-enabled;
     }
+    DisplaySection { }
     if Lib.edit.original != "": VerticalLayout {
         spacing: 2px;
         Label {
