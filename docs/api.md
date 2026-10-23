@@ -24,6 +24,8 @@
 | POST | `/channels` | создать канал (admin): `{"id", "name", "copy_from"}` — настройки копируются без выходов, автозапуск выключен |
 | GET | `/events` | WebSocket: события всех каналов |
 | GET | `/logs?lines=N` | хвост журнала программы (текст) |
+| GET | `/jobs`, `/jobs/{job}` | фоновые задачи (копирование медиа, экспорт и импорт каналов): `state` = `running`/`done`/`failed`/`cancelled`, `progress` 0…1, `message`, `result` |
+| DELETE | `/jobs/{job}` | отменить идущую задачу или убрать завершённую из списка |
 
 ## Канал `/channels/{id}`
 

@@ -10,9 +10,11 @@
 //! | graphics render (draft preview) | [`render`] |
 //! | media thumbnails | [`thumbs`] |
 //! | as-run, statistics, logs | [`reports`] |
+//! | background jobs | [`jobs`] |
 
 pub mod config;
 pub mod control;
+pub mod jobs;
 pub mod library;
 pub mod playlists;
 pub mod render;
@@ -69,6 +71,8 @@ pub fn router(state: AppState) -> Router {
         .route("/events", get(crate::ws::events_all))
         .route("/logs", get(reports::logs))
         .route("/version", get(status::version))
+        .route("/jobs", get(jobs::list))
+        .route("/jobs/{job}", get(jobs::get_one).delete(jobs::cancel))
         .nest("/channels/{id}", ch.route("/events", get(crate::ws::events_channel)))
         .route("/channels/{id}/var/{key}", put(control::set_var));
     Router::new().nest("/api/v1", api).layer(CorsLayer::permissive()).with_state(state)

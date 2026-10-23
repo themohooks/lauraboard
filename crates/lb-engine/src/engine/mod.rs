@@ -19,6 +19,8 @@ pub struct Engine {
     pub app: lb_core::config::AppConfig,
     /// Channels can be added while running (see [`Engine::create_channel`]).
     channels: RwLock<BTreeMap<String, ChannelHandle>>,
+    /// Long operations (copying media, export / import) with progress.
+    pub jobs: crate::jobs::Jobs,
 }
 
 impl Engine {
@@ -35,7 +37,7 @@ impl Engine {
             let id = ch.id().to_string();
             channels.insert(id, ChannelHandle::spawn(project.app.clone(), project.root.clone(), ch));
         }
-        Ok(Engine { project_root: project.root, app: project.app, channels: RwLock::new(channels) })
+        Ok(Engine { project_root: project.root, app: project.app, channels: RwLock::new(channels), jobs: Default::default() })
     }
 
     fn map(&self) -> std::sync::RwLockReadGuard<'_, BTreeMap<String, ChannelHandle>> {
