@@ -54,6 +54,25 @@ pub struct OutputView {
     /// Network outputs failing right now (the encoder keeps running).
     #[serde(default)]
     pub problems: Vec<String>,
+    /// Recording to files (while on and the encoder runs).
+    #[serde(default)]
+    pub recording: Option<RecordingView>,
+}
+
+#[derive(Debug, Clone, Deserialize, Default, PartialEq)]
+pub struct RecordingView {
+    #[serde(default)]
+    pub dir: String,
+    #[serde(default)]
+    pub file: Option<String>,
+    #[serde(default)]
+    pub file_bytes: u64,
+    #[serde(default)]
+    pub files: usize,
+    #[serde(default)]
+    pub total_bytes: u64,
+    #[serde(default)]
+    pub free_bytes: Option<u64>,
 }
 
 #[derive(Debug, Clone, Deserialize, Default)]

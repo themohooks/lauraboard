@@ -335,12 +335,8 @@ pub fn refresh(c: &mut Ctx) {
                 })
                 .collect(),
         ));
-        let r = &cfg.record;
-        let mut rec = vec![fact("Запись", if r.enabled { "включена" } else { "выключена" })];
-        if r.enabled {
-            rec.push(fact("Папка", r.dir.clone()));
-            rec.push(fact("Сегменты", crate::fmt::hms(r.segment.ms())));
-        }
+        let mut rec: Vec<Fact> =
+            super::record::facts(&cfg, st.output.recording.as_ref()).into_iter().map(|(l, v)| fact(&l, v)).collect();
         let fb = &cfg.fallback;
         rec.push(fact("Резервная картинка", fb.image.clone().unwrap_or_else(|| "—".into())));
         rec.push(fact("Резервный ролик", fb.media.clone().unwrap_or_else(|| "—".into())));

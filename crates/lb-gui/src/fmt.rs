@@ -5,6 +5,19 @@ use lb_core::media::MediaKind;
 use lb_core::rundown::RundownItem;
 
 /// `HH:MM:SS` (negative values get a minus sign).
+/// 1536 → "1,5 КБ", 3_200_000_000 → "3,0 ГБ".
+pub fn bytes(n: u64) -> String {
+    const UNITS: [&str; 5] = ["Б", "КБ", "МБ", "ГБ", "ТБ"];
+    let mut v = n as f64;
+    let mut u = 0;
+    while v >= 1024.0 && u < UNITS.len() - 1 {
+        v /= 1024.0;
+        u += 1;
+    }
+    let s = if u == 0 { format!("{n}") } else { format!("{v:.1}") };
+    format!("{} {}", s.replace('.', ","), UNITS[u])
+}
+
 pub fn hms(ms: Ms) -> String {
     lb_core::fmt_ms(ms)
 }

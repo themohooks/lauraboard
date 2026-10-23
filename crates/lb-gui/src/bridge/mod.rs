@@ -23,6 +23,7 @@ pub mod log;
 pub mod media_display;
 pub mod picker;
 pub mod playlists;
+pub mod record;
 pub mod rules;
 pub mod schedule;
 pub mod settings;
@@ -168,6 +169,7 @@ pub fn start(ui: &AppWindow, opts: &GuiOptions, prefs: UiPrefs) {
     stats::connect(ui);
     sources::connect(ui);
     encoder::connect(ui);
+    record::connect(ui);
     settings::connect(ui);
     picker::connect(ui);
     with(|c| {
