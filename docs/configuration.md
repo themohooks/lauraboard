@@ -114,7 +114,7 @@ segment = "01:00:00"
 [preview]                        # превью для GUI/API (JPEG)
 enabled = true
 width = 480
-fps = 5.0
+fps = 15.0                       # кадров в секунду (не меньше 10)
 
 [fallback]
 image = "media/standby.png"      # картинка для заглушки (иначе цвет background)
