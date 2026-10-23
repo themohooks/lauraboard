@@ -106,6 +106,9 @@ impl Compositor {
         self.tickers.values_mut().for_each(|t| t.1 = false);
         for a in ctx.active {
             if let Some(el) = cfg.element(&a.element) {
+                // the rule that shows it may give it its own text
+                let applied = a.rule.as_deref().and_then(|id| cfg.rules.iter().find(|r| r.id == id)).and_then(|r| r.apply_texts(el));
+                let el = applied.as_ref().unwrap_or(el);
                 // one broken element must not take the whole overlay down
                 let drawn = catch_unwind(AssertUnwindSafe(|| self.draw(&cfg, el, region, ctx, a.shown_ms, a.hide_in_ms, 1.0, 0)));
                 if drawn.is_err() {

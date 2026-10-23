@@ -26,6 +26,16 @@ export struct LayerRow {
     on-air: bool,
 }
 
+// One text of an element as shown by a rule.
+export struct RuleTextRow {
+    // field name ("Строка 1" when unnamed)
+    label: string,
+    // the element's own text (shown when the rule keeps it)
+    design: string,
+    // the rule's text; empty = the design's
+    text: string,
+}
+
 export struct GRuleRow {
     index: int,
     id: string,
@@ -40,6 +50,15 @@ export struct GRuleRow {
     every: string,
     at: string,
     categories: string,
+    xcategories: string,
+    // daily window ЧЧ:ММ
+    from: string,
+    to: string,
+    // content kinds the rule is limited to (KINDS order; none = all)
+    kinds: [bool],
+    // the element's text lines (plate) or text, replaced by this rule
+    texts: [RuleTextRow],
+    hide-empty: bool,
     error: string,
 }
 

@@ -81,7 +81,7 @@ pub fn evaluate(st: &GfxState, at: WallTime) -> Vec<ActiveGraphic> {
         None => (None, 0, 0),
     };
     let ctx =
-        GfxContext { now: at, item, elapsed_ms: elapsed, remaining_ms: remaining, profile: st.profile.as_deref(), manual: &st.manual };
+        GfxContext { now: at, item, elapsed_ms: elapsed, remaining_ms: remaining, profile: st.profile.as_deref(), manual: &st.manual, vars: Some(&st.vars) };
     graphics::evaluate(&st.cfg, &ctx)
 }
 

@@ -14,7 +14,7 @@ import { ListRow } from "../../components/list-row.slint";
 import { EmptyState } from "../../components/feedback.slint";
 import { VarList } from "var-help.slint";
 import { Gfx, GRuleRow } from "../../state/graphics-state.slint";
-import { FormSection } from "../rules/form-parts.slint";
+import { FormSection, ToggleChips } from "../rules/form-parts.slint";
 
 component RuleCard inherits FormSection {
     in property <GRuleRow> r;
@@ -82,11 +82,78 @@ component RuleCard inherits FormSection {
             }
         }
         TextField {
+            width: 96px;
+            label: "Часы с";
+            text: root.r.from;
+            mono: true;
+            placeholder: "ЧЧ:ММ";
+            edited(t) => {
+                Gfx.rule-edited(root.r.index, "from", t);
+            }
+        }
+        TextField {
+            width: 96px;
+            label: "до";
+            text: root.r.to;
+            mono: true;
+            placeholder: "ЧЧ:ММ";
+            edited(t) => {
+                Gfx.rule-edited(root.r.index, "to", t);
+            }
+        }
+    }
+    HorizontalLayout {
+        spacing: Theme.sp2;
+        TextField {
             horizontal-stretch: 1;
             label: "Только для категорий";
             text: root.r.categories;
             edited(t) => {
                 Gfx.rule-edited(root.r.index, "categories", t);
+            }
+        }
+        TextField {
+            horizontal-stretch: 1;
+            label: "Кроме категорий";
+            text: root.r.xcategories;
+            edited(t) => {
+                Gfx.rule-edited(root.r.index, "xcategories", t);
+            }
+        }
+    }
+    Label {
+        text: "Типы контента (ничего не выбрано — любые)";
+        type-style: Theme.label-medium;
+        color: Theme.color.on-surface-variant;
+    }
+    ToggleChips {
+        labels: ["Передачи", "Заставки", "Реклама", "Анонсы", "Заполнение", "Изображения", "Потоки"];
+        values: root.r.kinds;
+        toggled(i) => {
+            Gfx.rule-edited(root.r.index, "kind", i);
+        }
+    }
+    if root.r.texts.length > 0: VerticalLayout {
+        spacing: Theme.sp3;
+        Label {
+            text: "Текст по этому правилу — пусто: как в дизайне элемента; {переменные} подставляются";
+            type-style: Theme.label-medium;
+            color: Theme.color.on-surface-variant;
+            wrap: word-wrap;
+        }
+        for t[k] in root.r.texts: TextField {
+            label: t.label;
+            text: t.text;
+            placeholder: t.design;
+            edited(v) => {
+                Gfx.rule-edited(root.r.index, "text:" + k, v);
+            }
+        }
+        Switch {
+            text: "Не показывать, если весь текст пустой (например, нет {presenter})";
+            checked: root.r.hide-empty;
+            toggled(on) => {
+                Gfx.rule-edited(root.r.index, "hide-empty", on ? "1" : "0");
             }
         }
     }
