@@ -63,7 +63,7 @@ impl GraphicsState {
     }
 }
 
-const ANIMS: [AnimKind; 6] = [AnimKind::None, AnimKind::Fade, AnimKind::SlideLeft, AnimKind::SlideRight, AnimKind::SlideUp, AnimKind::SlideDown];
+const ANIMS: [AnimKind; 23] = AnimKind::ALL;
 
 fn s(v: impl Into<SharedString>) -> SharedString {
     v.into()

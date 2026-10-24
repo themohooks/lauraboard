@@ -250,10 +250,64 @@ pub enum AnimKind {
     #[default]
     None,
     Fade,
+    /// Slides: the element moves in this direction across its own size.
     SlideLeft,
     SlideRight,
     SlideUp,
     SlideDown,
+    /// Short move (a fraction of the size) with a fade.
+    FadeLeft,
+    FadeRight,
+    FadeUp,
+    FadeDown,
+    /// Grows from small / shrinks from large, with a fade.
+    ZoomIn,
+    ZoomOut,
+    /// Grows with a slight overshoot.
+    Pop,
+    /// Reveal from one edge (the visible part grows in this direction).
+    WipeLeft,
+    WipeRight,
+    WipeUp,
+    WipeDown,
+    /// Unfolds from the middle across / up and down.
+    StretchX,
+    StretchY,
+    /// Slides up from below / drops from above with a bounce.
+    BounceUp,
+    DropDown,
+    /// Turns into place from a quarter turn.
+    Spin,
+    /// Flickers a few times before settling.
+    Flicker,
+}
+
+impl AnimKind {
+    pub const ALL: [AnimKind; 23] = [
+        AnimKind::None,
+        AnimKind::Fade,
+        AnimKind::SlideLeft,
+        AnimKind::SlideRight,
+        AnimKind::SlideUp,
+        AnimKind::SlideDown,
+        AnimKind::FadeLeft,
+        AnimKind::FadeRight,
+        AnimKind::FadeUp,
+        AnimKind::FadeDown,
+        AnimKind::ZoomIn,
+        AnimKind::ZoomOut,
+        AnimKind::Pop,
+        AnimKind::WipeLeft,
+        AnimKind::WipeRight,
+        AnimKind::WipeUp,
+        AnimKind::WipeDown,
+        AnimKind::StretchX,
+        AnimKind::StretchY,
+        AnimKind::BounceUp,
+        AnimKind::DropDown,
+        AnimKind::Spin,
+        AnimKind::Flicker,
+    ];
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]

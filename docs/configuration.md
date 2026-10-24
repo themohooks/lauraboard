@@ -417,7 +417,23 @@ style = { size = 24.0, color = "#FFD166" }
 
 Привязка `anchor`: `top_left`, `top_center`, `top_right`, `center_left`, `center`, `center_right`, `bottom_left`, `bottom_center`, `bottom_right`.
 
-Анимации: `none`, `fade`, `slide_left`, `slide_right`, `slide_up`, `slide_down`.
+Анимации (`in` — появление, `out` — исчезновение; направление — это направление движения, `slide_left` въезжает справа и уезжает влево):
+
+| Значение | Что происходит |
+|---|---|
+| `none` | без анимации |
+| `fade` | растворение |
+| `slide_left`, `slide_right`, `slide_up`, `slide_down` | въезд / уезд на полный размер элемента |
+| `fade_left`, `fade_right`, `fade_up`, `fade_down` | короткий сдвиг с растворением |
+| `zoom_in`, `zoom_out` | приближение / отдаление с растворением |
+| `pop` | появление с «пружиной» (лёгкий перелёт размера) |
+| `wipe_left`, `wipe_right`, `wipe_up`, `wipe_down` | шторка: элемент открывается от края |
+| `stretch_x`, `stretch_y` | раскрытие от середины по ширине / высоте |
+| `bounce_up`, `drop_down` | прыжок снизу / падение сверху с отскоком |
+| `spin` | поворот на место с четверти оборота |
+| `flicker` | мерцание перед появлением |
+
+На выходе анимации проигрываются в обратную сторону (`zoom_in` уменьшает элемент, `pop` сжимает).
 
 Параметры показа `timing`:
 
