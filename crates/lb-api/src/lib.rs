@@ -40,7 +40,7 @@ pub async fn serve(engine: Arc<Engine>, shutdown: impl std::future::Future<Outpu
     // channels made before backgrounds existed (or by the CLI) get them now
     for h in engine.channels() {
         if lb_engine::library::backgrounds::missing(&h) {
-            lb_engine::library::backgrounds::spawn(&engine, h, Default::default());
+            lb_engine::library::backgrounds::spawn(&engine, h);
         }
     }
     let state = AppState { engine, api: Arc::new(api) };

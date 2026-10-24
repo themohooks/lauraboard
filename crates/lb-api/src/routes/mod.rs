@@ -72,7 +72,6 @@ pub fn router(state: AppState) -> Router {
         .route("/graphics", get(config::get_graphics).put(config::put_graphics))
         .route("/graphics/render", post(render::render))
         .route("/fonts", get(fonts::list).post(fonts::add))
-        .route("/media/backgrounds", post(backgrounds::generate))
         .route("/graphics/backgrounds", get(backgrounds::plates))
         .route("/graphics/backgrounds/{file}", get(backgrounds::plate_file))
         .route("/fonts/google", post(fonts::google_download))
