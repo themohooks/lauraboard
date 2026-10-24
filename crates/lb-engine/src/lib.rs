@@ -12,10 +12,12 @@
 //! * [`stats`] — reports and CSV export
 //! * [`notify`] — critical event notifications
 //! * [`system`] — host metrics (CPU, memory, disks, network)
+//! * [`google_fonts`] — Google Fonts catalogue and downloads
 
 pub mod channel;
 pub mod engine;
 pub mod error;
+pub mod google_fonts;
 pub mod jobs;
 pub mod library;
 pub mod notify;

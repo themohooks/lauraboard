@@ -1,0 +1,93 @@
+// Data contract of the scenes screen (src/bridge/scenes): scenes are
+// library items composed on air — a background with music by rules; the
+// screen graphics show over them by graphics rules.
+
+export struct SceneItemRow {
+    id: string,
+    title: string,
+    // "00:01:00 · фон: цвет · музыка: 2 правила"
+    detail: string,
+    problem: string,
+}
+
+export struct TrackRow {
+    id: string,
+    title: string,
+    duration: string,
+}
+
+export struct MusicRow {
+    index: int,
+    name: string,
+    enabled: bool,
+    tracks: [TrackRow],
+    folder: string,
+    category: string,
+    // 0 по порядку, 1 перемешать, 2 один случайный трек
+    order: int,
+    volume: string,
+    fade-in: string,
+    fade-out: string,
+    random-start: bool,
+    from: string,
+    to: string,
+    // Mon..Sun
+    days: [bool],
+    // "3 трека · 00:12:40" / "нет треков"
+    summary: string,
+}
+
+// A graphics rule limited to the scene.
+export struct SceneGfxRow {
+    index: int,
+    name: string,
+    element: string,
+    enabled: bool,
+}
+
+export global Scenes {
+    in property <[SceneItemRow]> rows;
+    in property <int> selected: -1;
+    in property <bool> dirty;
+    // the form: the selected scene's draft
+    in-out property <string> f-title;
+    in property <string> f-id;
+    in-out property <int> f-kind;
+    in-out property <string> f-category;
+    in-out property <string> f-duration;
+    in property <string> e-duration;
+    // background: 0 colour, 1 library item
+    in-out property <int> f-bg-type;
+    in-out property <string> f-bg-color;
+    in property <color> sw-bg-color;
+    in property <string> f-bg-media;
+    in property <image> bg-thumb;
+    in property <bool> has-bg-thumb;
+    in property <[MusicRow]> music;
+    in property <[SceneGfxRow]> gfx;
+    in property <[string]> element-names;
+    in property <[string]> folder-options;
+
+    callback select(int);
+    // template: "empty", "clock", "music", "next"
+    callback create(string);
+    callback duplicate();
+    callback remove();
+    callback form-changed();
+    callback bg-pick();
+    callback music-add();
+    callback music-remove(int);
+    callback music-move(int, int);
+    // rule index, field, value
+    callback music-edited(int, string, string);
+    callback music-pick(int);
+    callback music-track-remove(int, int);
+    callback gfx-add(int);
+    callback gfx-toggle(int);
+    callback gfx-remove(int);
+    callback open-graphics();
+    callback save();
+    callback revert();
+    // on air: "play" now, "queue" after the current item
+    callback air(string);
+}

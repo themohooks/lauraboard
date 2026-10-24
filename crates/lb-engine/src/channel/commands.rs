@@ -16,6 +16,14 @@ pub enum Command {
     Skip,
     /// Play the current item again from the beginning.
     Restart,
+    /// Jump inside the current item: to `to_ms` from its start, or by
+    /// `by_ms` (negative: back) from the current position.
+    Seek {
+        #[serde(default)]
+        to_ms: Option<i64>,
+        #[serde(default)]
+        by_ms: Option<i64>,
+    },
     /// Pause (true) or resume (false) the schedule.
     Manual { enabled: bool },
     /// Interrupt and play a media item now.

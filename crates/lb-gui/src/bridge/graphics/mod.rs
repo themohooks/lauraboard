@@ -3,10 +3,12 @@
 //! control, display rules, template variables, saved design templates.
 //!
 //! * [`design`] — shape design fields and plate text lines
-//! * [`fonts`] — font picker
+//! * [`fonts`] — font picker (server fonts, files, Google Fonts)
+//! * [`textures`] — ready-made plate textures
 
 mod design;
 mod fonts;
+mod textures;
 
 use std::collections::HashSet;
 use std::path::PathBuf;
@@ -63,7 +65,7 @@ impl GraphicsState {
     }
 }
 
-const ANIMS: [AnimKind; 6] = [AnimKind::None, AnimKind::Fade, AnimKind::SlideLeft, AnimKind::SlideRight, AnimKind::SlideUp, AnimKind::SlideDown];
+const ANIMS: [AnimKind; 23] = AnimKind::ALL;
 
 fn s(v: impl Into<SharedString>) -> SharedString {
     v.into()
@@ -127,6 +129,7 @@ fn hex_of(c: Color) -> String {
 pub fn connect(ui: &AppWindow) {
     design::connect(ui);
     fonts::connect(ui);
+    textures::connect(ui);
     let g = ui.global::<Gfx>();
     g.on_color_hex(|c| hex_of(c).into());
     g.on_parse_color(|s| color_of(&s));
@@ -155,6 +158,8 @@ pub fn connect(ui: &AppWindow) {
                 g.set_p_text(append_var(&g.get_p_text(), &v).into());
             }
             props_changed(c);
+            // not typed: the plate's line list may show the new text too
+            props(c);
         })
     });
     g.on_pick_image(|| with(pick_image));
@@ -178,6 +183,7 @@ pub fn connect(ui: &AppWindow) {
     g.on_preview_animation(|| with(preview_animation));
     g.on_rule_edited(|i, f, v| with(move |c| rule_edited(c, i as usize, f.as_str(), v.as_str())));
     g.on_rule_add(|| with(rule_add));
+    g.on_rule_insert_var(|i, k, v| with(move |c| rule_insert_var(c, i as usize, k.max(0) as usize, &v)));
     g.on_rule_remove(|i| {
         with(move |c| {
             mutate(c, None, |cfg| {
@@ -1002,6 +1008,7 @@ fn rules_rows(c: &mut Ctx) {
             from: s(r.conditions.from.map(|t| t.format("%H:%M").to_string()).unwrap_or_default()),
             to: s(r.conditions.to.map(|t| t.format("%H:%M").to_string()).unwrap_or_default()),
             kinds: vec_model(KINDS.iter().map(|k| r.conditions.kinds.contains(k)).collect()),
+            text_labels: vec_model(rule_texts(&cfg, r).into_iter().map(|t| t.label).collect()),
             texts: vec_model(rule_texts(&cfg, r)),
             hide_empty: r.hide_if_empty,
             error: s(if cfg.elements.iter().any(|e| e.id == r.element) { "" } else { "Элемент не найден" }),
@@ -1104,6 +1111,21 @@ fn rule_edited(c: &mut Ctx, i: usize, field: &str, v: &str) {
     if matches!(c.gfx.last_edit.as_ref(), Some((k, _)) if !typed(k)) || field_is_structural(&key) {
         rules_rows(c);
     }
+    flags(c);
+}
+
+/// Append `{var}` to a rule's own text of line `k` (an empty entry starts
+/// from nothing: the design's text stays as the placeholder).
+fn rule_insert_var(c: &mut Ctx, i: usize, k: usize, var: &str) {
+    let var = var.to_string();
+    mutate(c, None, move |cfg| {
+        let Some(r) = cfg.rules.get_mut(i) else { return };
+        if r.texts.len() <= k {
+            r.texts.resize(k + 1, String::new());
+        }
+        r.texts[k] = append_var(&r.texts[k], &var);
+    });
+    rules_rows(c);
     flags(c);
 }
 

@@ -81,6 +81,17 @@ fn prepare(mut data: ChannelData, root: &Path, parts: &Parts) -> (ChannelData, V
             *p = format!("{own}{MEDIA_DIR}/{file}");
         });
     }
+    if parts.graphics {
+        // the channel's fonts, Google Fonts families among them: styles
+        // name those by family, not by path
+        let mut fonts = Vec::new();
+        collect(&data.dir, &data.dir.join("fonts"), &mut fonts);
+        for f in fonts {
+            if !files.iter().any(|x: &Item| x.name == f.name) {
+                files.push(f);
+            }
+        }
+    }
     if parts.history {
         let dir = data.asrun_dir();
         if let Ok(rd) = std::fs::read_dir(&dir) {

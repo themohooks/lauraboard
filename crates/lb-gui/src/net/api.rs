@@ -19,6 +19,13 @@ impl Api {
         Api { base: base.trim_end_matches('/').to_string(), token, agent: ureq::Agent::new_with_config(cfg) }
     }
 
+    /// The same client with a longer timeout, for requests where the
+    /// server itself waits on the internet (font downloads).
+    pub fn patient(&self, secs: u64) -> Api {
+        let cfg = ureq::Agent::config_builder().http_status_as_error(false).timeout_global(Some(Duration::from_secs(secs))).build();
+        Api { base: self.base.clone(), token: self.token.clone(), agent: ureq::Agent::new_with_config(cfg) }
+    }
+
     pub fn url(&self, path: &str) -> String {
         format!("{}/api/v1{path}", self.base)
     }

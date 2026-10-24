@@ -26,6 +26,7 @@ pub mod picker;
 pub mod playlists;
 pub mod record;
 pub mod rules;
+pub mod scenes;
 pub mod schedule;
 pub mod settings;
 pub mod shell;
@@ -79,6 +80,7 @@ pub struct Ctx {
     pub settings: settings::SettingsState,
     pub src: sources::SourcesState,
     pub picker: picker::PickerState,
+    pub scenes: scenes::ScenesState,
     pub notify: notifications::NotifyState,
     pub system: system::SystemState,
     pub jobs: jobs::JobsState,
@@ -151,6 +153,7 @@ pub fn start(ui: &AppWindow, opts: &GuiOptions, prefs: UiPrefs) {
         settings: Default::default(),
         src: Default::default(),
         picker: Default::default(),
+        scenes: Default::default(),
         notify: Default::default(),
         system: Default::default(),
         jobs: Default::default(),
@@ -175,6 +178,7 @@ pub fn start(ui: &AppWindow, opts: &GuiOptions, prefs: UiPrefs) {
     stats::connect(ui);
     system::connect(ui);
     sources::connect(ui);
+    scenes::connect(ui);
     encoder::connect(ui);
     record::connect(ui);
     settings::connect(ui);
@@ -318,6 +322,7 @@ impl Ctx {
                 playlists::lists_changed(self);
                 playlists::rows_changed(self);
                 playlists::add_results(self);
+                scenes::refresh(self);
             }
             Msg::Playlists(p) => {
                 self.model.playlists = p;
@@ -340,6 +345,7 @@ impl Ctx {
                 self.model.graphics = g;
                 air::status_changed(self);
                 graphics::reloaded(self);
+                scenes::graphics_changed(self);
             }
             Msg::Preview(f) => {
                 shell::preview_changed(self, f);
@@ -351,6 +357,7 @@ impl Ctx {
                 match self.section().as_str() {
                     "playlists" => playlists::rows_changed(self),
                     "library" => library::thumb_arrived(self, &id),
+                    "scenes" => scenes::thumb_arrived(self),
                     _ => {}
                 }
             }

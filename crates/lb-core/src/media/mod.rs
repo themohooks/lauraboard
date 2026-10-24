@@ -2,15 +2,18 @@
 //!
 //! * [`folders`] — virtual folders of the library
 //! * [`display`] — per-item display settings (scaling, crop, filters)
+//! * [`scene`] — scenes: background + music composed on air
 
 pub mod display;
 pub mod folders;
+pub mod scene;
 
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 use crate::{Dur, Ms};
 pub use display::MediaDisplay;
+pub use scene::Scene;
 
 /// What role a media item plays on air.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Default)]
@@ -123,6 +126,9 @@ pub struct MediaItem {
     /// How the picture is shown (scaling, crop, filters).
     #[serde(default, skip_serializing_if = "MediaDisplay::is_default")]
     pub display: MediaDisplay,
+    /// A scene composed on air instead of a file (`path` is empty).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub scene: Option<Scene>,
 }
 
 fn one() -> f64 {
@@ -154,7 +160,19 @@ impl MediaItem {
             folder: String::new(),
             original_name: None,
             display: MediaDisplay::default(),
+            scene: None,
         }
+    }
+
+    /// A scene item (no file).
+    pub fn scene(id: impl Into<String>, kind: MediaKind, duration: Dur, scene: Scene) -> Self {
+        let mut m = MediaItem::new(id, "", kind, duration);
+        m.scene = Some(scene);
+        m
+    }
+
+    pub fn is_scene(&self) -> bool {
+        self.scene.is_some()
     }
 
     pub fn with_category(mut self, c: &str) -> Self {

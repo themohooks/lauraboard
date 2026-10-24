@@ -48,11 +48,14 @@
 | POST | `/command` | команда (см. ниже) |
 | POST | `/start`, `/stop`, `/skip` | короткие формы команд |
 | PUT | `/var/{key}` | `{"value": "…"}` — переменная графики (`null` — удалить) |
-| GET, POST | `/media` | список; добавить или заменить элемент (`MediaItem`) |
+| GET, POST | `/media` | список; добавить или заменить элемент (`MediaItem`, в том числе сцену — см. configuration.md) |
 | GET, PUT, DELETE | `/media/{media}` | элемент; при удалении копия файла в хранилище канала тоже удаляется |
 | POST | `/media/{media}/preview.jpg?w=480` | кадр ролика так, как он выйдет в эфир с настройками показа из тела запроса (`display`, см. library.json); не кэшируется |
 | GET | `/media/{media}/thumb.jpg?w=320` | миниатюра (JPEG, кадр на 10 % длительности, ширина 32…1280). Кэшируется в `<проект>/cache/thumbs/<канал>/`, не более двух ffmpeg одновременно; 404 для потоков, аудио и отсутствующих файлов |
 | POST | `/media/import` | `{"paths": [...], "kind": "ad", "category": "x", "recursive": true, "folder": "Фильмы", "copy": true}` — импорт с анализом. С `copy` файлы копируются в `channels/<id>/media/<uuid>.<ext>` фоновой задачей (ответ `{"job": id}`), исходное имя сохраняется в `original_name` |
+| POST | `/media/backgrounds` | готовые фоны канала (фоновая задача, ответ `{"job": id}`): `{"stills": true, "loops": true, "plates": true}` — картинки и видеоряды в папке медиатеки «Фоны», текстуры для плашек; существующие не пересоздаются |
+| GET | `/graphics/backgrounds` | текстуры для плашек: `[{"path", "title", "file"}]` (создаются при первом запросе) |
+| GET | `/graphics/backgrounds/{file}` | файл текстуры (PNG) |
 | GET | `/media/folders` | все папки медиатеки |
 | POST | `/media/folders` | `{"op": "create"/"rename"/"delete"/"move", "path", "to", "ids"}` — папки виртуальные: файлы на диске не перемещаются; при удалении содержимое переходит в родительскую папку |
 | POST | `/media/check` | перепроверка всех файлов |
@@ -66,6 +69,8 @@
 | GET, PUT | `/rules` | правила (`RuleSet`) целиком |
 | GET, PUT | `/graphics` | графика (`GraphicsConfig`) целиком |
 | POST | `/graphics/render` | PNG с прозрачностью: `{"config": GraphicsConfig, "vars": {…}, "t_ms": 250, "width": 1280, "elements": ["id", …]}` — черновик рисуется тем же компоновщиком, что и эфир, в размере кадра канала. `t_ms` — время с момента появления (анимация; по умолчанию элементы показаны полностью), `width` — уменьшить кадр, `elements` — какие элементы (по умолчанию все верхнего уровня). Переменные — живые (`{title}`, `{next_title}` …) плюс `vars`. Ничего не сохраняется |
+| GET, POST | `/fonts` | шрифты сервера, файлы шрифтов канала и скачанные семейства (`{"system", "files", "families"}`); добавить файл `{"path"}` |
+| POST | `/fonts/google` | скачать семейство Google Fonts в канал: `{"family": "PT Sans"}` (обычное, жирное, курсив) |
 | GET, PUT | `/config` | параметры канала (admin) |
 | GET | `/asrun?from=YYYY-MM-DD&to=…&format=json\|csv` | журнал фактического эфира |
 | GET | `/stats?from=…&to=…&format=json\|csv` | статистика: показы, реклама, анонсы, отклонения |
@@ -79,6 +84,8 @@
 {"cmd": "stop"}
 {"cmd": "skip"}
 {"cmd": "restart"}
+{"cmd": "seek", "by_ms": -10000}
+{"cmd": "seek", "to_ms": 750000}
 {"cmd": "manual", "enabled": true}
 {"cmd": "play_now", "media": "breaking-news"}
 {"cmd": "queue", "media": "promo-1"}
@@ -90,6 +97,8 @@
 {"cmd": "switch_schedule", "schedule": "holiday"}
 {"cmd": "reload"}
 ```
+
+`seek` перематывает текущий ролик: `by_ms` — относительно текущего места (отрицательное — назад), `to_ms` — от начала ролика. Потоки и картинки не перематываются.
 
 Ответ: `{"ok": true, "message": "…"}`.
 

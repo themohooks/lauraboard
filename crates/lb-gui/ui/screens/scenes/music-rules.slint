@@ -1,0 +1,297 @@
+// Music of a scene: rules checked top to bottom, the first one that fits
+// the airing's weekday and time plays. A rule takes listed tracks and / or
+// a library folder or category, in order, shuffled or one random track.
+
+import { Theme } from "../../theme/tokens.slint";
+import { Icons } from "../../theme/icons.slint";
+import { Label } from "../../components/label.slint";
+import { TextField } from "../../components/text-field.slint";
+import { Select } from "../../components/select.slint";
+import { Switch } from "../../components/switch.slint";
+import { Checkbox } from "../../components/checkbox.slint";
+import { Button, ButtonVariant } from "../../components/button.slint";
+import { IconButton } from "../../components/icon-button.slint";
+import { Icon } from "../../components/icon.slint";
+import { Scenes, MusicRow } from "../../state/scenes-state.slint";
+import { FormSection, ToggleChips } from "../rules/form-parts.slint";
+
+component TrackLine inherits HorizontalLayout {
+    in property <string> title;
+    in property <string> duration;
+    in property <int> rule;
+    in property <int> index;
+    spacing: Theme.sp2;
+    height: 36px;
+    VerticalLayout {
+        alignment: center;
+        Icon {
+            source: Icons.music-note;
+            size: 18px;
+            tint: Theme.color.on-surface-variant;
+        }
+    }
+    Label {
+        horizontal-stretch: 1;
+        text: root.title;
+        vertical-alignment: center;
+    }
+    Label {
+        text: root.duration;
+        mono: true;
+        vertical-alignment: center;
+        color: Theme.color.on-surface-variant;
+    }
+    VerticalLayout {
+        alignment: center;
+        IconButton {
+            width: 32px;
+            height: 32px;
+            icon: Icons.close;
+            tooltip: "Убрать трек";
+            clicked => {
+                Scenes.music-track-remove(root.rule, root.index);
+            }
+        }
+    }
+}
+
+component MusicCard inherits Rectangle {
+    in property <MusicRow> r;
+    in property <int> count;
+    border-radius: Theme.radius-m;
+    background: Theme.color.surface-container;
+    VerticalLayout {
+        padding: Theme.sp3;
+        spacing: Theme.sp3;
+        HorizontalLayout {
+            spacing: Theme.sp2;
+            VerticalLayout {
+                alignment: center;
+                Switch {
+                    checked: root.r.enabled;
+                    toggled(on) => {
+                        Scenes.music-edited(root.r.index, "enabled", on ? "1" : "0");
+                    }
+                }
+            }
+            TextField {
+                horizontal-stretch: 1;
+                label: "Правило " + (root.r.index + 1);
+                text: root.r.name;
+                placeholder: "Днём, ночью, по выходным…";
+                container-color: Theme.color.surface-container;
+                edited(t) => {
+                    Scenes.music-edited(root.r.index, "name", t);
+                }
+            }
+            VerticalLayout {
+                alignment: center;
+                IconButton {
+                    icon: Icons.arrow-upward;
+                    tooltip: "Выше — проверяется раньше";
+                    enabled: root.r.index > 0;
+                    clicked => {
+                        Scenes.music-move(root.r.index, -1);
+                    }
+                }
+            }
+            VerticalLayout {
+                alignment: center;
+                IconButton {
+                    icon: Icons.arrow-downward;
+                    tooltip: "Ниже";
+                    enabled: root.r.index < root.count - 1;
+                    clicked => {
+                        Scenes.music-move(root.r.index, 1);
+                    }
+                }
+            }
+            VerticalLayout {
+                alignment: center;
+                IconButton {
+                    icon: Icons.delete;
+                    icon-tint: Theme.color.error;
+                    tooltip: "Удалить правило";
+                    clicked => {
+                        Scenes.music-remove(root.r.index);
+                    }
+                }
+            }
+        }
+
+        // what plays
+        HorizontalLayout {
+            spacing: Theme.sp2;
+            Label {
+                horizontal-stretch: 1;
+                text: "Треки: " + root.r.summary;
+                type-style: Theme.label-large;
+                vertical-alignment: center;
+            }
+            Button {
+                text: "Выбрать из медиатеки";
+                icon: Icons.video-library;
+                has-icon: true;
+                variant: ButtonVariant.tonal;
+                clicked => {
+                    Scenes.music-pick(root.r.index);
+                }
+            }
+        }
+        if root.r.tracks.length > 0: VerticalLayout {
+            spacing: 0;
+            for t[k] in root.r.tracks: TrackLine {
+                title: t.title;
+                duration: t.duration;
+                rule: root.r.index;
+                index: k;
+            }
+        }
+        HorizontalLayout {
+            spacing: Theme.sp2;
+            Select {
+                horizontal-stretch: 1;
+                label: "И всё из папки";
+                options: Scenes.folder-options;
+                current-index: root.r.folder == "" ? 0 : -1;
+                placeholder: root.r.folder == "" ? "нет" : root.r.folder;
+                container-color: Theme.color.surface-container;
+                selected(i, v) => {
+                    Scenes.music-edited(root.r.index, "folder", i == 0 ? "" : v);
+                }
+            }
+            TextField {
+                horizontal-stretch: 1;
+                label: "Или категории";
+                text: root.r.category;
+                placeholder: "music";
+                container-color: Theme.color.surface-container;
+                edited(t) => {
+                    Scenes.music-edited(root.r.index, "category", t);
+                }
+            }
+        }
+
+        // how it plays
+        HorizontalLayout {
+            spacing: Theme.sp2;
+            Select {
+                horizontal-stretch: 2;
+                label: "Порядок";
+                options: ["По порядку", "Перемешать", "Один случайный трек"];
+                current-index: root.r.order;
+                container-color: Theme.color.surface-container;
+                selected(i, _) => {
+                    Scenes.music-edited(root.r.index, "order", i);
+                }
+            }
+            TextField {
+                horizontal-stretch: 1;
+                label: "Громкость, дБ";
+                text: root.r.volume;
+                mono: true;
+                container-color: Theme.color.surface-container;
+                edited(t) => {
+                    Scenes.music-edited(root.r.index, "volume", t);
+                }
+            }
+            TextField {
+                horizontal-stretch: 1;
+                label: "Нарастание";
+                text: root.r.fade-in;
+                mono: true;
+                placeholder: "00:00:01.5";
+                container-color: Theme.color.surface-container;
+                edited(t) => {
+                    Scenes.music-edited(root.r.index, "fade-in", t);
+                }
+            }
+            TextField {
+                horizontal-stretch: 1;
+                label: "Затухание";
+                text: root.r.fade-out;
+                mono: true;
+                placeholder: "00:00:01.5";
+                container-color: Theme.color.surface-container;
+                edited(t) => {
+                    Scenes.music-edited(root.r.index, "fade-out", t);
+                }
+            }
+        }
+        Checkbox {
+            text: "Начинать первый трек со случайного места (для длинных миксов)";
+            checked: root.r.random-start;
+            toggled(on) => {
+                Scenes.music-edited(root.r.index, "random-start", on ? "1" : "0");
+            }
+        }
+
+        // when it plays
+        Label {
+            text: "Когда (ничего не выбрано — всегда)";
+            type-style: Theme.label-medium;
+            color: Theme.color.on-surface-variant;
+        }
+        HorizontalLayout {
+            spacing: Theme.sp3;
+            VerticalLayout {
+                alignment: center;
+                ToggleChips {
+                    labels: ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
+                    values: root.r.days;
+                    toggled(i) => {
+                        Scenes.music-edited(root.r.index, "day", i);
+                    }
+                }
+            }
+            TextField {
+                width: 96px;
+                label: "С";
+                text: root.r.from;
+                mono: true;
+                placeholder: "ЧЧ:ММ";
+                container-color: Theme.color.surface-container;
+                edited(t) => {
+                    Scenes.music-edited(root.r.index, "from", t);
+                }
+            }
+            TextField {
+                width: 96px;
+                label: "До";
+                text: root.r.to;
+                mono: true;
+                placeholder: "ЧЧ:ММ";
+                container-color: Theme.color.surface-container;
+                edited(t) => {
+                    Scenes.music-edited(root.r.index, "to", t);
+                }
+            }
+        }
+    }
+}
+
+export component SceneMusic inherits FormSection {
+    title: "Музыка";
+    hint: "правила сверху вниз: играет первое подходящее по дню и времени";
+    icon: Icons.music-note;
+    if Scenes.music.length == 0: Label {
+        text: "Без музыки сцена идёт в тишине.";
+        color: Theme.color.on-surface-variant;
+    }
+    for r in Scenes.music: MusicCard {
+        r: r;
+        count: Scenes.music.length;
+    }
+    HorizontalLayout {
+        alignment: start;
+        Button {
+            text: "Добавить правило музыки";
+            icon: Icons.add;
+            has-icon: true;
+            variant: ButtonVariant.text;
+            clicked => {
+                Scenes.music-add();
+            }
+        }
+    }
+}

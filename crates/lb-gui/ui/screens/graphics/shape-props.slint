@@ -105,4 +105,17 @@ export component ShapeSection inherits FormSection {
             }
         }
     }
+    HorizontalLayout {
+        alignment: start;
+        Button {
+            text: "Готовые фоны для плашек…";
+            icon: Icons.palette;
+            has-icon: true;
+            variant: ButtonVariant.text;
+            tooltip: "Глянец, карбон, золото, неон… — если не знаете, что выбрать";
+            clicked => {
+                Gfx.open-textures();
+            }
+        }
+    }
 }

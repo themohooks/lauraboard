@@ -276,6 +276,12 @@ pub enum CtlCmd {
     },
     Skip,
     Restart,
+    /// Rewind the current item: `+30` / `-10` seconds from the current
+    /// position, or a position `00:12:30` from its start.
+    Seek {
+        #[arg(allow_hyphen_values = true)]
+        position: String,
+    },
     /// Pause the schedule (manual control) or resume it.
     Manual {
         #[arg(value_enum)]

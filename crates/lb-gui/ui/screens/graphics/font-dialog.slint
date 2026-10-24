@@ -1,5 +1,6 @@
-// Font picker: system families (shown in their own typeface) and font
-// files of the channel; a font file can be added from this computer.
+// Font picker: system families (shown in their own typeface), font files
+// of the channel and families downloaded from Google Fonts; a font file can
+// be added from this computer, a Google Fonts family downloaded by name.
 
 import { Theme } from "../../theme/tokens.slint";
 import { Icons } from "../../theme/icons.slint";
@@ -8,9 +9,11 @@ import { Label } from "../../components/label.slint";
 import { ListRow } from "../../components/list-row.slint";
 import { SearchField } from "../../components/search-field.slint";
 import { Button, ButtonVariant } from "../../components/button.slint";
+import { SegmentedButton } from "../../components/segmented-button.slint";
+import { Checkbox } from "../../components/checkbox.slint";
 import { CircularProgress } from "../../components/feedback.slint";
 import { Icon } from "../../components/icon.slint";
-import { Gfx, FontRow } from "../../state/graphics-state.slint";
+import { Gfx, FontRow, GFontRow } from "../../state/graphics-state.slint";
 
 component FontLine inherits ListRow {
     in property <FontRow> f;
@@ -22,7 +25,7 @@ component FontLine inherits ListRow {
     VerticalLayout {
         alignment: center;
         Icon {
-            source: f.file ? Icons.upload : Icons.text-fields;
+            source: f.file ? Icons.upload : f.note != "" ? Icons.download : Icons.text-fields;
             tint: Theme.color.on-surface-variant;
         }
     }
@@ -31,28 +34,68 @@ component FontLine inherits ListRow {
         vertical-alignment: center;
         text: f.name;
         // system families preview in their own typeface
-        font-family: f.file ? "" : f.value;
+        font-family: f.file || f.note != "" ? "" : f.value;
         font-size: 16px;
         color: Theme.color.on-surface;
         overflow: elide;
     }
-    if f.file: Label {
-        text: "файл канала";
+    if f.note != "": Label {
+        text: f.note;
         vertical-alignment: center;
         type-style: Theme.body-small;
         color: Theme.color.on-surface-variant;
     }
 }
 
-export component FontDialog inherits Dialog {
-    open: Gfx.font-open;
-    dialog-width: 520px;
-    title: "Шрифт";
-    text: "Шрифты сервера вещания и файлы шрифтов канала (.ttf, .otf). Свой файл копируется в папку канала и переносится вместе с ним при экспорте.";
-    dismissed => {
-        Gfx.font-open = false;
+component GoogleLine inherits ListRow {
+    in property <GFontRow> f;
+    height: 52px;
+    focusable: false;
+    selected: Gfx.s-font == f.family;
+    VerticalLayout {
+        horizontal-stretch: 1;
+        alignment: center;
+        Label {
+            text: f.family;
+            type-style: Theme.title-small;
+        }
+        Label {
+            text: f.info;
+            type-style: Theme.body-small;
+            color: Theme.color.on-surface-variant;
+        }
     }
+    if Gfx.gf-busy == f.family: VerticalLayout {
+        alignment: center;
+        CircularProgress {
+            size: 20px;
+        }
+    }
+    VerticalLayout {
+        alignment: center;
+        if !f.downloaded: Button {
+            text: "Скачать";
+            icon: Icons.download;
+            has-icon: true;
+            variant: ButtonVariant.tonal;
+            enabled: Gfx.gf-busy == "";
+            tooltip: "Скачать в папку канала и выбрать";
+            clicked => {
+                Gfx.gf-download(f.family);
+            }
+        }
+        if f.downloaded: Button {
+            text: "Выбрать";
+            variant: ButtonVariant.text;
+            clicked => {
+                Gfx.font-pick(f.family);
+            }
+        }
+    }
+}
 
+component InstalledTab inherits VerticalLayout {
+    spacing: Theme.sp3;
     SearchField {
         placeholder: "Название шрифта";
         text <=> Gfx.font-query;
@@ -71,7 +114,7 @@ export component FontDialog inherits Dialog {
             VerticalLayout {
                 alignment: start;
                 FontLine {
-                    f: { value: "", name: "По умолчанию", file: false };
+                    f: { value: "", name: "По умолчанию", file: false, note: "" };
                 }
                 for f in Gfx.font-list: FontLine {
                     f: f;
@@ -79,8 +122,94 @@ export component FontDialog inherits Dialog {
             }
         }
     }
+}
+
+component GoogleTab inherits VerticalLayout {
+    spacing: Theme.sp3;
+    HorizontalLayout {
+        spacing: Theme.sp3;
+        SearchField {
+            horizontal-stretch: 1;
+            placeholder: "Найти в Google Fonts: Roboto, PT Sans…";
+            text <=> Gfx.gf-query;
+            edited => {
+                Gfx.gf-search();
+            }
+        }
+        VerticalLayout {
+            alignment: center;
+            Checkbox {
+                text: "С кириллицей";
+                checked <=> Gfx.gf-cyrillic;
+                toggled => {
+                    Gfx.gf-search();
+                }
+            }
+        }
+    }
+    Rectangle {
+        height: 320px;
+        border-radius: Theme.radius-m;
+        border-width: 1px;
+        border-color: Theme.color.outline-variant;
+        clip: true;
+        if Gfx.gf-loading: CircularProgress { }
+        if !Gfx.gf-loading && Gfx.gf-error != "": VerticalLayout {
+            padding: Theme.sp4;
+            alignment: center;
+            Label {
+                text: Gfx.gf-error;
+                wrap: word-wrap;
+                horizontal-alignment: center;
+                color: Theme.color.error;
+            }
+        }
+        Flickable {
+            VerticalLayout {
+                alignment: start;
+                for f in Gfx.gf-list: GoogleLine {
+                    f: f;
+                }
+            }
+        }
+    }
+    Label {
+        text: "Шрифт скачивает сервер вещания (нужен интернет) в папку канала: он переносится вместе с каналом при экспорте. Шрифты Google Fonts бесплатны и открыты (OFL / Apache).";
+        wrap: word-wrap;
+        type-style: Theme.body-small;
+        color: Theme.color.on-surface-variant;
+    }
+}
+
+export component FontDialog inherits Dialog {
+    open: Gfx.font-open;
+    dialog-width: 560px;
+    title: "Шрифт";
+    text: Gfx.font-tab == 0
+        ? "Шрифты сервера вещания и файлы шрифтов канала (.ttf, .otf). Свой файл копируется в папку канала и переносится вместе с ним при экспорте."
+        : "Бесплатные шрифты Google Fonts: сначала самые популярные.";
+    dismissed => {
+        Gfx.font-open = false;
+    }
+
+    HorizontalLayout {
+        alignment: start;
+        SegmentedButton {
+            width: 340px;
+            segments: [{ text: "Установленные", icon: Icons.text-fields, has-icon: true }, { text: "Google Fonts", icon: Icons.download, has-icon: true }];
+            selected <=> Gfx.font-tab;
+            changed(i) => {
+                if i == 1 {
+                    Gfx.gf-search();
+                }
+            }
+        }
+    }
+    if Gfx.font-tab == 0: InstalledTab { }
+    if Gfx.font-tab == 1: GoogleTab { }
+
     DialogActions {
-        Button {
+        if Gfx.font-tab == 0: Button {
             text: "Загрузить файл шрифта…";
             variant: ButtonVariant.outlined;
             icon: Icons.upload;

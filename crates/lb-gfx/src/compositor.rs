@@ -5,7 +5,7 @@ use std::panic::{AssertUnwindSafe, catch_unwind};
 use std::path::Path;
 use std::sync::Arc;
 
-use tiny_skia::{FilterQuality, Pixmap, PixmapPaint, Transform};
+use tiny_skia::{FilterQuality, IntRect, Pixmap, PixmapPaint, Transform};
 
 use lb_core::graphics::{ActiveGraphic, Element, ElementKind, GraphicsConfig, render_template};
 use lb_core::{Ms, WallTime};
@@ -178,15 +178,46 @@ impl Compositor {
                     Transform::from_translate((sx - whole) as f32, 0.0),
                     None,
                 );
-                self.blit(&band, x + st.dx, y + st.dy, parent_alpha * el.opacity * st.alpha);
+                self.blit_anim(&band, x, y, parent_alpha * el.opacity, &st);
             }
             _ => {
                 let Some(sprite) = self.sprites.sprite(el, ctx) else { return };
                 let (x, y) = place(&el.placement, region, sprite.w, sprite.h);
                 let st = anim::state(&el.animation, shown, hide_in, sprite.w, sprite.h);
-                self.blit(&sprite.pixmap, x - sprite.ox + st.dx, y - sprite.oy + st.dy, parent_alpha * el.opacity * st.alpha);
+                self.blit_anim(&sprite.pixmap, x - sprite.ox, y - sprite.oy, parent_alpha * el.opacity, &st);
             }
         }
+    }
+
+    /// Draw `p` at (x, y) through an animation state: offset, scale and
+    /// rotation around its centre, the visible part only.
+    fn blit_anim(&mut self, p: &Pixmap, x: f32, y: f32, alpha: f32, st: &anim::AnimState) {
+        if st.is_simple() {
+            return self.blit(p, x + st.dx, y + st.dy, alpha * st.alpha);
+        }
+        let alpha = alpha * st.alpha;
+        if alpha <= 0.001 {
+            return;
+        }
+        let (w, h) = (p.width() as f32, p.height() as f32);
+        let part;
+        let (src, ox, oy) = match st.clip {
+            Some([x0, y0, x1, y1]) => {
+                let (l, t) = ((x0 * w).floor() as i32, (y0 * h).floor() as i32);
+                let (r, b) = ((x1 * w).ceil() as i32, (y1 * h).ceil() as i32);
+                let Some(rect) = IntRect::from_xywh(l, t, (r - l).max(0) as u32, (b - t).max(0) as u32) else { return };
+                let Some(p) = p.clone_rect(rect) else { return };
+                part = p;
+                (&part, l as f32, t as f32)
+            }
+            None => (p, 0.0, 0.0),
+        };
+        let t = Transform::from_translate(x + st.dx + w / 2.0, y + st.dy + h / 2.0)
+            .pre_rotate(st.rotate)
+            .pre_scale(st.sx, st.sy)
+            .pre_translate(ox - w / 2.0, oy - h / 2.0);
+        let paint = PixmapPaint { opacity: alpha.min(1.0), quality: FilterQuality::Bilinear, ..Default::default() };
+        self.canvas.draw_pixmap(0, 0, src.as_ref(), &paint, t, None);
     }
 
     fn blit(&mut self, p: &Pixmap, x: f32, y: f32, alpha: f32) {

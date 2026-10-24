@@ -1,0 +1,170 @@
+// General settings of a scene (name, type, category, length) and its
+// background: a colour or a picture / video from the library.
+
+import { Theme } from "../../theme/tokens.slint";
+import { Icons } from "../../theme/icons.slint";
+import { Label } from "../../components/label.slint";
+import { TextField } from "../../components/text-field.slint";
+import { Select } from "../../components/select.slint";
+import { SegmentedButton } from "../../components/segmented-button.slint";
+import { Button, ButtonVariant } from "../../components/button.slint";
+import { ColorPicker } from "../../components/color-picker.slint";
+import { Scenes } from "../../state/scenes-state.slint";
+import { Gfx } from "../../state/graphics-state.slint";
+import { FormSection } from "../rules/form-parts.slint";
+
+export component SceneGeneral inherits FormSection {
+    title: "Сцена";
+    hint: "id: " + Scenes.f-id;
+    icon: Icons.image;
+    TextField {
+        label: "Название";
+        text <=> Scenes.f-title;
+        container-color: Theme.color.surface-container-low;
+        edited => {
+            Scenes.form-changed();
+        }
+    }
+    HorizontalLayout {
+        spacing: Theme.sp3;
+        Select {
+            horizontal-stretch: 1;
+            label: "Тип в эфире";
+            options: ["Передача", "Заставка", "Реклама", "Анонс", "Заполнение"];
+            current-index <=> Scenes.f-kind;
+            supporting: "по нему работают правила графики и вставок";
+            container-color: Theme.color.surface-container-low;
+            selected => {
+                Scenes.form-changed();
+            }
+        }
+        TextField {
+            horizontal-stretch: 1;
+            label: "Категория";
+            text <=> Scenes.f-category;
+            placeholder: "без категории";
+            container-color: Theme.color.surface-container-low;
+            edited => {
+                Scenes.form-changed();
+            }
+        }
+        TextField {
+            width: 140px;
+            label: "Длительность";
+            text <=> Scenes.f-duration;
+            error: Scenes.e-duration;
+            mono: true;
+            placeholder: "00:01:00";
+            container-color: Theme.color.surface-container-low;
+            edited => {
+                Scenes.form-changed();
+            }
+        }
+    }
+}
+
+export component SceneBackground inherits FormSection {
+    title: "Фон";
+    hint: "видео повторяется по кругу, его звук не используется";
+    icon: Icons.palette;
+    HorizontalLayout {
+        alignment: start;
+        SegmentedButton {
+            width: 320px;
+            segments: [{ text: "Цвет", icon: Icons.palette, has-icon: true }, { text: "Из медиатеки", icon: Icons.video-library, has-icon: true }];
+            selected <=> Scenes.f-bg-type;
+            changed => {
+                Scenes.form-changed();
+            }
+        }
+    }
+    if Scenes.f-bg-type == 0: HorizontalLayout {
+        // another scene selected: the picker follows its colour
+        property <string> scene: Scenes.f-id;
+        changed scene => {
+            picker.set-color(Scenes.sw-bg-color);
+        }
+        spacing: Theme.sp3;
+        Rectangle {
+            width: 264px;
+            height: picker.preferred-height;
+            picker := ColorPicker {
+                init => {
+                    self.set-color(Scenes.sw-bg-color);
+                }
+                changed(c) => {
+                    Scenes.f-bg-color = Gfx.color-hex(c);
+                    Scenes.form-changed();
+                }
+            }
+        }
+        VerticalLayout {
+            horizontal-stretch: 1;
+            spacing: Theme.sp2;
+            alignment: start;
+            TextField {
+                label: "Цвет фона";
+                text <=> Scenes.f-bg-color;
+                mono: true;
+                placeholder: "#RRGGBB";
+                container-color: Theme.color.surface-container-low;
+                edited => {
+                    if Scenes.f-bg-color.character-count == 7 {
+                        picker.set-color(Gfx.parse-color(Scenes.f-bg-color));
+                    }
+                    Scenes.form-changed();
+                }
+            }
+            Rectangle {
+                height: 90px;
+                border-radius: Theme.radius-m;
+                border-width: 1px;
+                border-color: Theme.color.outline-variant;
+                background: Scenes.sw-bg-color;
+            }
+        }
+    }
+    if Scenes.f-bg-type == 1: HorizontalLayout {
+        spacing: Theme.sp3;
+        Rectangle {
+            width: 192px;
+            height: 108px;
+            border-radius: Theme.radius-m;
+            background: Theme.color.surface-container-highest;
+            clip: true;
+            if Scenes.has-bg-thumb: Image {
+                width: parent.width;
+                height: parent.height;
+                source: Scenes.bg-thumb;
+                image-fit: cover;
+            }
+            if !Scenes.has-bg-thumb: Label {
+                text: Scenes.f-bg-media == "" ? "не выбран" : "нет кадра";
+                horizontal-alignment: center;
+                color: Theme.color.on-surface-variant;
+            }
+        }
+        VerticalLayout {
+            horizontal-stretch: 1;
+            spacing: Theme.sp2;
+            alignment: center;
+            Label {
+                text: Scenes.f-bg-media == "" ? "Выберите картинку или видео — например из папки «Фоны»" : Scenes.f-bg-media;
+                wrap: word-wrap;
+                type-style: Theme.body-medium;
+            }
+            HorizontalLayout {
+                alignment: start;
+                Button {
+                    text: "Выбрать из медиатеки";
+                    icon: Icons.video-library;
+                    has-icon: true;
+                    variant: ButtonVariant.tonal;
+                    clicked => {
+                        Scenes.bg-pick();
+                    }
+                }
+            }
+        }
+    }
+}

@@ -14,8 +14,8 @@ use crate::prefs::ThemeMode as PrefTheme;
 use crate::shell::{App, AppWindow, StatusInfo, Theme, ThemeMode};
 
 /// Section ids in navigation order (Ctrl+1…0 follow it as well).
-pub const SECTIONS: [&str; 12] =
-    ["home", "air", "playlists", "library", "schedule", "jingles", "ads", "graphics", "sources", "stats", "log", "settings"];
+pub const SECTIONS: [&str; 13] =
+    ["home", "air", "playlists", "library", "scenes", "schedule", "jingles", "ads", "graphics", "sources", "stats", "log", "settings"];
 
 thread_local! {
     static CLOCK: RefCell<Option<slint::Timer>> = const { RefCell::new(None) };
@@ -71,6 +71,7 @@ pub fn connect(ui: &AppWindow) {
             "schedule" => super::schedule::shortcut(c, name.as_str()),
             "jingles" | "ads" => super::rules::shortcut(c, name.as_str()),
             "graphics" => super::graphics::shortcut(c, name.as_str()),
+            "scenes" => super::scenes::shortcut(c, name.as_str()),
             _ => {}
         })
     });
@@ -133,7 +134,7 @@ pub fn navigate(c: &mut Ctx, id: &str) {
     c.prefs.save();
     // documents may have changed elsewhere (CLI, other operator); own
     // changes reload by themselves, so quick tab switching need not
-    if matches!(id, "playlists" | "library" | "schedule" | "jingles" | "ads" | "graphics" | "sources")
+    if matches!(id, "playlists" | "library" | "scenes" | "schedule" | "jingles" | "ads" | "graphics" | "sources")
         && !c.loaded_within(Duration::from_secs(5))
     {
         c.load_all();
@@ -156,6 +157,9 @@ pub fn navigate(c: &mut Ctx, id: &str) {
     }
     if id == "sources" {
         super::sources::refresh(c);
+    }
+    if id == "scenes" {
+        super::scenes::refresh(c);
     }
     if id == "settings" {
         super::settings::opened(c);

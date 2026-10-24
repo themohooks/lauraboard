@@ -1,0 +1,94 @@
+// Ready-made textures for a shape / plate "picture background": a grid of
+// previews; a click puts the texture into the shape.
+
+import { Theme } from "../../theme/tokens.slint";
+import { Dialog, DialogActions } from "../../components/dialog.slint";
+import { Label } from "../../components/label.slint";
+import { Interactive } from "../../components/interactive.slint";
+import { Button, ButtonVariant } from "../../components/button.slint";
+import { CircularProgress } from "../../components/feedback.slint";
+import { Gfx, TextureRow } from "../../state/graphics-state.slint";
+
+component TextureTile inherits Interactive {
+    in property <TextureRow> t;
+    radius: Theme.radius-m;
+    height: 96px;
+    accessible-role: button;
+    accessible-label: t.title;
+    clicked => {
+        Gfx.texture-pick(t.path);
+    }
+    VerticalLayout {
+        padding: Theme.sp1;
+        spacing: 4px;
+        Rectangle {
+            height: 56px;
+            border-radius: Theme.radius-s;
+            border-width: Gfx.sh-image == root.t.path ? 2px : 1px;
+            border-color: Gfx.sh-image == root.t.path ? Theme.color.primary : Theme.color.outline-variant;
+            clip: true;
+            background: Theme.color.surface-container-highest;
+            if root.t.has-image: Image {
+                width: parent.width;
+                height: parent.height;
+                source: root.t.image;
+                image-fit: cover;
+            }
+        }
+        Label {
+            text: root.t.title;
+            type-style: Theme.label-medium;
+            horizontal-alignment: center;
+        }
+    }
+}
+
+export component TextureDialog inherits Dialog {
+    open: Gfx.tex-open;
+    dialog-width: 640px;
+    title: "Готовые фоны для плашек";
+    text: "Текстура заполняет фигуру или плашку с обрезкой краёв. Файлы лежат в папке канала (graphics/backgrounds) и переносятся вместе с ним.";
+    dismissed => {
+        Gfx.tex-open = false;
+    }
+    Rectangle {
+        height: 330px;
+        if Gfx.tex-loading: CircularProgress { }
+        Flickable {
+            VerticalLayout {
+                alignment: start;
+                spacing: Theme.sp2;
+                // three per row
+                for r in ceil(Gfx.tex-list.length / 3): HorizontalLayout {
+                    spacing: Theme.sp2;
+                    // equal columns whatever the titles are
+                    for k in 3: Rectangle {
+                        horizontal-stretch: 1;
+                        preferred-width: 1px;
+                        height: 96px;
+                        if r * 3 + k < Gfx.tex-list.length: TextureTile {
+                            width: parent.width;
+                            t: Gfx.tex-list[r * 3 + k];
+                        }
+                    }
+                }
+            }
+        }
+    }
+    DialogActions {
+        Button {
+            text: "Без картинки";
+            variant: ButtonVariant.text;
+            clicked => {
+                Gfx.texture-pick("");
+            }
+        }
+        Button {
+            text: "Закрыть";
+            variant: ButtonVariant.text;
+            clicked => {
+                Gfx.tex-open = false;
+            }
+        }
+    }
+}

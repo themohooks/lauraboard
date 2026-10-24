@@ -58,6 +58,8 @@ export struct GRuleRow {
     kinds: [bool],
     // the element's text lines (plate) or text, replaced by this rule
     texts: [RuleTextRow],
+    // labels of `texts`, for the "insert variable into line" select
+    text-labels: [string],
     hide-empty: bool,
     error: string,
 }
@@ -74,6 +76,24 @@ export struct FontRow {
     value: string,
     name: string,
     file: bool,
+    // "файл канала", "Google Fonts" (not previewed: not on this computer)
+    note: string,
+}
+
+// A ready-made plate texture.
+export struct TextureRow {
+    path: string,
+    title: string,
+    image: image,
+    has-image: bool,
+}
+
+// A Google Fonts family in the download tab.
+export struct GFontRow {
+    family: string,
+    // category and styles, "Без засечек · кириллица · жирный, курсив"
+    info: string,
+    downloaded: bool,
 }
 
 export struct VarRow {
@@ -182,6 +202,12 @@ export global Gfx {
     callback plate-field-remove(int);
     callback plate-field-move(int, int);
     callback pick-shape-image();
+    // ready-made textures dialog
+    in-out property <bool> tex-open;
+    in property <bool> tex-loading;
+    in property <[TextureRow]> tex-list;
+    callback open-textures();
+    callback texture-pick(string);
 
     // font picker
     in-out property <bool> font-open;
@@ -192,6 +218,17 @@ export global Gfx {
     callback font-search(string);
     callback font-pick(string);
     callback font-upload();
+    // font dialog tab: 0 fonts of the server and channel, 1 Google Fonts
+    in-out property <int> font-tab;
+    in-out property <string> gf-query;
+    in-out property <bool> gf-cyrillic: true;
+    in property <[GFontRow]> gf-list;
+    in property <bool> gf-loading;
+    in property <string> gf-error;
+    // family being downloaded ("" none)
+    in property <string> gf-busy;
+    callback gf-search();
+    callback gf-download(string);
 
     // 0 none, 1 fade, 2 slide left, 3 slide right, 4 slide up, 5 slide down
     in-out property <int> a-in;
@@ -234,6 +271,25 @@ export global Gfx {
     pure callback color-hex(color) -> string;
     pure callback parse-color(string) -> color;
     // append a {variable} to the selected element's text
+    // animation presets, in the order of AnimKind::ALL (lb-core)
+    out property <[string]> anim-in-names: [
+        "Нет", "Растворение",
+        "Въезд справа", "Въезд слева", "Въезд снизу", "Въезд сверху",
+        "Сдвиг справа + растворение", "Сдвиг слева + растворение", "Подъём снизу + растворение", "Спуск сверху + растворение",
+        "Приближение", "Отдаление", "Пружина",
+        "Шторка справа налево", "Шторка слева направо", "Шторка снизу вверх", "Шторка сверху вниз",
+        "Раскрытие по ширине", "Раскрытие по высоте",
+        "Прыжок снизу", "Падение сверху", "Поворот", "Мерцание",
+    ];
+    out property <[string]> anim-out-names: [
+        "Нет", "Растворение",
+        "Уезд влево", "Уезд вправо", "Уезд вверх", "Уезд вниз",
+        "Сдвиг влево + растворение", "Сдвиг вправо + растворение", "Подъём вверх + растворение", "Спуск вниз + растворение",
+        "Уменьшение", "Увеличение", "Пружина (сжатие)",
+        "Шторка влево", "Шторка вправо", "Шторка вверх", "Шторка вниз",
+        "Сжатие по ширине", "Сжатие по высоте",
+        "Уход вниз с отскоком", "Уход вверх с отскоком", "Поворот", "Мерцание",
+    ];
     callback insert-var(string);
     // file dialog for the image element
     callback pick-image();
@@ -247,6 +303,8 @@ export global Gfx {
     callback render();
     callback preview-animation();
     callback rule-edited(int, string, string);
+    // rule index, text line, "{variable}": appended to that line's text
+    callback rule-insert-var(int, int, string);
     callback rule-add();
     callback rule-remove(int);
     callback var-edited(int, string);

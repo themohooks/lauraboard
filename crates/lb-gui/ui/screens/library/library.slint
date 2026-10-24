@@ -2,6 +2,7 @@
 
 import { Theme } from "../../theme/tokens.slint";
 import { App } from "../../state/app-state.slint";
+import { Lib } from "../../state/library-state.slint";
 import { Page, PageHeader } from "../../shell/page.slint";
 import { LibraryToolbar } from "toolbar.slint";
 import { MediaTable } from "media-table.slint";
@@ -19,8 +20,9 @@ export component LibraryScreen inherits Page {
         height: root.height;
         padding: Theme.sp4;
         spacing: Theme.sp4;
-        if !App.narrow: FolderPanel {
-            width: 230px;
+        // narrow window: a narrower panel, hidden from the toolbar if needed
+        if Lib.folders-shown: FolderPanel {
+            width: App.narrow ? 180px : 230px;
         }
         VerticalLayout {
             spacing: Theme.sp3;

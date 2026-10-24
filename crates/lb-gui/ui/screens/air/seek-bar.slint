@@ -1,0 +1,98 @@
+// Progress of the item on air that can be dragged or clicked to rewind it,
+// with ±10 / ±30 s steps. While dragging the target time is shown; the
+// jump is sent on release.
+
+import { Theme } from "../../theme/tokens.slint";
+import { Label } from "../../components/label.slint";
+import { Button, ButtonVariant } from "../../components/button.slint";
+import { App } from "../../state/app-state.slint";
+import { Air } from "../../state/air-state.slint";
+
+component SeekTrack inherits Rectangle {
+    in property <float> progress;
+    in property <bool> enabled;
+    in property <int> duration-s;
+    property <float> drag: clamp(touch.mouse-x / max(1px, self.width), 0, 1);
+    property <bool> dragging: touch.pressed && root.enabled;
+    property <float> shown: dragging ? drag : progress;
+
+    height: 24px;
+    accessible-role: slider;
+    accessible-label: "Позиция ролика";
+    accessible-value: round(progress * 100) + "%";
+
+    Rectangle {
+        y: (parent.height - self.height) / 2;
+        height: touch.has-hover && root.enabled ? 8px : 6px;
+        border-radius: self.height / 2;
+        background: Theme.color.secondary-container;
+        clip: true;
+        Rectangle {
+            x: 0;
+            width: parent.width * root.shown;
+            background: Theme.status.live;
+        }
+    }
+    if root.enabled && (touch.has-hover || root.dragging): Rectangle {
+        x: root.width * root.shown - self.width / 2;
+        y: (parent.height - self.height) / 2;
+        width: 14px;
+        height: 14px;
+        border-radius: 7px;
+        background: Theme.status.live;
+    }
+    if root.dragging: Rectangle {
+        x: clamp(root.width * root.drag - self.width / 2, 0, root.width - self.width);
+        y: -self.height - 4px;
+        width: tip.preferred-width + 2 * Theme.sp2;
+        height: 24px;
+        border-radius: Theme.radius-xs;
+        background: Theme.color.inverse-surface;
+        tip := Label {
+            text: Air.time-of(root.drag * root.duration-s);
+            mono: true;
+            type-style: Theme.label-medium;
+            color: Theme.color.inverse-on-surface;
+        }
+    }
+    touch := TouchArea {
+        enabled: root.enabled;
+        mouse-cursor: root.enabled ? MouseCursor.pointer : MouseCursor.default;
+        pointer-event(e) => {
+            if e.kind == PointerEventKind.up && e.button == PointerEventButton.left {
+                Air.seek-to(root.drag);
+            }
+        }
+    }
+}
+
+component Step inherits Button {
+    in property <int> seconds;
+    variant: ButtonVariant.text;
+    text: (seconds > 0 ? "+" : "−") + abs(seconds) + " с";
+    tooltip: seconds > 0 ? "Вперёд на " + seconds + " с" : "Назад на " + abs(seconds) + " с";
+    clicked => {
+        Air.seek-by(seconds);
+    }
+}
+
+export component SeekBar inherits HorizontalLayout {
+    in property <bool> compact;
+    property <bool> on: App.online && Air.now.seekable;
+    spacing: Theme.sp1;
+    if !root.compact: Step { seconds: -30; enabled: root.on; }
+    Step { seconds: -10; enabled: root.on; }
+    VerticalLayout {
+        horizontal-stretch: 1;
+        alignment: center;
+        padding-left: Theme.sp2;
+        padding-right: Theme.sp2;
+        SeekTrack {
+            progress: Air.now.progress;
+            enabled: root.on;
+            duration-s: Air.now.duration-s;
+        }
+    }
+    Step { seconds: 10; enabled: root.on; }
+    if !root.compact: Step { seconds: 30; enabled: root.on; }
+}

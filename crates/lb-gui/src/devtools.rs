@@ -231,6 +231,8 @@ fn demo_air(ui: &AppWindow) {
         deviation_warn: false,
         started: "09:00:00".into(),
         ends: "09:28:30".into(),
+        seekable: true,
+        duration_s: 1710,
     });
     a.set_next(NextInfo {
         has_item: true,

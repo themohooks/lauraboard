@@ -59,6 +59,9 @@ export component PropertiesPanel inherits Rectangle {
     }
 
     if Gfx.p-has: sv := ScrollView {
+        // vertical scrolling only: the fields follow the panel width
+        content-width: self.visible-width;
+        horizontal-scrollbar-policy: always-off;
         VerticalLayout {
             width: sv.visible-width;
             padding: App.narrow ? Theme.sp2 : Theme.sp3;
@@ -272,21 +275,28 @@ export component PropertiesPanel inherits Rectangle {
                         }
                     }
                 }
+                // the checkboxes stack: side by side they outgrow a narrow panel
                 HorizontalLayout {
                     spacing: Theme.sp3;
-                    Field { width: 96px; label: "Размер"; text <=> Gfx.s-size; mono: true; }
-                    Checkbox {
-                        text: "Жирный";
-                        checked <=> Gfx.s-bold;
-                        toggled => {
-                            Gfx.props-changed();
-                        }
+                    VerticalLayout {
+                        alignment: start;
+                        Field { width: 96px; label: "Размер"; text <=> Gfx.s-size; mono: true; }
                     }
-                    Checkbox {
-                        text: "Курсив";
-                        checked <=> Gfx.s-italic;
-                        toggled => {
-                            Gfx.props-changed();
+                    VerticalLayout {
+                        spacing: 0;
+                        Checkbox {
+                            text: "Жирный";
+                            checked <=> Gfx.s-bold;
+                            toggled => {
+                                Gfx.props-changed();
+                            }
+                        }
+                        Checkbox {
+                            text: "Курсив";
+                            checked <=> Gfx.s-italic;
+                            toggled => {
+                                Gfx.props-changed();
+                            }
                         }
                     }
                 }
@@ -318,7 +328,7 @@ export component PropertiesPanel inherits Rectangle {
                     Select {
                         horizontal-stretch: 1;
                         label: "Появление";
-                        options: ["Нет", "Растворение", "Слева", "Справа", "Снизу", "Сверху"];
+                        options: Gfx.anim-in-names;
                         current-index <=> Gfx.a-in;
                         container-color: Theme.color.surface-container-low;
                         selected => {
@@ -328,7 +338,7 @@ export component PropertiesPanel inherits Rectangle {
                     Select {
                         horizontal-stretch: 1;
                         label: "Исчезновение";
-                        options: ["Нет", "Растворение", "Влево", "Вправо", "Вверх", "Вниз"];
+                        options: Gfx.anim-out-names;
                         current-index <=> Gfx.a-out;
                         container-color: Theme.color.surface-container-low;
                         selected => {
@@ -336,7 +346,7 @@ export component PropertiesPanel inherits Rectangle {
                         }
                     }
                 }
-                Field { label: "Длительность, мс"; text <=> Gfx.a-ms; mono: true; }
+                Field { label: "Длительность, мс"; text <=> Gfx.a-ms; mono: true; supporting: "обычно 300–800; для пружины и прыжка — 600–1000"; }
             }
 
             Field {

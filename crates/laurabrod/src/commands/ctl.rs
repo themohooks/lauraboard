@@ -41,6 +41,7 @@ pub fn run(ctx: &Ctx, cmd: CtlCmd) -> Result<()> {
         }
         CtlCmd::Skip => command(json!({ "cmd": "skip" })),
         CtlCmd::Restart => command(json!({ "cmd": "restart" })),
+        CtlCmd::Seek { position } => command(seek_body(&position)?),
         CtlCmd::Manual { state } => command(json!({ "cmd": "manual", "enabled": state == OnOff::On })),
         CtlCmd::Play { media } => command(json!({ "cmd": "play_now", "media": media })),
         CtlCmd::Queue { media } => command(json!({ "cmd": "queue", "media": media })),
@@ -125,4 +126,15 @@ fn print_status(s: &Value) {
     if let Some(e) = s["last_error"].as_str() {
         println!("error     {e}");
     }
+}
+
+/// `+30` / `-10` (seconds, relative) or `HH:MM:SS` (from the item start).
+fn seek_body(p: &str) -> Result<Value> {
+    let p = p.trim();
+    if let Some(rel) = p.strip_prefix('+').or_else(|| p.strip_prefix('-').map(|_| p)) {
+        let secs: f64 = rel.parse().map_err(|_| anyhow::anyhow!("seek: number of seconds expected, e.g. +30 or -10"))?;
+        return Ok(json!({ "cmd": "seek", "by_ms": (secs * 1000.0) as i64 }));
+    }
+    let d: lb_core::Dur = p.parse().map_err(|_| anyhow::anyhow!("seek: position HH:MM:SS or +/- seconds expected"))?;
+    Ok(json!({ "cmd": "seek", "to_ms": d.ms() }))
 }

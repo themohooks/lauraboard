@@ -1,7 +1,7 @@
 //! Home and On-Air screens: now / next, queue, quick actions, transport.
 
 use serde_json::{Value, json};
-use slint::{ComponentHandle, ModelRc, SharedString, VecModel};
+use slint::{ComponentHandle, Model, ModelRc, SharedString, VecModel};
 
 use lb_core::graphics::ElementKind;
 use lb_core::rundown::{Origin, RundownItem};
@@ -69,6 +69,15 @@ pub fn connect(ui: &AppWindow) {
             c.command(body);
         })
     });
+    a.on_seek_to(|f| {
+        with(move |c| {
+            let Some(it) = c.model.status.on_air.as_ref().and_then(|o| o.item.as_ref()) else { return };
+            let to = (f.clamp(0.0, 1.0) as f64 * it.duration_ms as f64) as i64;
+            c.command(json!({ "cmd": "seek", "to_ms": to }));
+        })
+    });
+    a.on_seek_by(|s| with(move |c| c.command(json!({ "cmd": "seek", "by_ms": s as i64 * 1000 }))));
+    a.on_time_of(|s| hms((s.max(0.0) * 1000.0) as i64).into());
     a.on_apply_ticker(|text| {
         with(move |c| {
             let value = if text.trim().is_empty() { Value::Null } else { json!(text.as_str()) };
@@ -118,6 +127,8 @@ pub fn status_changed(c: &mut Ctx) {
                 deviation_warn: dev.abs() > 10,
                 started: it.start.format("%H:%M:%S").to_string().into(),
                 ends: it.end().format("%H:%M:%S").to_string().into(),
+                seekable: !it.media.is_empty() && !matches!(it.kind, lb_core::media::MediaKind::Stream | lb_core::media::MediaKind::Image),
+                duration_s: (it.duration_ms / 1000) as i32,
             }
         }
         None => NowInfo::default(),
@@ -234,7 +245,19 @@ fn graphics_rows(c: &mut Ctx, active: &[String]) {
             on: active.contains(&e.id),
         })
         .collect();
-    ui.global::<Air>().set_graphics(model(rows));
+    let air = ui.global::<Air>();
+    // status comes several times a second: rebuilding the rows would
+    // recreate the buttons between press and release and lose the click
+    let current = air.get_graphics();
+    if current.row_count() == rows.len() {
+        for (i, r) in rows.into_iter().enumerate() {
+            if current.row_data(i).as_ref() != Some(&r) {
+                current.set_row_data(i, r);
+            }
+        }
+    } else {
+        air.set_graphics(model(rows));
+    }
 }
 
 pub fn element_kind_name(k: &ElementKind) -> &'static str {

@@ -22,6 +22,9 @@ export component Switch inherits Rectangle {
     }
 
     min-height: Theme.touch-target;
+    // without a label it is just the track: do not take spare row width
+    // (list rows pushed their text towards the middle)
+    horizontal-stretch: root.text == "" ? 0 : 1;
 
     HorizontalLayout {
     spacing: Theme.sp3;

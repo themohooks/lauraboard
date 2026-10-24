@@ -1,0 +1,101 @@
+// Left panel of the scenes screen: the channel's scenes and a "new scene"
+// menu with ready-made templates (broadcast clock, music break, up next).
+
+import { ListView } from "std-widgets.slint";
+import { Theme } from "../../theme/tokens.slint";
+import { Icons } from "../../theme/icons.slint";
+import { Label } from "../../components/label.slint";
+import { Icon } from "../../components/icon.slint";
+import { IconButton, IconButtonVariant } from "../../components/icon-button.slint";
+import { ListRow } from "../../components/list-row.slint";
+import { EmptyState } from "../../components/feedback.slint";
+import { Menu } from "../../components/menu.slint";
+import { Scenes } from "../../state/scenes-state.slint";
+
+export component SceneList inherits Rectangle {
+    border-radius: Theme.radius-l;
+    background: Theme.color.surface-container-low;
+    clip: true;
+
+    VerticalLayout {
+        padding: Theme.sp3;
+        spacing: Theme.sp2;
+        HorizontalLayout {
+            padding-left: Theme.sp1;
+            Label {
+                horizontal-stretch: 1;
+                text: "Сцены";
+                type-style: Theme.title-medium;
+                vertical-alignment: center;
+            }
+            add := IconButton {
+                icon: Icons.add;
+                variant: IconButtonVariant.tonal;
+                tooltip: "Новая сцена";
+                clicked => {
+                    menu.open-at(0, add.height);
+                }
+                menu := Menu {
+                    menu-width: 300px;
+                    entries: [
+                        { id: "empty", text: "Пустая сцена", icon: Icons.add, has-icon: true, enabled: true },
+                        { id: "clock", text: "Эфирные часы", icon: Icons.schedule, has-icon: true, enabled: true, divider: true },
+                        { id: "music", text: "Музыкальная пауза", icon: Icons.music-note, has-icon: true, enabled: true },
+                        { id: "next", text: "Скоро в эфире", icon: Icons.skip-next, has-icon: true, enabled: true },
+                    ];
+                    activated(id) => {
+                        Scenes.create(id);
+                    }
+                }
+            }
+        }
+        if Scenes.rows.length == 0: EmptyState {
+            vertical-stretch: 1;
+            icon: Icons.image;
+            title: "Сцен пока нет";
+            text: "Сцена — это фон с музыкой и графикой, например эфирные часы перед новостями. Создайте её кнопкой «+».";
+        }
+        if Scenes.rows.length > 0: ListView {
+            vertical-stretch: 1;
+            for r[i] in Scenes.rows: ListRow {
+                height: Theme.row-height-tall;
+                selected: i == Scenes.selected;
+                radius: Theme.radius-full;
+                focusable: false;
+                clicked => {
+                    Scenes.select(i);
+                }
+                VerticalLayout {
+                    alignment: center;
+                    Icon {
+                        source: Icons.image;
+                        tint: i == Scenes.selected ? Theme.color.on-secondary-container : Theme.color.on-surface-variant;
+                    }
+                }
+                VerticalLayout {
+                    horizontal-stretch: 1;
+                    alignment: center;
+                    Label {
+                        text: r.title;
+                        type-style: Theme.label-large;
+                        color: i == Scenes.selected ? Theme.color.on-secondary-container : Theme.color.on-surface;
+                    }
+                    Label {
+                        text: r.detail;
+                        type-style: Theme.body-small;
+                        color: i == Scenes.selected ? Theme.color.on-secondary-container : Theme.color.on-surface-variant;
+                    }
+                }
+                if r.problem != "": VerticalLayout {
+                    alignment: center;
+                    Icon {
+                        source: Icons.warning;
+                        size: 16px;
+                        tint: Theme.color.error;
+                        accessible-description: r.problem;
+                    }
+                }
+            }
+        }
+    }
+}

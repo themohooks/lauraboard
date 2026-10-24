@@ -1,0 +1,162 @@
+// Scenes screen: list of scenes | the selected scene (general, background,
+// music rules, graphics). A narrow window shows one of them at a time.
+
+import { ScrollView } from "std-widgets.slint";
+import { Theme } from "../../theme/tokens.slint";
+import { Icons } from "../../theme/icons.slint";
+import { Button, ButtonVariant } from "../../components/button.slint";
+import { IconButton } from "../../components/icon-button.slint";
+import { StatusChip, StatusTone } from "../../components/indicators.slint";
+import { EmptyState } from "../../components/feedback.slint";
+import { Page, PageHeader } from "../../shell/page.slint";
+import { App } from "../../state/app-state.slint";
+import { Scenes } from "../../state/scenes-state.slint";
+import { SceneList } from "scene-list.slint";
+import { SceneGeneral, SceneBackground } from "scene-form.slint";
+import { SceneMusic } from "music-rules.slint";
+import { SceneGraphics } from "scene-graphics.slint";
+
+component SceneEditor inherits Rectangle {
+    if Scenes.selected < 0: EmptyState {
+        icon: Icons.image;
+        title: "Выберите сцену";
+        text: "Сцены — это фон с музыкой и графикой, собранные прямо в эфире. Их можно ставить в плейлисты и сетку как обычные ролики.";
+    }
+    if Scenes.selected >= 0: sv := ScrollView {
+        content-width: self.visible-width;
+        horizontal-scrollbar-policy: always-off;
+        VerticalLayout {
+            width: sv.visible-width;
+            padding-right: Theme.sp3;
+            spacing: Theme.sp3;
+            alignment: start;
+            SceneGeneral { }
+            SceneBackground { }
+            SceneMusic { }
+            SceneGraphics { }
+        }
+    }
+}
+
+export component ScenesScreen inherits Page {
+    VerticalLayout {
+        padding: Theme.sp4;
+        spacing: Theme.sp3;
+
+        PageHeader {
+            title: "Сцены";
+            subtitle: App.narrow ? "" : "фон, музыка и графика в одном элементе эфира";
+            if Scenes.dirty: VerticalLayout {
+                alignment: center;
+                StatusChip {
+                    text: "Не сохранено";
+                    tone: StatusTone.warning;
+                    icon: Icons.edit;
+                }
+            }
+            if Scenes.selected >= 0: VerticalLayout {
+                alignment: center;
+                IconButton {
+                    icon: Icons.playlist-add;
+                    tooltip: "В очередь эфира (после текущего)";
+                    enabled: App.online && !Scenes.dirty;
+                    clicked => {
+                        Scenes.air("queue");
+                    }
+                }
+            }
+            if Scenes.selected >= 0: VerticalLayout {
+                alignment: center;
+                IconButton {
+                    icon: Icons.play-arrow;
+                    icon-tint: Theme.status.live;
+                    tooltip: "Показать в эфире сейчас (прервёт текущий элемент)";
+                    enabled: App.online && !Scenes.dirty;
+                    clicked => {
+                        Scenes.air("play");
+                    }
+                }
+            }
+            if Scenes.selected >= 0: VerticalLayout {
+                alignment: center;
+                IconButton {
+                    icon: Icons.content-copy;
+                    tooltip: "Дублировать сцену";
+                    clicked => {
+                        Scenes.duplicate();
+                    }
+                }
+            }
+            if Scenes.selected >= 0: VerticalLayout {
+                alignment: center;
+                IconButton {
+                    icon: Icons.delete;
+                    icon-tint: Theme.color.error;
+                    tooltip: "Удалить сцену";
+                    clicked => {
+                        Scenes.remove();
+                    }
+                }
+            }
+            VerticalLayout {
+                alignment: center;
+                Button {
+                    text: "Сбросить";
+                    variant: ButtonVariant.text;
+                    enabled: Scenes.dirty;
+                    clicked => {
+                        Scenes.revert();
+                    }
+                }
+            }
+            VerticalLayout {
+                alignment: center;
+                Button {
+                    text: "Сохранить";
+                    icon: Icons.save;
+                    has-icon: true;
+                    enabled: Scenes.dirty;
+                    tooltip: "Ctrl+S";
+                    clicked => {
+                        Scenes.save();
+                    }
+                }
+            }
+        }
+
+        if !App.narrow: HorizontalLayout {
+            vertical-stretch: 1;
+            spacing: Theme.sp4;
+            SceneList {
+                width: min(360px, root.width * 0.32);
+            }
+            SceneEditor {
+                horizontal-stretch: 1;
+            }
+        }
+        if App.narrow && Scenes.selected < 0: SceneList {
+            vertical-stretch: 1;
+        }
+        if App.narrow && Scenes.selected >= 0: VerticalLayout {
+            vertical-stretch: 1;
+            spacing: Theme.sp2;
+            HorizontalLayout {
+                Button {
+                    text: "Все сцены";
+                    icon: Icons.chevron-left;
+                    has-icon: true;
+                    variant: ButtonVariant.text;
+                    clicked => {
+                        Scenes.select(-1);
+                    }
+                }
+                Rectangle {
+                    horizontal-stretch: 1;
+                }
+            }
+            SceneEditor {
+                vertical-stretch: 1;
+            }
+        }
+    }
+}
