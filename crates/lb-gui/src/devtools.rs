@@ -367,6 +367,15 @@ fn prepare_live(section: &str) {
             }
         });
     }
+    if section == "scenes" && std::env::var("LB_SNAPSHOT_SELECT").is_ok() {
+        crate::bridge::with(|c| {
+            let pick = std::env::var("LB_SNAPSHOT_SELECT").ok().and_then(|v| v.parse().ok()).unwrap_or(0);
+            crate::bridge::scenes::select(c, pick);
+            if let Ok(ids) = std::env::var("LB_SNAPSHOT_MUSIC") {
+                crate::bridge::scenes::music::demo(c, ids.split(',').map(String::from).collect());
+            }
+        });
+    }
     if section == "graphics" {
         crate::bridge::with(|c| {
             if let Ok(tab) = std::env::var("LB_SNAPSHOT_TAB")

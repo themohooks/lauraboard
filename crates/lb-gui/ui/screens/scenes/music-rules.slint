@@ -218,6 +218,74 @@ component MusicCard inherits Rectangle {
                 }
             }
         }
+        // how many times, pauses
+        HorizontalLayout {
+            spacing: Theme.sp2;
+            Select {
+                horizontal-stretch: 2;
+                label: "Повтор";
+                options: ["По кругу до конца сцены", "Один раз", "Несколько раз"];
+                current-index: root.r.repeat-mode;
+                container-color: Theme.color.surface-container;
+                selected(i, _) => {
+                    Scenes.music-edited(root.r.index, "repeat-mode", i);
+                }
+            }
+            if root.r.repeat-mode == 2: TextField {
+                horizontal-stretch: 1;
+                label: "Сколько раз";
+                text: root.r.repeat-times;
+                mono: true;
+                placeholder: "2";
+                container-color: Theme.color.surface-container;
+                edited(t) => {
+                    Scenes.music-edited(root.r.index, "repeat", t);
+                }
+            }
+            TextField {
+                horizontal-stretch: 1;
+                label: "Пауза между треками";
+                text: root.r.gap;
+                mono: true;
+                placeholder: "00:00:00";
+                container-color: Theme.color.surface-container;
+                edited(t) => {
+                    Scenes.music-edited(root.r.index, "gap", t);
+                }
+            }
+            TextField {
+                horizontal-stretch: 1;
+                label: "Задержка начала";
+                text: root.r.delay;
+                mono: true;
+                placeholder: "00:00:00";
+                container-color: Theme.color.surface-container;
+                edited(t) => {
+                    Scenes.music-edited(root.r.index, "delay", t);
+                }
+            }
+        }
+        if root.r.length != "": HorizontalLayout {
+            spacing: Theme.sp2;
+            Label {
+                horizontal-stretch: 1;
+                text: root.r.length;
+                wrap: word-wrap;
+                vertical-alignment: center;
+                type-style: Theme.body-small;
+                color: Theme.color.on-surface-variant;
+            }
+            if root.r.can-fit: Button {
+                text: "Длительность сцены по музыке";
+                icon: Icons.timer;
+                has-icon: true;
+                variant: ButtonVariant.text;
+                tooltip: "Сцена закончится вместе с музыкой";
+                clicked => {
+                    Scenes.music-fit(root.r.index);
+                }
+            }
+        }
         Checkbox {
             text: "Начинать первый трек со случайного места (для длинных миксов)";
             checked: root.r.random-start;

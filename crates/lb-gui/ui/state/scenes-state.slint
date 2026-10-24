@@ -29,6 +29,15 @@ export struct MusicRow {
     fade-in: string,
     fade-out: string,
     random-start: bool,
+    // 0 по кругу до конца сцены, 1 один раз, 2 несколько раз
+    repeat-mode: int,
+    repeat-times: string,
+    gap: string,
+    delay: string,
+    // "Музыка длится 00:04:12, сцена — 00:05:00" / ""
+    length: string,
+    // the music has a known length different from the scene's
+    can-fit: bool,
     from: string,
     to: string,
     // Mon..Sun
@@ -89,6 +98,8 @@ export global Scenes {
     callback music-edited(int, string, string);
     callback music-pick(int);
     callback music-track-remove(int, int);
+    // the scene's duration := the music's length (rule index)
+    callback music-fit(int);
     callback gfx-channel-toggled(bool);
     callback gfx-toggle(int);
     callback gfx-remove(int);

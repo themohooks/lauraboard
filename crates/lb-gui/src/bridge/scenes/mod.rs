@@ -8,7 +8,7 @@
 
 mod form;
 mod gfx;
-mod music;
+pub(crate) mod music;
 mod templates;
 
 use serde_json::json;
@@ -131,7 +131,7 @@ fn row(c: &Ctx, m: &MediaItem) -> SceneItemRow {
     SceneItemRow { id: m.id.clone().into(), title: title(m).into(), detail: format!("{} · {bg} · {music}", hms(m.play_duration())).into(), problem: problem.into() }
 }
 
-fn select(c: &mut Ctx, i: i32) {
+pub fn select(c: &mut Ctx, i: i32) {
     if c.scenes.dirty {
         let i2 = i;
         c.ask("Сохранить изменения сцены?", "Изменения выбранной сцены ещё не сохранены.", "Не сохранять", move |c| {
