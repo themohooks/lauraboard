@@ -1,0 +1,172 @@
+// Notification popups of the program itself (in the style of Telegram
+// Desktop): a frameless always-on-top window in the corner of the screen
+// with a stack of cards — channel avatar, title, text, time. A card closes
+// by itself after a while (not while the pointer is over it), by its close
+// button, or by a click, which also brings up the main window.
+//
+// Rust (`src/notify/`) sizes and places the window; the cards are laid out
+// from its bottom edge without layouts so the window has no size limits.
+
+import { Theme } from "../theme/tokens.slint";
+import { Icons } from "../theme/icons.slint";
+import { Icon } from "../components/icon.slint";
+import { Label } from "../components/label.slint";
+import { Avatar } from "../components/avatar.slint";
+
+export struct NoticeRow {
+    id: int,
+    title: string,
+    body: string,
+    time: string,
+    // 0 info, 1 warning, 2 critical
+    urgency: int,
+    avatar: image,
+    has-avatar: bool,
+    initial: string,
+}
+
+export global Popups {
+    in property <[NoticeRow]> items;
+    // card height and gap between cards (Rust sizes the window with them)
+    out property <length> card-height: 88px;
+    out property <length> gap: 8px;
+    out property <length> margin: 10px;
+    callback open(int);
+    callback close(int);
+    callback hover(int, bool);
+}
+
+component NoticeCard inherits Rectangle {
+    in property <NoticeRow> notice;
+    property <color> accent: notice.urgency == 2 ? Theme.color.error : notice.urgency == 1 ? Theme.status.warning : Theme.color.primary;
+
+    border-radius: Theme.radius-m;
+    background: Theme.color.surface-container-high;
+    border-width: 1px;
+    border-color: notice.urgency == 2 ? Theme.color.error.with-alpha(0.6) : Theme.color.outline-variant.with-alpha(0.6);
+    drop-shadow-blur: 8px;
+    drop-shadow-offset-y: 2px;
+    drop-shadow-color: Theme.color.shadow.with-alpha(0.28);
+    accessible-role: AccessibleRole.button;
+    accessible-label: notice.title + ". " + notice.body;
+    accessible-action-default => {
+        Popups.open(notice.id);
+    }
+
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            Popups.open(notice.id);
+        }
+        changed has-hover => {
+            Popups.hover(notice.id, self.has-hover);
+        }
+    }
+
+    // urgency strip on the left edge
+    Rectangle {
+        x: 5px;
+        y: 12px;
+        width: 3px;
+        height: parent.height - 24px;
+        border-radius: 1.5px;
+        background: root.accent;
+    }
+
+    Avatar {
+        x: 14px;
+        y: 14px;
+        size: 40px;
+        source: notice.avatar;
+        has-image: notice.has-avatar;
+        initial: notice.initial;
+    }
+
+    // urgency badge on the avatar
+    if notice.urgency > 0: Rectangle {
+        x: 38px;
+        y: 38px;
+        width: 18px;
+        height: 18px;
+        border-radius: 9px;
+        background: Theme.color.surface-container-high;
+        Icon {
+            source: notice.urgency == 2 ? Icons.error : Icons.warning;
+            size: 16px;
+            tint: root.accent;
+        }
+    }
+
+    Label {
+        x: 66px;
+        y: 12px;
+        width: parent.width - 66px - 74px;
+        height: 20px;
+        text: notice.title;
+        type-style: Theme.title-small;
+        font-weight: 600;
+    }
+
+    Label {
+        x: parent.width - 70px;
+        y: 12px;
+        width: 40px;
+        height: 20px;
+        text: notice.time;
+        type-style: Theme.label-small;
+        color: Theme.color.on-surface-variant;
+        horizontal-alignment: right;
+    }
+
+    Label {
+        x: 66px;
+        y: 34px;
+        width: parent.width - 66px - 14px;
+        height: 40px;
+        text: notice.body;
+        type-style: Theme.body-medium;
+        color: Theme.color.on-surface-variant;
+        wrap: word-wrap;
+        vertical-alignment: top;
+    }
+
+    // close button: shown under the pointer
+    close := TouchArea {
+        x: parent.width - 28px;
+        y: 8px;
+        width: 22px;
+        height: 22px;
+        mouse-cursor: pointer;
+        clicked => {
+            Popups.close(notice.id);
+        }
+        Rectangle {
+            border-radius: 11px;
+            background: close.has-hover ? Theme.color.on-surface.with-alpha(0.1) : transparent;
+            opacity: touch.has-hover || close.has-hover ? 1 : 0;
+            Icon {
+                source: Icons.close;
+                size: 16px;
+                tint: Theme.color.on-surface-variant;
+            }
+        }
+    }
+}
+
+export component NotifyWindow inherits Window {
+    title: "Laurabrod — уведомления";
+    no-frame: true;
+    always-on-top: true;
+    background: transparent;
+    default-font-family: Theme.font;
+    preferred-width: 380px;
+    preferred-height: Popups.card-height + 2 * Popups.margin;
+
+    for row[i] in Popups.items: NoticeCard {
+        notice: row;
+        x: Popups.margin;
+        width: root.width - 2 * Popups.margin;
+        height: Popups.card-height;
+        y: root.height - Popups.margin - (Popups.items.length - i) * (Popups.card-height + Popups.gap) + Popups.gap;
+    }
+}

@@ -173,11 +173,13 @@ pub fn navigate(c: &mut Ctx, id: &str) {
 pub fn apply_prefs(c: &mut Ctx) {
     let Some(ui) = c.window() else { return };
     let t = ui.global::<Theme>();
-    t.set_mode(match c.prefs.theme {
+    let mode = match c.prefs.theme {
         PrefTheme::System => ThemeMode::System,
         PrefTheme::Light => ThemeMode::Light,
         PrefTheme::Dark => ThemeMode::Dark,
-    });
+    };
+    t.set_mode(mode);
+    crate::notify::set_theme(mode);
     t.set_animations(c.prefs.animations());
     t.set_compact(c.prefs.compact);
     let g = ui.global::<App>();
