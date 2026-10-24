@@ -28,6 +28,8 @@ export component NavRail inherits Rectangle {
     in-out property <bool> expanded: true;
     callback navigate(string);
     callback expanded-changed(bool);
+    // the section has unsaved changes: a small dot by its title
+    pure callback unsaved(string) -> bool;
 
     property <int> cursor: -1;
     property <length> item-height: Theme.compact ? 36px : 40px;
@@ -113,6 +115,14 @@ export component NavRail inherits Rectangle {
                                             source: item.id == root.current ? item.icon-active : item.icon;
                                             tint: item.id == root.current ? Theme.color.on-secondary-container : Theme.color.on-surface-variant;
                                         }
+                                        if !root.expanded && !item.has-badge && root.unsaved(item.id): Rectangle {
+                                            x: parent.width - 4px;
+                                            y: -1px;
+                                            width: 8px;
+                                            height: 8px;
+                                            border-radius: 4px;
+                                            background: Theme.color.primary;
+                                        }
                                         if item.has-badge && !root.expanded: Badge {
                                             x: parent.width - 4px;
                                             y: -2px;
@@ -126,6 +136,17 @@ export component NavRail inherits Rectangle {
                                     type-style: Theme.label-large;
                                     color: item.id == root.current ? Theme.color.on-secondary-container : Theme.color.on-surface-variant;
                                 }
+                                if root.expanded && root.unsaved(item.id): VerticalLayout {
+                                    alignment: center;
+                                    Rectangle {
+                                        width: 8px;
+                                        height: 8px;
+                                        border-radius: 4px;
+                                        background: Theme.color.primary;
+                                        accessible-role: text;
+                                        accessible-label: "есть несохранённые изменения";
+                                    }
+                                }
                                 if root.expanded && item.has-badge: VerticalLayout {
                                     alignment: center;
                                     Badge {
@@ -134,7 +155,7 @@ export component NavRail inherits Rectangle {
                                 }
                             }
                             if !root.expanded: Tooltip {
-                                text: item.title;
+                                text: item.title + (root.unsaved(item.id) ? " · не сохранено" : "");
                                 hovered: entry.hovered;
                                 anchor-height: entry.height;
                             }

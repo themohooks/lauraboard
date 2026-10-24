@@ -9,6 +9,11 @@ import { Snackbar } from "components/snackbar.slint";
 import { ConfirmDialog } from "components/dialog.slint";
 import { TooltipLayer } from "components/tooltip.slint";
 import { App } from "state/app-state.slint";
+import { Pl } from "state/playlists-state.slint";
+import { Grid } from "state/schedule-state.slint";
+import { Gfx } from "state/graphics-state.slint";
+import { Rules } from "state/rules-state.slint";
+import { Scenes } from "state/scenes-state.slint";
 import { AppBar } from "shell/app-bar.slint";
 import { NewChannelDialog } from "shell/new-channel-dialog.slint";
 import { ChannelsDialog, ChannelFormDialog } from "shell/channels-dialog.slint";
@@ -150,6 +155,11 @@ export component AppWindow inherits Window {
                     items: App.nav-items;
                     current: App.section;
                     expanded: App.nav-expanded && !root.narrow;
+                    unsaved(id) => {
+                        id == "playlists" ? Pl.dirty : id == "schedule" ? Grid.dirty : id == "graphics" ? Gfx.dirty
+                            : id == "scenes" ? Scenes.dirty || (Rules.dirty && Rules.scope == "scenes")
+                            : (id == "jingles" || id == "ads") ? Rules.dirty && Rules.scope == id : false
+                    }
                     navigate(id) => {
                         root.go(id);
                     }
