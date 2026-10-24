@@ -1,15 +1,24 @@
 //! Lifetime of the graphics overlay thread: started with the broadcast when
-//! the channel has graphics, started / stopped when graphics are added or
-//! switched off, respawned if it ever dies.
+//! graphics are switched on, respawned if it ever dies.
+//!
+//! Attaching or detaching the overlay restarts the encoder, and that drops
+//! the connection to every network output (the remote server sees the
+//! stream end). So the overlay stays attached while the channel runs: it
+//! is attached even with no elements yet (new graphics, a scene's own
+//! graphics just go on air), and switching graphics off only empties it.
 
 use super::super::gfx::GfxThread;
 use super::Runtime;
 
 impl Runtime {
-    /// Graphics are switched on and there is something to draw.
+    /// Graphics are switched on.
     fn graphics_wanted(&self) -> bool {
-        let d = self.shared.data.read().unwrap_or_else(|e| e.into_inner());
-        d.config.graphics.enabled && !d.graphics.elements.is_empty()
+        self.shared.data.read().unwrap_or_else(|e| e.into_inner()).config.graphics.enabled
+    }
+
+    /// Graphics are switched off: the overlay draws nothing.
+    pub(super) fn graphics_muted(&self) -> bool {
+        !self.graphics_wanted()
     }
 
     /// Bring the overlay thread in line with the configuration. Returns
@@ -25,10 +34,10 @@ impl Runtime {
                 self.spawn_graphics();
                 true
             }
+            // keep the overlay input (it draws nothing now): no restart
+            (Some(t), false) if !t.is_dead() => false,
             (Some(_), false) => {
-                if let Some(t) = self.gfx_thread.take() {
-                    t.shutdown();
-                }
+                self.gfx_thread = None;
                 true
             }
             (None, true) => {

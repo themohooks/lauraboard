@@ -199,8 +199,9 @@ impl Runtime {
             }
         }
         self.update_graphics_state();
-        // graphics added to a channel that had none (or switched on / off):
-        // the encoder needs its overlay input reconnected
+        // graphics edits apply on the fly (the overlay stays attached);
+        // only graphics switched on for a running channel without an
+        // overlay, or new frame settings, need the encoder restarted
         if encoder_changed && let Some(t) = self.gfx_thread.take() {
             t.shutdown(); // frame size or rate may have changed
         }
