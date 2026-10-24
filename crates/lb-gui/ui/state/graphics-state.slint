@@ -76,6 +76,16 @@ export struct FontRow {
     value: string,
     name: string,
     file: bool,
+    // "файл канала", "Google Fonts" (not previewed: not on this computer)
+    note: string,
+}
+
+// A Google Fonts family in the download tab.
+export struct GFontRow {
+    family: string,
+    // category and styles, "Без засечек · кириллица · жирный, курсив"
+    info: string,
+    downloaded: bool,
 }
 
 export struct VarRow {
@@ -194,6 +204,17 @@ export global Gfx {
     callback font-search(string);
     callback font-pick(string);
     callback font-upload();
+    // font dialog tab: 0 fonts of the server and channel, 1 Google Fonts
+    in-out property <int> font-tab;
+    in-out property <string> gf-query;
+    in-out property <bool> gf-cyrillic: true;
+    in property <[GFontRow]> gf-list;
+    in property <bool> gf-loading;
+    in property <string> gf-error;
+    // family being downloaded ("" none)
+    in property <string> gf-busy;
+    callback gf-search();
+    callback gf-download(string);
 
     // 0 none, 1 fade, 2 slide left, 3 slide right, 4 slide up, 5 slide down
     in-out property <int> a-in;

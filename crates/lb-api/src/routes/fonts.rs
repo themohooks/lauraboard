@@ -1,11 +1,12 @@
 //! Fonts for graphics: families installed on the server and font files of
-//! the channel (`channels/<id>/fonts/`), plus adding a font file.
+//! the channel (`channels/<id>/fonts/`), plus adding a font file and
+//! downloading a family from Google Fonts.
 
 use std::path::PathBuf;
 use std::sync::OnceLock;
 
 use axum::Json;
-use axum::extract::{Path, State};
+use axum::extract::{Path, Query, State};
 use serde::Deserialize;
 use serde_json::{Value, json};
 
@@ -36,16 +37,18 @@ pub async fn list(State(s): State<AppState>, c: Caller, Path(id): Path<String>) 
     let h = channel(&s, &id)?;
     let dir = h.read(|d| d.dir.join(FONTS_DIR));
     let root = h.shared.root.clone();
-    let (system, files) = tokio::task::spawn_blocking(move || {
+    let (system, files, families) = tokio::task::spawn_blocking(move || {
         let mut files: Vec<String> = std::fs::read_dir(&dir)
             .map(|rd| rd.flatten().map(|e| e.path()).filter(|p| is_font(p)).map(|p| paths::to_stored(&root, &p)).collect())
             .unwrap_or_default();
         files.sort();
-        (system_families().clone(), files)
+        // families of the font files in sub-folders (Google Fonts downloads)
+        let families = lb_gfx::fonts::families_in(&dir.join(lb_engine::google_fonts::DIR));
+        (system_families().clone(), files, families)
     })
     .await
     .map_err(|e| ApiError::bad_request(e.to_string()))?;
-    Ok(Json(json!({ "system": system, "files": files })))
+    Ok(Json(json!({ "system": system, "files": files, "families": families })))
 }
 
 #[derive(Deserialize)]
@@ -88,4 +91,44 @@ pub async fn add(State(s): State<AppState>, c: Caller, Path(id): Path<String>, J
     .map_err(|e| ApiError::bad_request(e.to_string()))?
     .map_err(ApiError::bad_request)?;
     Ok(Json(json!({ "path": stored })))
+}
+
+#[derive(Deserialize)]
+pub struct GoogleQuery {
+    #[serde(default)]
+    pub q: String,
+    /// Only families with Cyrillic letters.
+    #[serde(default)]
+    pub cyrillic: bool,
+}
+
+/// `GET /fonts/google?q=rob&cyrillic=true`: Google Fonts families, most
+/// popular first (the catalogue is fetched by the server, once a day).
+pub async fn google_search(c: Caller, Query(q): Query<GoogleQuery>) -> ApiResult<Json<Value>> {
+    c.require(Role::Viewer)?;
+    let list = tokio::task::spawn_blocking(move || lb_engine::google_fonts::search(&q.q, q.cyrillic, 200))
+        .await
+        .map_err(|e| ApiError::bad_request(e.to_string()))?
+        .map_err(ApiError::bad_request)?;
+    Ok(Json(json!({ "families": list })))
+}
+
+#[derive(Deserialize)]
+pub struct GoogleFont {
+    pub family: String,
+}
+
+/// `POST /channels/{id}/fonts/google {"family": "Roboto"}`: download the
+/// family into the channel's font folder; text styles then use it by name.
+pub async fn google_download(State(s): State<AppState>, c: Caller, Path(id): Path<String>, Json(b): Json<GoogleFont>) -> ApiResult<Json<Value>> {
+    c.require(Role::Operator)?;
+    let h = channel(&s, &id)?;
+    let dir = h.read(|d| d.dir.join(FONTS_DIR));
+    let family = b.family.clone();
+    let files = tokio::task::spawn_blocking(move || lb_engine::google_fonts::download(&family, &dir))
+        .await
+        .map_err(|e| ApiError::bad_request(e.to_string()))?
+        .map_err(ApiError::bad_request)?;
+    tracing::info!(channel = %id, family = %b.family, files = files.len(), "Google font downloaded");
+    Ok(Json(json!({ "family": b.family.trim(), "files": files.len() })))
 }
