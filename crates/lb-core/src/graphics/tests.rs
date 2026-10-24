@@ -167,6 +167,10 @@ fn plate(id: &str) -> Element {
             padding_y: 10.0,
             spacing: 4.0,
             align: Default::default(),
+            layout: Default::default(),
+            valign: Default::default(),
+            fit: false,
+            icon: None,
         },
         ..el(id, 0)
     }

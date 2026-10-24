@@ -122,7 +122,7 @@ impl SpriteFactory {
                 let sprite = Sprite { pixmap: Arc::new(s.pixmap), ox: s.ox, oy: s.oy, w: w.max(1.0), h: h.max(1.0) };
                 self.store(key, sprite)
             }
-            ElementKind::Plate { fields, color, radius, shape, width, min_width, padding_x, padding_y, spacing, align } => {
+            ElementKind::Plate { fields, color, radius, shape, width, min_width, padding_x, padding_y, spacing, align, layout, valign, fit, icon } => {
                 let texts: Vec<String> = fields.iter().map(|f| render_template(&f.text, ctx.vars)).collect();
                 let key = format!("plate|{}|{}", el.id, texts.join("\u{1f}"));
                 if let Some(s) = self.cache.get(&key) {
@@ -139,6 +139,10 @@ impl SpriteFactory {
                     padding_y: *padding_y,
                     spacing: *spacing,
                     align: *align,
+                    layout: *layout,
+                    valign: *valign,
+                    fit: *fit,
+                    icon: icon.as_ref(),
                 };
                 let p = render_plate(&look, fields, &texts, &mut self.fonts, &mut self.images)?;
                 self.store(key, Sprite { pixmap: Arc::new(p.pixmap), ox: p.ox, oy: p.oy, w: p.w, h: p.h })

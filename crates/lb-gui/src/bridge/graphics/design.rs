@@ -4,7 +4,7 @@
 
 use slint::{ComponentHandle, SharedString};
 
-use lb_core::graphics::{Accent, ElementKind, PlateField, ShapeStyle, Side, TextAlign, TextStyle};
+use lb_core::graphics::{Accent, ElementKind, PlateField, PlateIcon, PlateLayout, ShapeStyle, Side, TextAlign, TextStyle, VAlign};
 
 use super::{color_of, fmt_num, mutate, props, s, update_item, with};
 use crate::bridge::{Ctx, vec_model};
@@ -12,6 +12,7 @@ use crate::shell::{AppWindow, Gfx, PlateFieldRow};
 
 const SIDES: [Side; 4] = [Side::Left, Side::Top, Side::Right, Side::Bottom];
 const ALIGNS: [TextAlign; 3] = [TextAlign::Left, TextAlign::Center, TextAlign::Right];
+const VALIGNS: [VAlign; 3] = [VAlign::Top, VAlign::Center, VAlign::Bottom];
 
 pub fn connect(ui: &AppWindow) {
     let g = ui.global::<Gfx>();
@@ -104,7 +105,7 @@ pub fn read_shape(g: &Gfx, old: &ShapeStyle, num: &mut Num, color: &mut Col, err
 /// Plate layout fields and its lines; returns the selected line's style
 /// (shown in the text section).
 pub fn show_plate(c: &Ctx, g: &Gfx, kind: &ElementKind) -> Option<TextStyle> {
-    let ElementKind::Plate { fields, color, radius, shape, width, min_width, padding_x, padding_y, spacing, align } = kind else { return None };
+    let ElementKind::Plate { fields, color, radius, shape, width, min_width, padding_x, padding_y, spacing, align, layout, valign, fit, icon } = kind else { return None };
     g.set_p_color(s(color.clone()));
     g.set_sw_p_color(color_of(color));
     g.set_p_radius(s(fmt_num(*radius)));
@@ -114,6 +115,15 @@ pub fn show_plate(c: &Ctx, g: &Gfx, kind: &ElementKind) -> Option<TextStyle> {
     g.set_pl_pad_y(s(fmt_num(*padding_y)));
     g.set_pl_spacing(s(fmt_num(*spacing)));
     g.set_pl_align(ALIGNS.iter().position(|a| a == align).unwrap_or(0) as i32);
+    g.set_pl_layout(if *layout == PlateLayout::Row { 1 } else { 0 });
+    g.set_pl_valign(VALIGNS.iter().position(|a| a == valign).unwrap_or(1) as i32);
+    g.set_pl_fit(*fit);
+    let ic = icon.clone().unwrap_or(PlateIcon { path: String::new(), size: 64.0, side: Side::Left, gap: 16.0, radius: 0.0 });
+    g.set_pl_icon(s(ic.path.clone()));
+    g.set_pl_icon_side(if ic.side == Side::Right { 1 } else { 0 });
+    g.set_pl_icon_size(s(fmt_num(ic.size)));
+    g.set_pl_icon_gap(s(fmt_num(ic.gap)));
+    g.set_pl_icon_radius(s(fmt_num(ic.radius)));
     let rows: Vec<PlateFieldRow> = fields.iter().map(|f| PlateFieldRow { label: s(f.label.clone()), text: s(f.text.clone()) }).collect();
     g.set_pl_fields(vec_model(rows));
     let i = c.gfx.field.min(fields.len().saturating_sub(1));
@@ -122,19 +132,32 @@ pub fn show_plate(c: &Ctx, g: &Gfx, kind: &ElementKind) -> Option<TextStyle> {
     let f = fields.get(i)?;
     g.set_pl_label(s(f.label.clone()));
     g.set_p_text(s(f.text.clone()));
+    g.set_pl_line_align(f.align.and_then(|a| ALIGNS.iter().position(|x| *x == a)).map_or(0, |i| i as i32 + 1));
+    g.set_pl_gap(s(fmt_num(f.gap_before)));
     Some(f.style.clone())
 }
 
 /// Plate with its layout and the selected line read from the panel.
 pub fn read_plate(c: &Ctx, g: &Gfx, old: ElementKind, style: impl FnOnce(&TextStyle) -> TextStyle, num: &mut Num, color: &mut Col, errors: &mut Vec<String>) -> ElementKind {
-    let ElementKind::Plate { mut fields, color: old_color, radius, shape, width, min_width, padding_x, padding_y, spacing, align: _ } = old else {
+    let ElementKind::Plate { mut fields, color: old_color, radius, shape, width, min_width, padding_x, padding_y, spacing, align: _, icon, .. } = old else {
         return old;
     };
     if let Some(f) = fields.get_mut(c.gfx.field) {
         f.label = g.get_pl_label().trim().to_string();
         f.text = g.get_p_text().to_string();
         f.style = style(&f.style);
+        f.align = usize::try_from(g.get_pl_line_align() - 1).ok().and_then(|i| ALIGNS.get(i)).copied();
+        f.gap_before = num("Отступ перед строкой", g.get_pl_gap(), f.gap_before).max(0.0);
     }
+    let path = g.get_pl_icon().trim().to_string();
+    let old_icon = icon.unwrap_or(PlateIcon { path: String::new(), size: 64.0, side: Side::Left, gap: 16.0, radius: 0.0 });
+    let icon = (!path.is_empty()).then(|| PlateIcon {
+        path,
+        size: num("Высота картинки", g.get_pl_icon_size(), old_icon.size).clamp(4.0, 1000.0),
+        side: if g.get_pl_icon_side() == 1 { Side::Right } else { Side::Left },
+        gap: num("Зазор картинки", g.get_pl_icon_gap(), old_icon.gap).max(0.0),
+        radius: num("Скругление картинки", g.get_pl_icon_radius(), old_icon.radius).max(0.0),
+    });
     let w = g.get_pl_width();
     ElementKind::Plate {
         fields,
@@ -147,6 +170,10 @@ pub fn read_plate(c: &Ctx, g: &Gfx, old: ElementKind, style: impl FnOnce(&TextSt
         padding_y: num("Поля ↕", g.get_pl_pad_y(), padding_y).max(0.0),
         spacing: num("Между строк", g.get_pl_spacing(), spacing),
         align: ALIGNS.get(g.get_pl_align().max(0) as usize).copied().unwrap_or_default(),
+        layout: if g.get_pl_layout() == 1 { PlateLayout::Row } else { PlateLayout::Column },
+        valign: VALIGNS.get(g.get_pl_valign().max(0) as usize).copied().unwrap_or_default(),
+        fit: g.get_pl_fit(),
+        icon,
     }
 }
 
@@ -172,6 +199,10 @@ pub fn new_plate() -> ElementKind {
         padding_y: 14.0,
         spacing: 2.0,
         align: TextAlign::Left,
+        layout: PlateLayout::Column,
+        valign: VAlign::Center,
+        fit: false,
+        icon: None,
     }
 }
 
@@ -192,7 +223,7 @@ fn edit_fields(c: &mut Ctx, f: impl FnOnce(&mut Vec<PlateField>, &mut usize)) {
 fn add_field(c: &mut Ctx) {
     edit_fields(c, |fields, sel| {
         let style = fields.last().map(|f| TextStyle { size: (f.style.size * 0.8).round().max(12.0), ..f.style.clone() }).unwrap_or_default();
-        fields.push(PlateField { label: format!("Строка {}", fields.len() + 1), text: String::new(), style });
+        fields.push(PlateField { label: format!("Строка {}", fields.len() + 1), text: String::new(), style, align: None, gap_before: 0.0 });
         *sel = fields.len() - 1;
     });
 }

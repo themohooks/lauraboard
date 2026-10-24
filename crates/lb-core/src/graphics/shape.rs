@@ -107,6 +107,53 @@ pub enum TextAlign {
     Right,
 }
 
+/// Vertical alignment of plate content.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum VAlign {
+    Top,
+    #[default]
+    Center,
+    Bottom,
+}
+
+/// How plate lines are arranged.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum PlateLayout {
+    /// Under each other.
+    #[default]
+    Column,
+    /// In one row ("LIVE | Заголовок"), centred vertically.
+    Row,
+}
+
+/// A picture inside a plate, beside the text.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct PlateIcon {
+    pub path: String,
+    /// Height, pixels (the width keeps the aspect ratio).
+    #[serde(default = "icon_size")]
+    pub size: f32,
+    /// Left or right of the text.
+    #[serde(default)]
+    pub side: Side,
+    /// Gap to the text.
+    #[serde(default = "icon_gap")]
+    pub gap: f32,
+    /// Corner radius (a large one makes a round photo).
+    #[serde(default)]
+    pub radius: f32,
+}
+
+fn icon_size() -> f32 {
+    64.0
+}
+
+fn icon_gap() -> f32 {
+    16.0
+}
+
 /// One line of text on a plate ("Имя", "Должность", …).
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct PlateField {
@@ -118,6 +165,12 @@ pub struct PlateField {
     pub text: String,
     #[serde(default)]
     pub style: TextStyle,
+    /// Own alignment of the line (`None`: the plate's).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub align: Option<TextAlign>,
+    /// Extra space before the line, pixels.
+    #[serde(default, skip_serializing_if = "is_zero")]
+    pub gap_before: f32,
 }
 
 impl PlateField {
@@ -126,6 +179,8 @@ impl PlateField {
             label: label.into(),
             text: text.into(),
             style: TextStyle { size, color: color.into(), shadow_color: None, ..Default::default() },
+            align: None,
+            gap_before: 0.0,
         }
     }
 }

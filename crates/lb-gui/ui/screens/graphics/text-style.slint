@@ -1,0 +1,87 @@
+// Text style fields of the selected element (or plate line): font, size,
+// weight, colours, outline, shadow, background, letter spacing, capitals.
+
+import { Theme } from "../../theme/tokens.slint";
+import { Icons } from "../../theme/icons.slint";
+import { Button, ButtonVariant } from "../../components/button.slint";
+import { Checkbox } from "../../components/checkbox.slint";
+import { Gfx } from "../../state/graphics-state.slint";
+import { FormSection } from "../rules/form-parts.slint";
+import { Field, ColorField } from "prop-fields.slint";
+
+export component TextStyleSection inherits FormSection {
+    title: Gfx.p-kind == 7 ? "Текст строки" : "Текст";
+    icon: Icons.format-size;
+    HorizontalLayout {
+        spacing: Theme.sp2;
+        Field { horizontal-stretch: 2; label: "Шрифт"; text <=> Gfx.s-font; placeholder: "по умолчанию"; }
+        VerticalLayout {
+            alignment: start;
+            padding-top: 4px;
+            Button {
+                text: "Выбрать…";
+                variant: ButtonVariant.tonal;
+                clicked => {
+                    Gfx.open-fonts();
+                }
+            }
+        }
+    }
+    // the checkboxes stack: side by side they outgrow a narrow panel
+    HorizontalLayout {
+        spacing: Theme.sp3;
+        VerticalLayout {
+            alignment: start;
+            Field { width: 96px; label: "Размер"; text <=> Gfx.s-size; mono: true; }
+        }
+        VerticalLayout {
+            spacing: 0;
+            Checkbox {
+                text: "Жирный";
+                checked <=> Gfx.s-bold;
+                toggled => {
+                    Gfx.props-changed();
+                }
+            }
+            Checkbox {
+                text: "Курсив";
+                checked <=> Gfx.s-italic;
+                toggled => {
+                    Gfx.props-changed();
+                }
+            }
+        }
+    }
+    ColorField { label: "Цвет текста"; value <=> Gfx.s-color; swatch: Gfx.sw-s-color; }
+    HorizontalLayout {
+        spacing: Theme.sp2;
+        ColorField { horizontal-stretch: 2; label: "Обводка"; value <=> Gfx.s-outline; swatch: Gfx.sw-s-outline; }
+        Field { min-width: 56px; horizontal-stretch: 1; label: "Толщина"; text <=> Gfx.s-outline-w; mono: true; }
+    }
+    HorizontalLayout {
+        spacing: Theme.sp2;
+        ColorField { horizontal-stretch: 2; label: "Тень"; value <=> Gfx.s-shadow; swatch: Gfx.sw-s-shadow; }
+        Field { min-width: 56px; horizontal-stretch: 1; label: "dx"; text <=> Gfx.s-shadow-x; mono: true; }
+        Field { min-width: 56px; horizontal-stretch: 1; label: "dy"; text <=> Gfx.s-shadow-y; mono: true; }
+    }
+    ColorField { label: "Подложка"; value <=> Gfx.s-bg; swatch: Gfx.sw-s-bg; }
+    HorizontalLayout {
+        spacing: Theme.sp2;
+        Field { label: "Отступ"; text <=> Gfx.s-padding; mono: true; }
+        Field { label: "Скругление"; text <=> Gfx.s-corner; mono: true; }
+    }
+    HorizontalLayout {
+        spacing: Theme.sp3;
+        Field { width: 140px; label: "Межбуквенный"; text <=> Gfx.s-spacing; mono: true; supporting: "пикс., можно < 0"; }
+        VerticalLayout {
+            alignment: center;
+            Checkbox {
+                text: "ВСЕ ЗАГЛАВНЫЕ";
+                checked <=> Gfx.s-upper;
+                toggled => {
+                    Gfx.props-changed();
+                }
+            }
+        }
+    }
+}

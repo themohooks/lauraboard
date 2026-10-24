@@ -6,10 +6,12 @@
 //! * [`fonts`] — font picker (server fonts, files, Google Fonts)
 //! * [`textures`] — ready-made plate textures
 //! * [`layers`] — logical layers: the grouped layer panel and its filter
+//! * [`plate_editor`] — the advanced plate editor (preview, styles)
 
 mod design;
 mod fonts;
 mod layers;
+mod plate_editor;
 mod textures;
 
 use std::collections::HashSet;
@@ -147,6 +149,7 @@ pub fn connect(ui: &AppWindow) {
     design::connect(ui);
     fonts::connect(ui);
     layers::connect(ui);
+    plate_editor::connect(ui);
     textures::connect(ui);
     let g = ui.global::<Gfx>();
     g.on_color_hex(|c| hex_of(c).into());
@@ -456,6 +459,8 @@ fn props(c: &mut Ctx) {
         g.set_s_bg(s(st.background.clone().unwrap_or_default()));
         g.set_s_padding(s(fmt_num(st.padding)));
         g.set_s_corner(s(fmt_num(st.corner_radius)));
+        g.set_s_spacing(s(fmt_num(st.letter_spacing)));
+        g.set_s_upper(st.uppercase);
         swatches(c);
     }
     g.set_a_in(ANIMS.iter().position(|a| *a == e.animation.anim_in).unwrap_or(0) as i32);
@@ -544,6 +549,8 @@ fn props_changed(c: &mut Ctx) {
             background: color("Подложка", g.get_s_bg(), false),
             padding: num("Отступ", g.get_s_padding(), st.padding).max(0.0),
             corner_radius: num("Скругление", g.get_s_corner(), st.corner_radius).max(0.0),
+            letter_spacing: num("Межбуквенный интервал", g.get_s_spacing(), st.letter_spacing).clamp(-20.0, 100.0),
+            uppercase: g.get_s_upper(),
         }
     };
     e.kind = match e.kind.clone() {
@@ -924,6 +931,7 @@ fn schedule_render(c: &mut Ctx) {
         with(move |c| {
             if c.gfx.render_seq == seq && c.section() == "graphics" {
                 render(c);
+                plate_editor::preview(c);
             }
         })
     });
