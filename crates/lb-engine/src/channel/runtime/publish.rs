@@ -56,6 +56,7 @@ impl Runtime {
             on_air,
             next: self.sched.peek_next().cloned(),
             time_to_next_program_ms: next_program.as_ref().map(|p| diff_ms(p.start, t)),
+            program: self.program_clock(),
             next_program,
             manual_queue: self.sched.queue.len(),
             output: self.output.status(),

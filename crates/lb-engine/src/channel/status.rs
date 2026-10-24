@@ -65,6 +65,9 @@ pub struct ChannelStatus {
     /// Next main item of a different block.
     pub next_program: Option<RundownItem>,
     pub time_to_next_program_ms: Option<Ms>,
+    /// The programme on air: aired, current and planned items.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub program: Option<lb_core::graphics::ProgramClock>,
     pub manual_queue: usize,
     pub output: OutputStatus,
     pub graphics: Vec<ActiveGraphic>,

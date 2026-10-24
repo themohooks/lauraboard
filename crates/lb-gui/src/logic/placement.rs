@@ -61,7 +61,7 @@ fn natural_size(e: &Element, region: Rect) -> (f32, f32) {
         ElementKind::Ticker { style, width, .. } => (width.unwrap_or(region.w - 2.0 * e.placement.x).max(1.0), text_box("x", style).1),
         ElementKind::Clock { format, style } => text_box(&format.replace("%H", "00").replace("%M", "00").replace("%S", "00"), style),
         ElementKind::Countdown { style, prefix, .. } => text_box(&format!("{prefix}00:00:00"), style),
-        ElementKind::Rect { width, height, .. } => (*width, *height),
+        ElementKind::Rect { width, height, .. } | ElementKind::Progress { width, height, .. } => (*width, *height),
         ElementKind::Plate { fields, width, min_width, padding_x, padding_y, spacing, shape, .. } => {
             let lines: Vec<(f32, f32)> = fields.iter().filter(|f| !f.text.trim().is_empty()).map(|f| text_box(&f.text, &f.style)).collect();
             let accent = shape.accent.as_ref().map_or(0.0, |a| a.size);
@@ -89,7 +89,7 @@ pub fn rect_in(e: &Element, region: Rect) -> Rect {
         (ElementKind::Group { .. }, w, h) => (w.unwrap_or(nw), h.unwrap_or(nh)),
         (ElementKind::Ticker { .. }, _, _) => (nw, nh),
         // shapes take a set size as it is (no aspect ratio to keep)
-        (ElementKind::Rect { .. } | ElementKind::Plate { .. }, w, h) => (w.unwrap_or(nw), h.unwrap_or(nh).max(if matches!(e.kind, ElementKind::Plate { .. }) { nh } else { 0.0 })),
+        (ElementKind::Rect { .. } | ElementKind::Plate { .. } | ElementKind::Progress { .. }, w, h) => (w.unwrap_or(nw), h.unwrap_or(nh).max(if matches!(e.kind, ElementKind::Plate { .. }) { nh } else { 0.0 })),
         (_, Some(w), Some(h)) => (w, h),
         (_, Some(w), None) if nw > 0.0 => (w, nh * w / nw),
         (_, None, Some(h)) if nh > 0.0 => (nw * h / nh, h),

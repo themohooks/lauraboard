@@ -190,6 +190,7 @@ impl Runtime {
         status: AsRunStatus,
         note: &str,
     ) {
+        self.program.aired(item, diff_ms(ended, started));
         let rec = AsRunRecord {
             channel: self.shared.id.clone(),
             uid: item.uid.clone(),
@@ -224,7 +225,9 @@ impl Runtime {
         let v = vars::build(&data, on_air, next, next_program, &self.user_vars);
         let np_start = next_program.map(|p| p.start);
         let started = self.on_air.as_ref().map(|o| (o.item.clone(), add_ms(o.started, -o.offset_ms)));
+        let program = self.program_clock();
         if let Ok(mut g) = self.gfx.lock() {
+            g.program = program;
             g.on_air = started;
             g.next_program_start = np_start;
             g.vars = v;

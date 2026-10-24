@@ -11,7 +11,7 @@ use serde::Deserialize;
 
 use lb_core::Ms;
 use lb_core::config::Role;
-use lb_core::graphics::{ActiveGraphic, ElementKind, GraphicsConfig};
+use lb_core::graphics::{ActiveGraphic, ElementKind, GraphicsConfig, ProgramClock};
 use lb_gfx::{Compositor, FrameContext};
 
 use super::channel;
@@ -55,12 +55,18 @@ pub async fn render(State(s): State<AppState>, c: Caller, Path(id): Path<String>
         return Err(ApiError::bad_request(format!("unsupported frame size {w}x{hgt}")));
     }
     let remaining = st.on_air.as_ref().map(|o| o.remaining_ms).unwrap_or(60_000);
+    // the editor preview: the programme of the item on air as aired so far
+    // (half a minute shown when nothing is on air)
+    let program = match &st.program {
+        Some(p) => p.clone(),
+        None => ProgramClock { current: Some((lb_core::media::MediaKind::Program, remaining * 2)), ..Default::default() },
+    };
     let next_ms = st.time_to_next_program_ms;
     let png = tokio::task::spawn_blocking(move || {
         let active = active_set(&b.config, b.elements.as_deref(), b.t_ms);
         let mut comp = Compositor::new(w, hgt, b.config, &root);
         let now = chrono::Local::now().naive_local();
-        comp.render(&FrameContext { now, active: &active, vars: &vars, item_remaining_ms: remaining, next_program_ms: next_ms });
+        comp.render(&FrameContext { now, active: &active, vars: &vars, item_remaining_ms: remaining, next_program_ms: next_ms, program: Some(&program) });
         let png = comp.png()?;
         match b.width {
             Some(ow) if ow > 0 && ow < w => scale_png(&png, ow),

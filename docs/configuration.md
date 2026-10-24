@@ -407,7 +407,8 @@ conditions = { kinds = ["program"] }
 - `text` — текстовая плашка;
 - `ticker` — бегущая строка (`speed` в пикселях в секунду);
 - `clock` — часы и дата (`format` в формате strftime, например `"%H:%M"` или `"%d.%m.%Y"`);
-- `countdown` — таймер (`target = "item_remaining" | "next_program"`);
+- `countdown` — таймер (`target = "item_remaining" | "next_program" | "program_remaining"`; `format = "auto" | "hh_mm_ss" | "mm_ss" | "minutes"`). `program_remaining` — время до конца передачи: блока сетки, в котором идёт текущий ролик; `exclude = ["ad", "promo"]` — типы контента, которые не входят в отсчёт (реклама и анонсы внутри передачи);
+- `progress` — прогресс-бар передачи, заполняется по мере её хода: `width`, `height`, `color` (заполнение), `gradient` (второй цвет заполнения), `track` (цвет полосы), `radius`, `target = "program" | "item"`, `exclude` (как у таймера), `direction = "left_to_right" | "right_to_left" | "bottom_to_top" | "top_to_bottom"`, оформление полосы в `shape` (рамка, тень, наклон, текстура);
 - `rect` — фигура (`color`, `width`, `height`, `radius`, оформление в `shape`);
 - `plate` — плашка с несколькими строками текста, растущая по тексту (см. ниже);
 - `group` — композиция из `children`.

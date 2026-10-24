@@ -129,7 +129,7 @@ export global Gfx {
     in property <bool> p-has;
     in property <string> p-id;
     in-out property <string> p-name;
-    // 0 text, 1 ticker, 2 clock, 3 countdown, 4 image, 5 rect, 6 group, 7 plate
+    // 0 text, 1 ticker, 2 clock, 3 countdown, 4 image, 5 rect, 6 group, 7 plate, 8 progress bar
     in property <int> p-kind;
     in-out property <int> p-anchor;
     in-out property <string> p-x;
@@ -142,8 +142,22 @@ export global Gfx {
     in-out property <string> p-speed;
     in-out property <string> p-twidth;
     in-out property <string> p-format;
+    // countdown: 0 item, 1 next programme, 2 end of the programme
     in-out property <int> p-target;
     in-out property <string> p-prefix;
+    // countdown time format: 0 auto, 1 ЧЧ:ММ:СС, 2 ММ:СС, 3 minutes
+    in-out property <int> p-tformat;
+    // content kinds not counted (KINDS order), toggled with toggle-exclude
+    in property <[bool]> p-exclude;
+    callback toggle-exclude(int);
+    // progress bar: gradient of the fill, track colour, 0 programme / 1 item, direction
+    in-out property <string> pg-gradient;
+    in-out property <string> pg-track;
+    in-out property <int> pg-target;
+    // 0 left → right, 1 right → left, 2 bottom → top, 3 top → bottom
+    in-out property <int> pg-direction;
+    in property <color> sw-pg-gradient;
+    in property <color> sw-pg-track;
     in-out property <string> p-path;
     in-out property <string> p-color;
     in-out property <string> p-rw;

@@ -2,8 +2,10 @@
 
 use serde::{Deserialize, Serialize};
 
+use super::program::{FillDirection, ProgressTarget, TimeFormat};
 use super::shape::{PlateField, ShapeStyle, TextAlign, plate_color, plate_pad_x, plate_pad_y, plate_spacing};
 use crate::Dur;
+use crate::media::MediaKind;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "snake_case")]
@@ -71,6 +73,14 @@ fn is_false(v: &bool) -> bool {
     !*v
 }
 
+fn is_default<T: Default + PartialEq>(v: &T) -> bool {
+    *v == T::default()
+}
+
+fn track_color() -> String {
+    "#FFFFFF40".into()
+}
+
 fn default_size() -> f32 {
     36.0
 }
@@ -111,6 +121,9 @@ pub enum CountdownTarget {
     ItemRemaining,
     /// Time until the next block / programme.
     NextProgram,
+    /// Time left in the programme on air (its block), without the
+    /// excluded content kinds.
+    ProgramRemaining,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -150,6 +163,36 @@ pub enum ElementKind {
         style: TextStyle,
         #[serde(default)]
         prefix: String,
+        /// Content kinds not counted (programme countdown).
+        #[serde(default, skip_serializing_if = "Vec::is_empty")]
+        exclude: Vec<MediaKind>,
+        #[serde(default, skip_serializing_if = "is_default")]
+        format: TimeFormat,
+    },
+    /// Progress bar of the programme (or the item) on air.
+    Progress {
+        width: f32,
+        height: f32,
+        /// Filled part.
+        color: String,
+        /// Second colour of the filled part: a gradient along the bar.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        gradient: Option<String>,
+        /// The empty bar behind it.
+        #[serde(default = "track_color")]
+        track: String,
+        #[serde(default)]
+        radius: f32,
+        #[serde(default)]
+        target: ProgressTarget,
+        /// Content kinds not counted.
+        #[serde(default, skip_serializing_if = "Vec::is_empty")]
+        exclude: Vec<MediaKind>,
+        #[serde(default, skip_serializing_if = "is_default")]
+        direction: FillDirection,
+        /// Design of the bar (border, shadow, slant, texture…).
+        #[serde(default, skip_serializing_if = "ShapeStyle::is_plain")]
+        shape: ShapeStyle,
     },
     /// Rectangle (gradient, border, slant, shadow… in `shape`).
     Rect {
@@ -203,17 +246,17 @@ impl ElementKind {
         }
     }
 
-    /// Design of shape kinds (rectangle, plate).
+    /// Design of shape kinds (rectangle, plate, progress bar).
     pub fn shape(&self) -> Option<&ShapeStyle> {
         match self {
-            ElementKind::Rect { shape, .. } | ElementKind::Plate { shape, .. } => Some(shape),
+            ElementKind::Rect { shape, .. } | ElementKind::Plate { shape, .. } | ElementKind::Progress { shape, .. } => Some(shape),
             _ => None,
         }
     }
 
     pub fn shape_mut(&mut self) -> Option<&mut ShapeStyle> {
         match self {
-            ElementKind::Rect { shape, .. } | ElementKind::Plate { shape, .. } => Some(shape),
+            ElementKind::Rect { shape, .. } | ElementKind::Plate { shape, .. } | ElementKind::Progress { shape, .. } => Some(shape),
             _ => None,
         }
     }
