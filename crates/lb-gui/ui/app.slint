@@ -36,6 +36,7 @@ import { LogScreen } from "screens/log/log.slint";
 import { StatsScreen } from "screens/stats/stats.slint";
 import { SourcesScreen } from "screens/sources/sources.slint";
 import { SettingsScreen } from "screens/settings/settings.slint";
+import { ScenesScreen } from "screens/scenes/scenes.slint";
 
 export { Theme, ThemeMode } from "theme/tokens.slint";
 export { App, StatusInfo } from "state/app-state.slint";
@@ -53,6 +54,7 @@ export { Settings } from "state/settings-state.slint";
 export { Chan, ChannelRow } from "state/channels-state.slint";
 export { Jobs, JobRow } from "state/jobs-state.slint";
 export { Picker, PickRow } from "state/picker-state.slint";
+export { Scenes, SceneItemRow, MusicRow, TrackRow, SceneGfxRow } from "state/scenes-state.slint";
 
 export component AppWindow inherits Window {
     // kept for the snapshot tool; mirrors App.section
@@ -163,6 +165,7 @@ export component AppWindow inherits Window {
                     if App.section == "air": AirScreen { }
                     if App.section == "playlists": PlaylistsScreen { }
                     if App.section == "library": LibraryScreen { }
+                    if App.section == "scenes": ScenesScreen { }
                     if App.section == "schedule": ScheduleScreen { }
                     if App.section == "jingles": RulesScreen { scope: "jingles"; }
                     if App.section == "ads": RulesScreen { scope: "ads"; }

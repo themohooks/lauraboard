@@ -25,11 +25,15 @@ pub enum Target {
     BlockMedia(usize),
     BlockIntro(usize),
     BlockOutro(usize),
+    /// Background of the scene being edited (one item).
+    SceneBackground,
+    /// Tracks of a music rule of the scene being edited (appended).
+    SceneTracks(usize),
 }
 
 impl Target {
     fn multi(self) -> bool {
-        matches!(self, Target::AdItems | Target::RuleItems | Target::RuleExclude | Target::BlockMedia(_))
+        matches!(self, Target::AdItems | Target::RuleItems | Target::RuleExclude | Target::BlockMedia(_) | Target::SceneTracks(_))
     }
 }
 
@@ -123,6 +127,7 @@ fn confirm(c: &mut Ctx) {
     match target {
         Target::AdItems | Target::AdIntro | Target::AdOutro | Target::RuleItems | Target::RuleExclude => super::rules::picked(c, target, ids),
         Target::BlockMedia(_) | Target::BlockIntro(_) | Target::BlockOutro(_) => super::schedule::picked(c, target, ids),
+        Target::SceneBackground | Target::SceneTracks(_) => super::scenes::picked(c, target, ids),
     }
 }
 
