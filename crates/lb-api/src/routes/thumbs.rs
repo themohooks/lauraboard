@@ -201,6 +201,15 @@ fn file_safe(id: &str) -> String {
     s
 }
 
+/// A scene shows its background item's picture (a colour background: the
+/// scene itself, which has none).
+fn scene_picture(d: &lb_core::project::ChannelData, m: lb_core::media::MediaItem) -> lb_core::media::MediaItem {
+    match m.scene.as_ref().map(|s| &s.background) {
+        Some(lb_core::media::scene::Background::Media { media }) => d.library.get(media).filter(|b| !b.is_scene()).cloned().unwrap_or(m),
+        _ => m,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -211,14 +220,5 @@ mod tests {
         assert_ne!(file_safe("a.b"), file_safe("a_b"));
         assert_eq!(file_safe("a-b"), "a~2db");
         assert_eq!(file_safe("кот"), "~d0~ba~d0~be~d1~82");
-    }
-}
-
-/// A scene shows its background item's picture (a colour background: the
-/// scene itself, which has none).
-fn scene_picture(d: &lb_core::project::ChannelData, m: lb_core::media::MediaItem) -> lb_core::media::MediaItem {
-    match m.scene.as_ref().map(|s| &s.background) {
-        Some(lb_core::media::scene::Background::Media { media }) => d.library.get(media).filter(|b| !b.is_scene()).cloned().unwrap_or(m),
-        _ => m,
     }
 }

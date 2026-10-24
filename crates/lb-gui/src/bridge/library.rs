@@ -592,18 +592,6 @@ pub fn shortcut(c: &mut Ctx, name: &str) {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn several_files_in_one_field() {
-        assert_eq!(import_paths("D:/a.mp4; D:/b c.mov;;"), ["D:/a.mp4", "D:/b c.mov"]);
-        assert_eq!(import_paths("  https://x/y  "), ["https://x/y"]);
-        assert!(import_paths(" ; ").is_empty());
-    }
-}
-
 /// Ready-made backgrounds (pictures, video loops, plate textures) of the
 /// channel: made again where missing, a background job.
 fn make_backgrounds(c: &mut Ctx) {
@@ -615,4 +603,16 @@ fn make_backgrounds(c: &mut Ctx) {
             c.toast("Готовые фоны создаются — папка «Фоны» в медиатеке", false);
         })))
     });
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn several_files_in_one_field() {
+        assert_eq!(import_paths("D:/a.mp4; D:/b c.mov;;"), ["D:/a.mp4", "D:/b c.mov"]);
+        assert_eq!(import_paths("  https://x/y  "), ["https://x/y"]);
+        assert!(import_paths(" ; ").is_empty());
+    }
 }

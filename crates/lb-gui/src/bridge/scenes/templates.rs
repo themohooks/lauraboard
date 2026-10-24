@@ -12,7 +12,7 @@ use lb_core::media::{Library, MediaItem, MediaKind, Scene};
 
 use super::{Ctx, FOLDER, add_item, gfx};
 
-/// Graphics of a template: elements and the rule ids that show them.
+/// Graphics of a template (each gets a rule limited to the scene).
 struct Extra {
     elements: Vec<Element>,
 }
@@ -27,8 +27,12 @@ fn element(v: Value) -> Option<Element> {
     serde_json::from_value(v).ok()
 }
 
+/// Look of a template text: size (for 1080 lines), bold, colour.
+struct Look(f32, bool, &'static str);
+
 /// Text / clock element centred on the frame, `dy` below the centre.
-fn centred(id: &str, name: &str, kind: Value, size: f32, bold: bool, color: &str, dy: f32, k: f32) -> Option<Element> {
+fn centred(id: &str, name: &str, kind: Value, look: Look, dy: f32, k: f32) -> Option<Element> {
+    let Look(size, bold, color) = look;
     let mut v = kind;
     v["id"] = json!(id);
     v["name"] = json!(name);
@@ -75,8 +79,8 @@ pub fn create(c: &mut Ctx, template: &str) {
             }
             let time = unique_element_id(cfg, &format!("{id}-time"));
             let date = unique_element_id(cfg, &format!("{id}-date"));
-            extra.elements.extend(centred(&time, "Часы сцены", json!({ "type": "clock", "format": "%H:%M:%S" }), 220.0, true, "#FFFFFF", -40.0, k));
-            extra.elements.extend(centred(&date, "Дата сцены", json!({ "type": "clock", "format": "%d.%m.%Y" }), 56.0, false, "#C7D2FE", 120.0, k));
+            extra.elements.extend(centred(&time, "Часы сцены", json!({ "type": "clock", "format": "%H:%M:%S" }), Look(220.0, true, "#FFFFFF"), -40.0, k));
+            extra.elements.extend(centred(&date, "Дата сцены", json!({ "type": "clock", "format": "%d.%m.%Y" }), Look(56.0, false, "#C7D2FE"), 120.0, k));
         }
         "music" => {
             scene.background = match first_in(&lib, "Фоны", |m| m.kind != MediaKind::Image && m.probe.video.is_some()) {
@@ -92,16 +96,16 @@ pub fn create(c: &mut Ctx, template: &str) {
                 ..Default::default()
             });
             let t = unique_element_id(cfg, &format!("{id}-title"));
-            extra.elements.extend(centred(&t, "Подпись сцены", json!({ "type": "text", "text": "{channel}" }), 72.0, true, "#FFFFFF", 0.0, k));
+            extra.elements.extend(centred(&t, "Подпись сцены", json!({ "type": "text", "text": "{channel}" }), Look(72.0, true, "#FFFFFF"), 0.0, k));
         }
         "next" => {
             scene.background = Background::Color { color: "#111827".into() };
             let a = unique_element_id(cfg, &format!("{id}-label"));
             let b = unique_element_id(cfg, &format!("{id}-program"));
             let t = unique_element_id(cfg, &format!("{id}-time"));
-            extra.elements.extend(centred(&a, "Далее в эфире", json!({ "type": "text", "text": "Далее в эфире" }), 48.0, false, "#FBBF24", -130.0, k));
-            extra.elements.extend(centred(&b, "Следующая передача", json!({ "type": "text", "text": "{next_program}" }), 96.0, true, "#FFFFFF", 0.0, k));
-            extra.elements.extend(centred(&t, "Время передачи", json!({ "type": "text", "text": "в {next_program_start}" }), 56.0, false, "#E5E7EB", 120.0, k));
+            extra.elements.extend(centred(&a, "Далее в эфире", json!({ "type": "text", "text": "Далее в эфире" }), Look(48.0, false, "#FBBF24"), -130.0, k));
+            extra.elements.extend(centred(&b, "Следующая передача", json!({ "type": "text", "text": "{next_program}" }), Look(96.0, true, "#FFFFFF"), 0.0, k));
+            extra.elements.extend(centred(&t, "Время передачи", json!({ "type": "text", "text": "в {next_program_start}" }), Look(56.0, false, "#E5E7EB"), 120.0, k));
         }
         _ => {}
     }
