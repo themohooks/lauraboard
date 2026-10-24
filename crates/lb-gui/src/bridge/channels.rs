@@ -30,6 +30,8 @@ pub fn connect(ui: &AppWindow) {
     g.on_save_form(|| with(save_form));
     g.on_autostart(|id, on| with(move |c| set_autostart(c, id.to_string(), on)));
     g.on_remove(|id| with(move |c| remove(c, id.to_string())));
+    g.on_avatar_pick(|| with(super::avatars::pick));
+    g.on_avatar_remove(|| with(super::avatars::remove));
     super::archive::connect(ui);
 }
 
@@ -70,6 +72,9 @@ pub fn refresh(c: &mut Ctx) {
         .map(|e| ChannelRow {
             id: e.id.as_str().into(),
             name: e.label().into(),
+            initial: e.initial().into(),
+            avatar: super::avatars::get(c, &e.id).map(|a| a.image).unwrap_or_default(),
+            has_avatar: super::avatars::get(c, &e.id).is_some(),
             state_text: state_text(&e.state).into(),
             on_air: e.state != "stopped",
             autostart: e.autostart,
@@ -104,7 +109,9 @@ fn open_form(c: &mut Ctx, form: &str, id: &str) {
     }
     g.set_e_error("".into());
     set_form_source(&e.id);
+    g.set_f_initial(e.initial().into());
     g.set_form(form.into());
+    super::avatars::show(c);
 }
 
 /// Channel the open form acts on.

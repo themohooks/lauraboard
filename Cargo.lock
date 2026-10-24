@@ -3193,6 +3193,7 @@ name = "lb-engine"
 version = "0.1.0"
 dependencies = [
  "chrono",
+ "image",
  "lb-core",
  "lb-gfx",
  "lb-media",

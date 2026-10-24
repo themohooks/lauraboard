@@ -52,6 +52,10 @@ pub struct OutputStatus {
 pub struct ChannelStatus {
     pub channel: String,
     pub name: String,
+    /// Version of the channel avatar (`GET /channels/{id}/avatar.png`);
+    /// none without one.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub avatar: Option<u64>,
     /// Starts airing when the program starts.
     #[serde(default)]
     pub autostart: bool,

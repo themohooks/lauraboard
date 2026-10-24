@@ -92,6 +92,11 @@ fn prepare(mut data: ChannelData, root: &Path, parts: &Parts) -> (ChannelData, V
             }
         }
     }
+    // the avatar belongs to the channel's settings
+    let avatar = crate::channel::avatar::path(&data.dir);
+    if parts.settings && avatar.is_file() {
+        files.push(Item { src: avatar, name: format!("{CHANNEL_DIR}{}", crate::channel::avatar::FILE), store: true });
+    }
     if parts.history {
         let dir = data.asrun_dir();
         if let Ok(rd) = std::fs::read_dir(&dir) {

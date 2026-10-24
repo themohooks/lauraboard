@@ -4,6 +4,10 @@
 export struct ChannelRow {
     id: string,
     name: string,
+    // avatar picture, or the letter shown without one
+    avatar: image,
+    has-avatar: bool,
+    initial: string,
     // formatted state ("В эфире", "Остановлен" …)
     state-text: string,
     on-air: bool,
@@ -23,6 +27,12 @@ export global Chan {
     in-out property <string> e-id;
     in-out property <string> e-name;
     in property <string> e-error;
+    // avatar of the channel in the form; chosen / removed at once
+    in property <image> f-avatar;
+    in property <bool> f-has-avatar;
+    in property <string> f-initial;
+    callback avatar-pick();
+    callback avatar-remove();
 
     // the manager was opened: refresh the list
     callback opened();

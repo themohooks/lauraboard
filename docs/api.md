@@ -53,6 +53,7 @@
 | POST | `/media/{media}/preview.jpg?w=480` | кадр ролика так, как он выйдет в эфир с настройками показа из тела запроса (`display`, см. library.json); не кэшируется |
 | GET | `/media/{media}/thumb.jpg?w=320` | миниатюра (JPEG, кадр на 10 % длительности, ширина 32…1280). Кэшируется в `<проект>/cache/thumbs/<канал>/`, не более двух ffmpeg одновременно; 404 для потоков, аудио и отсутствующих файлов |
 | POST | `/media/import` | `{"paths": [...], "kind": "ad", "category": "x", "recursive": true, "folder": "Фильмы", "copy": true}` — импорт с анализом. С `copy` файлы копируются в `channels/<id>/media/<uuid>.<ext>` фоновой задачей (ответ `{"job": id}`), исходное имя сохраняется в `original_name` |
+| GET / PUT / DELETE | `/avatar.png`, `/avatar` | аватар канала: `GET /avatar.png` — PNG 256×256 (404 без аватара); `PUT /avatar` — тело запроса — картинка PNG / JPEG / WebP до 20 МБ (обрезается по центру в квадрат), админ; `DELETE /avatar` — убрать. Версия аватара — поле `avatar` в статусе канала |
 | GET | `/graphics/backgrounds` | текстуры для плашек: `[{"path", "title", "file"}]` (копируются в канал при первом запросе) |
 | GET | `/graphics/backgrounds/{file}` | файл текстуры (PNG) |
 | GET | `/media/folders` | все папки медиатеки |

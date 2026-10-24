@@ -48,6 +48,7 @@ impl Runtime {
         let status = ChannelStatus {
             channel: self.shared.id.clone(),
             name: data.config.name.clone(),
+            avatar: super::super::avatar::version(&data.dir),
             autostart: data.config.autostart,
             state,
             manual: self.sched.manual,

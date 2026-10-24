@@ -13,6 +13,7 @@ import { App } from "../state/app-state.slint";
 import { Chan } from "../state/channels-state.slint";
 import { Jobs } from "../state/jobs-state.slint";
 import { JobsIndicator } from "jobs-dialog.slint";
+import { Avatar } from "../components/avatar.slint";
 
 export global StateTone {
     public pure function of(state: string) -> StatusTone {
@@ -29,6 +30,15 @@ export component AppBar inherits TopAppBar {
     title: App.project;
     subtitle: App.channel-name;
 
+    VerticalLayout {
+        alignment: center;
+        Avatar {
+            size: 36px;
+            source: App.channel-avatar;
+            has-image: App.has-channel-avatar;
+            initial: App.channel-initial;
+        }
+    }
     if App.channels.length > 1: VerticalLayout {
         alignment: center;
         Select {

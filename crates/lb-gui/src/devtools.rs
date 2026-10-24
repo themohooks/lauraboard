@@ -153,6 +153,8 @@ fn demo_overlay(ui: &AppWindow, name: &str) {
         on_air: on,
         autostart: auto,
         current: cur,
+        initial: name.chars().next().map(|c| c.to_string()).unwrap_or_default().into(),
+        ..Default::default()
     };
     c.set_rows(model(vec![r("main", "Основной канал", true, true, true), r("kids", "Детский", false, false, false)]));
     match name {

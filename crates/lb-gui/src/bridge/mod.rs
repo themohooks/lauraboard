@@ -13,6 +13,7 @@
 
 pub mod air;
 pub mod archive;
+pub mod avatars;
 pub mod channels;
 pub mod encoder;
 pub mod folders;
@@ -82,6 +83,7 @@ pub struct Ctx {
     pub picker: picker::PickerState,
     pub scenes: scenes::ScenesState,
     pub notify: notifications::NotifyState,
+    pub avatars: avatars::Avatars,
     pub system: system::SystemState,
     pub jobs: jobs::JobsState,
     /// The notification-area icon is up (closing hides the window).
@@ -154,6 +156,7 @@ pub fn start(ui: &AppWindow, opts: &GuiOptions, prefs: UiPrefs) {
         src: Default::default(),
         picker: Default::default(),
         scenes: Default::default(),
+        avatars: Default::default(),
         notify: Default::default(),
         system: Default::default(),
         jobs: Default::default(),

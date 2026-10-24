@@ -796,6 +796,14 @@ fn add(c: &mut Ctx, kind: &str) {
         ),
         "plate" => (design::new_plate(), "Плашка", lb_core::graphics::Anchor::BottomLeft, 96.0, 110.0),
         "image" => (ElementKind::Image { path: "logo.png".into() }, "Логотип", lb_core::graphics::Anchor::TopRight, 60.0, 50.0),
+        // the file the channel form stores (`channels/<id>/avatar.png`)
+        "avatar" => (
+            ElementKind::Image { path: format!("channels/{}/avatar.png", c.model.ch()) },
+            "Аватар канала",
+            lb_core::graphics::Anchor::TopRight,
+            60.0,
+            50.0,
+        ),
         "clock" => (ElementKind::Clock { format: "%H:%M".into(), style: style.clone() }, "Часы", lb_core::graphics::Anchor::TopRight, 60.0, 50.0),
         "countdown" => (
             ElementKind::Countdown { target: CountdownTarget::NextProgram, style: style.clone(), prefix: "Через ".into(), exclude: vec![], format: TimeFormat::Auto },
@@ -852,7 +860,7 @@ fn add(c: &mut Ctx, kind: &str) {
         id: unique_id(&cfg, kind),
         name: name.into(),
         kind: k,
-        placement: Placement { anchor, x, y, width: None, height: None },
+        placement: Placement { anchor, x, y, width: (kind == "avatar").then_some(96.0), height: None },
         opacity: 1.0,
         layer,
         animation: Animation { anim_in: AnimKind::Fade, anim_out: AnimKind::Fade, duration: Dur(500) },

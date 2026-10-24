@@ -6,6 +6,7 @@ rust-version.workspace = true
 
 [dependencies]
 chrono = { version = "0.4.45", features = ["serde"] }
+image = { version = "0.25.10", default-features = false, features = ["png", "jpeg", "webp"] }
 lb-core = { version = "0.1.0", path = "../lb-core" }
 lb-gfx = { version = "0.1.0", path = "../lb-gfx" }
 lb-media = { version = "0.1.0", path = "../lb-media" }
