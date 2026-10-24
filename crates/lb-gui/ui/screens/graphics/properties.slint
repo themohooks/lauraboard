@@ -275,21 +275,28 @@ export component PropertiesPanel inherits Rectangle {
                         }
                     }
                 }
+                // the checkboxes stack: side by side they outgrow a narrow panel
                 HorizontalLayout {
                     spacing: Theme.sp3;
-                    Field { width: 96px; label: "Размер"; text <=> Gfx.s-size; mono: true; }
-                    Checkbox {
-                        text: "Жирный";
-                        checked <=> Gfx.s-bold;
-                        toggled => {
-                            Gfx.props-changed();
-                        }
+                    VerticalLayout {
+                        alignment: start;
+                        Field { width: 96px; label: "Размер"; text <=> Gfx.s-size; mono: true; }
                     }
-                    Checkbox {
-                        text: "Курсив";
-                        checked <=> Gfx.s-italic;
-                        toggled => {
-                            Gfx.props-changed();
+                    VerticalLayout {
+                        spacing: 0;
+                        Checkbox {
+                            text: "Жирный";
+                            checked <=> Gfx.s-bold;
+                            toggled => {
+                                Gfx.props-changed();
+                            }
+                        }
+                        Checkbox {
+                            text: "Курсив";
+                            checked <=> Gfx.s-italic;
+                            toggled => {
+                                Gfx.props-changed();
+                            }
                         }
                     }
                 }

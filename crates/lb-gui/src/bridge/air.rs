@@ -69,6 +69,15 @@ pub fn connect(ui: &AppWindow) {
             c.command(body);
         })
     });
+    a.on_seek_to(|f| {
+        with(move |c| {
+            let Some(it) = c.model.status.on_air.as_ref().and_then(|o| o.item.as_ref()) else { return };
+            let to = (f.clamp(0.0, 1.0) as f64 * it.duration_ms as f64) as i64;
+            c.command(json!({ "cmd": "seek", "to_ms": to }));
+        })
+    });
+    a.on_seek_by(|s| with(move |c| c.command(json!({ "cmd": "seek", "by_ms": s as i64 * 1000 }))));
+    a.on_time_of(|s| hms((s.max(0.0) * 1000.0) as i64).into());
     a.on_apply_ticker(|text| {
         with(move |c| {
             let value = if text.trim().is_empty() { Value::Null } else { json!(text.as_str()) };
@@ -118,6 +127,8 @@ pub fn status_changed(c: &mut Ctx) {
                 deviation_warn: dev.abs() > 10,
                 started: it.start.format("%H:%M:%S").to_string().into(),
                 ends: it.end().format("%H:%M:%S").to_string().into(),
+                seekable: !it.media.is_empty() && !matches!(it.kind, lb_core::media::MediaKind::Stream | lb_core::media::MediaKind::Image),
+                duration_s: (it.duration_ms / 1000) as i32,
             }
         }
         None => NowInfo::default(),

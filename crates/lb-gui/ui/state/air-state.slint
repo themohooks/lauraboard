@@ -15,6 +15,9 @@ export struct NowInfo {
     deviation-warn: bool,
     started: string,
     ends: string,
+    // can be rewound (not a stream / still image / slate)
+    seekable: bool,
+    duration-s: int,
 }
 
 export struct NextInfo {
@@ -96,6 +99,11 @@ export global Air {
 
     // "start", "stop", "skip", "restart", "manual-on", "manual-off", "clear-queue"
     callback transport(string);
+    // rewind the item on air: to a fraction of it, or by seconds
+    callback seek-to(float);
+    callback seek-by(int);
+    // seconds → "ЧЧ:ММ:СС"
+    pure callback time-of(float) -> string;
     callback search-media(string);
     callback play-now(string);
     callback queue-media(string);

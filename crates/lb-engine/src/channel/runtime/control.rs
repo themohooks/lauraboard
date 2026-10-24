@@ -39,6 +39,28 @@ impl Runtime {
                 self.start_item(item, 0).await;
                 Ok("restarted".into())
             }
+            Command::Seek { to_ms, by_ms } => {
+                self.require_running()?;
+                let cur = self.on_air.as_ref().ok_or("nothing on air")?;
+                if cur.item.media.is_empty() || matches!(cur.item.kind, lb_core::media::MediaKind::Stream | lb_core::media::MediaKind::Image) {
+                    return Err("this item cannot be rewound".into());
+                }
+                let pos = cur.offset_ms + lb_core::diff_ms(now(), cur.started);
+                let target = to_ms.or(by_ms.map(|d| pos + d)).ok_or("seek: to_ms or by_ms required")?;
+                // not the very end (the item would finish at once), and never
+                // offset 0: that counts as a new start of the item
+                let target = target.clamp(1, (cur.item.duration_ms - 1000).max(1));
+                // stopped without an as-run record: the item keeps airing
+                let cur = self.on_air.take().ok_or("nothing on air")?;
+                if let Some(p) = &cur.play {
+                    p.stop();
+                }
+                if !self.start_item(cur.item, target).await {
+                    self.start_next().await;
+                    return Err("could not continue the item at the new position".into());
+                }
+                Ok(format!("position {}", lb_core::Dur(target / 1000 * 1000)))
+            }
             Command::Manual { enabled } => {
                 self.sched.manual = enabled;
                 if !enabled {

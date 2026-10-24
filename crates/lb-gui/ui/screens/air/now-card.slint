@@ -6,9 +6,9 @@ import { Icons } from "../../theme/icons.slint";
 import { Label } from "../../components/label.slint";
 import { Card } from "../../components/card.slint";
 import { KindTag, StatusChip, StatusTone } from "../../components/indicators.slint";
-import { LinearProgress } from "../../components/feedback.slint";
 import { TimeDisplay } from "../../components/monitor.slint";
 import { Air } from "../../state/air-state.slint";
+import { SeekBar } from "seek-bar.slint";
 
 export component NowCard inherits Card {
     in property <bool> compact: false;
@@ -51,10 +51,8 @@ export component NowCard inherits Card {
         }
     }
 
-    if Air.now.has-item: LinearProgress {
-        progress: Air.now.progress;
-        fill: Theme.status.live;
-        height: 6px;
+    if Air.now.has-item: SeekBar {
+        compact: root.compact;
     }
 
     if Air.now.has-item: HorizontalLayout {
