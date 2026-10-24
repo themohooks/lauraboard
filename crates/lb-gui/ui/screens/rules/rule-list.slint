@@ -45,7 +45,7 @@ export component RuleList inherits Rectangle {
             vertical-stretch: 1;
             icon: Icons.rule;
             title: "Правил нет";
-            text: Rules.scope == "ads" ? "Создайте правило показа рекламы или анонсов." : "Создайте правило показа заставок.";
+            text: Rules.scope == "ads" ? "Создайте правило показа рекламы или анонсов." : Rules.scope == "scenes" ? "Создайте правило вставки сцены: после блока, плейлиста, ролика или в заданное время." : "Создайте правило показа заставок.";
         }
         if Rules.rules.length > 0: ListView {
             vertical-stretch: 1;

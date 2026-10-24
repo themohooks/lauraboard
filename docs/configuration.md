@@ -309,14 +309,18 @@ to = "23:00:00"
 - `every_minutes { minutes }` — не чаще чем раз в N минут;
 - `block_start`, `block_end` — в начале и в конце блока;
 - `between_blocks` — между блоками;
-- `after_category { category }` и `before_category { category }` — после или перед роликом категории.
+- `after_category { category }` и `before_category { category }` — после или перед роликом категории;
+- `after_media { items }` — после любого из этих роликов;
+- `after_playlist { playlist }` — после последнего ролика плейлиста (каждый раз, когда проход плейлиста заканчивается);
+- `at_times { times }` — в заданное время: после первого ролика, который закончится в это время или позже (`times = ["12:00:00", "18:30:00"]`).
 
 Действия:
 
 - `jingle { category | items }` — заставка;
 - `ad_break { ad_break }` — рекламный блок;
 - `promos { count, category }` — анонсы;
-- `media { items }` — конкретные ролики.
+- `media { items }` — конкретные ролики;
+- `scene { items, duration }` — сцена (одна из `items`; пусто — любая сцена медиатеки) на `duration` (`"00:02:00"`; без него — своя длительность сцены). В интерфейсе — «Сцены» → «Правила вставки».
 
 Условия `conditions`: `categories`, `exclude_categories`, `playlists`, `blocks`, `media`, `exclude_media`, `kinds`, `weekdays`, `from`, `to`.
 
@@ -344,6 +348,8 @@ categories = ["fillers"]
 use_promos = true
 min_fill = "00:00:03"        # пустоты короче закрываются заглушкой
 min_interval = "00:30:00"
+scenes = ["clock-scene"]     # сцены закрывают остаток пустоты вместо заглушки (растягиваются до передачи)
+scenes_first = false         # true — сцена занимает всю пустоту, без заполнителей и анонсов
 
 [transitions]
 fade = 300                   # затемнение в начале и в конце ролика, мс

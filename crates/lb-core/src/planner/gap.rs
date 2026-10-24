@@ -39,6 +39,31 @@ where
         t
     }
 
+    /// A filler scene can be used (listed, enabled, a scene).
+    pub(super) fn has_filler_scene(&self) -> bool {
+        self.inp.rules.filler.scenes.iter().filter_map(|i| self.media(i)).any(|m| m.enabled && m.is_scene())
+    }
+
+    /// Cover `[t, end)` with one of the filler scenes stretched to it (the
+    /// policy's `scenes`). Returns the new end.
+    pub(super) fn scene_gap(&mut self, t: WallTime, end: WallTime, prev: Option<&Inst<'a>>) -> WallTime {
+        let pol = &self.inp.rules.filler;
+        let rem = diff_ms(end, t);
+        if pol.scenes.is_empty() || rem < pol.min_fill.ms() {
+            return t;
+        }
+        let cands: Vec<&'a MediaItem> = pol.scenes.iter().filter_map(|i| self.media(i)).filter(|m| m.enabled && m.is_scene()).collect();
+        let Some(m) = self.select("filler-scene", &cands, crate::rules::SelectMode::Sequential, false) else { return t };
+        let mut it = self.item_for(m, Origin::Filler, t);
+        it.duration_ms = rem;
+        it.optional = true;
+        it.priority = -100;
+        self.tag_block(&mut it, prev);
+        self.hist.planned.record(&m.id, t);
+        self.out.push(it);
+        end
+    }
+
     /// Promos (if enabled) and fillers fitting into `rem` ms.
     fn gap_candidates(&self, t: WallTime, rem: Ms) -> Vec<&'a MediaItem> {
         let pol = &self.inp.rules.filler;
@@ -54,6 +79,8 @@ where
                 .library
                 .by_kind_category(Some(MediaKind::Filler), None)
                 .filter(|m| cat_ok(m) && m.play_duration() > 0 && m.play_duration() <= rem)
+                // gap scenes cover the rest, stretched; not as fixed-length fillers
+                .filter(|m| !pol.scenes.contains(&m.id))
                 .filter(|m| self.hist.last_played(&m.id).is_none_or(|lp| diff_ms(t, lp) >= pol.min_interval.ms())),
         );
         cands

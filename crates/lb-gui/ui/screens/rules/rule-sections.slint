@@ -25,7 +25,7 @@ export component WhenSection inherits FormSection {
         Select {
             horizontal-stretch: 1;
             label: "Триггер";
-            options: ["Каждые N роликов", "Каждые N минут", "В начале блока", "В конце блока", "Между блоками", "После категории", "Перед категорией"];
+            options: ["Каждые N роликов", "Каждые N минут", "В начале блока", "В конце блока", "Между блоками", "После категории", "Перед категорией", "После роликов", "После плейлиста", "В заданное время"];
             current-index <=> Rules.f-trigger;
             container-color: root.field-bg;
             selected => {
@@ -52,7 +52,7 @@ export component WhenSection inherits FormSection {
                 Rules.form-changed();
             }
         }
-        if Rules.f-trigger >= 5: TextField {
+        if Rules.f-trigger == 5 || Rules.f-trigger == 6: TextField {
             horizontal-stretch: 1;
             label: "Категория";
             text <=> Rules.f-tcat;
@@ -62,14 +62,123 @@ export component WhenSection inherits FormSection {
                 Rules.form-changed();
             }
         }
+        if Rules.f-trigger == 8: Select {
+            horizontal-stretch: 1;
+            label: "Плейлист";
+            options: Rules.playlists;
+            current-index <=> Rules.f-tpl;
+            placeholder: "Выберите плейлист";
+            container-color: root.field-bg;
+            selected => {
+                Rules.form-changed();
+            }
+        }
+        if Rules.f-trigger == 9: TextField {
+            horizontal-stretch: 1;
+            label: "Время";
+            text <=> Rules.f-times;
+            error: Rules.e-times;
+            placeholder: "12:00, 18:30";
+            supporting: "после первого ролика, который закончится в это время или позже";
+            mono: true;
+            container-color: root.field-bg;
+            edited => {
+                Rules.form-changed();
+            }
+        }
+    }
+    if Rules.f-trigger == 8: Label {
+        text: "Срабатывает каждый раз, когда в эфире заканчивается последний ролик плейлиста.";
+        wrap: word-wrap;
+        type-style: Theme.body-small;
+        color: Theme.color.on-surface-variant;
+    }
+    if Rules.f-trigger == 7: HorizontalLayout {
+        spacing: Theme.sp2;
+        Label {
+            horizontal-stretch: 1;
+            vertical-alignment: center;
+            text: Rules.f-tmedia.length > 0 ? "Вставлять после любого из роликов: " + Rules.f-tmedia.length : "Выберите ролики, после которых срабатывает правило";
+            color: Theme.color.on-surface-variant;
+            wrap: word-wrap;
+        }
+        if Rules.f-tmedia.length > 0: Button {
+            text: "Очистить";
+            variant: ButtonVariant.text;
+            clicked => {
+                Rules.trigger-item("clear", 0);
+            }
+        }
+        Button {
+            text: "Выбрать из медиатеки";
+            variant: ButtonVariant.tonal;
+            icon: Icons.video-library;
+            has-icon: true;
+            clicked => {
+                Rules.pick("trigger-media");
+            }
+        }
+    }
+    if Rules.f-trigger == 7 && Rules.f-tmedia.length > 0: MediaPickList {
+        items: Rules.f-tmedia;
+        row-bg: root.field-bg;
+        action(a, i) => {
+            Rules.trigger-item(a, i);
+        }
     }
 }
 
 export component WhatSection inherits FormSection {
     in property <color> field-bg: Theme.color.surface-container-low;
-    title: "Что вставить";
+    title: Rules.scope == "scenes" ? "Какую сцену" : "Что вставить";
     icon: Icons.playlist-add;
-    HorizontalLayout {
+    if Rules.scope == "scenes": HorizontalLayout {
+        spacing: Theme.sp3;
+        TextField {
+            width: 200px;
+            label: "Длительность";
+            text <=> Rules.f-sdur;
+            error: Rules.e-sdur;
+            placeholder: "своя у сцены";
+            supporting: "ЧЧ:ММ:СС";
+            mono: true;
+            container-color: root.field-bg;
+            edited => {
+                Rules.form-changed();
+            }
+        }
+        Label {
+            horizontal-stretch: 1;
+            vertical-alignment: center;
+            text: Rules.f-media.length > 0 ? "Сцен: " + Rules.f-media.length + (Rules.f-random ? " (случайная)" : " (по очереди)") : "Сцены не выбраны — подойдёт любая сцена медиатеки";
+            color: Theme.color.on-surface-variant;
+            wrap: word-wrap;
+        }
+        if Rules.f-media.length > 0: Button {
+            text: "Очистить";
+            variant: ButtonVariant.text;
+            clicked => {
+                Rules.rule-item("clear", 0);
+            }
+        }
+        Button {
+            text: "Выбрать сцены";
+            variant: ButtonVariant.tonal;
+            icon: Icons.live-tv;
+            has-icon: true;
+            clicked => {
+                Rules.pick("rule-items");
+            }
+        }
+    }
+    if Rules.scope == "scenes" && Rules.f-media.length > 0: MediaPickList {
+        items: Rules.f-media;
+        row-bg: root.field-bg;
+        action(a, i) => {
+            Rules.rule-item(a, i);
+        }
+    }
+    if Rules.scope != "scenes": HorizontalLayout {
         spacing: Theme.sp3;
         Select {
             width: 200px;
@@ -124,7 +233,7 @@ export component WhatSection inherits FormSection {
             }
         }
     }
-    if Rules.f-action == 0 || Rules.f-action == 3: HorizontalLayout {
+    if Rules.scope != "scenes" && (Rules.f-action == 0 || Rules.f-action == 3): HorizontalLayout {
         spacing: Theme.sp2;
         Label {
             horizontal-stretch: 1;
@@ -151,7 +260,7 @@ export component WhatSection inherits FormSection {
             }
         }
     }
-    if (Rules.f-action == 0 || Rules.f-action == 3) && Rules.f-media.length > 0: MediaPickList {
+    if Rules.scope != "scenes" && (Rules.f-action == 0 || Rules.f-action == 3) && Rules.f-media.length > 0: MediaPickList {
         items: Rules.f-media;
         row-bg: root.field-bg;
         action(a, i) => {

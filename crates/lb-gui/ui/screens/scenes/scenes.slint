@@ -5,6 +5,7 @@ import { ScrollView } from "std-widgets.slint";
 import { Theme } from "../../theme/tokens.slint";
 import { Icons } from "../../theme/icons.slint";
 import { Button, ButtonVariant } from "../../components/button.slint";
+import { SegmentedButton } from "../../components/segmented-button.slint";
 import { IconButton } from "../../components/icon-button.slint";
 import { StatusChip, StatusTone } from "../../components/indicators.slint";
 import { EmptyState } from "../../components/feedback.slint";
@@ -15,6 +16,77 @@ import { SceneList } from "scene-list.slint";
 import { SceneGeneral, SceneBackground } from "scene-form.slint";
 import { SceneMusic } from "music-rules.slint";
 import { SceneGraphics } from "scene-graphics.slint";
+import { SceneRulesTab, GapScenesTab } from "scene-rules.slint";
+import { Rules } from "../../state/rules-state.slint";
+
+component SceneTabs inherits SegmentedButton {
+    width: 420px;
+    segments: [{ text: "Сцены", icon: Icons.live-tv, has-icon: true }, { text: "Правила вставки" }, { text: "Пустоты" }];
+    selected: Scenes.tab;
+    changed(i) => {
+        Scenes.tab = i;
+        Scenes.tab-changed(i);
+    }
+}
+
+// Save / undo of the rules tabs (the rules draft, not the scene).
+component RulesActions inherits HorizontalLayout {
+    spacing: Theme.sp2;
+    if Rules.dirty: VerticalLayout {
+        alignment: center;
+        StatusChip {
+            text: "Не сохранено";
+            tone: StatusTone.warning;
+            icon: Icons.edit;
+        }
+    }
+    VerticalLayout {
+        alignment: center;
+        IconButton {
+            icon: Icons.undo;
+            enabled: Rules.can-undo;
+            tooltip: "Отменить (Ctrl+Z)";
+            clicked => {
+                Rules.undo();
+            }
+        }
+    }
+    VerticalLayout {
+        alignment: center;
+        IconButton {
+            icon: Icons.redo;
+            enabled: Rules.can-redo;
+            tooltip: "Повторить (Ctrl+Y)";
+            clicked => {
+                Rules.redo();
+            }
+        }
+    }
+    VerticalLayout {
+        alignment: center;
+        Button {
+            text: "Сбросить";
+            variant: ButtonVariant.text;
+            enabled: Rules.dirty;
+            clicked => {
+                Rules.revert();
+            }
+        }
+    }
+    VerticalLayout {
+        alignment: center;
+        Button {
+            text: "Сохранить";
+            icon: Icons.save;
+            has-icon: true;
+            enabled: Rules.dirty;
+            tooltip: "Ctrl+S";
+            clicked => {
+                Rules.save();
+            }
+        }
+    }
+}
 
 component SceneEditor inherits Rectangle {
     if Scenes.selected < 0: EmptyState {
@@ -45,8 +117,13 @@ export component ScenesScreen inherits Page {
 
         PageHeader {
             title: "Сцены";
-            subtitle: App.narrow ? "" : "фон, музыка и графика в одном элементе эфира";
-            if Scenes.dirty: VerticalLayout {
+            subtitle: App.narrow || root.width < 1500px ? "" : "фон, музыка и графика в одном элементе эфира";
+            if !App.narrow: VerticalLayout {
+                alignment: center;
+                SceneTabs { }
+            }
+            if Scenes.tab > 0: RulesActions { }
+            if Scenes.tab == 0 && Scenes.dirty: VerticalLayout {
                 alignment: center;
                 StatusChip {
                     text: "Не сохранено";
@@ -54,7 +131,7 @@ export component ScenesScreen inherits Page {
                     icon: Icons.edit;
                 }
             }
-            if Scenes.selected >= 0: VerticalLayout {
+            if Scenes.tab == 0 && Scenes.selected >= 0: VerticalLayout {
                 alignment: center;
                 IconButton {
                     icon: Icons.playlist-add;
@@ -65,7 +142,7 @@ export component ScenesScreen inherits Page {
                     }
                 }
             }
-            if Scenes.selected >= 0: VerticalLayout {
+            if Scenes.tab == 0 && Scenes.selected >= 0: VerticalLayout {
                 alignment: center;
                 IconButton {
                     icon: Icons.play-arrow;
@@ -77,7 +154,7 @@ export component ScenesScreen inherits Page {
                     }
                 }
             }
-            if Scenes.selected >= 0: VerticalLayout {
+            if Scenes.tab == 0 && Scenes.selected >= 0: VerticalLayout {
                 alignment: center;
                 IconButton {
                     icon: Icons.content-copy;
@@ -87,7 +164,7 @@ export component ScenesScreen inherits Page {
                     }
                 }
             }
-            if Scenes.selected >= 0: VerticalLayout {
+            if Scenes.tab == 0 && Scenes.selected >= 0: VerticalLayout {
                 alignment: center;
                 IconButton {
                     icon: Icons.delete;
@@ -98,7 +175,7 @@ export component ScenesScreen inherits Page {
                     }
                 }
             }
-            VerticalLayout {
+            if Scenes.tab == 0: VerticalLayout {
                 alignment: center;
                 Button {
                     text: "Сбросить";
@@ -109,7 +186,7 @@ export component ScenesScreen inherits Page {
                     }
                 }
             }
-            VerticalLayout {
+            if Scenes.tab == 0: VerticalLayout {
                 alignment: center;
                 Button {
                     text: "Сохранить";
@@ -124,7 +201,19 @@ export component ScenesScreen inherits Page {
             }
         }
 
-        if !App.narrow: HorizontalLayout {
+        if App.narrow: HorizontalLayout {
+            SceneTabs { }
+            Rectangle {
+                horizontal-stretch: 1;
+            }
+        }
+        if Scenes.tab == 1: SceneRulesTab {
+            vertical-stretch: 1;
+        }
+        if Scenes.tab == 2: GapScenesTab {
+            vertical-stretch: 1;
+        }
+        if Scenes.tab == 0 && !App.narrow: HorizontalLayout {
             vertical-stretch: 1;
             spacing: Theme.sp4;
             SceneList {
@@ -134,10 +223,10 @@ export component ScenesScreen inherits Page {
                 horizontal-stretch: 1;
             }
         }
-        if App.narrow && Scenes.selected < 0: SceneList {
+        if Scenes.tab == 0 && App.narrow && Scenes.selected < 0: SceneList {
             vertical-stretch: 1;
         }
-        if App.narrow && Scenes.selected >= 0: VerticalLayout {
+        if Scenes.tab == 0 && App.narrow && Scenes.selected >= 0: VerticalLayout {
             vertical-stretch: 1;
             spacing: Theme.sp2;
             HorizontalLayout {

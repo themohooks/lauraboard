@@ -46,6 +46,9 @@ export struct SceneGfxRow {
 }
 
 export global Scenes {
+    // 0 scenes, 1 insertion rules of scenes, 2 gap filling
+    in-out property <int> tab;
+    callback tab-changed(int);
     in property <[SceneItemRow]> rows;
     in property <int> selected: -1;
     in property <bool> dirty;

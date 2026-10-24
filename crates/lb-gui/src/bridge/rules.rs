@@ -1,6 +1,7 @@
-//! Automation rules (idents / ads / promos), ad breaks, policies and
-//! transitions: draft with undo, form validation, wizard, plan check,
-//! firing journal.
+//! Automation rules (idents / ads / promos / scenes), ad breaks, policies
+//! and transitions: draft with undo, form validation, wizard, plan check,
+//! firing journal. Scope "scenes" is shown inside the scenes screen
+//! (scene rules and gap scenes).
 
 use std::collections::HashSet;
 use std::time::{Duration, Instant};
@@ -18,7 +19,7 @@ use super::picker::{self, Target};
 use super::{Ctx, vec_model, with};
 use crate::fmt::KINDS;
 use crate::logic::filter;
-use crate::logic::rule_check::{self, action_kind, action_text, is_ad_rule, trigger_text};
+use crate::logic::rule_check::{self, action_kind, action_text, rule_scope, trigger_text};
 use crate::logic::undo::History;
 use crate::net::Msg;
 use crate::shell::{AppWindow, MediaPick, RuleRow, Rules};
@@ -90,10 +91,19 @@ pub fn connect(ui: &AppWindow) {
     g.on_break_remove(|| with(break_remove));
     g.on_break_item(|a, i| with(move |c| break_item(c, a.as_str(), i as usize)));
     g.on_rule_item(|a, i| with(move |c| rule_item(c, a.as_str(), i as usize)));
+    g.on_trigger_item(|a, i| with(move |c| trigger_item(c, a.as_str(), i as usize)));
+    g.on_gap_scene(|a, i| with(move |c| gap_scene(c, a.as_str(), i as usize)));
     g.on_pick(|what| {
         with(move |c| {
             let jingles = c.window().is_some_and(|ui| ui.global::<Rules>().get_f_action() == 0);
+            if what == "gap-scenes" {
+                return picker::open_scenes(c, Target::GapScenes, "Сцены для заполнения пустот");
+            }
+            if what == "rule-items" && c.rules.scope == "scenes" {
+                return picker::open_scenes(c, Target::RuleItems, "Сцены правила");
+            }
             let (t, title) = match what.as_str() {
+                "trigger-media" => (Target::RuleTrigger, "Ролики, после которых срабатывает правило"),
                 "rule-items" if jingles => (Target::RuleItems, "Заставки правила"),
                 "rule-items" => (Target::RuleItems, "Ролики правила"),
                 "rule-exclude" => (Target::RuleExclude, "Ролики, после которых правило не срабатывает"),
@@ -143,7 +153,7 @@ pub fn reloaded(c: &mut Ctx) {
     if !was_dirty {
         c.rules.draft = c.rules.saved.clone();
     }
-    if matches!(c.section().as_str(), "jingles" | "ads") {
+    if matches!(c.section().as_str(), "jingles" | "ads" | "scenes") {
         refresh(c);
     }
 }
@@ -198,7 +208,7 @@ fn mutate(c: &mut Ctx, coalesce: Option<&str>, f: impl FnOnce(&mut RuleSet)) {
 }
 
 fn in_scope(c: &Ctx, r: &InsertionRule) -> bool {
-    (c.rules.scope == "ads") == is_ad_rule(r)
+    rule_scope(r) == c.rules.scope
 }
 
 fn categories(c: &Ctx) -> HashSet<String> {
@@ -243,6 +253,7 @@ pub fn refresh(c: &mut Ctx) {
     }
     g.set_rules(vec_model(rows));
     g.set_selected(c.rules.selected.map(|i| i as i32).unwrap_or(-1));
+    g.set_playlists(vec_model(c.model.playlists.iter().map(|p| s(if p.name.is_empty() || p.name == p.id { p.id.clone() } else { format!("{} ({})", p.name, p.id) })).collect()));
     g.set_ad_breaks(vec_model(set.ad_breaks.iter().map(|b| s(if b.name.is_empty() { b.id.clone() } else { format!("{} — {}", b.id, b.name) })).collect()));
     g.set_dirty(c.rules.dirty());
     g.set_can_undo(c.rules.history.can_undo());
@@ -284,11 +295,27 @@ fn load_form(c: &Ctx, r: &InsertionRule) {
         Trigger::BetweenBlocks => (4, "3".into(), "30".into(), String::new()),
         Trigger::AfterCategory { category } => (5, "3".into(), "30".into(), category.clone()),
         Trigger::BeforeCategory { category } => (6, "3".into(), "30".into(), category.clone()),
+        Trigger::AfterMedia { .. } => (7, "3".into(), "30".into(), String::new()),
+        Trigger::AfterPlaylist { .. } => (8, "3".into(), "30".into(), String::new()),
+        Trigger::AtTimes { .. } => (9, "3".into(), "30".into(), String::new()),
     };
     g.set_f_trigger(t);
     g.set_f_n(s(n));
     g.set_f_minutes(s(m));
     g.set_f_tcat(s(cat));
+    let titems = if let Trigger::AfterMedia { items } = &r.trigger { items.clone() } else { vec![] };
+    g.set_f_titems(s(join(&titems)));
+    g.set_f_tmedia(media_picks(c, &titems));
+    let tpl = match &r.trigger {
+        Trigger::AfterPlaylist { playlist } => c.model.playlists.iter().position(|p| &p.id == playlist).map(|i| i as i32).unwrap_or(-1),
+        _ => -1,
+    };
+    g.set_f_tpl(tpl);
+    let times = match &r.trigger {
+        Trigger::AtTimes { times } => times.iter().map(|t| t.format("%H:%M").to_string()).collect::<Vec<_>>().join(", "),
+        _ => String::new(),
+    };
+    g.set_f_times(s(times));
     let (a, jcat, items, ab, pcount, pcat) = match &r.action {
         InsertAction::Jingle { category, items } => (0, category.clone().unwrap_or_default(), join(items), -1, "1".to_string(), String::new()),
         InsertAction::AdBreak { ad_break } => {
@@ -296,7 +323,10 @@ fn load_form(c: &Ctx, r: &InsertionRule) {
         }
         InsertAction::Promos { count, category } => (2, String::new(), String::new(), -1, count.to_string(), category.clone().unwrap_or_default()),
         InsertAction::Media { items } => (3, String::new(), join(items), -1, "1".into(), String::new()),
+        InsertAction::Scene { items, .. } => (4, String::new(), join(items), -1, "1".into(), String::new()),
     };
+    let sdur = if let InsertAction::Scene { duration: Some(d), .. } = &r.action { d.to_string() } else { String::new() };
+    g.set_f_sdur(s(sdur));
     g.set_f_action(a);
     g.set_f_jcat(s(jcat));
     g.set_f_media(media_picks(c, &split(&items)));
@@ -321,7 +351,7 @@ fn load_form(c: &Ctx, r: &InsertionRule) {
     g.set_f_group(s(r.group.clone().unwrap_or_default()));
     g.set_f_optional(r.optional);
     g.set_f_skipmanual(r.skip_on_manual);
-    for f in [Rules::set_e_n, Rules::set_e_minutes, Rules::set_e_from, Rules::set_e_to, Rules::set_e_priority, Rules::set_e_pcount] {
+    for f in [Rules::set_e_n, Rules::set_e_minutes, Rules::set_e_from, Rules::set_e_to, Rules::set_e_priority, Rules::set_e_pcount, Rules::set_e_times, Rules::set_e_sdur] {
         f(&g, SharedString::new());
     }
 }
@@ -341,6 +371,11 @@ fn read_form(c: &Ctx, base: &InsertionRule) -> InsertionRule {
     let old_n = if let Trigger::EveryNItems { n } = r.trigger { n } else { 3 };
     let old_m = if let Trigger::EveryMinutes { minutes } = r.trigger { minutes } else { 30.0 };
     let tcat = g.get_f_tcat().trim().to_string();
+    let times = parse_times(&g.get_f_times());
+    g.set_e_times(s(if g.get_f_trigger() == 9 && times.as_ref().is_none_or(|t| t.is_empty()) { "Время через запятую: 12:00, 18:30" } else { "" }));
+    let old_times = if let Trigger::AtTimes { times } = &r.trigger { times.clone() } else { vec![] };
+    let playlist = usize::try_from(g.get_f_tpl()).ok().and_then(|i| c.model.playlists.get(i)).map(|p| p.id.clone());
+    let old_pl = if let Trigger::AfterPlaylist { playlist } = &r.trigger { playlist.clone() } else { String::new() };
     r.trigger = match g.get_f_trigger() {
         0 => Trigger::EveryNItems { n: n.unwrap_or(old_n) },
         1 => Trigger::EveryMinutes { minutes: m.unwrap_or(old_m) },
@@ -348,7 +383,10 @@ fn read_form(c: &Ctx, base: &InsertionRule) -> InsertionRule {
         3 => Trigger::BlockEnd,
         4 => Trigger::BetweenBlocks,
         5 => Trigger::AfterCategory { category: tcat },
-        _ => Trigger::BeforeCategory { category: tcat },
+        6 => Trigger::BeforeCategory { category: tcat },
+        7 => Trigger::AfterMedia { items: split(&g.get_f_titems()) },
+        8 => Trigger::AfterPlaylist { playlist: playlist.unwrap_or(old_pl) },
+        _ => Trigger::AtTimes { times: times.unwrap_or(old_times) },
     };
     let pc: Option<usize> = g.get_f_pcount().trim().parse().ok().filter(|n| (1..=10).contains(n));
     g.set_e_pcount(s(if g.get_f_action() == 2 && pc.is_none() { "От 1 до 10" } else { "" }));
@@ -367,7 +405,18 @@ fn read_form(c: &Ctx, base: &InsertionRule) -> InsertionRule {
             count: pc.unwrap_or(if let InsertAction::Promos { count, .. } = base.action { count } else { 1 }),
             category: opt(g.get_f_pcat()),
         },
-        _ => InsertAction::Media { items: split(&g.get_f_items()) },
+        3 => InsertAction::Media { items: split(&g.get_f_items()) },
+        _ => {
+            let old = if let InsertAction::Scene { duration, .. } = &base.action { *duration } else { None };
+            let txt = g.get_f_sdur().trim().to_string();
+            let (duration, err) = match txt.parse::<Dur>() {
+                _ if txt.is_empty() => (None, ""),
+                Ok(d) if d.ms() > 0 => (Some(d), ""),
+                _ => (old, "Формат ЧЧ:ММ:СС, например 00:01:30"),
+            };
+            g.set_e_sdur(s(err));
+            InsertAction::Scene { items: split(&g.get_f_items()), duration }
+        }
     };
     let time = |v: SharedString, is_from: bool, old: Option<NaiveTime>| -> Option<NaiveTime> {
         let (t, err) = match crate::logic::timeline::parse_time(&v) {
@@ -509,13 +558,16 @@ fn toggle_list(c: &mut Ctx, kinds: bool, i: usize) {
 fn blank_rule(c: &Ctx) -> InsertionRule {
     let set = c.rules.draft.clone().unwrap_or_default();
     let ads = c.rules.scope == "ads";
+    let scenes = c.rules.scope == "scenes";
     InsertionRule {
-        id: rule_check::new_id(&set, if ads { "ads" } else { "ident" }),
-        name: if ads { "Реклама".into() } else { "Заставка".into() },
+        id: rule_check::new_id(&set, if ads { "ads" } else if scenes { "scene" } else { "ident" }),
+        name: if ads { "Реклама".into() } else if scenes { "Сцена".into() } else { "Заставка".into() },
         enabled: true,
-        trigger: if ads { Trigger::EveryMinutes { minutes: 30.0 } } else { Trigger::BlockStart },
+        trigger: if ads { Trigger::EveryMinutes { minutes: 30.0 } } else if scenes { Trigger::BlockEnd } else { Trigger::BlockStart },
         action: if ads {
             InsertAction::AdBreak { ad_break: set.ad_breaks.first().map(|b| b.id.clone()).unwrap_or_default() }
+        } else if scenes {
+            InsertAction::Scene { items: c.scenes.selected.clone().into_iter().collect(), duration: Some(Dur::mins(1)) }
         } else {
             InsertAction::Jingle { category: Some("idents".into()), items: vec![] }
         },
@@ -849,8 +901,82 @@ fn set_rule_items(c: &mut Ctx, items: Vec<String>) {
     form_changed(c);
 }
 
+/// Edit the item list of the "after items" trigger (`f-titems`).
+fn trigger_item(c: &mut Ctx, action: &str, i: usize) {
+    let Some(ui) = c.window() else { return };
+    let g = ui.global::<Rules>();
+    let mut items = split(&g.get_f_titems());
+    match action {
+        "up" if i > 0 && i < items.len() => items.swap(i - 1, i),
+        "down" if i + 1 < items.len() => items.swap(i, i + 1),
+        "remove" if i < items.len() => {
+            items.remove(i);
+        }
+        "clear" => items.clear(),
+        _ => return,
+    }
+    set_trigger_items(c, items);
+}
+
+fn set_trigger_items(c: &mut Ctx, items: Vec<String>) {
+    let Some(ui) = c.window() else { return };
+    let g = ui.global::<Rules>();
+    g.set_f_tmedia(media_picks(c, &items));
+    g.set_f_titems(s(join(&items)));
+    form_changed(c);
+}
+
+/// Reorder / remove the gap scenes of the policy.
+fn gap_scene(c: &mut Ctx, action: &str, i: usize) {
+    let action = action.to_string();
+    mutate(c, None, move |set| {
+        let v = &mut set.filler.scenes;
+        match action.as_str() {
+            "up" if i > 0 && i < v.len() => v.swap(i - 1, i),
+            "down" if i + 1 < v.len() => v.swap(i, i + 1),
+            "remove" if i < v.len() => {
+                v.remove(i);
+            }
+            "clear" => v.clear(),
+            _ => {}
+        }
+    });
+    list_and_flags(c);
+    policies(c);
+}
+
+/// "12:00, 18:30" → times (sorted, unique); `None` when one is wrong.
+fn parse_times(v: &str) -> Option<Vec<NaiveTime>> {
+    let mut out = Vec::new();
+    for p in v.split([',', ';', ' ']).map(str::trim).filter(|p| !p.is_empty()) {
+        out.push(crate::logic::timeline::parse_time(p).ok().flatten()?);
+    }
+    out.sort();
+    out.dedup();
+    Some(out)
+}
+
 /// Result of the library picker.
 pub fn picked(c: &mut Ctx, target: Target, ids: Vec<String>) {
+    if target == Target::RuleTrigger {
+        let Some(ui) = c.window() else { return };
+        let mut items = split(&ui.global::<Rules>().get_f_titems());
+        items.extend(ids.into_iter().filter(|id| !items.contains(id)).collect::<Vec<_>>());
+        set_trigger_items(c, items);
+        return;
+    }
+    if target == Target::GapScenes {
+        mutate(c, None, move |set| {
+            for id in ids {
+                if !set.filler.scenes.contains(&id) {
+                    set.filler.scenes.push(id);
+                }
+            }
+        });
+        list_and_flags(c);
+        policies(c);
+        return;
+    }
     if target == Target::RuleExclude {
         let Some(ui) = c.window() else { return };
         let g = ui.global::<Rules>();
@@ -937,6 +1063,8 @@ fn policies(c: &mut Ctx) {
     g.set_p_filler_promos(set.filler.use_promos);
     g.set_p_filler_min(s(set.filler.min_fill.to_string()));
     g.set_p_filler_interval(s(set.filler.min_interval.to_string()));
+    g.set_p_gap_scenes(media_picks(c, &set.filler.scenes));
+    g.set_p_scenes_first(set.filler.scenes_first);
     g.set_t_fade(s(set.transitions.fade.ms().to_string()));
     g.set_t_kinds(bools(KINDS.iter().map(|k| set.transitions.kinds.contains(k)).collect()));
     g.set_e_policy(SharedString::new());
@@ -974,7 +1102,7 @@ fn policy_changed(c: &mut Ctx) {
     if max.is_none() {
         errors.push("Блоков в сутки: целое число".into());
     }
-    let (cats, promos) = (split(&g.get_p_filler_cats()), g.get_p_filler_promos());
+    let (cats, promos, scenes_first) = (split(&g.get_p_filler_cats()), g.get_p_filler_promos(), g.get_p_scenes_first());
     g.set_e_policy(s(errors.join(" · ")));
     mutate(c, Some("policy"), move |set| {
         if let Some(m) = max {
@@ -997,6 +1125,7 @@ fn policy_changed(c: &mut Ctx) {
         }
         set.filler.categories = cats;
         set.filler.use_promos = promos;
+        set.filler.scenes_first = scenes_first;
     });
     list_and_flags(c);
 }

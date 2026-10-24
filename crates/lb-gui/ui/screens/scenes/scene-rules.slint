@@ -1,0 +1,125 @@
+// Tabs of the scenes screen beyond the editor: insertion rules of scenes
+// (the rule list and form of the automation screens, scope "scenes") and
+// gap filling with scenes.
+
+import { ScrollView } from "std-widgets.slint";
+import { Theme } from "../../theme/tokens.slint";
+import { Icons } from "../../theme/icons.slint";
+import { Label } from "../../components/label.slint";
+import { Switch } from "../../components/switch.slint";
+import { Button, ButtonVariant } from "../../components/button.slint";
+import { App } from "../../state/app-state.slint";
+import { Rules } from "../../state/rules-state.slint";
+import { RuleList } from "../rules/rule-list.slint";
+import { RuleDetail } from "../rules/rule-detail.slint";
+import { FormSection } from "../rules/form-parts.slint";
+import { MediaPickList } from "../rules/media-list.slint";
+
+export component SceneRulesTab inherits VerticalLayout {
+    spacing: Theme.sp2;
+    Label {
+        text: "Правила вставляют сцену в эфир сами: после блока, плейлиста или ролика, каждые N роликов или минут, в заданное время — с той длительностью, которую вы зададите.";
+        wrap: word-wrap;
+        type-style: Theme.body-small;
+        color: Theme.color.on-surface-variant;
+    }
+    if !App.narrow: HorizontalLayout {
+        vertical-stretch: 1;
+        spacing: Theme.sp4;
+        RuleList {
+            width: min(420px, root.width * 0.38);
+        }
+        RuleDetail {
+            horizontal-stretch: 1;
+        }
+    }
+    if App.narrow && Rules.selected < 0: RuleList {
+        vertical-stretch: 1;
+    }
+    if App.narrow && Rules.selected >= 0: VerticalLayout {
+        vertical-stretch: 1;
+        spacing: Theme.sp2;
+        HorizontalLayout {
+            Button {
+                text: "Все правила";
+                icon: Icons.chevron-left;
+                has-icon: true;
+                variant: ButtonVariant.text;
+                clicked => {
+                    Rules.select(-1);
+                }
+            }
+            Rectangle {
+                horizontal-stretch: 1;
+            }
+        }
+        RuleDetail {
+            vertical-stretch: 1;
+        }
+    }
+}
+
+export component GapScenesTab inherits ScrollView {
+    VerticalLayout {
+        width: root.visible-width;
+        padding-top: Theme.sp2;
+        padding-right: Theme.sp3;
+        spacing: Theme.sp3;
+        alignment: start;
+        FormSection {
+            title: "Заполнение пустот сценой";
+            hint: "перед передачей с точным временем";
+            icon: Icons.live-tv;
+            Label {
+                text: "Когда до передачи с фиксированным временем остаётся пустота, её закрывает сцена, растянутая точно до начала передачи — вместо заглушки. Сцены из списка идут по очереди.";
+                wrap: word-wrap;
+                type-style: Theme.body-small;
+                color: Theme.color.on-surface-variant;
+            }
+            HorizontalLayout {
+                spacing: Theme.sp2;
+                Label {
+                    horizontal-stretch: 1;
+                    vertical-alignment: center;
+                    text: Rules.p-gap-scenes.length > 0 ? "Сцен: " + Rules.p-gap-scenes.length : "Сцены не выбраны — пустоты закрывает заглушка";
+                    color: Theme.color.on-surface-variant;
+                }
+                if Rules.p-gap-scenes.length > 0: Button {
+                    text: "Очистить";
+                    variant: ButtonVariant.text;
+                    clicked => {
+                        Rules.gap-scene("clear", 0);
+                    }
+                }
+                Button {
+                    text: "Выбрать сцены";
+                    variant: ButtonVariant.tonal;
+                    icon: Icons.live-tv;
+                    has-icon: true;
+                    clicked => {
+                        Rules.pick("gap-scenes");
+                    }
+                }
+            }
+            if Rules.p-gap-scenes.length > 0: MediaPickList {
+                items: Rules.p-gap-scenes;
+                action(a, i) => {
+                    Rules.gap-scene(a, i);
+                }
+            }
+            Switch {
+                text: "Сцена занимает всю пустоту (без заполнителей и анонсов)";
+                checked <=> Rules.p-scenes-first;
+                toggled => {
+                    Rules.policy-changed();
+                }
+            }
+            Label {
+                text: "Выключено — сначала идут заполнители и анонсы из политики заполнения, а сцена закрывает остаток.";
+                wrap: word-wrap;
+                type-style: Theme.body-small;
+                color: Theme.color.on-surface-variant;
+            }
+        }
+    }
+}

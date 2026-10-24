@@ -25,7 +25,10 @@ where
         }
         if end < fixed {
             if prev.is_none_or(|p| p.block.fill_gap) {
-                end = self.fill_gap(end, fixed, prev);
+                if !(self.inp.rules.filler.scenes_first && self.has_filler_scene()) {
+                    end = self.fill_gap(end, fixed, prev);
+                }
+                end = self.scene_gap(end, fixed, prev);
             }
             if end < fixed {
                 let gap = diff_ms(fixed, end);

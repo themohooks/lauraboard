@@ -17,7 +17,7 @@ export struct RuleRow {
 }
 
 export global Rules {
-    // "jingles" or "ads"
+    // "jingles", "ads" or "scenes"
     in-out property <string> scope: "jingles";
     // tab inside the screen: 0 rules, 1 ad breaks / transitions, 2 policies
     in-out property <int> tab;
@@ -35,13 +35,27 @@ export global Rules {
     in property <string> f-id;
     in-out property <string> f-name;
     in-out property <bool> f-enabled;
-    // 0 every N items, 1 every N minutes, 2 block start, 3 block end, 4 between blocks, 5 after category, 6 before category
+    // 0 every N items, 1 every N minutes, 2 block start, 3 block end, 4 between blocks, 5 after category, 6 before category,
+    // 7 after items, 8 after a playlist, 9 at times
     in-out property <int> f-trigger;
     in-out property <string> f-n;
     in-out property <string> f-minutes;
     in-out property <string> f-tcat;
-    // 0 jingle, 1 ad break, 2 promos, 3 media
+    // trigger 7: items (ids, comma separated, edited with trigger-item / pick("trigger-media"))
+    in-out property <string> f-titems;
+    in property <[MediaPick]> f-tmedia;
+    callback trigger-item(string, int);
+    // trigger 8: index in `playlists`
+    in property <[string]> playlists;
+    in-out property <int> f-tpl: -1;
+    // trigger 9: "ЧЧ:ММ, ЧЧ:ММ"
+    in-out property <string> f-times;
+    in property <string> e-times;
+    // 0 jingle, 1 ad break, 2 promos, 3 media, 4 scene
     in-out property <int> f-action;
+    // scene: length "ЧЧ:ММ:СС" (empty — the scene's own)
+    in-out property <string> f-sdur;
+    in property <string> e-sdur;
     in-out property <string> f-jcat;
     in-out property <string> f-items;
     // f-items as library entries; edited with rule-item / pick("rule-items")
@@ -115,6 +129,10 @@ export global Rules {
     in-out property <bool> p-filler-promos;
     in-out property <string> p-filler-min;
     in-out property <string> p-filler-interval;
+    // gap scenes (edited with gap-scene / pick("gap-scenes")) and "scene first"
+    in property <[MediaPick]> p-gap-scenes;
+    in-out property <bool> p-scenes-first;
+    callback gap-scene(string, int);
     in property <string> e-policy;
 
     // ---- transitions

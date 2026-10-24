@@ -193,10 +193,11 @@ where
         if truncated {
             self.warn(WarningKind::Truncated, Some(*t), format!("'{}' truncated to fit {}", m.title, bd.hard_end.unwrap().time()));
         }
+        let pass_end = self.pass_ended(&next_src);
         pr.src = next_src;
         pr.count += 1;
         pr.last_main = Some(m.id.clone());
-        self.after_main(inst, m, t, pr.count, pr.block_start);
+        self.after_main(inst, m, t, pr.count, pr.block_start, pass_end.as_deref());
         if truncated { Step::PlacedLast } else { Step::Placed }
     }
 
@@ -215,8 +216,14 @@ where
         self.push_main(alt, t, inst, cat, None, None, dur, false);
         pr.count += 1;
         pr.last_main = Some(alt.id.clone());
-        self.after_main(inst, alt, t, pr.count, pr.block_start);
+        self.after_main(inst, alt, t, pr.count, pr.block_start, None);
         true
+    }
+
+    /// The playlist whose pass the source position just completed.
+    fn pass_ended(&self, src: &Src<'a>) -> Option<String> {
+        let Src::Playlist { pl, cursor } = src else { return None };
+        (cursor.pos >= pl.order(self.inp.seed, cursor.cycle).len()).then(|| pl.id.clone())
     }
 
     fn main_ctx(&self, inst: &Inst<'a>, m: &MediaItem, cat: Option<String>, playlist: Option<String>, at: WallTime) -> MatchCtxOwned {
@@ -234,8 +241,9 @@ where
         )
     }
 
-    /// Rules evaluated after each main item.
-    fn after_main(&mut self, inst: &Inst<'a>, m: &'a MediaItem, t: &mut WallTime, count: usize, block_start: WallTime) {
+    /// Rules evaluated after each main item (`pass_end`: the playlist
+    /// whose last entry it was).
+    fn after_main(&mut self, inst: &Inst<'a>, m: &'a MediaItem, t: &mut WallTime, count: usize, block_start: WallTime, pass_end: Option<&str>) {
         let b = inst.block;
         if !b.rules {
             return;
@@ -254,6 +262,13 @@ where
                     let since = last_fired.get(&r.id).copied().filter(|x| *x >= block_start).unwrap_or(block_start);
                     diff_ms(now, since) as f64 >= minutes * 60_000.0
                 }
+                Trigger::AfterMedia { items } => items.iter().any(|i| i == &m.id),
+                Trigger::AfterPlaylist { playlist } => pass_end.is_some_and(|p| p.eq_ignore_ascii_case(playlist)),
+                Trigger::AtTimes { times } => {
+                    // a time right at the block start counts for this block
+                    let since = last_fired.get(&r.id).copied().filter(|x| *x >= block_start).unwrap_or(block_start - chrono::Duration::milliseconds(1));
+                    time_passed(times, since, now)
+                }
                 _ => false,
             },
             &ctx,
@@ -262,4 +277,13 @@ where
             self.apply_rule(r, t, Some(inst));
         }
     }
+}
+
+/// One of the daily `times` falls in `(since, now]`.
+fn time_passed(times: &[chrono::NaiveTime], since: WallTime, now: WallTime) -> bool {
+    let days = [now.date() - chrono::Duration::days(1), now.date()];
+    times.iter().any(|t| days.iter().any(|d| {
+        let at = d.and_time(*t);
+        at > since && at <= now
+    }))
 }

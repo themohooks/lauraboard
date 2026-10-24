@@ -27,7 +27,7 @@ pub const FOLDER: &str = "Сцены";
 #[derive(Default)]
 pub struct ScenesState {
     /// Id of the selected scene.
-    selected: Option<String>,
+    pub(crate) selected: Option<String>,
     /// Edited copy of the selected scene.
     draft: Option<MediaItem>,
     dirty: bool,
@@ -38,6 +38,13 @@ pub struct ScenesState {
 pub fn connect(ui: &AppWindow) {
     let g = ui.global::<Scenes>();
     g.on_select(|i| with(move |c| select(c, i)));
+    g.on_tab_changed(|i| {
+        with(move |c| {
+            if i > 0 {
+                super::rules::opened(c, "scenes");
+            }
+        })
+    });
     g.on_create(|t| with(move |c| templates::create(c, t.as_str())));
     g.on_duplicate(|| with(duplicate));
     g.on_remove(|| with(remove));
@@ -166,6 +173,10 @@ fn save(c: &mut Ctx) {
 
 /// Ctrl+S on this screen.
 pub fn shortcut(c: &mut Ctx, name: &str) {
+    // the rules tabs edit the rules draft
+    if c.window().is_some_and(|ui| ui.global::<Scenes>().get_tab() > 0) {
+        return super::rules::shortcut(c, name);
+    }
     if name == "save" && c.scenes.dirty {
         save(c);
     }

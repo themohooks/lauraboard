@@ -160,6 +160,9 @@ pub fn navigate(c: &mut Ctx, id: &str) {
     }
     if id == "scenes" {
         super::scenes::refresh(c);
+        if c.window().is_some_and(|ui| ui.global::<crate::shell::Scenes>().get_tab() > 0) {
+            super::rules::opened(c, "scenes");
+        }
     }
     if id == "settings" {
         super::settings::opened(c);

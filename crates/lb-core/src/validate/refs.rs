@@ -7,7 +7,7 @@ use super::Report;
 use crate::graphics::ElementKind;
 use crate::media::MediaKind;
 use crate::project::ChannelData;
-use crate::rules::InsertAction;
+use crate::rules::{InsertAction, Trigger};
 use crate::schedule::BlockSource;
 
 pub(super) fn check(ch: &ChannelData, r: &mut Report) {
@@ -130,6 +130,37 @@ fn rules(ch: &ChannelData, r: &mut Report) {
                     r.error(&loc, format!("unknown media '{i}'"));
                 }
             }
+            InsertAction::Scene { items, duration } => {
+                for i in items {
+                    match ch.library.get(i) {
+                        None => r.error(&loc, format!("unknown media '{i}'")),
+                        Some(m) if !m.is_scene() => r.error(&loc, format!("'{i}' is not a scene")),
+                        _ => {}
+                    }
+                }
+                if duration.is_some_and(|d| d.ms() <= 0) {
+                    r.error(&loc, "scene duration must be positive");
+                }
+            }
+            _ => {}
+        }
+        match &rule.trigger {
+            Trigger::AfterMedia { items } => {
+                for i in items.iter().filter(|i| !ch.library.contains(i)) {
+                    r.warn(&loc, format!("trigger: unknown media '{i}'"));
+                }
+            }
+            Trigger::AfterPlaylist { playlist } if !ch.playlists.iter().any(|p| &p.id == playlist) => {
+                r.warn(&loc, format!("trigger: unknown playlist '{playlist}'"))
+            }
+            Trigger::AtTimes { times } if times.is_empty() => r.warn(&loc, "trigger: no times"),
+            _ => {}
+        }
+    }
+    for i in &ch.rules.filler.scenes {
+        match ch.library.get(i) {
+            None => r.error("rules/filler", format!("unknown media '{i}'")),
+            Some(m) if !m.is_scene() => r.error("rules/filler", format!("'{i}' is not a scene")),
             _ => {}
         }
     }

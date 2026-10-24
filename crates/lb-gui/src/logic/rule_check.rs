@@ -14,6 +14,13 @@ pub fn trigger_text(t: &Trigger) -> String {
         Trigger::BetweenBlocks => "между блоками".into(),
         Trigger::AfterCategory { category } => format!("после «{category}»"),
         Trigger::BeforeCategory { category } => format!("перед «{category}»"),
+        Trigger::AfterMedia { items } if items.len() == 1 => format!("после «{}»", items[0]),
+        Trigger::AfterMedia { items } => format!("после одного из {} роликов", items.len()),
+        Trigger::AfterPlaylist { playlist } => format!("после плейлиста «{playlist}»"),
+        Trigger::AtTimes { times } => {
+            let t: Vec<String> = times.iter().map(|t| t.format("%H:%M").to_string()).collect();
+            format!("в {}", if t.is_empty() { "—".into() } else { t.join(", ") })
+        }
     }
 }
 
@@ -27,6 +34,17 @@ pub fn action_text(a: &InsertAction) -> String {
         InsertAction::AdBreak { ad_break } => format!("рекламный блок «{ad_break}»"),
         InsertAction::Promos { count, .. } => format!("анонсы × {count}"),
         InsertAction::Media { items } => format!("ролик: {}", items.join(", ")),
+        InsertAction::Scene { items, duration } => {
+            let what = match items.len() {
+                0 => "любая сцена".to_string(),
+                1 => format!("сцена «{}»", items[0]),
+                n => format!("одна из {n} сцен"),
+            };
+            match duration {
+                Some(d) => format!("{what} на {d}"),
+                None => what,
+            }
+        }
     }
 }
 
@@ -37,12 +55,17 @@ pub fn action_kind(a: &InsertAction) -> &'static str {
         InsertAction::AdBreak { .. } => "ad",
         InsertAction::Promos { .. } => "promo",
         InsertAction::Media { .. } => "program",
+        InsertAction::Scene { .. } => "scene",
     }
 }
 
-/// Which screen a rule belongs to.
-pub fn is_ad_rule(r: &InsertionRule) -> bool {
-    matches!(r.action, InsertAction::AdBreak { .. } | InsertAction::Promos { .. })
+/// Which screen a rule belongs to: "ads", "scenes" or "jingles".
+pub fn rule_scope(r: &InsertionRule) -> &'static str {
+    match r.action {
+        InsertAction::AdBreak { .. } | InsertAction::Promos { .. } => "ads",
+        InsertAction::Scene { .. } => "scenes",
+        _ => "jingles",
+    }
 }
 
 fn overlap(a: &[String], b: &[String]) -> bool {
@@ -66,6 +89,9 @@ pub fn problems(set: &RuleSet, i: usize, categories: &HashSet<String>) -> Vec<St
         Trigger::AfterCategory { category } | Trigger::BeforeCategory { category } if category.trim().is_empty() => {
             out.push("Триггер: не указана категория".into())
         }
+        Trigger::AfterMedia { items } if items.is_empty() => out.push("Триггер: не выбраны ролики, после которых вставлять".into()),
+        Trigger::AfterPlaylist { playlist } if playlist.trim().is_empty() => out.push("Триггер: не выбран плейлист".into()),
+        Trigger::AtTimes { times } if times.is_empty() => out.push("Триггер: не указано время".into()),
         _ => {}
     }
     match &r.action {
@@ -77,6 +103,7 @@ pub fn problems(set: &RuleSet, i: usize, categories: &HashSet<String>) -> Vec<St
             out.push(format!("В медиатеке нет категории «{c}»"))
         }
         InsertAction::Media { items } if items.is_empty() => out.push("Не выбраны ролики".into()),
+        InsertAction::Scene { duration: Some(d), .. } if d.ms() <= 0 => out.push("Длительность сцены должна быть больше нуля".into()),
         _ => {}
     }
     if let (Some(f), Some(t)) = (r.conditions.from, r.conditions.to)
