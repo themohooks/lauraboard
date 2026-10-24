@@ -39,9 +39,12 @@ pub async fn thumb(
 ) -> ApiResult<Response> {
     c.require(Role::Viewer)?;
     let h = channel(&s, &id)?;
-    let item = h.read(|d| d.library.get(&media).cloned()).ok_or_else(|| ApiError::not_found(format!("media '{media}'")))?;
+    let item = h.read(|d| d.library.get(&media).cloned().map(|m| scene_picture(d, m))).ok_or_else(|| ApiError::not_found(format!("media '{media}'")))?;
     if item.kind == MediaKind::Stream || item.is_url() {
         return Err(ApiError::not_found("no thumbnails for streams"));
+    }
+    if item.is_scene() {
+        return Err(ApiError::not_found("scene on a colour background"));
     }
     if item.probe.video.is_none() && (item.probe.has_audio || item.probe.error.is_some()) {
         return Err(ApiError::not_found("no video in this media"));
@@ -98,10 +101,13 @@ pub async fn preview(
     c.require(Role::Viewer)?;
     let h = channel(&s, &id)?;
     let (item, video) = h
-        .read(|d| d.library.get(&media).cloned().map(|m| (m, d.config.video.clone())))
+        .read(|d| d.library.get(&media).cloned().map(|m| (scene_picture(d, m), d.config.video.clone())))
         .ok_or_else(|| ApiError::not_found(format!("media '{media}'")))?;
     if item.kind == MediaKind::Stream || item.is_url() {
         return Err(ApiError::not_found("no preview for streams"));
+    }
+    if item.is_scene() {
+        return Err(ApiError::not_found("scene on a colour background"));
     }
     let src = paths::resolve(&h.shared.root, &item.path);
     if !src.exists() {
@@ -205,5 +211,14 @@ mod tests {
         assert_ne!(file_safe("a.b"), file_safe("a_b"));
         assert_eq!(file_safe("a-b"), "a~2db");
         assert_eq!(file_safe("кот"), "~d0~ba~d0~be~d1~82");
+    }
+}
+
+/// A scene shows its background item's picture (a colour background: the
+/// scene itself, which has none).
+fn scene_picture(d: &lb_core::project::ChannelData, m: lb_core::media::MediaItem) -> lb_core::media::MediaItem {
+    match m.scene.as_ref().map(|s| &s.background) {
+        Some(lb_core::media::scene::Background::Media { media }) => d.library.get(media).filter(|b| !b.is_scene()).cloned().unwrap_or(m),
+        _ => m,
     }
 }

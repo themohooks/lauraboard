@@ -4,6 +4,7 @@
 //! * [`filters`] — scaling / padding / fades / audio normalisation chains
 //! * [`decoder`] — one rundown item → normalised MPEG-TS on stdout
 //! * [`slate`] — generated standby picture with silence
+//! * [`scene`] — scene: background with music tracks
 //! * [`encoder`] — overlay graphics, encode and push to outputs
 //! * [`outputs`] — output target URL → muxer options (tee syntax)
 //! * [`color`] — colour string conversion
@@ -13,6 +14,7 @@ pub mod decoder;
 pub mod encoder;
 pub mod filters;
 pub mod outputs;
+pub mod scene;
 pub mod slate;
 
 /// Intermediate format between decoders and the encoder: MPEG-TS with

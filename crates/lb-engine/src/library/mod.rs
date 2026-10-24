@@ -135,7 +135,7 @@ pub fn new_item(lib: &lb_core::media::Library, stored: &str, stem: &str, is_url:
 /// Fill duration and stream info. Images need no probing; a stream that
 /// cannot be probed now is still accepted (it may be offline).
 pub async fn probe_item(item: &mut MediaItem, root: &Path, ffprobe: &str) -> Result<(), String> {
-    if item.kind == MediaKind::Image && !item.is_url() {
+    if (item.kind == MediaKind::Image && !item.is_url()) || item.is_scene() {
         return Ok(());
     }
     match lb_media::probe::probe(ffprobe, &paths::resolve_str(root, &item.path)).await {
@@ -153,7 +153,7 @@ pub async fn probe_item(item: &mut MediaItem, root: &Path, ffprobe: &str) -> Res
 pub async fn reprobe_all(data: &mut ChannelData, root: &Path, ffprobe: &str) -> Vec<String> {
     let mut problems = Vec::new();
     let ids: Vec<(String, String, bool)> =
-        data.library.items.iter().map(|m| (m.id.clone(), m.path.clone(), m.kind == MediaKind::Image || m.is_url())).collect();
+        data.library.items.iter().map(|m| (m.id.clone(), m.path.clone(), m.kind == MediaKind::Image || m.is_url() || m.is_scene())).collect();
     for (id, path, skip) in ids {
         if skip {
             continue;
