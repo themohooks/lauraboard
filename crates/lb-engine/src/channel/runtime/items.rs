@@ -75,6 +75,7 @@ impl Runtime {
         self.replan_after_start(&item, started, offset_ms);
         tracing::info!(channel = %self.shared.id, media = %item.media, title = %item.title, "on air");
         self.on_air = Some(OnAir { item: item.clone(), started, offset_ms, generation: self.generation, play: Some(play) });
+        self.sync_graphics_config();
         self.update_graphics_state();
         self.emit(Level::Info, EventKind::ItemStarted { item });
         self.save_state();
@@ -235,10 +236,24 @@ impl Runtime {
         }
     }
 
-    /// Copy the graphics configuration to the graphics thread.
+    /// Copy the graphics configuration to the graphics thread: the
+    /// channel's, with the own graphics of a scene on air merged in
+    /// (nothing while graphics are switched off). Unchanged — left alone,
+    /// so the thread does not rebuild its sprites on every item.
     pub(super) fn sync_graphics_config(&mut self) {
-        let cfg = self.shared.data.read().unwrap_or_else(|e| e.into_inner()).graphics.clone();
-        if let Ok(mut g) = self.gfx.lock() {
+        let cfg = if self.graphics_muted() {
+            Default::default()
+        } else {
+            let data = self.shared.data.read().unwrap_or_else(|e| e.into_inner());
+            let scene = self.on_air.as_ref().and_then(|o| data.library.get(&o.item.media)).and_then(|m| Some((m.id.as_str(), m.scene.as_ref()?)));
+            match scene {
+                Some((id, s)) => data.graphics.with_scene(id, &s.graphics, s.channel_graphics),
+                None => data.graphics.clone(),
+            }
+        };
+        if let Ok(mut g) = self.gfx.lock()
+            && g.cfg != cfg
+        {
             g.cfg = cfg;
             g.cfg_version += 1;
         }

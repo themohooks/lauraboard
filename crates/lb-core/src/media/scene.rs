@@ -1,19 +1,23 @@
 //! Scenes: library items that are not files but composed on air — a
 //! background (colour, still image or a looped video from the library)
 //! with music chosen by the scene's own rules. On air a scene is an
-//! ordinary item: it is planned, put in playlists and the grid, and the
-//! screen graphics show over it by the usual rules (a rule can be limited
-//! to the scene by its media id — say, a big clock for "broadcast clock").
+//! ordinary item: it is planned, put in playlists and the grid.
+//!
+//! A scene has graphics of its own (a big clock for "broadcast clock"),
+//! kept apart from the channel graphics: editing one never touches the
+//! other. The channel graphics (logo, ticker) show over the scene too
+//! unless the scene switches them off.
 
 use serde::{Deserialize, Serialize};
 
+use crate::graphics::GraphicsConfig;
 use crate::rng::Rng;
 use crate::rules::{Conditions, MatchCtx};
 use crate::{Dur, Ms, WallTime};
 
 use super::{Library, MediaItem, MediaKind};
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Scene {
     #[serde(default)]
     pub background: Background,
@@ -21,6 +25,26 @@ pub struct Scene {
     /// scene's start time plays; none matching — silence.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub music: Vec<MusicRule>,
+    /// The scene's own screen graphics (elements and their rules).
+    #[serde(default, skip_serializing_if = "is_empty_gfx")]
+    pub graphics: GraphicsConfig,
+    /// Show the channel graphics over the scene too.
+    #[serde(default = "yes", skip_serializing_if = "is_true")]
+    pub channel_graphics: bool,
+}
+
+impl Default for Scene {
+    fn default() -> Self {
+        Scene { background: Background::default(), music: vec![], graphics: GraphicsConfig::default(), channel_graphics: true }
+    }
+}
+
+fn is_empty_gfx(g: &GraphicsConfig) -> bool {
+    *g == GraphicsConfig::default()
+}
+
+fn is_true(v: &bool) -> bool {
+    *v
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

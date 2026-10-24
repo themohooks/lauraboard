@@ -220,3 +220,31 @@ fn switched_off_layer_shows_nothing_by_rules() {
     assert_eq!(cfg.layer_ids(), [7, 1]);
     assert_eq!(cfg.layer_name(1), "Слой 1");
 }
+
+#[test]
+fn scene_graphics_merge_apart() {
+    let channel: GraphicsConfig = serde_json::from_value(serde_json::json!({
+        "elements": [{ "id": "logo", "type": "text", "text": "TV" }],
+        "rules": [
+            { "id": "logo", "element": "logo" },
+            { "id": "old", "element": "logo", "conditions": { "media": ["sc"] } }
+        ]
+    }))
+    .unwrap();
+    let own: GraphicsConfig = serde_json::from_value(serde_json::json!({
+        "elements": [
+            { "id": "logo", "type": "clock", "format": "%H:%M" },
+            { "id": "g", "type": "group", "children": ["logo"] }
+        ],
+        "rules": [{ "id": "r", "element": "g" }]
+    }))
+    .unwrap();
+    let m = channel.with_scene("sc", &own, true);
+    assert_eq!(m.elements.iter().map(|e| e.id.as_str()).collect::<Vec<_>>(), ["logo", "sc/logo", "sc/g"]);
+    assert!(matches!(&m.element("sc/g").unwrap().kind, ElementKind::Group { children } if children == &["sc/logo"]));
+    assert_eq!(m.rules.len(), 3);
+    assert_eq!(m.rules[2].element, "sc/g");
+    // without the channel graphics only rules limited to the scene stay
+    let m = channel.with_scene("sc", &own, false);
+    assert_eq!(m.rules.iter().map(|r| r.id.as_str()).collect::<Vec<_>>(), ["old", "sc/r"]);
+}
