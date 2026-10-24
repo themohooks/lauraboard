@@ -228,6 +228,17 @@ export component LibraryToolbar inherits VerticalLayout {
                 Lib.check-files();
             }
         }
+        VerticalLayout {
+            alignment: center;
+            IconButton {
+                icon: Icons.palette;
+                variant: IconButtonVariant.outlined;
+                tooltip: "Готовые фоны и видеоряды: вернуть в папку «Фоны» (их создаёт сервер)";
+                clicked => {
+                    Lib.make-backgrounds();
+                }
+            }
+        }
         if Lib.can-browse: Button {
             text: App.narrow ? "Добавить" : "Добавить ролики";
             variant: ButtonVariant.tonal;

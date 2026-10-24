@@ -2,7 +2,9 @@
 //! re-probing and availability scans.
 //!
 //! * [`storage`] — copying media into the channel's own folder
+//! * [`backgrounds`] — ready-made backgrounds and video loops of a channel
 
+pub mod backgrounds;
 pub mod storage;
 
 use std::path::{Path, PathBuf};

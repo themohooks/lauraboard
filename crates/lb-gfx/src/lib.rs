@@ -11,8 +11,10 @@
 //! * [`layout`] — anchors and placement maths
 //! * [`anim`] — in/out animation curves
 //! * [`color`] — colour parsing
+//! * [`backdrops`] — ready-made backgrounds and plate textures
 
 pub mod anim;
+pub mod backdrops;
 pub mod color;
 pub mod compositor;
 pub mod elements;

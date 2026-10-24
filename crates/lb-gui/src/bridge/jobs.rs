@@ -103,6 +103,19 @@ fn finished(c: &mut Ctx, j: &JobView) {
                 c.load_all();
             }
         }
+        ("done", "backgrounds") => {
+            let added = result["added"].as_array().map(|a| a.len()).unwrap_or(0);
+            let errors = result["errors"].as_array().map(|a| a.len()).unwrap_or(0);
+            let text = match (added, errors) {
+                (0, 0) => "Готовые фоны уже есть в медиатеке (папка «Фоны»)".to_string(),
+                (n, 0) => format!("Готовые фоны добавлены в медиатеку: {n} (папка «Фоны»)"),
+                (n, e) => format!("Готовые фоны: добавлено {n}, не получилось {e}"),
+            };
+            c.toast(text, errors > 0);
+            if j.channel.as_deref() == c.model.channel.as_deref() {
+                c.load_all();
+            }
+        }
         ("done", "export_channel") => {
             let path = result["path"].as_str().unwrap_or_default().to_string();
             c.toast(format!("Экспорт готов: {path}"), false);

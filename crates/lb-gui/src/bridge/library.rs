@@ -106,6 +106,7 @@ pub fn connect(ui: &AppWindow) {
     });
     g.on_do_import(|| with(do_import));
     g.on_check_files(|| with(check_files));
+    g.on_make_backgrounds(|| with(make_backgrounds));
 }
 
 fn id_at(c: &Ctx, row: i32) -> Option<String> {
@@ -601,4 +602,17 @@ mod tests {
         assert_eq!(import_paths("  https://x/y  "), ["https://x/y"]);
         assert!(import_paths(" ; ").is_empty());
     }
+}
+
+/// Ready-made backgrounds (pictures, video loops, plate textures) of the
+/// channel: made again where missing, a background job.
+fn make_backgrounds(c: &mut Ctx) {
+    let ch = c.model.ch();
+    c.worker.spawn(move |api| {
+        let r = api.post(&format!("/channels/{ch}/media/backgrounds"), &serde_json::json!({}))?;
+        Ok(crate::net::Msg::Apply(Box::new(move |c: &mut Ctx| {
+            super::jobs::started(c, r["job"].as_u64().unwrap_or_default());
+            c.toast("Готовые фоны создаются — папка «Фоны» в медиатеке", false);
+        })))
+    });
 }

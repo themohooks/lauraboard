@@ -80,6 +80,14 @@ export struct FontRow {
     note: string,
 }
 
+// A ready-made plate texture.
+export struct TextureRow {
+    path: string,
+    title: string,
+    image: image,
+    has-image: bool,
+}
+
 // A Google Fonts family in the download tab.
 export struct GFontRow {
     family: string,
@@ -194,6 +202,12 @@ export global Gfx {
     callback plate-field-remove(int);
     callback plate-field-move(int, int);
     callback pick-shape-image();
+    // ready-made textures dialog
+    in-out property <bool> tex-open;
+    in property <bool> tex-loading;
+    in property <[TextureRow]> tex-list;
+    callback open-textures();
+    callback texture-pick(string);
 
     // font picker
     in-out property <bool> font-open;

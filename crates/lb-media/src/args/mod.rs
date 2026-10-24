@@ -8,11 +8,13 @@
 //! * [`encoder`] — overlay graphics, encode and push to outputs
 //! * [`outputs`] — output target URL → muxer options (tee syntax)
 //! * [`color`] — colour string conversion
+//! * [`loops`] — ready-made seamless background videos
 
 pub mod color;
 pub mod decoder;
 pub mod encoder;
 pub mod filters;
+pub mod loops;
 pub mod outputs;
 pub mod scene;
 pub mod slate;

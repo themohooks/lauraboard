@@ -37,6 +37,12 @@ pub async fn serve(engine: Arc<Engine>, shutdown: impl std::future::Future<Outpu
     if !addr.ip().is_loopback() && api.tokens.is_empty() {
         tracing::warn!("API bound to {addr} without tokens: only loopback clients are allowed");
     }
+    // channels made before backgrounds existed (or by the CLI) get them now
+    for h in engine.channels() {
+        if lb_engine::library::backgrounds::missing(&h) {
+            lb_engine::library::backgrounds::spawn(&engine, h, Default::default());
+        }
+    }
     let state = AppState { engine, api: Arc::new(api) };
     let app = router(state).into_make_service_with_connect_info::<SocketAddr>();
     let listener = tokio::net::TcpListener::bind(addr).await?;

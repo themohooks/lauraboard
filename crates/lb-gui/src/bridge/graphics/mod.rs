@@ -3,10 +3,12 @@
 //! control, display rules, template variables, saved design templates.
 //!
 //! * [`design`] — shape design fields and plate text lines
-//! * [`fonts`] — font picker
+//! * [`fonts`] — font picker (server fonts, files, Google Fonts)
+//! * [`textures`] — ready-made plate textures
 
 mod design;
 mod fonts;
+mod textures;
 
 use std::collections::HashSet;
 use std::path::PathBuf;
@@ -127,6 +129,7 @@ fn hex_of(c: Color) -> String {
 pub fn connect(ui: &AppWindow) {
     design::connect(ui);
     fonts::connect(ui);
+    textures::connect(ui);
     let g = ui.global::<Gfx>();
     g.on_color_hex(|c| hex_of(c).into());
     g.on_parse_color(|s| color_of(&s));
