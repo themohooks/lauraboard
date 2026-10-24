@@ -25,6 +25,13 @@ pub enum Trigger {
     AfterCategory { category: String },
     /// Before a main item of the category.
     BeforeCategory { category: String },
+    /// After any of these library items (as main content).
+    AfterMedia { items: Vec<String> },
+    /// After the last entry of a playlist (each time a pass of it ends).
+    AfterPlaylist { playlist: String },
+    /// After the first main item ending at or past each of these daily
+    /// times (once per time).
+    AtTimes { times: Vec<NaiveTime> },
 }
 
 /// What gets inserted.
@@ -49,6 +56,14 @@ pub enum InsertAction {
     },
     /// Arbitrary media (one picked).
     Media { items: Vec<String> },
+    /// A scene (one picked from `items`; empty — any enabled scene) shown
+    /// for `duration` (`None` — the scene's own length).
+    Scene {
+        #[serde(default)]
+        items: Vec<String>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        duration: Option<Dur>,
+    },
 }
 
 fn one_usize() -> usize {
@@ -285,6 +300,17 @@ pub struct FillerPolicy {
     /// Do not reuse the same filler within this interval.
     #[serde(default = "default_filler_interval")]
     pub min_interval: Dur,
+    /// Scenes that cover what fillers leave of a gap (instead of the
+    /// slate), stretched to it; one is picked in turn.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub scenes: Vec<String>,
+    /// A scene takes the whole gap (no fillers / promos before it).
+    #[serde(default, skip_serializing_if = "is_false")]
+    pub scenes_first: bool,
+}
+
+fn is_false(v: &bool) -> bool {
+    !*v
 }
 
 fn default_min_gap() -> Dur {
@@ -296,7 +322,14 @@ fn default_filler_interval() -> Dur {
 
 impl Default for FillerPolicy {
     fn default() -> Self {
-        FillerPolicy { categories: vec![], use_promos: true, min_fill: default_min_gap(), min_interval: default_filler_interval() }
+        FillerPolicy {
+            categories: vec![],
+            use_promos: true,
+            min_fill: default_min_gap(),
+            min_interval: default_filler_interval(),
+            scenes: vec![],
+            scenes_first: false,
+        }
     }
 }
 

@@ -6,7 +6,7 @@ use std::sync::Arc;
 
 use tiny_skia::Pixmap;
 
-use lb_core::graphics::{CountdownTarget, Element, ElementKind, TextStyle, render_template};
+use lb_core::graphics::{CountdownTarget, Element, ElementKind, FillDirection, ProgressTarget, ShapeStyle, TextStyle, render_template};
 
 use crate::compositor::FrameContext;
 use crate::fonts::FontStore;
@@ -79,13 +79,36 @@ impl SpriteFactory {
                 let s = format_time(ctx.now, format)?;
                 self.text(&el.id, style, &s).map(Sprite::plain)
             }
-            ElementKind::Countdown { target, style, prefix } => {
+            ElementKind::Countdown { target, style, prefix, exclude, format } => {
                 let ms = match target {
                     CountdownTarget::ItemRemaining => Some(ctx.item_remaining_ms),
                     CountdownTarget::NextProgram => ctx.next_program_ms,
+                    CountdownTarget::ProgramRemaining => {
+                        Some(ctx.program.map_or(ctx.item_remaining_ms, |p| p.remaining(exclude, ctx.item_remaining_ms)))
+                    }
                 }?;
-                let s = format!("{}{}", render_template(prefix, ctx.vars), lb_core::fmt_ms(ms.max(0) + 999));
+                let s = format!("{}{}", render_template(prefix, ctx.vars), format.format(ms));
                 self.text(&el.id, style, &s).map(Sprite::plain)
+            }
+            ElementKind::Progress { width, height, color, gradient, track, radius, target, exclude, direction, shape } => {
+                let w = el.placement.width.unwrap_or(*width).max(1.0);
+                let h = el.placement.height.unwrap_or(*height).max(1.0);
+                let p = match (target, ctx.program) {
+                    (ProgressTarget::Program, Some(clock)) => clock.progress(exclude, ctx.item_remaining_ms),
+                    (_, Some(clock)) => clock.current.map_or(0.0, |(_, d)| if d > 0 { 1.0 - ctx.item_remaining_ms as f32 / d as f32 } else { 0.0 }),
+                    (_, None) => 0.0,
+                }
+                .clamp(0.0, 1.0);
+                let along = if matches!(direction, FillDirection::LeftToRight | FillDirection::RightToLeft) { w } else { h };
+                // one sprite per filled pixel: the bar moves slowly
+                let filled = (p * along).round();
+                let key = format!("progress|{}|{w}|{h}|{filled}", el.id);
+                if let Some(s) = self.cache.get(&key) {
+                    return Some(s.clone());
+                }
+                let look = ProgressLook { w, h, filled, color, gradient: gradient.as_deref(), track, radius: *radius, direction: *direction, shape };
+                let s = render_progress(&look, &mut self.images)?;
+                self.store(key, s)
             }
             ElementKind::Rect { color, width, height, radius, shape } => {
                 // placement size, when set, wins over the stored one
@@ -99,7 +122,7 @@ impl SpriteFactory {
                 let sprite = Sprite { pixmap: Arc::new(s.pixmap), ox: s.ox, oy: s.oy, w: w.max(1.0), h: h.max(1.0) };
                 self.store(key, sprite)
             }
-            ElementKind::Plate { fields, color, radius, shape, width, min_width, padding_x, padding_y, spacing, align } => {
+            ElementKind::Plate { fields, color, radius, shape, width, min_width, padding_x, padding_y, spacing, align, layout, valign, fit, icon } => {
                 let texts: Vec<String> = fields.iter().map(|f| render_template(&f.text, ctx.vars)).collect();
                 let key = format!("plate|{}|{}", el.id, texts.join("\u{1f}"));
                 if let Some(s) = self.cache.get(&key) {
@@ -116,6 +139,10 @@ impl SpriteFactory {
                     padding_y: *padding_y,
                     spacing: *spacing,
                     align: *align,
+                    layout: *layout,
+                    valign: *valign,
+                    fit: *fit,
+                    icon: icon.as_ref(),
                 };
                 let p = render_plate(&look, fields, &texts, &mut self.fonts, &mut self.images)?;
                 self.store(key, Sprite { pixmap: Arc::new(p.pixmap), ox: p.ox, oy: p.oy, w: p.w, h: p.h })
@@ -123,6 +150,7 @@ impl SpriteFactory {
             ElementKind::Ticker { .. } | ElementKind::Group { .. } => None,
         }
     }
+
 
     /// Rendered text (cached by element, style size and content).
     pub fn text(&mut self, id: &str, style: &TextStyle, s: &str) -> Option<Arc<Pixmap>> {
@@ -148,8 +176,77 @@ impl SpriteFactory {
     }
 }
 
+struct ProgressLook<'a> {
+    w: f32,
+    h: f32,
+    /// Filled length along the bar, pixels.
+    filled: f32,
+    color: &'a str,
+    gradient: Option<&'a str>,
+    track: &'a str,
+    radius: f32,
+    direction: FillDirection,
+    shape: &'a ShapeStyle,
+}
+
+/// The bar: the track with its design, the filled part inside its border.
+fn render_progress(l: &ProgressLook, images: &mut crate::images::ImageCache) -> Option<Sprite> {
+    let track = render_shape(l.track, l.w, l.h, l.radius, l.shape, images)?;
+    let mut pm = track.pixmap;
+    let inset = l.shape.border_width.max(0.0);
+    let (iw, ih) = ((l.w - 2.0 * inset).max(0.0), (l.h - 2.0 * inset).max(0.0));
+    let horizontal = matches!(l.direction, FillDirection::LeftToRight | FillDirection::RightToLeft);
+    let len = l.filled.min(if horizontal { iw } else { ih });
+    if len >= 1.0 && iw >= 1.0 && ih >= 1.0 {
+        let (fw, fh) = if horizontal { (len, ih) } else { (iw, len) };
+        // the fill keeps the bar's corners and slant, and runs its gradient along it
+        let angle = match l.direction {
+            FillDirection::LeftToRight => 0.0,
+            FillDirection::RightToLeft => 180.0,
+            FillDirection::BottomToTop => 270.0,
+            FillDirection::TopToBottom => 90.0,
+        };
+        let fill_shape = ShapeStyle { gradient: l.gradient.map(str::to_string), gradient_angle: angle, corners: l.shape.corners, skew: l.shape.skew, ..Default::default() };
+        let r = (l.radius - inset).max(0.0);
+        let fill = render_shape(l.color, fw, fh, r, &fill_shape, images)?;
+        let (dx, dy) = match l.direction {
+            FillDirection::LeftToRight | FillDirection::TopToBottom => (0.0, 0.0),
+            FillDirection::RightToLeft => (iw - fw, 0.0),
+            FillDirection::BottomToTop => (0.0, ih - fh),
+        };
+        let x = track.ox + inset + dx - fill.ox;
+        let y = track.oy + inset + dy - fill.oy;
+        pm.draw_pixmap(x.round() as i32, y.round() as i32, fill.pixmap.as_ref(), &tiny_skia::PixmapPaint::default(), tiny_skia::Transform::identity(), None);
+    }
+    Some(Sprite { pixmap: Arc::new(pm), ox: track.ox, oy: track.oy, w: l.w, h: l.h })
+}
+
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn progress_fills_along_the_bar() {
+        let mut images = crate::images::ImageCache::new(std::path::Path::new("."));
+        let shape = lb_core::graphics::ShapeStyle::default();
+        let look = |filled: f32, direction| super::ProgressLook {
+            w: 200.0,
+            h: 10.0,
+            filled,
+            color: "#FF0000",
+            gradient: None,
+            track: "#00000000",
+            radius: 0.0,
+            direction,
+            shape: &shape,
+        };
+        let red = |s: &super::Sprite, x: u32| s.pixmap.pixel(x, 5).is_some_and(|p| p.red() > 200 && p.alpha() > 200);
+        let half = super::render_progress(&look(100.0, lb_core::graphics::FillDirection::LeftToRight), &mut images).unwrap();
+        assert!(red(&half, 10) && !red(&half, 190));
+        let back = super::render_progress(&look(100.0, lb_core::graphics::FillDirection::RightToLeft), &mut images).unwrap();
+        assert!(!red(&back, 10) && red(&back, 190));
+        let none = super::render_progress(&look(0.0, lb_core::graphics::FillDirection::LeftToRight), &mut images).unwrap();
+        assert!(!red(&none, 10));
+    }
+
     #[test]
     fn invalid_clock_format_does_not_panic() {
         let t = chrono::NaiveDate::from_ymd_opt(2026, 10, 23).unwrap().and_hms_opt(9, 5, 0).unwrap();

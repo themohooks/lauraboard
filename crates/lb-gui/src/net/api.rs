@@ -88,6 +88,16 @@ impl Api {
         Self::finish(r.send(json.as_str()))
     }
 
+    /// PUT of raw bytes (pictures).
+    pub fn put_bytes(&self, path: &str, content_type: &str, bytes: &[u8]) -> Result<Value, String> {
+        let mut r = self.agent.put(self.url(path)).header("content-type", content_type);
+        if let Some(t) = &self.token {
+            r = r.header("Authorization", format!("Bearer {t}"));
+        }
+        let out = Self::finish(r.send(bytes))?;
+        Ok(serde_json::from_slice(&out).unwrap_or(Value::Null))
+    }
+
     pub fn post<B: Serialize>(&self, path: &str, body: &B) -> Result<Value, String> {
         self.send("POST", path, body)
     }

@@ -100,7 +100,8 @@ export component Badge inherits Rectangle {
 }
 
 // Content kind marker. `kind` is the media kind id from the API
-// (program, jingle, ad, promo, filler, image, stream; "gap" = empty slot).
+// (program, jingle, ad, promo, filler, image, stream; "gap" = empty slot,
+// "scene" = a scene rule).
 export global Kinds {
     public pure function color-of(kind: string) -> color {
         return kind == "program" ? Theme.kind.program
@@ -110,6 +111,7 @@ export global Kinds {
             : kind == "image" ? Theme.kind.image
             : kind == "stream" ? Theme.kind.stream
             : kind == "gap" ? Theme.color.error
+            : kind == "scene" ? Theme.kind.image
             : Theme.kind.filler;
     }
     public pure function icon-of(kind: string) -> image {
@@ -120,6 +122,7 @@ export global Kinds {
             : kind == "image" ? Icons.image
             : kind == "stream" ? Icons.stream
             : kind == "gap" ? Icons.block
+            : kind == "scene" ? Icons.live-tv
             : Icons.music-note;
     }
     public pure function name-of(kind: string) -> string {
@@ -130,6 +133,7 @@ export global Kinds {
             : kind == "image" ? "Изображение"
             : kind == "stream" ? "Поток"
             : kind == "gap" ? "Пустота"
+            : kind == "scene" ? "Сцена"
             : "Заполнение";
     }
 }

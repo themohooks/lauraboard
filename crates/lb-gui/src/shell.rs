@@ -19,6 +19,8 @@ pub fn run(opts: GuiOptions) -> Result<(), String> {
     if single::activate_running(&opts.base_url) {
         return Ok(());
     }
+    crate::notify::select_backend();
+    crate::notify::set_on_open(show_window);
     let prefs = UiPrefs::load();
     let window = AppWindow::new().map_err(|e| e.to_string())?;
     bridge::start(&window, &opts, prefs);

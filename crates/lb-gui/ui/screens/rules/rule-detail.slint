@@ -49,7 +49,7 @@ export component RuleDetail inherits Rectangle {
     if !Rules.has-form: EmptyState {
         icon: Icons.rule;
         title: "Выберите правило";
-        text: "Правила вставляют заставки, рекламу и анонсы автоматически. Порядок: выше приоритет — раньше.";
+        text: Rules.scope == "scenes" ? "Правила вставляют сцены в эфир автоматически. Порядок: выше приоритет — раньше." : "Правила вставляют заставки, рекламу и анонсы автоматически. Порядок: выше приоритет — раньше.";
     }
 
     if Rules.has-form: sv := ScrollView {

@@ -23,7 +23,7 @@ use std::sync::{Arc, Mutex, MutexGuard};
 use std::thread::JoinHandle;
 use std::time::Duration;
 
-use lb_core::graphics::{self, ActiveGraphic, GfxContext, GraphicsConfig, Manual};
+use lb_core::graphics::{self, ActiveGraphic, GfxContext, GraphicsConfig, Manual, ProgramClock};
 use lb_core::rundown::RundownItem;
 use lb_core::{WallTime, diff_ms};
 use lb_gfx::{Compositor, FrameContext};
@@ -36,6 +36,8 @@ pub struct GfxState {
     pub profile: Option<String>,
     pub on_air: Option<(RundownItem, WallTime)>,
     pub next_program_start: Option<WallTime>,
+    /// The programme of the item on air.
+    pub program: Option<ProgramClock>,
     pub vars: HashMap<String, String>,
     pub manual: HashMap<String, Manual>,
     /// Last evaluated active set (for status).
@@ -194,7 +196,7 @@ fn serve(
 
 /// Evaluate the active set and render one frame at `at`.
 fn render_frame(shared: &SharedGfx, comp: &mut Compositor, version: &mut u64, at: WallTime) {
-    let (active, vars, remaining, next_ms) = {
+    let (active, vars, remaining, next_ms, program) = {
         let mut st = lock(shared);
         if st.cfg_version != *version {
             comp.set_config(st.cfg.clone());
@@ -204,7 +206,7 @@ fn render_frame(shared: &SharedGfx, comp: &mut Compositor, version: &mut u64, at
         st.active = active.clone();
         let remaining = st.on_air.as_ref().map(|(it, s)| (it.duration_ms - diff_ms(at, *s)).max(0)).unwrap_or(0);
         let next_ms = st.next_program_start.map(|t| diff_ms(t, at));
-        (active, st.vars.clone(), remaining, next_ms)
+        (active, st.vars.clone(), remaining, next_ms, st.program.clone())
     };
-    comp.render(&FrameContext { now: at, active: &active, vars: &vars, item_remaining_ms: remaining, next_program_ms: next_ms });
+    comp.render(&FrameContext { now: at, active: &active, vars: &vars, item_remaining_ms: remaining, next_program_ms: next_ms, program: program.as_ref() });
 }

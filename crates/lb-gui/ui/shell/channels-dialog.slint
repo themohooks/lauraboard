@@ -13,6 +13,7 @@ import { Button, ButtonVariant } from "../components/button.slint";
 import { TextField } from "../components/text-field.slint";
 import { App } from "../state/app-state.slint";
 import { Chan, ChannelRow } from "../state/channels-state.slint";
+import { Avatar } from "../components/avatar.slint";
 
 component ChannelLine inherits ListRow {
     in property <ChannelRow> ch;
@@ -23,6 +24,15 @@ component ChannelLine inherits ListRow {
         Chan.select(ch.id);
     }
 
+    VerticalLayout {
+        alignment: center;
+        Avatar {
+            size: 40px;
+            source: ch.avatar;
+            has-image: ch.has-avatar;
+            initial: ch.initial;
+        }
+    }
     VerticalLayout {
         horizontal-stretch: 1;
         alignment: center;
@@ -168,6 +178,49 @@ export component ChannelFormDialog inherits Dialog {
         Chan.form = "";
     }
 
+    if !root.dup: HorizontalLayout {
+        spacing: Theme.sp3;
+        Avatar {
+            size: 64px;
+            source: Chan.f-avatar;
+            has-image: Chan.f-has-avatar;
+            initial: Chan.f-initial;
+        }
+        VerticalLayout {
+            alignment: center;
+            spacing: Theme.sp1;
+            Label {
+                text: "Аватар канала";
+                type-style: Theme.title-small;
+            }
+            Label {
+                text: "Квадрат 256×256 из середины картинки; виден в программе и в уведомлениях. Сохраняется сразу.";
+                type-style: Theme.body-small;
+                color: Theme.color.on-surface-variant;
+                wrap: word-wrap;
+            }
+            HorizontalLayout {
+                spacing: Theme.sp2;
+                alignment: start;
+                Button {
+                    text: Chan.f-has-avatar ? "Заменить…" : "Выбрать картинку…";
+                    variant: ButtonVariant.tonal;
+                    icon: Icons.image;
+                    has-icon: true;
+                    clicked => {
+                        Chan.avatar-pick();
+                    }
+                }
+                if Chan.f-has-avatar: Button {
+                    text: "Убрать";
+                    variant: ButtonVariant.text;
+                    clicked => {
+                        Chan.avatar-remove();
+                    }
+                }
+            }
+        }
+    }
     TextField {
         label: "Название";
         text <=> Chan.e-name;

@@ -144,6 +144,8 @@ pub struct ChannelEntry {
     pub name: String,
     pub state: String,
     pub autostart: bool,
+    /// Avatar version (`None`: no avatar).
+    pub avatar: Option<u64>,
 }
 
 impl ChannelEntry {
@@ -153,12 +155,18 @@ impl ChannelEntry {
             name: v["name"].as_str().unwrap_or_default().to_string(),
             state: v["state"].as_str().unwrap_or("stopped").to_string(),
             autostart: v["autostart"].as_bool().unwrap_or(false),
+            avatar: v["avatar"].as_u64(),
         })
     }
 
     /// Name for lists: the display name, or the id when it has none.
     pub fn label(&self) -> &str {
         if self.name.trim().is_empty() { &self.id } else { &self.name }
+    }
+
+    /// First letter of the name, for an avatar without a picture.
+    pub fn initial(&self) -> String {
+        self.label().chars().find(|c| c.is_alphanumeric()).map(|c| c.to_uppercase().collect()).unwrap_or_default()
     }
 }
 

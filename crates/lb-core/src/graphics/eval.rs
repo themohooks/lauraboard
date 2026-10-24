@@ -131,6 +131,9 @@ pub fn evaluate(cfg: &GraphicsConfig, ctx: &GfxContext) -> Vec<ActiveGraphic> {
             continue;
         }
         let layer = r.layer.unwrap_or(el.layer);
+        if !cfg.layer_enabled(layer) {
+            continue;
+        }
         if let Some(existing) = out.iter_mut().find(|a| a.element == el.id) {
             if r.priority > existing.priority {
                 *existing = ActiveGraphic {

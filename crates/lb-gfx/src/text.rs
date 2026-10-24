@@ -9,9 +9,10 @@ use lb_core::graphics::TextStyle;
 use crate::color::{parse_color, try_parse};
 use crate::layout::rounded_rect;
 
-/// Build a path for `text` with the baseline at y = ascent (top-left origin).
-/// Returns (path, advance width, line height).
-pub fn text_path(font: &FontArc, size: f32, text: &str) -> (Option<tiny_skia::Path>, f32, f32) {
+/// Build a path for `text` with the baseline at y = ascent (top-left origin),
+/// `spacing` pixels added after every letter but the last. Returns (path,
+/// advance width, line height).
+pub fn text_path(font: &FontArc, size: f32, text: &str, spacing: f32) -> (Option<tiny_skia::Path>, f32, f32) {
     let scale = PxScale::from(size);
     let sf = font.as_scaled(scale);
     let ascent = sf.ascent();
@@ -63,16 +64,20 @@ pub fn text_path(font: &FontArc, size: f32, text: &str) -> (Option<tiny_skia::Pa
                 pb.close();
             }
         }
-        x += sf.h_advance(gid);
+        x += sf.h_advance(gid) + spacing;
         prev = Some(gid);
     }
-    (pb.finish(), x, height)
+    if prev.is_some() {
+        x -= spacing;
+    }
+    (pb.finish(), x.max(0.0), height)
 }
 
 /// Render styled text into a tightly sized pixmap (including padding,
 /// outline and shadow margins).
 pub fn render_text(font: &FontArc, style: &TextStyle, text: &str) -> Option<Pixmap> {
-    let (path, width, height) = text_path(font, style.size, text);
+    let text = style.apply_case(text);
+    let (path, width, height) = text_path(font, style.size, &text, style.letter_spacing);
     let has_bg = style.background.as_deref().and_then(try_parse).is_some();
     let pad = if has_bg { style.padding } else { 0.0 };
     let outline = style.outline_width.max(0.0);

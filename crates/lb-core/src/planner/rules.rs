@@ -67,6 +67,22 @@ where
                     self.push_interstitial(m, Origin::Rule, t, inst, Some(r));
                 }
             }
+            InsertAction::Scene { items, duration } => {
+                let cands: Vec<&'a MediaItem> = if items.is_empty() {
+                    self.inp.library.items.iter().filter(|m| m.enabled && m.is_scene()).collect()
+                } else {
+                    items.iter().filter_map(|i| self.media(i)).filter(|m| m.enabled && m.is_scene()).collect()
+                };
+                let len = duration.map(|d| d.ms()).filter(|d| *d > 0);
+                let cands: Vec<&'a MediaItem> = cands.into_iter().filter(|m| len.is_some() || m.play_duration() > 0).collect();
+                if let Some(m) = self.select(&r.id, &cands, r.select, r.no_repeat) {
+                    self.push_interstitial(m, Origin::Rule, t, inst, Some(r));
+                    if let (Some(ms), Some(it)) = (len, self.out.last_mut()) {
+                        it.duration_ms = ms;
+                        *t = it.end();
+                    }
+                }
+            }
             InsertAction::AdBreak { ad_break } => {
                 let Some(brk) = self.inp.rules.ad_break(ad_break) else {
                     self.warn(WarningKind::Config, Some(*t), format!("rule '{}' references unknown ad break '{ad_break}'", r.id));

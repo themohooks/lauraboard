@@ -52,6 +52,10 @@ export global App {
     in property <[string]> channels;
     in property <int> channel-index: -1;
     in property <string> channel-name;
+    // avatar of the current channel (or its first letter)
+    in property <image> channel-avatar;
+    in property <bool> has-channel-avatar;
+    in property <string> channel-initial;
     in property <bool> online;
     in property <string> api-url;
     callback select-channel(int);

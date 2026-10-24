@@ -45,6 +45,7 @@ pub fn write(path: &Path) -> Result<()> {
         vars: &vars,
         item_remaining_ms: 0,
         next_program_ms: None,
+        program: None,
     });
     let png = c.png().ok_or_else(|| anyhow::anyhow!("logo encoding failed"))?;
     std::fs::write(path, png)?;

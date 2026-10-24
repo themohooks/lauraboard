@@ -48,6 +48,7 @@ impl Runtime {
         let status = ChannelStatus {
             channel: self.shared.id.clone(),
             name: data.config.name.clone(),
+            avatar: super::super::avatar::version(&data.dir),
             autostart: data.config.autostart,
             state,
             manual: self.sched.manual,
@@ -56,6 +57,7 @@ impl Runtime {
             on_air,
             next: self.sched.peek_next().cloned(),
             time_to_next_program_ms: next_program.as_ref().map(|p| diff_ms(p.start, t)),
+            program: self.program_clock(),
             next_program,
             manual_queue: self.sched.queue.len(),
             output: self.output.status(),

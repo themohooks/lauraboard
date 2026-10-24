@@ -1,0 +1,260 @@
+// Advanced plate editor: a big exact preview of the selected plate (server
+// render, cropped to the plate), ready-made styles, the lines with their
+// own alignment and gap, layout (column / row, vertical alignment, fitting
+// long lines, a picture beside the text), the background design and the
+// text style of the selected line. It edits the same element as the
+// properties panel.
+
+import { ScrollView } from "std-widgets.slint";
+import { Theme } from "../../theme/tokens.slint";
+import { Icons } from "../../theme/icons.slint";
+import { Label } from "../../components/label.slint";
+import { Select } from "../../components/select.slint";
+import { Switch } from "../../components/switch.slint";
+import { Interactive } from "../../components/interactive.slint";
+import { SegmentedButton } from "../../components/segmented-button.slint";
+import { Button, ButtonVariant } from "../../components/button.slint";
+import { CircularProgress } from "../../components/feedback.slint";
+import { Dialog, DialogActions } from "../../components/dialog.slint";
+import { Gfx } from "../../state/graphics-state.slint";
+import { FormSection } from "../rules/form-parts.slint";
+import { Field } from "prop-fields.slint";
+import { PlateSection } from "plate-props.slint";
+import { ShapeSection } from "shape-props.slint";
+import { TextStyleSection } from "text-style.slint";
+
+component PresetTile inherits Interactive {
+    in property <string> name;
+    in property <int> index;
+    radius: Theme.radius-m;
+    height: 40px;
+    background: Theme.color.surface-container-highest;
+    accessible-role: button;
+    accessible-label: name;
+    clicked => {
+        Gfx.plate-preset(index);
+    }
+    Label {
+        text: name;
+        type-style: Theme.label-large;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+    }
+}
+
+// Layout of the plate and the selected line beyond its text style.
+export component PlateLayoutSection inherits FormSection {
+    title: "Раскладка";
+    icon: Icons.view-list;
+    HorizontalLayout {
+        spacing: Theme.sp2;
+        Select {
+            horizontal-stretch: 1;
+            label: "Строки";
+            options: ["Друг под другом", "В один ряд"];
+            current-index <=> Gfx.pl-layout;
+            container-color: Theme.color.surface-container-low;
+            selected => {
+                Gfx.props-changed();
+            }
+        }
+        Select {
+            horizontal-stretch: 1;
+            label: "По вертикали";
+            options: ["Сверху", "По центру", "Снизу"];
+            current-index <=> Gfx.pl-valign;
+            container-color: Theme.color.surface-container-low;
+            selected => {
+                Gfx.props-changed();
+            }
+        }
+    }
+    Switch {
+        text: "Ужимать длинные строки под ширину";
+        checked <=> Gfx.pl-fit;
+        enabled: Gfx.pl-width != "";
+        toggled => {
+            Gfx.props-changed();
+        }
+    }
+    Label {
+        text: Gfx.pl-width == "" ? "Работает при заданной ширине плашки: длинное имя гостя станет мельче, а не растянет плашку." : "Строки шире плашки получают меньший шрифт.";
+        wrap: word-wrap;
+        type-style: Theme.body-small;
+        color: Theme.color.on-surface-variant;
+    }
+    Label {
+        text: "ВЫБРАННАЯ СТРОКА";
+        type-style: Theme.label-small;
+        color: Theme.color.on-surface-variant;
+    }
+    HorizontalLayout {
+        spacing: Theme.sp2;
+        Select {
+            horizontal-stretch: 1;
+            label: "Выравнивание строки";
+            options: ["Как у плашки", "По левому краю", "По центру", "По правому краю"];
+            current-index <=> Gfx.pl-line-align;
+            container-color: Theme.color.surface-container-low;
+            selected => {
+                Gfx.props-changed();
+            }
+        }
+        Field { width: 120px; label: "Отступ перед"; text <=> Gfx.pl-gap; mono: true; }
+    }
+    Label {
+        text: "КАРТИНКА В ПЛАШКЕ";
+        type-style: Theme.label-small;
+        color: Theme.color.on-surface-variant;
+    }
+    HorizontalLayout {
+        spacing: Theme.sp2;
+        Field {
+            horizontal-stretch: 1;
+            label: "Логотип или фото";
+            text <=> Gfx.pl-icon;
+            placeholder: "нет";
+        }
+        VerticalLayout {
+            alignment: start;
+            padding-top: 4px;
+            Button {
+                text: "Обзор…";
+                icon: Icons.folder-open;
+                has-icon: true;
+                variant: ButtonVariant.tonal;
+                clicked => {
+                    Gfx.pick-plate-icon();
+                }
+            }
+        }
+    }
+    if Gfx.pl-icon != "": HorizontalLayout {
+        spacing: Theme.sp2;
+        Select {
+            width: 130px;
+            label: "Сторона";
+            options: ["Слева", "Справа"];
+            current-index <=> Gfx.pl-icon-side;
+            container-color: Theme.color.surface-container-low;
+            selected => {
+                Gfx.props-changed();
+            }
+        }
+        Field { min-width: 56px; label: "Высота"; text <=> Gfx.pl-icon-size; mono: true; }
+        Field { min-width: 56px; label: "Зазор"; text <=> Gfx.pl-icon-gap; mono: true; }
+        Field { min-width: 56px; label: "Скругление"; text <=> Gfx.pl-icon-radius; mono: true; }
+    }
+}
+
+component Preview inherits Rectangle {
+    border-radius: Theme.radius-l;
+    clip: true;
+    background: Gfx.pe-bg == 0 ? #1d2129 : Gfx.pe-bg == 1 ? #e9edf2 : #6b7280;
+    if Gfx.pe-has-preview: Image {
+        x: (parent.width - self.width) / 2;
+        y: (parent.height - self.height) / 2;
+        width: min(parent.width - 24px, parent.height * Gfx.pe-preview.width / max(1, Gfx.pe-preview.height) - 24px);
+        height: self.width * Gfx.pe-preview.height / max(1, Gfx.pe-preview.width);
+        source: Gfx.pe-preview;
+        image-fit: contain;
+    }
+    if !Gfx.pe-has-preview && !Gfx.pe-busy: Label {
+        text: "Плашка пустая: заполните строку текстом или переменной";
+        color: #9aa3ae;
+    }
+    if Gfx.pe-busy: VerticalLayout {
+        x: parent.width - 36px;
+        y: 12px;
+        width: 24px;
+        height: 24px;
+        CircularProgress {
+            size: 20px;
+        }
+    }
+}
+
+export component PlateEditorDialog inherits Dialog {
+    open: Gfx.pe-open;
+    title: "Расширенный редактор плашки";
+    dialog-width: 1180px;
+    dismissed => {
+        Gfx.pe-open = false;
+    }
+
+    HorizontalLayout {
+        height: 600px;
+        spacing: Theme.sp4;
+        VerticalLayout {
+            width: 520px;
+            spacing: Theme.sp3;
+            Preview {
+                height: 220px;
+            }
+            HorizontalLayout {
+                spacing: Theme.sp2;
+                Label {
+                    horizontal-stretch: 1;
+                    text: "Точный рендер сервера; переменные — текущие значения эфира.";
+                    type-style: Theme.body-small;
+                    color: Theme.color.on-surface-variant;
+                    vertical-alignment: center;
+                    wrap: word-wrap;
+                }
+                SegmentedButton {
+                    width: 320px;
+                    segments: [{ text: "Тёмный" }, { text: "Светлый" }, { text: "Серый" }];
+                    selected: Gfx.pe-bg;
+                    changed(i) => {
+                        Gfx.pe-bg = i;
+                    }
+                }
+            }
+            Label {
+                text: "Готовые стили — меняют оформление, текст строк остаётся";
+                type-style: Theme.title-small;
+            }
+            for row in [0, 1]: HorizontalLayout {
+                spacing: Theme.sp2;
+                for i in [0, 1, 2, 3]: PresetTile {
+                    horizontal-stretch: 1;
+                    index: row * 4 + i;
+                    name: row * 4 + i < Gfx.pe-presets.length ? Gfx.pe-presets[row * 4 + i] : "";
+                }
+            }
+            sv-left := ScrollView {
+                vertical-stretch: 1;
+                content-width: self.visible-width;
+                horizontal-scrollbar-policy: always-off;
+                VerticalLayout {
+                    width: sv-left.visible-width;
+                    padding-right: Theme.sp2;
+                    alignment: start;
+                    PlateSection { }
+                }
+            }
+        }
+        sv := ScrollView {
+            horizontal-stretch: 1;
+            content-width: self.visible-width;
+            horizontal-scrollbar-policy: always-off;
+            VerticalLayout {
+                width: sv.visible-width;
+                padding-right: Theme.sp3;
+                spacing: Theme.sp3;
+                alignment: start;
+                TextStyleSection { }
+                PlateLayoutSection { }
+                ShapeSection { }
+            }
+        }
+    }
+    DialogActions {
+        Button {
+            text: "Готово";
+            clicked => {
+                Gfx.pe-open = false;
+            }
+        }
+    }
+}

@@ -3,15 +3,19 @@
 //! * `cargo dist [--linux]` — release build of the application and the installer
 //!   with the application packed inside → `target/dist/`;
 //! * `cargo xtask icons` — render `laurabrod.svg` into `laurabrod.ico`
-//!   (Windows executable icon, committed to the repository).
+//!   (Windows executable icon, committed to the repository);
+//! * `cargo xtask backgrounds [--force]` — render the ready-made backgrounds
+//!   the engine embeds (`crates/lb-engine/assets/backgrounds/`).
 
+mod backgrounds;
 mod dist;
 mod icons;
 
 use std::path::PathBuf;
 use std::process::ExitCode;
 
-const USAGE: &str = "usage: cargo xtask <dist | icons>\n  dist   build target/dist/laurabrod-<version>-<os>-<arch>-setup[.exe]\n  icons  regenerate crates/lb-gui/assets/app/laurabrod.ico";
+const USAGE: &str = "usage: cargo xtask <dist | icons | backgrounds>\n  dist   build target/dist/laurabrod-<version>-<os>-<arch>-setup[.exe]\n  icons  regenerate crates/lb-gui/assets/app/laurabrod.ico
+  backgrounds  render crates/lb-engine/assets/backgrounds (needs ffmpeg)";
 
 fn main() -> ExitCode {
     let args: Vec<String> = std::env::args().skip(1).collect();
@@ -19,6 +23,7 @@ fn main() -> ExitCode {
     let result = match task.as_str() {
         "dist" => dist::run(&args[1..]),
         "icons" => icons::run(),
+        "backgrounds" => backgrounds::run(&args[1..]),
         _ => {
             eprintln!("{USAGE}");
             return ExitCode::from(2);

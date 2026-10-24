@@ -239,6 +239,10 @@ fn graphics(ch: &mut ChannelData) {
             padding_y: 12.0,
             spacing: 2.0,
             align: TextAlign::Left,
+            layout: Default::default(),
+            valign: Default::default(),
+            fit: false,
+            icon: None,
         },
         Placement { anchor: Anchor::BottomLeft, x: 60.0, y: 110.0, width: None, height: None },
         20,
@@ -270,7 +274,7 @@ fn graphics(ch: &mut ChannelData) {
     let mut ticker_rule = grule("ticker", "ticker", GfxTiming::default(), vec![]);
     ticker_rule.conditions.exclude_categories = vec!["commercials".into()];
     ch.graphics = GraphicsConfig {
-        layers: vec![Layer { id: 20, name: "Плашки".into(), exclusive: true }],
+        layers: vec![Layer { exclusive: true, ..Layer::new(20, "Плашки") }],
         elements: vec![logo, clock, lower, next, ticker],
         rules: vec![
             grule("logo", "logo", GfxTiming::default(), programs.clone()),

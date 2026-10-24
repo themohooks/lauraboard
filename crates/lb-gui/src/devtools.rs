@@ -61,6 +61,9 @@ pub fn snapshot(out: &Path, section: &str, width: u32, height: u32, scale: f32, 
     let jobs = Jobs::default();
     slint::platform::set_platform(Box::new(Headless(window.clone(), jobs.clone()))).map_err(|e| e.to_string())?;
     std::fs::create_dir_all(out).map_err(|e| e.to_string())?;
+    if section == "notify" {
+        return snapshot_notify(out, &window, scale);
+    }
     let ui = AppWindow::new().map_err(|e| e.to_string())?;
     window.dispatch_event(WindowEvent::ScaleFactorChanged { scale_factor: scale });
     window.set_size(slint::PhysicalSize::new(width, height));
@@ -116,6 +119,41 @@ pub fn snapshot(out: &Path, section: &str, width: u32, height: u32, scale: f32, 
     Ok(())
 }
 
+/// The notification popups (`notify` section) with a sample stack.
+fn snapshot_notify(out: &Path, window: &Rc<MinimalSoftwareWindow>, scale: f32) -> Result<(), String> {
+    use crate::shell::{NoticeRow, NotifyWindow, Popups};
+    let ui = NotifyWindow::new().map_err(|e| e.to_string())?;
+    let n = |id, title: &str, body: &str, urgency, initial: &str| NoticeRow { id, title: title.into(), body: body.into(), time: "21:04".into(), urgency, initial: initial.into(), ..Default::default() };
+    let rows = vec![
+        n(1, "Главный: в эфире", "Вечерние новости", 0, "Г"),
+        n(2, "Главный: точка вещания недоступна", "rtmp://live.example.com/app — соединение отклонено", 1, "Г"),
+        n(3, "Детский: кодировщик остановлен", "ffmpeg завершился с ошибкой 1
+Эфир прерван, идёт перезапуск.", 2, "Д"),
+    ];
+    let count = rows.len() as u32;
+    ui.global::<Popups>().set_items(model(rows));
+    ui.global::<Theme>().set_animations(false);
+    let (width, height) = ((380.0 * scale) as u32, ((count as f32 * 96.0 + 12.0) * scale) as u32);
+    window.dispatch_event(WindowEvent::ScaleFactorChanged { scale_factor: scale });
+    window.set_size(slint::PhysicalSize::new(width, height));
+    ui.show().map_err(|e| e.to_string())?;
+    for (name, mode) in [("light", ThemeMode::Light), ("dark", ThemeMode::Dark)] {
+        ui.global::<Theme>().set_mode(mode);
+        // a neutral "desktop" under the transparent window
+        let mut buf = vec![Rgb8Pixel { r: 96, g: 110, b: 128 }; (width * height) as usize];
+        window.request_redraw();
+        window.draw_if_needed(|r| {
+            r.render(&mut buf, width as usize);
+        });
+        let raw: Vec<u8> = buf.iter().flat_map(|p| [p.r, p.g, p.b]).collect();
+        let img = image::RgbImage::from_raw(width, height, raw).ok_or("bad buffer")?;
+        let path = out.join(format!("notify-{name}.png"));
+        img.save(&path).map_err(|e| format!("{}: {e}", path.display()))?;
+        println!("{}", path.display());
+    }
+    Ok(())
+}
+
 /// Representative live data so screens can be reviewed without a server.
 fn demo_state(ui: &AppWindow) {
     let g = ui.global::<App>();
@@ -153,6 +191,8 @@ fn demo_overlay(ui: &AppWindow, name: &str) {
         on_air: on,
         autostart: auto,
         current: cur,
+        initial: name.chars().next().map(|c| c.to_string()).unwrap_or_default().into(),
+        ..Default::default()
     };
     c.set_rows(model(vec![r("main", "Основной канал", true, true, true), r("kids", "Детский", false, false, false)]));
     match name {

@@ -51,10 +51,8 @@ pub struct NewChannel {
 pub async fn create_channel(State(s): State<AppState>, c: Caller, Json(v): Json<NewChannel>) -> ApiResult<Json<ChannelStatus>> {
     c.require(Role::Admin)?;
     let h = s.engine.create_channel(v.id.trim(), &v.name, v.copy_from.as_deref().filter(|x| !x.is_empty()))?;
-    // every channel comes with ready-made backgrounds (in the background)
-    if let Err(e) = super::backgrounds::start(&s, h.id(), Default::default()) {
-        tracing::warn!(channel = h.id(), "backgrounds not generated: {e:?}");
-    }
+    // every channel comes with ready-made backgrounds (copied in the background)
+    lb_engine::library::backgrounds::spawn(&s.engine, h.clone());
     Ok(Json(h.status()))
 }
 

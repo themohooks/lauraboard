@@ -11,6 +11,7 @@
 //! * [`job`] — rundown item → decoder command line
 //! * [`vars`] — graphics template variables
 
+pub mod avatar;
 pub mod commands;
 pub mod events;
 pub mod gfx;
@@ -90,7 +91,9 @@ impl ChannelHandle {
     }
 
     pub fn status(&self) -> ChannelStatus {
-        self.status.borrow().clone()
+        let mut st = self.status.borrow().clone();
+        st.avatar = avatar::version(&self.read(|d| d.dir.clone()));
+        st
     }
 
     pub fn status_watch(&self) -> watch::Receiver<ChannelStatus> {

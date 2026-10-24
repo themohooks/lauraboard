@@ -21,6 +21,10 @@ pub enum Target {
     RuleItems,
     /// "Except these items" condition of the rule being edited (appended).
     RuleExclude,
+    /// Items after which the rule being edited fires (appended).
+    RuleTrigger,
+    /// Scenes covering gaps (appended).
+    GapScenes,
     /// Media list of a schedule block (appended).
     BlockMedia(usize),
     BlockIntro(usize),
@@ -33,7 +37,10 @@ pub enum Target {
 
 impl Target {
     fn multi(self) -> bool {
-        matches!(self, Target::AdItems | Target::RuleItems | Target::RuleExclude | Target::BlockMedia(_) | Target::SceneTracks(_))
+        matches!(
+            self,
+            Target::AdItems | Target::RuleItems | Target::RuleExclude | Target::RuleTrigger | Target::GapScenes | Target::BlockMedia(_) | Target::SceneTracks(_)
+        )
     }
 }
 
@@ -42,6 +49,8 @@ pub struct PickerState {
     target: Option<Target>,
     /// Checked ids in click order.
     chosen: Vec<String>,
+    /// Only scenes are offered.
+    scenes_only: bool,
 }
 
 pub fn connect(ui: &AppWindow) {
@@ -53,8 +62,17 @@ pub fn connect(ui: &AppWindow) {
 
 /// Show the dialog for `target`.
 pub fn open(c: &mut Ctx, target: Target, title: &str) {
+    open_with(c, target, title, false);
+}
+
+/// Show the dialog for `target` offering only scenes.
+pub fn open_scenes(c: &mut Ctx, target: Target, title: &str) {
+    open_with(c, target, title, true);
+}
+
+fn open_with(c: &mut Ctx, target: Target, title: &str, scenes_only: bool) {
     let Some(ui) = c.window() else { return };
-    c.picker = PickerState { target: Some(target), chosen: Vec::new() };
+    c.picker = PickerState { target: Some(target), chosen: Vec::new(), scenes_only };
     let g = ui.global::<Picker>();
     g.set_title(title.into());
     g.set_multi(target.multi());
@@ -76,6 +94,7 @@ fn rows(c: &mut Ctx) {
         .library
         .iter()
         .filter(|m| m.enabled)
+        .filter(|m| !c.picker.scenes_only || m.is_scene())
         .filter(|m| kind.is_none_or(|k| m.kind == k))
         .filter(|m| q.is_empty() || m.title.to_lowercase().contains(&q) || m.id.to_lowercase().contains(&q));
     let list: Vec<PickRow> = found
@@ -125,7 +144,9 @@ fn confirm(c: &mut Ctx) {
         return;
     }
     match target {
-        Target::AdItems | Target::AdIntro | Target::AdOutro | Target::RuleItems | Target::RuleExclude => super::rules::picked(c, target, ids),
+        Target::AdItems | Target::AdIntro | Target::AdOutro | Target::RuleItems | Target::RuleExclude | Target::RuleTrigger | Target::GapScenes => {
+            super::rules::picked(c, target, ids)
+        }
         Target::BlockMedia(_) | Target::BlockIntro(_) | Target::BlockOutro(_) => super::schedule::picked(c, target, ids),
         Target::SceneBackground | Target::SceneTracks(_) => super::scenes::picked(c, target, ids),
     }

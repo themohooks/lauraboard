@@ -1,5 +1,9 @@
-// Layer panel: elements top to bottom by layer, on-air marker, canvas
-// visibility / lock (editor only), layer up / down.
+// Layer panel: elements grouped under logical layers (top first). A layer
+// header folds its elements, switches the layer on / off for the air,
+// makes it exclusive, renames, moves and removes it; an element row
+// shows the on-air marker, canvas visibility / lock (editor only) and
+// moves the element to the layer above / below. The filter separates
+// the common graphics from the graphics of scenes.
 
 import { ListView } from "std-widgets.slint";
 import { Theme } from "../../theme/tokens.slint";
@@ -8,8 +12,10 @@ import { Label } from "../../components/label.slint";
 import { Icon } from "../../components/icon.slint";
 import { IconButton } from "../../components/icon-button.slint";
 import { ListRow } from "../../components/list-row.slint";
+import { TextField } from "../../components/text-field.slint";
+import { SegmentedButton } from "../../components/segmented-button.slint";
 import { EmptyState } from "../../components/feedback.slint";
-import { Gfx } from "../../state/graphics-state.slint";
+import { Gfx, LayerRow } from "../../state/graphics-state.slint";
 
 export global GfxIcons {
     public pure function of(kind: string) -> image {
@@ -19,7 +25,223 @@ export global GfxIcons {
             : kind == "countdown" ? Icons.timer
             : kind == "image" ? Icons.image
             : kind == "rect" ? Icons.crop-square
+            : kind == "progress" ? Icons.linear-scale
             : Icons.branding-watermark;
+    }
+}
+
+component SmallButton inherits IconButton {
+    width: 28px;
+    height: 28px;
+    focusable: false;
+}
+
+component LayerHeader inherits Rectangle {
+    in property <LayerRow> l;
+    property <string> edit-text;
+    height: Gfx.layer-editing == l.layer ? 60px : 40px;
+    border-radius: Theme.radius-m;
+    background: Theme.color.surface-container;
+    HorizontalLayout {
+        padding-left: Theme.sp1;
+        padding-right: Theme.sp1;
+        spacing: Theme.sp1;
+        VerticalLayout {
+            alignment: center;
+            SmallButton {
+                icon: l.collapsed ? Icons.chevron-right : Icons.expand-more;
+                tooltip: l.collapsed ? "Развернуть слой" : "Свернуть слой";
+                clicked => {
+                    Gfx.layer-collapse(l.layer);
+                }
+            }
+        }
+        if Gfx.layer-editing != l.layer: VerticalLayout {
+            horizontal-stretch: 1;
+            alignment: center;
+            Label {
+                text: l.name;
+                type-style: Theme.title-small;
+                color: l.enabled ? Theme.color.on-surface : Theme.color.on-surface-variant;
+                overflow: elide;
+            }
+            Label {
+                text: l.count + " эл. · высота " + l.layer + (l.exclusive ? " · по одному" : "") + (!l.enabled ? " · выключен в эфире" : l.on-air ? " · в эфире" : "");
+                type-style: Theme.label-small;
+                color: !l.enabled ? Theme.color.error : l.on-air ? Theme.status.live : Theme.color.on-surface-variant;
+                overflow: elide;
+            }
+        }
+        if Gfx.layer-editing == l.layer: VerticalLayout {
+            horizontal-stretch: 1;
+            alignment: center;
+            TextField {
+                text <=> root.edit-text;
+                label: "Название слоя";
+                container-color: Theme.color.surface-container-high;
+                accepted => {
+                    Gfx.layer-rename(l.layer, root.edit-text);
+                }
+                init => {
+                    root.edit-text = l.name;
+                    self.focus-input();
+                }
+            }
+        }
+        if Gfx.layer-editing == l.layer: VerticalLayout {
+            alignment: center;
+            SmallButton {
+                icon: Icons.check;
+                tooltip: "Готово";
+                clicked => {
+                    Gfx.layer-rename(l.layer, root.edit-text);
+                }
+            }
+        }
+        if Gfx.layer-editing != l.layer: VerticalLayout {
+            alignment: center;
+            SmallButton {
+                icon: Icons.edit;
+                tooltip: "Переименовать слой";
+                clicked => {
+                    Gfx.layer-editing = l.layer;
+                }
+            }
+        }
+        VerticalLayout {
+            alignment: center;
+            SmallButton {
+                icon: l.enabled ? Icons.live-tv : Icons.visibility-off;
+                toggle: true;
+                selected: l.enabled;
+                tooltip: l.enabled ? "Слой в эфире — выключить (элементы слоя не будут показываться по правилам)" : "Слой выключен в эфире — включить";
+                clicked => {
+                    Gfx.layer-toggle-enabled(l.layer);
+                }
+            }
+        }
+        VerticalLayout {
+            alignment: center;
+            SmallButton {
+                icon: Icons.filter-list;
+                toggle: true;
+                selected: l.exclusive;
+                tooltip: l.exclusive ? "Показывается один элемент слоя (с высшим приоритетом) — выключить" : "Показывать в слое только один элемент за раз";
+                clicked => {
+                    Gfx.layer-toggle-exclusive(l.layer);
+                }
+            }
+        }
+        VerticalLayout {
+            alignment: center;
+            SmallButton {
+                icon: Icons.arrow-upward;
+                tooltip: "Слой выше";
+                clicked => {
+                    Gfx.layer-move(l.layer, 1);
+                }
+            }
+        }
+        VerticalLayout {
+            alignment: center;
+            SmallButton {
+                icon: Icons.arrow-downward;
+                tooltip: "Слой ниже";
+                clicked => {
+                    Gfx.layer-move(l.layer, -1);
+                }
+            }
+        }
+        if l.count == 0 && Gfx.layer-filter == 0: VerticalLayout {
+            alignment: center;
+            SmallButton {
+                icon: Icons.delete;
+                icon-tint: Theme.color.error;
+                tooltip: "Удалить пустой слой";
+                clicked => {
+                    Gfx.layer-remove(l.layer);
+                }
+            }
+        }
+    }
+}
+
+component ElementLine inherits ListRow {
+    in property <LayerRow> l;
+    radius: Theme.radius-m;
+    padding-x: Theme.sp2;
+    gap: Theme.sp1;
+    selected: Gfx.selected == l.index;
+    focusable: false;
+    opacity: l.enabled ? 1 : 0.6;
+    clicked => {
+        Gfx.select(l.index);
+    }
+    Rectangle {
+        width: Theme.sp4;
+    }
+    VerticalLayout {
+        alignment: center;
+        Icon {
+            source: GfxIcons.of(l.kind);
+            size: 18px;
+            tint: l.on-air ? Theme.status.live : Theme.color.on-surface-variant;
+        }
+    }
+    VerticalLayout {
+        horizontal-stretch: 1;
+        alignment: center;
+        Label {
+            text: l.name;
+            type-style: Theme.label-large;
+            overflow: elide;
+        }
+        Label {
+            text: l.kind-name + (l.scene ? " · только на сценах" : "") + (l.on-air ? " · в эфире" : "");
+            type-style: Theme.label-small;
+            color: l.on-air ? Theme.status.live : Theme.color.on-surface-variant;
+            overflow: elide;
+        }
+    }
+    VerticalLayout {
+        alignment: center;
+        SmallButton {
+            icon: l.hidden ? Icons.visibility-off : Icons.visibility;
+            tooltip: l.hidden ? "Показать на холсте" : "Скрыть на холсте";
+            clicked => {
+                Gfx.toggle-hidden(l.index);
+            }
+        }
+    }
+    VerticalLayout {
+        alignment: center;
+        SmallButton {
+            icon: l.locked ? Icons.lock : Icons.lock-open;
+            tooltip: l.locked ? "Разблокировать" : "Заблокировать перемещение";
+            clicked => {
+                Gfx.toggle-locked(l.index);
+            }
+        }
+    }
+    VerticalLayout {
+        alignment: center;
+        SmallButton {
+            icon: Icons.arrow-upward;
+            tooltip: "В слой выше";
+            clicked => {
+                Gfx.layer-step(l.index, 1);
+            }
+        }
+    }
+    VerticalLayout {
+        alignment: center;
+        SmallButton {
+            icon: Icons.arrow-downward;
+            tooltip: "В слой ниже";
+            clicked => {
+                Gfx.layer-step(l.index, -1);
+            }
+        }
     }
 }
 
@@ -30,99 +252,61 @@ export component LayersPanel inherits Rectangle {
     VerticalLayout {
         padding: Theme.sp3;
         spacing: Theme.sp2;
-        Label {
-            text: "Слои";
-            type-style: Theme.title-medium;
+        HorizontalLayout {
+            spacing: Theme.sp2;
+            Label {
+                text: "Слои";
+                type-style: Theme.title-medium;
+                vertical-alignment: center;
+            }
+            Rectangle {
+                horizontal-stretch: 1;
+            }
+            SegmentedButton {
+                width: 270px;
+                segments: [{ text: "Все" }, { text: "Общие" }, { text: "Сцены" }];
+                selected: Gfx.layer-filter;
+                changed(i) => {
+                    Gfx.layer-filter = i;
+                    Gfx.layer-filter-changed();
+                }
+            }
+            VerticalLayout {
+                alignment: center;
+                IconButton {
+                    icon: Icons.account-tree;
+                    tooltip: "Разложить по слоям: каждый элемент — в слой своего типа, графика сцен — в «Сцены»";
+                    clicked => {
+                        Gfx.layer-organize();
+                    }
+                }
+            }
+            VerticalLayout {
+                alignment: center;
+                IconButton {
+                    icon: Icons.add;
+                    tooltip: "Новый слой";
+                    clicked => {
+                        Gfx.layer-add();
+                    }
+                }
+            }
         }
         if Gfx.layers.length == 0: EmptyState {
             vertical-stretch: 1;
             icon: Icons.branding-watermark;
-            title: "Нет элементов";
-            text: "Добавьте текст, плашку, часы или логотип.";
+            title: Gfx.layer-filter == 2 ? "Нет графики сцен" : "Нет элементов";
+            text: Gfx.layer-filter == 2 ? "Элементы, которые показываются только на сценах, появятся здесь. Новый элемент при этом фильтре попадает в слой «Сцены»." : "Добавьте текст, плашку, часы или логотип.";
         }
         if Gfx.layers.length > 0: ListView {
             vertical-stretch: 1;
-            for l in Gfx.layers: ListRow {
-                radius: Theme.radius-m;
-                padding-x: Theme.sp2;
-                gap: Theme.sp1;
-                selected: Gfx.selected == l.index;
-                focusable: false;
-                clicked => {
-                    Gfx.select(l.index);
+            for l in Gfx.layers: VerticalLayout {
+                padding-top: l.header ? 4px : 0;
+                if l.header: LayerHeader {
+                    l: l;
                 }
-                VerticalLayout {
-                    alignment: center;
-                    Icon {
-                        source: GfxIcons.of(l.kind);
-                        size: 18px;
-                        tint: l.on-air ? Theme.status.live : Theme.color.on-surface-variant;
-                    }
-                }
-                VerticalLayout {
-                    horizontal-stretch: 1;
-                    alignment: center;
-                    Label {
-                        text: l.name;
-                        type-style: Theme.label-large;
-                    }
-                    Label {
-                        text: l.kind-name + " · слой " + l.layer + (l.on-air ? " · в эфире" : "");
-                        type-style: Theme.label-small;
-                        color: l.on-air ? Theme.status.live : Theme.color.on-surface-variant;
-                    }
-                }
-                VerticalLayout {
-                    alignment: center;
-                    IconButton {
-                        width: 28px;
-                        height: 28px;
-                        icon: l.hidden ? Icons.visibility-off : Icons.visibility;
-                        tooltip: l.hidden ? "Показать на холсте" : "Скрыть на холсте";
-                        focusable: false;
-                        clicked => {
-                            Gfx.toggle-hidden(l.index);
-                        }
-                    }
-                }
-                VerticalLayout {
-                    alignment: center;
-                    IconButton {
-                        width: 28px;
-                        height: 28px;
-                        icon: l.locked ? Icons.lock : Icons.lock-open;
-                        tooltip: l.locked ? "Разблокировать" : "Заблокировать перемещение";
-                        focusable: false;
-                        clicked => {
-                            Gfx.toggle-locked(l.index);
-                        }
-                    }
-                }
-                VerticalLayout {
-                    alignment: center;
-                    IconButton {
-                        width: 28px;
-                        height: 28px;
-                        icon: Icons.arrow-upward;
-                        tooltip: "Выше (слой +1)";
-                        focusable: false;
-                        clicked => {
-                            Gfx.layer-step(l.index, 1);
-                        }
-                    }
-                }
-                VerticalLayout {
-                    alignment: center;
-                    IconButton {
-                        width: 28px;
-                        height: 28px;
-                        icon: Icons.arrow-downward;
-                        tooltip: "Ниже (слой −1)";
-                        focusable: false;
-                        clicked => {
-                            Gfx.layer-step(l.index, -1);
-                        }
-                    }
+                if !l.header: ElementLine {
+                    l: l;
                 }
             }
         }

@@ -15,7 +15,10 @@ export struct CanvasItem {
     on-air: bool,
 }
 
+// A row of the layer panel: a layer header, or an element under it.
 export struct LayerRow {
+    header: bool,
+    // element index (-1 on headers)
     index: int,
     name: string,
     kind: string,
@@ -24,6 +27,13 @@ export struct LayerRow {
     hidden: bool,
     locked: bool,
     on-air: bool,
+    // header: elements shown under it, the layer goes on air, exclusive, folded
+    count: int,
+    enabled: bool,
+    exclusive: bool,
+    collapsed: bool,
+    // element: shown only on scenes
+    scene: bool,
 }
 
 // One text of an element as shown by a rule.
@@ -129,7 +139,7 @@ export global Gfx {
     in property <bool> p-has;
     in property <string> p-id;
     in-out property <string> p-name;
-    // 0 text, 1 ticker, 2 clock, 3 countdown, 4 image, 5 rect, 6 group, 7 plate
+    // 0 text, 1 ticker, 2 clock, 3 countdown, 4 image, 5 rect, 6 group, 7 plate, 8 progress bar
     in property <int> p-kind;
     in-out property <int> p-anchor;
     in-out property <string> p-x;
@@ -137,13 +147,45 @@ export global Gfx {
     in-out property <string> p-w;
     in-out property <string> p-h;
     in-out property <float> p-opacity: 1;
-    in-out property <string> p-layer;
+    // index in `layer-names`
+    in-out property <int> p-layer;
+    // layers, top first: "Плашки и титры · 20"
+    in property <[string]> layer-names;
+    // layer panel: 0 all, 1 common graphics, 2 graphics of scenes
+    in-out property <int> layer-filter;
+    // layer being renamed (id; i32::MIN none)
+    in-out property <int> layer-editing: -2147483648;
+    callback layer-filter-changed();
+    callback layer-collapse(int);
+    callback layer-toggle-enabled(int);
+    callback layer-toggle-exclusive(int);
+    callback layer-rename(int, string);
+    // layer id, +1 up / -1 down
+    callback layer-move(int, int);
+    callback layer-add();
+    // every element to the layer of its kind (asks first)
+    callback layer-organize();
+    callback layer-remove(int);
     in-out property <string> p-text;
     in-out property <string> p-speed;
     in-out property <string> p-twidth;
     in-out property <string> p-format;
+    // countdown: 0 item, 1 next programme, 2 end of the programme
     in-out property <int> p-target;
     in-out property <string> p-prefix;
+    // countdown time format: 0 auto, 1 ЧЧ:ММ:СС, 2 ММ:СС, 3 minutes
+    in-out property <int> p-tformat;
+    // content kinds not counted (KINDS order), toggled with toggle-exclude
+    in property <[bool]> p-exclude;
+    callback toggle-exclude(int);
+    // progress bar: gradient of the fill, track colour, 0 programme / 1 item, direction
+    in-out property <string> pg-gradient;
+    in-out property <string> pg-track;
+    in-out property <int> pg-target;
+    // 0 left → right, 1 right → left, 2 bottom → top, 3 top → bottom
+    in-out property <int> pg-direction;
+    in property <color> sw-pg-gradient;
+    in property <color> sw-pg-track;
     in-out property <string> p-path;
     in-out property <string> p-color;
     in-out property <string> p-rw;
@@ -163,6 +205,8 @@ export global Gfx {
     in-out property <string> s-bg;
     in-out property <string> s-padding;
     in-out property <string> s-corner;
+    in-out property <string> s-spacing;
+    in-out property <bool> s-upper;
     // shape design (rectangle, plate)
     in-out property <string> sh-gradient;
     in-out property <string> sh-angle;
@@ -194,6 +238,30 @@ export global Gfx {
     in-out property <string> pl-spacing;
     // 0 left, 1 centre, 2 right
     in-out property <int> pl-align;
+    // 0 column, 1 row; vertical 0 top, 1 centre, 2 bottom; shrink long lines
+    in-out property <int> pl-layout;
+    in-out property <int> pl-valign: 1;
+    in-out property <bool> pl-fit;
+    // selected line: 0 as the plate, 1 left, 2 centre, 3 right; gap before it
+    in-out property <int> pl-line-align;
+    in-out property <string> pl-gap;
+    // picture in the plate: path ("" none), 0 left / 1 right, height, gap, radius
+    in-out property <string> pl-icon;
+    in-out property <int> pl-icon-side;
+    in-out property <string> pl-icon-size;
+    in-out property <string> pl-icon-gap;
+    in-out property <string> pl-icon-radius;
+    callback pick-plate-icon();
+    // advanced plate editor: open, cropped exact preview, its backdrop
+    // (0 dark, 1 light, 2 grey), ready-made styles
+    in-out property <bool> pe-open;
+    in property <image> pe-preview;
+    in property <bool> pe-has-preview;
+    in property <bool> pe-busy;
+    in-out property <int> pe-bg;
+    in property <[string]> pe-presets;
+    callback open-plate-editor();
+    callback plate-preset(int);
     in property <[PlateFieldRow]> pl-fields;
     in-out property <int> pl-field;
     in-out property <string> pl-label;
@@ -296,6 +364,7 @@ export global Gfx {
     callback add(string);
     callback duplicate();
     callback remove();
+    // element index, +1 to the layer above / -1 below
     callback layer-step(int, int);
     callback toggle-hidden(int);
     callback toggle-locked(int);

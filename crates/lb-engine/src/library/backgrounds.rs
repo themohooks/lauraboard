@@ -3,8 +3,10 @@
 //! `channels/<id>/media/backgrounds/`, plus plate textures in
 //! `channels/<id>/graphics/backgrounds/` for shapes and plates.
 //!
-//! Generating is idempotent: files and items that are there stay, so the
-//! job can run again to bring back deleted ones.
+//! The files are part of the program (rendered once by `cargo xtask
+//! backgrounds` into `assets/backgrounds/` and embedded here): a channel
+//! only gets copies, nothing is generated on the server. Installing is
+//! idempotent: files and items that are there stay.
 
 use std::path::{Path, PathBuf};
 
@@ -29,18 +31,38 @@ pub const LOOPS_FOLDER: &str = "Фоны/Видео";
 /// Plate textures: `channels/<id>/graphics/backgrounds/`.
 pub const PLATES_DIR: &str = "graphics/backgrounds";
 
-/// What to make.
-#[derive(Debug, Clone, Copy)]
-pub struct Parts {
-    pub stills: bool,
-    pub loops: bool,
-    pub plates: bool,
+macro_rules! embed {
+    ($dir:literal, $ext:literal: $($stem:literal),* $(,)?) => {
+        &[$(($stem, include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/assets/backgrounds/", $dir, "/", $stem, ".", $ext)) as &[u8])),*]
+    };
 }
 
-impl Default for Parts {
-    fn default() -> Self {
-        Parts { stills: true, loops: true, plates: true }
+/// Embedded files: (stem, bytes).
+type Files = &'static [(&'static str, &'static [u8])];
+
+const STILL_FILES: Files = embed!("stills", "jpg":
+    "bg-midnight", "bg-sunset", "bg-ocean", "bg-forest", "bg-graphite", "bg-aurora", "bg-bokeh", "bg-dots",
+    "bg-waves", "bg-studio", "bg-news", "bg-pastel", "bg-ember", "bg-violet", "bg-lines", "bg-cosmos",
+);
+const LOOP_FILES: Files = embed!("loops", "mp4":
+    "loop-plasma-blue", "loop-plasma-violet", "loop-flow-sunset", "loop-flow-sea", "loop-waves",
+    "loop-aurora", "loop-pulse", "loop-grid", "loop-ember", "loop-mint",
+);
+const PLATE_FILES: Files = embed!("plates", "png":
+    "plate-blue-gloss", "plate-red", "plate-carbon", "plate-glass", "plate-gold", "plate-neon",
+    "plate-stripes", "plate-dusk", "plate-emerald", "plate-steel", "plate-sunrise", "plate-night",
+);
+
+fn bytes(files: Files, stem: &str) -> Option<&'static [u8]> {
+    files.iter().find(|(s, _)| *s == stem).map(|(_, b)| *b)
+}
+
+/// Write `data` to `path` unless the file is there.
+fn put(path: &Path, data: &[u8]) -> Result<(), String> {
+    if path.exists() {
+        return Ok(());
     }
+    std::fs::write(path, data).map_err(|e| format!("{}: {e}", path.display()))
 }
 
 /// Plate textures of a channel folder, written if missing. Returns the
@@ -50,108 +72,83 @@ pub fn ensure_plates(channel_dir: &Path, root: &Path) -> Result<Vec<(String, Str
     std::fs::create_dir_all(&dir).map_err(|e| format!("{}: {e}", dir.display()))?;
     let mut out = Vec::new();
     for b in plates::PLATES {
+        let Some(data) = bytes(PLATE_FILES, b.stem) else { continue };
         let path = dir.join(format!("{}.png", b.stem));
-        if !path.exists() {
-            let p = plates::paint(b.stem).ok_or_else(|| format!("plate texture {} failed", b.stem))?;
-            p.save_png(&path).map_err(|e| format!("{}: {e}", path.display()))?;
-        }
+        put(&path, data)?;
         out.push((paths::to_stored(root, &path), b.title.to_string()));
     }
     Ok(out)
 }
 
-/// Start the job for `h`; returns its id.
-pub fn spawn(engine: &crate::Engine, h: ChannelHandle, parts: Parts) -> u64 {
-    let ffmpeg = engine.app.ffmpeg.ffmpeg.clone();
+/// Start installing the backgrounds of `h` (a short job: copies and a
+/// probe of the loops); returns its id.
+pub fn spawn(engine: &crate::Engine, h: ChannelHandle) -> u64 {
     let ffprobe = engine.app.ffmpeg.ffprobe.clone();
     let id = h.id().to_string();
-    engine.jobs.spawn("backgrounds", "Готовые фоны и видеоряды", Some(&id), move |ctl| generate(h, ffmpeg, ffprobe, parts, ctl))
+    engine.jobs.spawn("backgrounds", "Готовые фоны и видеоряды", Some(&id), move |ctl| install(h, ffprobe, ctl))
 }
 
-/// The channel never had its backgrounds made (new or older channel).
+/// The channel never got its backgrounds (new or older channel).
 pub fn missing(h: &ChannelHandle) -> bool {
     !h.read(|d| d.dir.join(MEDIA_DIR).join(DIR)).exists()
 }
 
-/// Job body: make the backgrounds of channel `h`.
-pub async fn generate(h: ChannelHandle, ffmpeg: String, ffprobe: String, parts: Parts, ctl: JobCtl) -> Result<Value, String> {
+/// Job body: copy the backgrounds into channel `h` and add them to its
+/// library.
+pub async fn install(h: ChannelHandle, ffprobe: String, ctl: JobCtl) -> Result<Value, String> {
     let root = h.shared.root.clone();
-    let (channel_dir, w, ht, fps) = h.read(|d| (d.dir.clone(), d.config.video.width, d.config.video.height, d.config.video.fps));
+    let channel_dir = h.read(|d| d.dir.clone());
     let dir = channel_dir.join(MEDIA_DIR).join(DIR);
     std::fs::create_dir_all(&dir).map_err(|e| format!("{}: {e}", dir.display()))?;
-    let total = (if parts.stills { stills::STILLS.len() } else { 0 } + if parts.loops { LOOPS.len() } else { 0 } + usize::from(parts.plates)).max(1);
-    let mut step = 0;
+    let total = (stills::STILLS.len() + LOOPS.len() + 1) as f32;
+    let mut step = 0.0;
     let mut added: Vec<String> = Vec::new();
     let mut errors: Vec<String> = Vec::new();
 
-    if parts.plates {
-        ctl.progress(0.0, "Фоны для плашек");
-        let (cd, r) = (channel_dir.clone(), root.clone());
-        match tokio::task::spawn_blocking(move || ensure_plates(&cd, &r)).await.map_err(|e| e.to_string())? {
-            Ok(_) => {}
-            Err(e) => errors.push(e),
-        }
-        step += 1;
+    ctl.progress(0.0, "Фоны для плашек");
+    if let Err(e) = ensure_plates(&channel_dir, &root) {
+        errors.push(e);
     }
-    if parts.stills {
-        for b in stills::STILLS {
-            ctl.check()?;
-            ctl.progress(step as f32 / total as f32, format!("Картинка «{}»", b.title));
-            let path = dir.join(format!("{}.png", b.stem));
-            if !path.exists() {
-                let (p2, stem) = (path.clone(), b.stem);
-                let made = tokio::task::spawn_blocking(move || -> Result<(), String> {
-                    let img = stills::paint(stem, w, ht).ok_or("unknown background")?;
-                    img.save_png(&p2).map_err(|e| format!("{}: {e}", p2.display()))
-                })
-                .await
-                .map_err(|e| e.to_string())?;
-                if let Err(e) = made {
-                    errors.push(e);
-                    step += 1;
-                    continue;
-                }
-            }
-            let mut item = MediaItem::new(b.stem, paths::to_stored(&root, &path), MediaKind::Image, Dur::secs(10));
-            item.title = format!("Фон: {}", b.title);
-            item.folder = STILLS_FOLDER.into();
-            item.category = Some("backgrounds".into());
-            if register(&h, item).await? {
-                added.push(b.stem.to_string());
-            }
-            step += 1;
+    step += 1.0;
+    for b in stills::STILLS {
+        ctl.check()?;
+        ctl.progress(step / total, format!("Картинка «{}»", b.title));
+        step += 1.0;
+        let Some(data) = bytes(STILL_FILES, b.stem) else { continue };
+        let path = dir.join(format!("{}.jpg", b.stem));
+        if let Err(e) = put(&path, data) {
+            errors.push(e);
+            continue;
+        }
+        let mut item = MediaItem::new(b.stem, paths::to_stored(&root, &path), MediaKind::Image, Dur::secs(10));
+        item.title = format!("Фон: {}", b.title);
+        item.folder = STILLS_FOLDER.into();
+        item.category = Some("backgrounds".into());
+        if register(&h, item).await? {
+            added.push(b.stem.to_string());
         }
     }
-    if parts.loops {
-        for l in LOOPS {
-            ctl.check()?;
-            ctl.progress(step as f32 / total as f32, format!("Видеоряд «{}»", l.title));
-            let path = dir.join(format!("{}.mp4", l.stem));
-            if !path.exists() {
-                let tmp = dir.join(format!("{}.part.mp4", l.stem));
-                let args = loops::loop_args(l, w, ht, fps, &tmp.to_string_lossy());
-                let out = lb_media::process::command(&ffmpeg).args(&args).output().await.map_err(|e| format!("ffmpeg: {e}"))?;
-                if !out.status.success() || !tmp.exists() {
-                    let _ = std::fs::remove_file(&tmp);
-                    errors.push(format!("{}: {}", l.title, String::from_utf8_lossy(&out.stderr).trim()));
-                    step += 1;
-                    continue;
-                }
-                std::fs::rename(&tmp, &path).map_err(|e| format!("{}: {e}", path.display()))?;
-            }
-            let mut item = MediaItem::new(l.stem, paths::to_stored(&root, &path), MediaKind::Filler, Dur::secs(loops::PERIOD_S as i64));
-            item.title = format!("Видеофон: {}", l.title);
-            item.folder = LOOPS_FOLDER.into();
-            item.category = Some("backgrounds".into());
-            if let Err(e) = probe_item(&mut item, &root, &ffprobe).await {
-                errors.push(format!("{}: {e}", l.title));
-                step += 1;
-                continue;
-            }
-            if register(&h, item).await? {
-                added.push(l.stem.to_string());
-            }
-            step += 1;
+    for l in LOOPS {
+        ctl.check()?;
+        ctl.progress(step / total, format!("Видеоряд «{}»", l.title));
+        step += 1.0;
+        let Some(data) = bytes(LOOP_FILES, l.stem) else { continue };
+        let path: PathBuf = dir.join(format!("{}.mp4", l.stem));
+        if let Err(e) = put(&path, data) {
+            errors.push(e);
+            continue;
+        }
+        let mut item = MediaItem::new(l.stem, paths::to_stored(&root, &path), MediaKind::Filler, Dur::secs(loops::PERIOD_S as i64));
+        item.title = format!("Видеофон: {}", l.title);
+        item.folder = LOOPS_FOLDER.into();
+        item.category = Some("backgrounds".into());
+        if let Err(e) = probe_item(&mut item, &root, &ffprobe).await {
+            // the file is fine (it ships with the program): keep the item
+            // with the known length, the next check probes it again
+            tracing::warn!(item = l.stem, "probe of a ready-made loop failed: {e}");
+        }
+        if register(&h, item).await? {
+            added.push(l.stem.to_string());
         }
     }
     ctl.progress(1.0, "Готово");
@@ -187,4 +184,25 @@ pub fn plate_files(channel_dir: &Path, root: &Path) -> Vec<(String, String)> {
             p.exists().then(|| (paths::to_stored(root, &p), b.title.to_string()))
         })
         .collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Every listed background has its embedded file (`cargo xtask
+    /// backgrounds` renders new ones).
+    #[test]
+    fn every_background_is_embedded() {
+        for b in stills::STILLS {
+            assert!(bytes(STILL_FILES, b.stem).is_some_and(|d| d.starts_with(&[0xFF, 0xD8])), "{}", b.stem);
+        }
+        for l in LOOPS {
+            assert!(bytes(LOOP_FILES, l.stem).is_some_and(|d| d.len() > 10_000), "{}", l.stem);
+        }
+        for p in plates::PLATES {
+            assert!(bytes(PLATE_FILES, p.stem).is_some_and(|d| d.starts_with(b"\x89PNG")), "{}", p.stem);
+        }
+        assert_eq!((STILL_FILES.len(), LOOP_FILES.len(), PLATE_FILES.len()), (stills::STILLS.len(), LOOPS.len(), plates::PLATES.len()));
+    }
 }

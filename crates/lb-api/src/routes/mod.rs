@@ -16,6 +16,7 @@
 
 pub mod config;
 pub mod control;
+pub mod avatar;
 pub mod backgrounds;
 pub mod fonts;
 pub mod jobs;
@@ -46,6 +47,8 @@ pub fn router(state: AppState) -> Router {
         .route("/duplicate", post(status::duplicate_channel))
         .route("/export", post(transfer::export))
         .route("/status", get(status::status))
+        .route("/avatar.png", get(avatar::get))
+        .route("/avatar", put(avatar::put).delete(avatar::delete).layer(axum::extract::DefaultBodyLimit::max(lb_engine::channel::avatar::MAX_BYTES)))
         .route("/rundown", get(status::rundown))
         .route("/preview.jpg", get(status::preview))
         .route("/plan", get(status::plan_preview).post(status::plan_draft))
@@ -72,7 +75,6 @@ pub fn router(state: AppState) -> Router {
         .route("/graphics", get(config::get_graphics).put(config::put_graphics))
         .route("/graphics/render", post(render::render))
         .route("/fonts", get(fonts::list).post(fonts::add))
-        .route("/media/backgrounds", post(backgrounds::generate))
         .route("/graphics/backgrounds", get(backgrounds::plates))
         .route("/graphics/backgrounds/{file}", get(backgrounds::plate_file))
         .route("/fonts/google", post(fonts::google_download))

@@ -229,7 +229,7 @@ export component SettingsScreen inherits Page {
                     card-style: CardStyle.low;
                     CardHeader {
                         title: "Уведомления";
-                        subtitle: "Системные уведомления Windows / Linux / macOS о событиях эфира — видны, даже когда окно свёрнуто в трей";
+                        subtitle: "Всплывающие карточки в углу экрана с аватаром канала — видны поверх других окон, даже когда программа свёрнута в трей, и не забирают фокус";
                         Button {
                             text: "Проверить";
                             variant: ButtonVariant.text;
@@ -246,7 +246,7 @@ export component SettingsScreen inherits Page {
                             horizontal-stretch: 1;
                             alignment: center;
                             Switch {
-                                text: "Системные уведомления";
+                                text: "Уведомления включены";
                                 checked: Settings.notify[0];
                                 toggled(v) => {
                                     Settings.notify-changed(0, v);

@@ -7,7 +7,7 @@ use std::sync::Arc;
 
 use tiny_skia::{FilterQuality, IntRect, Pixmap, PixmapPaint, Transform};
 
-use lb_core::graphics::{ActiveGraphic, Element, ElementKind, GraphicsConfig, render_template};
+use lb_core::graphics::{ActiveGraphic, Element, ElementKind, GraphicsConfig, ProgramClock, render_template};
 use lb_core::{Ms, WallTime};
 
 use crate::anim;
@@ -24,6 +24,9 @@ pub struct FrameContext<'a> {
     pub vars: &'a HashMap<String, String>,
     pub item_remaining_ms: Ms,
     pub next_program_ms: Option<Ms>,
+    /// The programme on air (programme countdown and progress bar); `None`
+    /// — they follow the item.
+    pub program: Option<&'a ProgramClock>,
 }
 
 pub struct Compositor {
@@ -285,7 +288,7 @@ mod tests {
         let cfg = GraphicsConfig { layers: vec![], elements: vec![r], rules: vec![], vars: Default::default() };
         let mut c = Compositor::new(20, 20, cfg, Path::new("."));
         let vars = HashMap::new();
-        c.render(&FrameContext { now: now(), active: &[active("a")], vars: &vars, item_remaining_ms: 0, next_program_ms: None });
+        c.render(&FrameContext { now: now(), active: &[active("a")], vars: &vars, item_remaining_ms: 0, next_program_ms: None, program: None });
         let p = px(&c, 2, 2);
         assert!(p[0].abs_diff(0xC0) <= 1 && p[1].abs_diff(0x18) <= 1 && p[3] == 0x80, "{p:?}");
     }
@@ -301,11 +304,11 @@ mod tests {
         let mut c = Compositor::new(100, 50, cfg, Path::new("."));
         let vars = HashMap::new();
         let act = vec![active("a"), active("b")];
-        c.render(&FrameContext { now: now(), active: &act, vars: &vars, item_remaining_ms: 0, next_program_ms: None });
+        c.render(&FrameContext { now: now(), active: &act, vars: &vars, item_remaining_ms: 0, next_program_ms: None, program: None });
         assert_eq!(px(&c, 2, 2), [255, 0, 0, 255]);
         assert_eq!(px(&c, 97, 47), [0, 0, 255, 255]);
         assert_eq!(px(&c, 50, 25), [0, 0, 0, 0]);
-        c.render(&FrameContext { now: now(), active: &[], vars: &vars, item_remaining_ms: 0, next_program_ms: None });
+        c.render(&FrameContext { now: now(), active: &[], vars: &vars, item_remaining_ms: 0, next_program_ms: None, program: None });
         assert_eq!(px(&c, 2, 2), [0, 0, 0, 0]);
     }
 
@@ -326,7 +329,7 @@ mod tests {
         let cfg = GraphicsConfig { layers: vec![], elements: vec![group, child], rules: vec![], vars: Default::default() };
         let mut c = Compositor::new(100, 50, cfg, Path::new("."));
         let vars = HashMap::new();
-        c.render(&FrameContext { now: now(), active: &[active("g")], vars: &vars, item_remaining_ms: 0, next_program_ms: None });
+        c.render(&FrameContext { now: now(), active: &[active("g")], vars: &vars, item_remaining_ms: 0, next_program_ms: None, program: None });
         assert_eq!(px(&c, 26, 12), [0, 255, 0, 255]);
         assert_eq!(px(&c, 22, 12), [0, 0, 0, 0]);
     }
@@ -357,7 +360,7 @@ mod tests {
         // leftmost opaque column of the band
         let left_edge = |c: &mut Compositor, at: WallTime, shown: Ms| {
             let act = [ActiveGraphic { shown_ms: shown, ..active("tk") }];
-            c.render(&FrameContext { now: at, active: &act, vars: &vars, item_remaining_ms: 0, next_program_ms: None });
+            c.render(&FrameContext { now: at, active: &act, vars: &vars, item_remaining_ms: 0, next_program_ms: None, program: None });
             (0..c.width()).find(|x| (0..c.height()).any(|y| px(c, *x, y)[3] > 0)).unwrap_or(c.width())
         };
         let t0 = now();
@@ -388,7 +391,7 @@ mod tests {
         let cfg = GraphicsConfig { layers: vec![], elements: vec![el], rules: vec![], vars: Default::default() };
         let mut c = Compositor::new(300, 100, cfg, Path::new("."));
         let vars = HashMap::new();
-        c.render(&FrameContext { now: now(), active: &[active("t")], vars: &vars, item_remaining_ms: 0, next_program_ms: None });
+        c.render(&FrameContext { now: now(), active: &[active("t")], vars: &vars, item_remaining_ms: 0, next_program_ms: None, program: None });
         if c.sprites.fonts.get(None).is_some() {
             let opaque = c.out.chunks_exact(4).filter(|p| p[3] == 255).count();
             assert!(opaque > 100, "clock with background should draw pixels");

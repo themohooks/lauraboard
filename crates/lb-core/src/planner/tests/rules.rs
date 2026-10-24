@@ -123,3 +123,91 @@ fn not_due_interval_rule_does_not_block_its_group() {
     let r = fx.plan(at(10, 0), at(10, 30));
     assert!(ids(&r).contains(&"j1"), "{:?}", ids(&r));
 }
+
+// ------------------------------------------------------------ scenes
+
+fn scene(id: &str, secs: i64) -> MediaItem {
+    MediaItem::scene(id, MediaKind::Filler, crate::Dur::secs(secs), crate::media::Scene::default())
+}
+
+fn scene_rule(id: &str, trigger: Trigger, items: &[&str], secs: Option<i64>) -> InsertionRule {
+    rule(id, trigger, InsertAction::Scene { items: items.iter().map(|s| s.to_string()).collect(), duration: secs.map(crate::Dur::secs) })
+}
+
+#[test]
+fn scene_after_media_with_own_length() {
+    let mut fx = with_jingles();
+    fx.add(vec![scene("clock", 30)]);
+    fx.rules.rules.push(scene_rule("s", Trigger::AfterMedia { items: vec!["b".into()] }, &["clock"], Some(90)));
+    let r = fx.plan(at(10, 0), at(10, 45));
+    assert_eq!(&ids(&r)[..5], ["a", "b", "clock", "a", "b"]);
+    let s = r.items.iter().find(|i| i.media == "clock").unwrap();
+    assert_eq!(s.duration_ms, 90_000, "rule length wins over the scene's");
+    assert_eq!(s.rule.as_deref(), Some("s"));
+    assert_contiguous(&r);
+}
+
+#[test]
+fn scene_rule_without_items_takes_any_scene_and_skips_files() {
+    let mut fx = with_jingles();
+    fx.add(vec![scene("only", 20)]);
+    fx.rules.rules.push(scene_rule("s", Trigger::EveryNItems { n: 1 }, &[], None));
+    let r = fx.plan(at(10, 0), at(10, 25));
+    assert_eq!(&ids(&r)[..4], ["a", "only", "b", "only"]);
+    assert_eq!(r.items[1].duration_ms, 20_000);
+}
+
+#[test]
+fn scene_after_playlist_pass() {
+    let mut fx = with_jingles();
+    fx.add(vec![scene("break", 60)]);
+    fx.rules.rules.push(scene_rule("s", Trigger::AfterPlaylist { playlist: "main".into() }, &["break"], None));
+    let r = fx.plan(at(10, 0), at(10, 50));
+    assert_eq!(&ids(&r)[..6], ["a", "b", "break", "a", "b", "break"]);
+}
+
+#[test]
+fn scene_at_daily_times() {
+    let mut fx = with_jingles();
+    fx.add(vec![scene("hour", 60)]);
+    fx.rules.rules.push(scene_rule("s", Trigger::AtTimes { times: vec![tm(10, 15), tm(10, 45)] }, &["hour"], None));
+    let r = fx.plan(at(10, 0), at(11, 10));
+    let starts: Vec<_> = r.items.iter().filter(|i| i.media == "hour").map(|i| i.start).collect();
+    // after the first item ending at or after each time
+    assert_eq!(starts, [at(10, 20), at(10, 51)], "{:?}", ids(&r));
+}
+
+#[test]
+fn gap_is_covered_by_a_scene() {
+    let mut fx = Fx::new();
+    fx.add(vec![prog("p", 25), prog("news", 10), media("f", MediaKind::Filler, 120), scene("wait", 30)])
+        .playlist("m", &["p"])
+        .playlist("n", &["news"]);
+    fx.blocks.push(fixed("m", 6, 0, pl_src("m")));
+    fx.blocks.push(fixed("n", 6, 30, pl_src("n")));
+    fx.rules.filler.scenes = vec!["wait".into()];
+    let r = fx.plan(at(6, 0), at(6, 40));
+    // 5 minutes: the filler (2 min), then the scene for the rest, no slate
+    assert!(!r.items.iter().any(|i| i.is_slate()), "{:?}", ids(&r));
+    let w = r.items.iter().find(|i| i.media == "wait").unwrap();
+    assert_eq!(w.duration_ms, 3 * 60_000);
+    assert_eq!(first_of_block(&r, "n").start, at(6, 30));
+    assert_contiguous(&r);
+
+    fx.rules.filler.scenes_first = true;
+    let r = fx.plan(at(6, 0), at(6, 40));
+    assert!(!ids(&r).contains(&"f"), "the scene takes the whole gap");
+    assert_eq!(r.items.iter().find(|i| i.media == "wait").unwrap().duration_ms, 5 * 60_000);
+}
+
+#[test]
+fn scene_at_the_time_a_block_starts() {
+    let mut fx = Fx::new();
+    fx.add(vec![prog("a", 25), prog("n", 10), scene("hour", 60)]).playlist("a", &["a"]).playlist("n", &["n"]);
+    fx.blocks.push(fixed("a", 6, 0, pl_src("a")));
+    fx.blocks.push(fixed("n", 7, 0, pl_src("n")));
+    fx.rules.rules.push(scene_rule("s", Trigger::AtTimes { times: vec![tm(7, 0)] }, &["hour"], None));
+    let r = fx.plan(at(6, 0), at(7, 20));
+    let s = r.items.iter().find(|i| i.media == "hour" && i.rule.is_some()).expect("fires in the 07:00 block");
+    assert_eq!(s.start, at(7, 10));
+}

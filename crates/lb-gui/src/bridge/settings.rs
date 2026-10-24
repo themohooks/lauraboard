@@ -97,7 +97,7 @@ pub fn connect(ui: &AppWindow) {
             show(c);
         })
     });
-    g.on_notify_test(super::notifications::test);
+    g.on_notify_test(|| with(super::notifications::test));
     g.on_reset_layout(|| {
         with(|c| {
             reset_layout(c);

@@ -79,6 +79,20 @@ export component PlateSection inherits FormSection {
     title: "Плашка";
     icon: Icons.subtitles;
 
+    if !Gfx.pe-open: HorizontalLayout {
+        alignment: start;
+        Button {
+            text: "Расширенный редактор…";
+            icon: Icons.tune;
+            has-icon: true;
+            variant: ButtonVariant.tonal;
+            tooltip: "Большое превью, готовые стили, раскладка строк, картинка в плашке";
+            clicked => {
+                Gfx.open-plate-editor();
+            }
+        }
+    }
+
     ColorField {
         label: "Цвет фона";
         value <=> Gfx.p-color;

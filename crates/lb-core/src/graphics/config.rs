@@ -7,6 +7,8 @@ use super::model::{Element, ElementKind};
 use crate::Dur;
 use crate::rules::Conditions;
 
+/// A logical layer: a named group of elements drawn at one height
+/// (`id`, higher on top) — "Логотип и часы", "Плашки", "Сцены"…
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Layer {
     pub id: i32,
@@ -15,6 +17,41 @@ pub struct Layer {
     /// Only the highest priority element is shown on an exclusive layer.
     #[serde(default)]
     pub exclusive: bool,
+    /// Switched off: its elements do not go on air by rules (a manual
+    /// "show" still does).
+    #[serde(default = "yes", skip_serializing_if = "is_true")]
+    pub enabled: bool,
+}
+
+impl Default for Layer {
+    fn default() -> Self {
+        Layer { id: 0, name: String::new(), exclusive: false, enabled: true }
+    }
+}
+
+impl Layer {
+    pub fn new(id: i32, name: impl Into<String>) -> Self {
+        Layer { id, name: name.into(), ..Default::default() }
+    }
+}
+
+fn is_true(v: &bool) -> bool {
+    *v
+}
+
+/// Layers offered for new elements, by kind: (id, name).
+pub const LAYER_PRESETS: [(i32, &str); 5] =
+    [(10, "Фон и подложки"), (20, "Плашки и титры"), (30, "Бегущие строки"), (40, "Логотип, часы и таймеры"), (50, "Сцены")];
+
+/// Preset layer for a new element of this kind.
+pub fn preset_layer(kind: &ElementKind) -> (i32, &'static str) {
+    let i = match kind {
+        ElementKind::Rect { .. } | ElementKind::Group { .. } => 0,
+        ElementKind::Plate { .. } | ElementKind::Text { .. } => 1,
+        ElementKind::Ticker { .. } => 2,
+        ElementKind::Image { .. } | ElementKind::Clock { .. } | ElementKind::Countdown { .. } | ElementKind::Progress { .. } => 3,
+    };
+    LAYER_PRESETS[i]
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
@@ -135,5 +172,28 @@ impl GraphicsConfig {
     }
     pub(crate) fn layer_exclusive(&self, id: i32) -> bool {
         self.layers.iter().any(|l| l.id == id && l.exclusive)
+    }
+
+    /// Layer `id` is not switched off (layers without an entry are on).
+    pub fn layer_enabled(&self, id: i32) -> bool {
+        self.layers.iter().find(|l| l.id == id).is_none_or(|l| l.enabled)
+    }
+
+    pub fn layer(&self, id: i32) -> Option<&Layer> {
+        self.layers.iter().find(|l| l.id == id)
+    }
+
+    /// Name of layer `id` ("Слой N" without an entry or a name).
+    pub fn layer_name(&self, id: i32) -> String {
+        self.layer(id).map(|l| l.name.trim()).filter(|n| !n.is_empty()).map(str::to_string).unwrap_or_else(|| format!("Слой {id}"))
+    }
+
+    /// Ids of every layer: listed ones and those only elements use, top
+    /// (highest) first.
+    pub fn layer_ids(&self) -> Vec<i32> {
+        let mut ids: Vec<i32> = self.layers.iter().map(|l| l.id).chain(self.elements.iter().map(|e| e.layer)).collect();
+        ids.sort_unstable_by(|a, b| b.cmp(a));
+        ids.dedup();
+        ids
     }
 }

@@ -1,0 +1,31 @@
+// Round avatar: a picture, or a letter (the first of the name, given by
+// Rust) on a tinted circle when there is none.
+
+import { Theme } from "../theme/tokens.slint";
+import { Label } from "label.slint";
+
+export component Avatar inherits Rectangle {
+    in property <image> source;
+    in property <bool> has-image;
+    in property <string> initial;
+    in property <length> size: 40px;
+    width: root.size;
+    height: root.size;
+    border-radius: root.size / 2;
+    clip: true;
+    background: root.has-image ? transparent : Theme.color.primary-container;
+    if root.has-image: Image {
+        width: root.size;
+        height: root.size;
+        source: root.source;
+        image-fit: cover;
+    }
+    if !root.has-image: Label {
+        text: root.initial != "" ? root.initial : "?";
+        font-size: root.size * 0.42;
+        font-weight: 600;
+        color: Theme.color.on-primary-container;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+    }
+}

@@ -29,6 +29,7 @@ import { ImportDialog } from "screens/library/import-dialog.slint";
 import { FolderDialog } from "screens/library/folder-panel.slint";
 import { FontDialog } from "screens/graphics/font-dialog.slint";
 import { TextureDialog } from "screens/graphics/texture-dialog.slint";
+import { PlateEditorDialog } from "screens/graphics/plate-editor.slint";
 import { ScheduleScreen } from "screens/schedule/schedule.slint";
 import { RulesScreen } from "screens/rules/rules.slint";
 import { RuleWizard } from "screens/rules/wizard.slint";
@@ -56,6 +57,7 @@ export { Chan, ChannelRow } from "state/channels-state.slint";
 export { Jobs, JobRow } from "state/jobs-state.slint";
 export { Picker, PickRow } from "state/picker-state.slint";
 export { Scenes, SceneItemRow, MusicRow, TrackRow, SceneGfxRow } from "state/scenes-state.slint";
+export { NotifyWindow, Popups, NoticeRow } from "shell/notify-window.slint";
 
 export component AppWindow inherits Window {
     // kept for the snapshot tool; mirrors App.section
@@ -200,6 +202,7 @@ export component AppWindow inherits Window {
 
     FolderDialog { }
 
+    PlateEditorDialog { }
     FontDialog { }
 
     TextureDialog { }

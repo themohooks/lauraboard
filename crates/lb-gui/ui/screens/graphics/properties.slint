@@ -17,7 +17,9 @@ import { FormSection } from "../rules/form-parts.slint";
 import { Checkbox } from "../../components/checkbox.slint";
 import { Field, ColorField } from "prop-fields.slint";
 import { ShapeSection } from "shape-props.slint";
+import { ToggleChips } from "../rules/form-parts.slint";
 import { PlateSection } from "plate-props.slint";
+import { TextStyleSection } from "text-style.slint";
 
 component AnchorGrid inherits Rectangle {
     width: 3 * 28px + 2 * 4px;
@@ -121,7 +123,16 @@ export component PropertiesPanel inherits Rectangle {
                             }
                         }
                     }
-                    Field { width: 90px; label: "Слой"; text <=> Gfx.p-layer; mono: true; }
+                    Select {
+                        width: 170px;
+                        label: "Слой";
+                        options: Gfx.layer-names;
+                        current-index <=> Gfx.p-layer;
+                        container-color: Theme.color.surface-container-low;
+                        selected => {
+                            Gfx.props-changed();
+                        }
+                    }
                 }
             }
 
@@ -174,7 +185,7 @@ export component PropertiesPanel inherits Rectangle {
                     Select {
                         horizontal-stretch: 1;
                         label: "Отсчёт";
-                        options: ["До конца ролика", "До следующей передачи"];
+                        options: ["До конца ролика", "До следующей передачи", "До конца передачи"];
                         current-index <=> Gfx.p-target;
                         container-color: Theme.color.surface-container-low;
                         selected => {
@@ -182,6 +193,88 @@ export component PropertiesPanel inherits Rectangle {
                         }
                     }
                     Field { horizontal-stretch: 1; label: "Префикс"; text <=> Gfx.p-prefix; }
+                }
+                if Gfx.p-kind == 3: Select {
+                    label: "Формат";
+                    options: ["Авто (1:05:09 / 05:09)", "ЧЧ:ММ:СС", "ММ:СС", "Минуты (66 мин)"];
+                    current-index <=> Gfx.p-tformat;
+                    container-color: Theme.color.surface-container-low;
+                    selected => {
+                        Gfx.props-changed();
+                    }
+                }
+                if Gfx.p-kind == 8: HorizontalLayout {
+                    spacing: Theme.sp2;
+                    Select {
+                        horizontal-stretch: 1;
+                        label: "Показывает";
+                        options: ["Ход передачи", "Ход ролика"];
+                        current-index <=> Gfx.pg-target;
+                        container-color: Theme.color.surface-container-low;
+                        selected => {
+                            Gfx.props-changed();
+                        }
+                    }
+                    Select {
+                        horizontal-stretch: 1;
+                        label: "Заполнение";
+                        options: ["Слева направо", "Справа налево", "Снизу вверх", "Сверху вниз"];
+                        current-index <=> Gfx.pg-direction;
+                        container-color: Theme.color.surface-container-low;
+                        selected => {
+                            Gfx.props-changed();
+                        }
+                    }
+                }
+                if Gfx.p-kind == 8: HorizontalLayout {
+                    spacing: Theme.sp2;
+                    Field { min-width: 56px; label: "Ширина"; text <=> Gfx.p-rw; mono: true; }
+                    Field { min-width: 56px; label: "Высота"; text <=> Gfx.p-rh; mono: true; }
+                    Field { min-width: 56px; label: "Скругление"; text <=> Gfx.p-radius; mono: true; }
+                }
+                if Gfx.p-kind == 8: ColorField { label: "Цвет заполнения"; value <=> Gfx.p-color; swatch: Gfx.sw-p-color; }
+                if Gfx.p-kind == 8: ColorField { label: "Градиент заполнения до"; placeholder: "нет"; value <=> Gfx.pg-gradient; swatch: Gfx.sw-pg-gradient; }
+                if Gfx.p-kind == 8: ColorField { label: "Цвет полосы"; value <=> Gfx.pg-track; swatch: Gfx.sw-pg-track; }
+                if (Gfx.p-kind == 3 && Gfx.p-target == 2) || (Gfx.p-kind == 8 && Gfx.pg-target == 0): VerticalLayout {
+                    spacing: Theme.sp1;
+                    Label {
+                        text: "Не считать в передаче";
+                        type-style: Theme.label-medium;
+                        color: Theme.color.on-surface-variant;
+                    }
+                    ToggleChips {
+                        labels: ["Передачи", "Заставки", "Реклама", "Анонсы", "Заполнение", "Изображения", "Потоки"];
+                        values: Gfx.p-exclude;
+                        from: 0;
+                        to: 3;
+                        toggled(i) => {
+                            Gfx.toggle-exclude(i);
+                        }
+                    }
+                    ToggleChips {
+                        labels: ["Передачи", "Заставки", "Реклама", "Анонсы", "Заполнение", "Изображения", "Потоки"];
+                        values: Gfx.p-exclude;
+                        from: 3;
+                        to: 5;
+                        toggled(i) => {
+                            Gfx.toggle-exclude(i);
+                        }
+                    }
+                    ToggleChips {
+                        labels: ["Передачи", "Заставки", "Реклама", "Анонсы", "Заполнение", "Изображения", "Потоки"];
+                        values: Gfx.p-exclude;
+                        from: 5;
+                        to: 7;
+                        toggled(i) => {
+                            Gfx.toggle-exclude(i);
+                        }
+                    }
+                    Label {
+                        text: "Передача — блок сетки, в котором идёт текущий ролик. Время отмеченных вставок (например, рекламы внутри передачи) не входит в отсчёт.";
+                        wrap: word-wrap;
+                        type-style: Theme.body-small;
+                        color: Theme.color.on-surface-variant;
+                    }
                 }
                 if Gfx.p-kind == 4: HorizontalLayout {
                     spacing: Theme.sp2;
@@ -255,70 +348,9 @@ export component PropertiesPanel inherits Rectangle {
                     }
                 }
             }
-            if Gfx.p-kind == 5 || Gfx.p-kind == 7: ShapeSection { }
+            if Gfx.p-kind == 5 || Gfx.p-kind == 7 || Gfx.p-kind == 8: ShapeSection { }
 
-            if Gfx.p-kind <= 3 || Gfx.p-kind == 7: FormSection {
-                title: Gfx.p-kind == 7 ? "Текст строки" : "Текст";
-                icon: Icons.format-size;
-                HorizontalLayout {
-                    spacing: Theme.sp2;
-                    Field { horizontal-stretch: 2; label: "Шрифт"; text <=> Gfx.s-font; placeholder: "по умолчанию"; }
-                    VerticalLayout {
-                        alignment: start;
-                        padding-top: 4px;
-                        Button {
-                            text: "Выбрать…";
-                            variant: ButtonVariant.tonal;
-                            clicked => {
-                                Gfx.open-fonts();
-                            }
-                        }
-                    }
-                }
-                // the checkboxes stack: side by side they outgrow a narrow panel
-                HorizontalLayout {
-                    spacing: Theme.sp3;
-                    VerticalLayout {
-                        alignment: start;
-                        Field { width: 96px; label: "Размер"; text <=> Gfx.s-size; mono: true; }
-                    }
-                    VerticalLayout {
-                        spacing: 0;
-                        Checkbox {
-                            text: "Жирный";
-                            checked <=> Gfx.s-bold;
-                            toggled => {
-                                Gfx.props-changed();
-                            }
-                        }
-                        Checkbox {
-                            text: "Курсив";
-                            checked <=> Gfx.s-italic;
-                            toggled => {
-                                Gfx.props-changed();
-                            }
-                        }
-                    }
-                }
-                ColorField { label: "Цвет текста"; value <=> Gfx.s-color; swatch: Gfx.sw-s-color; }
-                HorizontalLayout {
-                    spacing: Theme.sp2;
-                    ColorField { horizontal-stretch: 2; label: "Обводка"; value <=> Gfx.s-outline; swatch: Gfx.sw-s-outline; }
-                    Field { min-width: 56px; horizontal-stretch: 1; label: "Толщина"; text <=> Gfx.s-outline-w; mono: true; }
-                }
-                HorizontalLayout {
-                    spacing: Theme.sp2;
-                    ColorField { horizontal-stretch: 2; label: "Тень"; value <=> Gfx.s-shadow; swatch: Gfx.sw-s-shadow; }
-                    Field { min-width: 56px; horizontal-stretch: 1; label: "dx"; text <=> Gfx.s-shadow-x; mono: true; }
-                    Field { min-width: 56px; horizontal-stretch: 1; label: "dy"; text <=> Gfx.s-shadow-y; mono: true; }
-                }
-                ColorField { label: "Подложка"; value <=> Gfx.s-bg; swatch: Gfx.sw-s-bg; }
-                HorizontalLayout {
-                    spacing: Theme.sp2;
-                    Field { label: "Отступ"; text <=> Gfx.s-padding; mono: true; }
-                    Field { label: "Скругление"; text <=> Gfx.s-corner; mono: true; }
-                }
-            }
+            if Gfx.p-kind <= 3 || Gfx.p-kind == 7: TextStyleSection { }
 
             FormSection {
                 title: "Анимация";

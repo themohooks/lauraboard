@@ -160,6 +160,9 @@ pub fn navigate(c: &mut Ctx, id: &str) {
     }
     if id == "scenes" {
         super::scenes::refresh(c);
+        if c.window().is_some_and(|ui| ui.global::<crate::shell::Scenes>().get_tab() > 0) {
+            super::rules::opened(c, "scenes");
+        }
     }
     if id == "settings" {
         super::settings::opened(c);
@@ -170,11 +173,13 @@ pub fn navigate(c: &mut Ctx, id: &str) {
 pub fn apply_prefs(c: &mut Ctx) {
     let Some(ui) = c.window() else { return };
     let t = ui.global::<Theme>();
-    t.set_mode(match c.prefs.theme {
+    let mode = match c.prefs.theme {
         PrefTheme::System => ThemeMode::System,
         PrefTheme::Light => ThemeMode::Light,
         PrefTheme::Dark => ThemeMode::Dark,
-    });
+    };
+    t.set_mode(mode);
+    crate::notify::set_theme(mode);
     t.set_animations(c.prefs.animations());
     t.set_compact(c.prefs.compact);
     let g = ui.global::<App>();
@@ -234,7 +239,9 @@ pub fn channels_changed(c: &mut Ctx) {
     g.set_channels(slint::ModelRc::new(slint::VecModel::from(list)));
     let idx = c.model.channel.as_ref().and_then(|ch| c.model.channels.iter().position(|x| x == ch)).map(|i| i as i32).unwrap_or(-1);
     g.set_channel_index(idx);
+    g.set_channel_initial(c.model.channel.as_deref().and_then(|ch| super::channels::entry(c, ch)).map(|e| e.initial()).unwrap_or_default().into());
     status_changed(c);
+    super::avatars::sync(c);
     // screens that load per channel on their own
     if c.section() == "stats" {
         super::stats::opened(c);

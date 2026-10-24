@@ -5,9 +5,13 @@
 //! * [`design`] — shape design fields and plate text lines
 //! * [`fonts`] — font picker (server fonts, files, Google Fonts)
 //! * [`textures`] — ready-made plate textures
+//! * [`layers`] — logical layers: the grouped layer panel and its filter
+//! * [`plate_editor`] — the advanced plate editor (preview, styles)
 
 mod design;
 mod fonts;
+mod layers;
+mod plate_editor;
 mod textures;
 
 use std::collections::HashSet;
@@ -19,14 +23,16 @@ use serde_json::json;
 use slint::{Color, ComponentHandle, Image, Model, Rgba8Pixel, SharedPixelBuffer, SharedString, VecModel};
 
 use lb_core::Dur;
-use lb_core::graphics::{Animation, AnimKind, CountdownTarget, Element, ElementKind, GraphicRule, GraphicsConfig, Placement, TextStyle};
+use lb_core::graphics::{
+    Animation, AnimKind, CountdownTarget, Element, ElementKind, FillDirection, GraphicRule, GraphicsConfig, Placement, ProgressTarget, TextStyle, TimeFormat,
+};
 
 use super::{Ctx, vec_model, with};
 use crate::fmt::KINDS;
 use crate::logic::placement::{self, ANCHORS, Rect};
 use crate::logic::undo::History;
 use crate::net::Msg;
-use crate::shell::{App, AppWindow, CanvasItem, GRuleRow, Gfx, LayerRow, RuleTextRow, VarRow};
+use crate::shell::{App, AppWindow, CanvasItem, GRuleRow, Gfx, RuleTextRow, VarRow};
 
 struct Drag {
     index: usize,
@@ -57,6 +63,10 @@ pub struct GraphicsState {
     /// Selected text line of a plate.
     field: usize,
     fonts: fonts::FontList,
+    /// Folded layers of the layer panel.
+    collapsed: HashSet<i32>,
+    /// Layer ids in the order of `layer-names` (top first).
+    layer_ids: Vec<i32>,
 }
 
 impl GraphicsState {
@@ -90,7 +100,15 @@ fn kind_id(k: &ElementKind) -> &'static str {
         ElementKind::Rect { .. } => "rect",
         ElementKind::Group { .. } => "group",
         ElementKind::Plate { .. } => "plate",
+        ElementKind::Progress { .. } => "progress",
     }
+}
+
+const TARGETS: [CountdownTarget; 3] = [CountdownTarget::ItemRemaining, CountdownTarget::NextProgram, CountdownTarget::ProgramRemaining];
+
+/// Chips of the excluded content kinds (KINDS order).
+fn exclude_flags(v: &[lb_core::media::MediaKind]) -> slint::ModelRc<bool> {
+    vec_model(KINDS.iter().map(|k| v.contains(k)).collect())
 }
 
 fn kind_index(k: &ElementKind) -> i32 {
@@ -103,6 +121,7 @@ fn kind_index(k: &ElementKind) -> i32 {
         ElementKind::Rect { .. } => 5,
         ElementKind::Group { .. } => 6,
         ElementKind::Plate { .. } => 7,
+        ElementKind::Progress { .. } => 8,
     }
 }
 
@@ -129,6 +148,8 @@ fn hex_of(c: Color) -> String {
 pub fn connect(ui: &AppWindow) {
     design::connect(ui);
     fonts::connect(ui);
+    layers::connect(ui);
+    plate_editor::connect(ui);
     textures::connect(ui);
     let g = ui.global::<Gfx>();
     g.on_color_hex(|c| hex_of(c).into());
@@ -166,18 +187,9 @@ pub fn connect(ui: &AppWindow) {
     g.on_add(|k| with(move |c| add(c, k.as_str())));
     g.on_duplicate(|| with(duplicate));
     g.on_remove(|| with(remove));
-    g.on_layer_step(|i, d| {
-        with(move |c| {
-            mutate(c, None, |cfg| {
-                if let Some(e) = cfg.elements.get_mut(i as usize) {
-                    e.layer += d;
-                }
-            });
-            refresh(c);
-        })
-    });
     g.on_toggle_hidden(|i| with(move |c| toggle_flag(c, i as usize, true)));
     g.on_toggle_locked(|i| with(move |c| toggle_flag(c, i as usize, false)));
+    g.on_toggle_exclude(|i| with(move |c| toggle_exclude(c, i as usize)));
     g.on_live(|a| with(move |c| live(c, a.as_str())));
     g.on_render(|| with(render));
     g.on_preview_animation(|| with(preview_animation));
@@ -321,25 +333,7 @@ pub fn refresh(c: &mut Ctx) {
     let items: Vec<CanvasItem> = order.iter().map(|&i| canvas_item(c, i, &cfg.elements[i], &on)).collect();
     c.gfx.items = Rc::new(VecModel::from(items));
     g.set_items(c.gfx.items.clone().into());
-    g.set_layers(vec_model(
-        order
-            .iter()
-            .rev()
-            .map(|&i| {
-                let e = &cfg.elements[i];
-                LayerRow {
-                    index: i as i32,
-                    name: s(label(e)),
-                    kind: s(kind_id(&e.kind)),
-                    kind_name: s(super::air::element_kind_name(&e.kind)),
-                    layer: e.layer,
-                    hidden: c.gfx.hidden.contains(&e.id),
-                    locked: c.gfx.locked.contains(&e.id),
-                    on_air: on.contains(&e.id),
-                }
-            })
-            .collect(),
-    ));
+    layers::rows(c);
     if c.gfx.selected.is_some_and(|i| i >= cfg.elements.len()) {
         c.gfx.selected = None;
     }
@@ -393,7 +387,7 @@ fn props(c: &mut Ctx) {
     g.set_p_anchor(ANCHORS.iter().position(|a| *a == e.placement.anchor).unwrap_or(0) as i32);
     pos_fields(c, &e);
     g.set_p_opacity(e.opacity);
-    g.set_p_layer(s(e.layer.to_string()));
+    g.set_p_layer(layers::layer_index(c, e.layer));
     let st = match &e.kind {
         ElementKind::Text { text, style } => {
             g.set_p_text(s(text.clone()));
@@ -409,10 +403,28 @@ fn props(c: &mut Ctx) {
             g.set_p_format(s(format.clone()));
             Some(style.clone())
         }
-        ElementKind::Countdown { target, style, prefix } => {
-            g.set_p_target(if *target == CountdownTarget::NextProgram { 1 } else { 0 });
+        ElementKind::Countdown { target, style, prefix, exclude, format } => {
+            g.set_p_target(TARGETS.iter().position(|t| t == target).unwrap_or(0) as i32);
             g.set_p_prefix(s(prefix.clone()));
+            g.set_p_tformat(TimeFormat::ALL.iter().position(|f| f == format).unwrap_or(0) as i32);
+            g.set_p_exclude(exclude_flags(exclude));
             Some(style.clone())
+        }
+        ElementKind::Progress { width, height, color, gradient, track, radius, target, exclude, direction, shape } => {
+            g.set_p_color(s(color.clone()));
+            g.set_p_rw(s(fmt_num(*width)));
+            g.set_p_rh(s(fmt_num(*height)));
+            g.set_p_radius(s(fmt_num(*radius)));
+            g.set_pg_gradient(s(gradient.clone().unwrap_or_default()));
+            g.set_pg_track(s(track.clone()));
+            g.set_pg_target(if *target == ProgressTarget::Item { 1 } else { 0 });
+            g.set_pg_direction(FillDirection::ALL.iter().position(|d| d == direction).unwrap_or(0) as i32);
+            g.set_p_exclude(exclude_flags(exclude));
+            g.set_sw_p_color(color_of(color));
+            g.set_sw_pg_gradient(color_of(&g.get_pg_gradient()));
+            g.set_sw_pg_track(color_of(track));
+            design::show_shape(&g, shape);
+            None
         }
         ElementKind::Image { path } => {
             g.set_p_path(s(path.clone()));
@@ -447,6 +459,8 @@ fn props(c: &mut Ctx) {
         g.set_s_bg(s(st.background.clone().unwrap_or_default()));
         g.set_s_padding(s(fmt_num(st.padding)));
         g.set_s_corner(s(fmt_num(st.corner_radius)));
+        g.set_s_spacing(s(fmt_num(st.letter_spacing)));
+        g.set_s_upper(st.uppercase);
         swatches(c);
     }
     g.set_a_in(ANIMS.iter().position(|a| *a == e.animation.anim_in).unwrap_or(0) as i32);
@@ -473,6 +487,8 @@ fn swatches(c: &Ctx) {
     g.set_sw_s_outline(color_of(&g.get_s_outline()));
     g.set_sw_s_shadow(color_of(&g.get_s_shadow()));
     g.set_sw_s_bg(color_of(&g.get_s_bg()));
+    g.set_sw_pg_gradient(color_of(&g.get_pg_gradient()));
+    g.set_sw_pg_track(color_of(&g.get_pg_track()));
     design::swatches(&g);
 }
 
@@ -504,9 +520,8 @@ fn props_changed(c: &mut Ctx) {
     e.placement.width = if g.get_p_w().trim().is_empty() { None } else { Some(num("Ширина", g.get_p_w(), e.placement.width.unwrap_or(0.0)).max(1.0)) };
     e.placement.height = if g.get_p_h().trim().is_empty() { None } else { Some(num("Высота", g.get_p_h(), e.placement.height.unwrap_or(0.0)).max(1.0)) };
     e.opacity = g.get_p_opacity().clamp(0.0, 1.0);
-    match g.get_p_layer().trim().parse::<i32>() {
-        Ok(l) => e.layer = l,
-        Err(_) => errors.borrow_mut().push("Слой: целое число".into()),
+    if let Some(l) = layers::layer_at(c, g.get_p_layer()) {
+        e.layer = l;
     }
     let mut color = |label: &str, v: SharedString, required: bool| -> Option<String> {
         let t = v.trim().to_string();
@@ -534,6 +549,8 @@ fn props_changed(c: &mut Ctx) {
             background: color("Подложка", g.get_s_bg(), false),
             padding: num("Отступ", g.get_s_padding(), st.padding).max(0.0),
             corner_radius: num("Скругление", g.get_s_corner(), st.corner_radius).max(0.0),
+            letter_spacing: num("Межбуквенный интервал", g.get_s_spacing(), st.letter_spacing).clamp(-20.0, 100.0),
+            uppercase: g.get_s_upper(),
         }
     };
     e.kind = match e.kind.clone() {
@@ -545,11 +562,30 @@ fn props_changed(c: &mut Ctx) {
             style: style_from(&style, &g, &mut color, &mut num),
         },
         ElementKind::Clock { style, .. } => ElementKind::Clock { format: g.get_p_format().to_string(), style: style_from(&style, &g, &mut color, &mut num) },
-        ElementKind::Countdown { style, .. } => ElementKind::Countdown {
-            target: if g.get_p_target() == 1 { CountdownTarget::NextProgram } else { CountdownTarget::ItemRemaining },
+        ElementKind::Countdown { style, exclude, .. } => ElementKind::Countdown {
+            target: TARGETS.get(g.get_p_target().max(0) as usize).copied().unwrap_or_default(),
             prefix: g.get_p_prefix().to_string(),
             style: style_from(&style, &g, &mut color, &mut num),
+            exclude,
+            format: TimeFormat::ALL.get(g.get_p_tformat().max(0) as usize).copied().unwrap_or_default(),
         },
+        ElementKind::Progress { color: old, width, height, radius, track, exclude, shape, .. } => {
+            let mut extra = Vec::new();
+            let shape = design::read_shape(&g, &shape, &mut num, &mut color, &mut extra);
+            errors.borrow_mut().extend(extra);
+            ElementKind::Progress {
+                color: color("Цвет заполнения", g.get_p_color(), true).unwrap_or(old),
+                gradient: color("Градиент заполнения", g.get_pg_gradient(), false),
+                track: color("Цвет полосы", g.get_pg_track(), true).unwrap_or(track),
+                width: num("Ширина", g.get_p_rw(), width).max(2.0),
+                height: num("Высота", g.get_p_rh(), height).max(1.0),
+                radius: num("Скругление", g.get_p_radius(), radius).max(0.0),
+                target: if g.get_pg_target() == 1 { ProgressTarget::Item } else { ProgressTarget::Program },
+                direction: FillDirection::ALL.get(g.get_pg_direction().max(0) as usize).copied().unwrap_or_default(),
+                exclude,
+                shape,
+            }
+        }
         ElementKind::Image { .. } => ElementKind::Image { path: g.get_p_path().trim().to_string() },
         ElementKind::Rect { color: old, width, height, radius, shape } => {
             let mut extra = Vec::new();
@@ -715,6 +751,27 @@ fn nudge(c: &mut Ctx, dx: f32, dy: f32) {
     flags(c);
 }
 
+/// Count / stop counting content kind `KINDS[i]` (programme countdown,
+/// progress bar).
+fn toggle_exclude(c: &mut Ctx, i: usize) {
+    let Some(sel) = c.gfx.selected else { return };
+    let Some(k) = KINDS.get(i).copied() else { return };
+    mutate(c, None, move |cfg| {
+        let Some(e) = cfg.elements.get_mut(sel) else { return };
+        if let ElementKind::Countdown { exclude, .. } | ElementKind::Progress { exclude, .. } = &mut e.kind {
+            match exclude.iter().position(|x| *x == k) {
+                Some(p) => {
+                    exclude.remove(p);
+                }
+                None => exclude.push(k),
+            }
+        }
+    });
+    update_item(c, sel);
+    props(c);
+    flags(c);
+}
+
 fn unique_id(cfg: &GraphicsConfig, base: &str) -> String {
     let mut n = 1;
     loop {
@@ -727,8 +784,7 @@ fn unique_id(cfg: &GraphicsConfig, base: &str) -> String {
 }
 
 fn add(c: &mut Ctx, kind: &str) {
-    let cfg = c.gfx.draft.clone().unwrap_or_default();
-    let layer = cfg.elements.iter().map(|e| e.layer).max().unwrap_or(0) + 1;
+    let mut cfg = c.gfx.draft.clone().unwrap_or_default();
     let style = TextStyle { size: 40.0, background: Some("#00000099".into()), ..Default::default() };
     let (k, name, anchor, x, y) = match kind {
         "rect" => (
@@ -740,13 +796,53 @@ fn add(c: &mut Ctx, kind: &str) {
         ),
         "plate" => (design::new_plate(), "Плашка", lb_core::graphics::Anchor::BottomLeft, 96.0, 110.0),
         "image" => (ElementKind::Image { path: "logo.png".into() }, "Логотип", lb_core::graphics::Anchor::TopRight, 60.0, 50.0),
+        // the file the channel form stores (`channels/<id>/avatar.png`)
+        "avatar" => (
+            ElementKind::Image { path: format!("channels/{}/avatar.png", c.model.ch()) },
+            "Аватар канала",
+            lb_core::graphics::Anchor::TopRight,
+            60.0,
+            50.0,
+        ),
         "clock" => (ElementKind::Clock { format: "%H:%M".into(), style: style.clone() }, "Часы", lb_core::graphics::Anchor::TopRight, 60.0, 50.0),
         "countdown" => (
-            ElementKind::Countdown { target: CountdownTarget::NextProgram, style: style.clone(), prefix: "Через ".into() },
+            ElementKind::Countdown { target: CountdownTarget::NextProgram, style: style.clone(), prefix: "Через ".into(), exclude: vec![], format: TimeFormat::Auto },
             "Таймер",
             lb_core::graphics::Anchor::TopLeft,
             60.0,
             50.0,
+        ),
+        "program-left" => (
+            ElementKind::Countdown {
+                target: CountdownTarget::ProgramRemaining,
+                style: style.clone(),
+                prefix: "До конца передачи ".into(),
+                // ads and promos inside the programme do not count
+                exclude: vec![lb_core::media::MediaKind::Ad, lb_core::media::MediaKind::Promo],
+                format: TimeFormat::Auto,
+            },
+            "До конца передачи",
+            lb_core::graphics::Anchor::TopLeft,
+            60.0,
+            110.0,
+        ),
+        "progress" => (
+            ElementKind::Progress {
+                width: 640.0,
+                height: 12.0,
+                color: "#E11D48".into(),
+                gradient: Some("#F59E0B".into()),
+                track: "#FFFFFF40".into(),
+                radius: 6.0,
+                target: ProgressTarget::Program,
+                exclude: vec![lb_core::media::MediaKind::Ad, lb_core::media::MediaKind::Promo],
+                direction: FillDirection::LeftToRight,
+                shape: Default::default(),
+            },
+            "Прогресс передачи",
+            lb_core::graphics::Anchor::BottomLeft,
+            96.0,
+            60.0,
         ),
         "ticker" => (
             ElementKind::Ticker { text: "{ticker}".into(), style: style.clone(), speed: 120.0, width: None },
@@ -757,17 +853,24 @@ fn add(c: &mut Ctx, kind: &str) {
         ),
         _ => (ElementKind::Text { text: "{title}".into(), style }, "Текст", lb_core::graphics::Anchor::BottomLeft, 96.0, 120.0),
     };
+    // the layer of its kind (made when new), not a layer of its own
+    let layer = layers::layer_for_new(c, &mut cfg, &k);
+    let new_layers = cfg.layers.clone();
     let e = Element {
         id: unique_id(&cfg, kind),
         name: name.into(),
         kind: k,
-        placement: Placement { anchor, x, y, width: None, height: None },
+        placement: Placement { anchor, x, y, width: (kind == "avatar").then_some(96.0), height: None },
         opacity: 1.0,
         layer,
         animation: Animation { anim_in: AnimKind::Fade, anim_out: AnimKind::Fade, duration: Dur(500) },
         profiles: vec![],
     };
-    mutate(c, None, |cfg| cfg.elements.push(e));
+    mutate(c, None, |cfg| {
+        cfg.layers = new_layers;
+        cfg.elements.push(e);
+    });
+    c.gfx.collapsed.remove(&layer);
     c.gfx.selected = c.gfx.draft.as_ref().map(|d| d.elements.len() - 1);
     refresh(c);
 }
@@ -836,6 +939,7 @@ fn schedule_render(c: &mut Ctx) {
         with(move |c| {
             if c.gfx.render_seq == seq && c.section() == "graphics" {
                 render(c);
+                plate_editor::preview(c);
             }
         })
     });

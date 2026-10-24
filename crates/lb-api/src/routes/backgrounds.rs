@@ -1,48 +1,19 @@
-//! Ready-made backgrounds of a channel: generating them (a background
-//! job: library pictures, video loops, plate textures) and the plate
-//! textures for the graphics editor.
+//! Ready-made plate textures of a channel for the graphics editor (they
+//! ship with the program, see `lb_engine::library::backgrounds`).
 
 use axum::Json;
 use axum::extract::{Path, State};
 use axum::http::header;
 use axum::response::{IntoResponse, Response};
-use serde::Deserialize;
 use serde_json::{Value, json};
 
 use lb_core::config::Role;
-use lb_engine::library::backgrounds::{self, Parts};
+use lb_engine::library::backgrounds;
 
 use super::channel;
 use crate::AppState;
 use crate::auth::Caller;
 use crate::error::{ApiError, ApiResult};
-
-fn yes() -> bool {
-    true
-}
-
-#[derive(Deserialize)]
-pub struct GenerateBody {
-    #[serde(default = "yes")]
-    pub stills: bool,
-    #[serde(default = "yes")]
-    pub loops: bool,
-    #[serde(default = "yes")]
-    pub plates: bool,
-}
-
-/// Start the job for channel `id`; returns the job id.
-pub fn start(s: &AppState, id: &str, parts: Parts) -> ApiResult<u64> {
-    let h = channel(s, id)?;
-    Ok(backgrounds::spawn(&s.engine, h, parts))
-}
-
-/// `POST /channels/{id}/media/backgrounds` `{"stills":true,"loops":true,"plates":true}`.
-pub async fn generate(State(s): State<AppState>, c: Caller, Path(id): Path<String>, Json(b): Json<GenerateBody>) -> ApiResult<Json<Value>> {
-    c.require(Role::Operator)?;
-    let job = start(&s, &id, Parts { stills: b.stills, loops: b.loops, plates: b.plates })?;
-    Ok(Json(json!({ "job": job })))
-}
 
 /// `GET /channels/{id}/graphics/backgrounds`: plate textures (made on the
 /// first request) as `[{path, title, file}]`.

@@ -4,10 +4,12 @@
 //! * [`control`] — operator commands
 //! * [`supervise`] — periodic tick: encoder health, watchdog, persistence
 //! * [`publish`] — status snapshots, events, notifications, state file
+//! * [`program`] — the programme on air for countdowns and progress bars
 
 mod control;
 mod graphics;
 mod items;
+mod program;
 mod publish;
 mod supervise;
 
@@ -72,6 +74,8 @@ pub struct Runtime {
     /// change the in-memory data before the reload, so the reload compares
     /// against what actually runs.
     encoder_config: Option<lb_core::config::ChannelConfig>,
+    /// Aired items of the programme on air.
+    program: program::ProgramLog,
 }
 
 impl Runtime {
@@ -120,6 +124,7 @@ impl Runtime {
             encoder_up_since: None,
             last_error: None,
             encoder_config: None,
+            program: Default::default(),
         }
     }
 
