@@ -1,11 +1,11 @@
-// Screen graphics of a scene: the channel's graphics rules limited to this
-// scene (its media id), plus a shortcut to add one. Rules for all items
-// (logo, ticker…) show over the scene too, by their own conditions.
+// Screen graphics of a scene: its own elements and rules (edited in the
+// graphics editor with the scene as the scope, kept apart from the channel
+// graphics), the channel graphics over it on / off, and rules of the
+// channel graphics limited to this scene (the older way).
 
 import { Theme } from "../../theme/tokens.slint";
 import { Icons } from "../../theme/icons.slint";
 import { Label } from "../../components/label.slint";
-import { Select } from "../../components/select.slint";
 import { Switch } from "../../components/switch.slint";
 import { Button, ButtonVariant } from "../../components/button.slint";
 import { IconButton } from "../../components/icon-button.slint";
@@ -13,19 +13,69 @@ import { Scenes } from "../../state/scenes-state.slint";
 import { FormSection } from "../rules/form-parts.slint";
 
 export component SceneGraphics inherits FormSection {
-    property <int> picked: -1;
     title: "Экранная графика";
-    hint: "правила показа только для этой сцены";
+    hint: "своя у каждой сцены";
     icon: Icons.branding-watermark;
-    Label {
-        text: "Общие правила (логотип, бегущая строка, часы) тоже действуют на сцене — по типу и категории, как для любого ролика.";
-        wrap: word-wrap;
-        type-style: Theme.body-small;
-        color: Theme.color.on-surface-variant;
+    HorizontalLayout {
+        spacing: Theme.sp2;
+        VerticalLayout {
+            horizontal-stretch: 1;
+            alignment: center;
+            Label {
+                text: Scenes.gfx-summary;
+                type-style: Theme.label-large;
+                wrap: word-wrap;
+            }
+            Label {
+                text: "Элементы и правила сцены хранятся в ней самой и не меняют графику эфира.";
+                wrap: word-wrap;
+                type-style: Theme.body-small;
+                color: Theme.color.on-surface-variant;
+            }
+        }
+        VerticalLayout {
+            alignment: center;
+            Button {
+                text: "Редактировать графику сцены";
+                icon: Icons.branding-watermark;
+                has-icon: true;
+                variant: ButtonVariant.tonal;
+                tooltip: "Открыть редактор графики для этой сцены";
+                clicked => {
+                    Scenes.open-graphics();
+                }
+            }
+        }
     }
-    if Scenes.gfx.length == 0: Label {
-        text: "Своих правил у сцены нет.";
-        color: Theme.color.on-surface-variant;
+    HorizontalLayout {
+        spacing: Theme.sp2;
+        VerticalLayout {
+            alignment: center;
+            Switch {
+                checked: Scenes.gfx-channel;
+                toggled(on) => {
+                    Scenes.gfx-channel-toggled(on);
+                }
+            }
+        }
+        VerticalLayout {
+            horizontal-stretch: 1;
+            alignment: center;
+            Label {
+                text: "Графика эфира поверх сцены";
+                type-style: Theme.label-large;
+            }
+            Label {
+                text: "Логотип, бегущая строка и другие общие правила — по типу и категории, как для любого ролика.";
+                wrap: word-wrap;
+                type-style: Theme.body-small;
+                color: Theme.color.on-surface-variant;
+            }
+        }
+    }
+    if Scenes.gfx.length > 0: Label {
+        text: "Правила графики эфира только для этой сцены:";
+        type-style: Theme.title-small;
     }
     for g in Scenes.gfx: HorizontalLayout {
         spacing: Theme.sp2;
@@ -47,7 +97,7 @@ export component SceneGraphics inherits FormSection {
                 type-style: Theme.label-large;
             }
             Label {
-                text: "элемент: " + g.element;
+                text: "элемент эфира: " + g.element;
                 type-style: Theme.body-small;
                 color: Theme.color.on-surface-variant;
             }
@@ -60,48 +110,6 @@ export component SceneGraphics inherits FormSection {
                 clicked => {
                     Scenes.gfx-remove(g.index);
                 }
-            }
-        }
-    }
-    HorizontalLayout {
-        spacing: Theme.sp2;
-        Select {
-            horizontal-stretch: 1;
-            label: "Показать элемент на сцене";
-            options: Scenes.element-names;
-            current-index: root.picked;
-            placeholder: Scenes.element-names.length == 0 ? "Нет элементов графики" : "Выберите элемент";
-            container-color: Theme.color.surface-container-low;
-            selected(i, _) => {
-                root.picked = i;
-            }
-        }
-        VerticalLayout {
-            alignment: start;
-            padding-top: 4px;
-            Button {
-                text: "Добавить";
-                icon: Icons.add;
-                has-icon: true;
-                variant: ButtonVariant.tonal;
-                enabled: root.picked >= 0;
-                clicked => {
-                    Scenes.gfx-add(root.picked);
-                    root.picked = -1;
-                }
-            }
-        }
-    }
-    HorizontalLayout {
-        alignment: start;
-        Button {
-            text: "Открыть экранную графику";
-            icon: Icons.branding-watermark;
-            has-icon: true;
-            variant: ButtonVariant.text;
-            tooltip: "Дизайн элементов и подробные правила показа";
-            clicked => {
-                Scenes.open-graphics();
             }
         }
     }

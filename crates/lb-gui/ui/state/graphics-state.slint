@@ -115,6 +115,12 @@ export global Gfx {
     // 0 canvas, 1 display rules, 2 variables, 3 templates
     in-out property <int> tab;
     in property <bool> dirty;
+    // what is edited: 0 the whole broadcast (channel graphics), then the
+    // scenes of the library ("Сцена: …"), each with its own graphics
+    in property <[string]> scopes;
+    in-out property <int> scope;
+    in property <bool> scene-scope;
+    callback scope-changed(int);
     in property <bool> can-undo;
     in property <bool> can-redo;
 

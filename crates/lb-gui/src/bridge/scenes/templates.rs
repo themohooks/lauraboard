@@ -1,21 +1,17 @@
-//! New scenes from templates. "Broadcast clock" and "up next" also add
-//! their graphics (big clock and date, next programme) with rules limited
-//! to the new scene; "music break" takes a background video and music
-//! from the library folders if there are any.
+//! New scenes from templates. "Broadcast clock" and "up next" come with
+//! graphics of their own (big clock and date, next programme), stored in
+//! the scene — the channel graphics are not touched; "music break" takes
+//! a background video and music from the library folders if there are
+//! any.
 
 use serde_json::{Value, json};
 
 use lb_core::Dur;
-use lb_core::graphics::{Element, GraphicsConfig};
+use lb_core::graphics::{Element, GraphicRule};
 use lb_core::media::scene::{Background, MusicOrder, MusicRule};
 use lb_core::media::{Library, MediaItem, MediaKind, Scene};
 
-use super::{Ctx, FOLDER, add_item, gfx};
-
-/// Graphics of a template (each gets a rule limited to the scene).
-struct Extra {
-    elements: Vec<Element>,
-}
+use super::{Ctx, FOLDER, add_item};
 
 /// Channel frame height (sizes are designed for 1080 lines).
 fn scale(c: &Ctx) -> f32 {
@@ -43,14 +39,9 @@ fn centred(id: &str, name: &str, kind: Value, look: Look, dy: f32, k: f32) -> Op
     element(v)
 }
 
-fn unique_element_id(cfg: &GraphicsConfig, base: &str) -> String {
-    let mut id = base.to_string();
-    let mut n = 2;
-    while cfg.elements.iter().any(|e| e.id == id) {
-        id = format!("{base}-{n}");
-        n += 1;
-    }
-    id
+/// A rule showing `e` for the whole scene.
+fn rule_for(e: &Element) -> Option<GraphicRule> {
+    serde_json::from_value(json!({ "id": e.id, "name": e.name, "element": e.id, "priority": 10 })).ok()
 }
 
 /// First enabled item of `folder` (or below) matching `ok`.
@@ -69,18 +60,15 @@ pub fn create(c: &mut Ctx, template: &str) {
     };
     let id = lib.unique_id(&format!("scene-{base}"));
     let mut scene = Scene::default();
-    let cfg = &c.model.graphics;
-    let mut extra = Extra { elements: vec![] };
+    let mut els: Vec<Element> = vec![];
     match template {
         "clock" => {
             scene.background = Background::Color { color: "#0B1A3A".into() };
             if let Some(bg) = first_in(&lib, "Фоны", |m| m.kind == MediaKind::Image) {
                 scene.background = Background::Media { media: bg.id.clone() };
             }
-            let time = unique_element_id(cfg, &format!("{id}-time"));
-            let date = unique_element_id(cfg, &format!("{id}-date"));
-            extra.elements.extend(centred(&time, "Часы сцены", json!({ "type": "clock", "format": "%H:%M:%S" }), Look(220.0, true, "#FFFFFF"), -40.0, k));
-            extra.elements.extend(centred(&date, "Дата сцены", json!({ "type": "clock", "format": "%d.%m.%Y" }), Look(56.0, false, "#C7D2FE"), 120.0, k));
+            els.extend(centred("time", "Часы сцены", json!({ "type": "clock", "format": "%H:%M:%S" }), Look(220.0, true, "#FFFFFF"), -40.0, k));
+            els.extend(centred("date", "Дата сцены", json!({ "type": "clock", "format": "%d.%m.%Y" }), Look(56.0, false, "#C7D2FE"), 120.0, k));
         }
         "music" => {
             scene.background = match first_in(&lib, "Фоны", |m| m.kind != MediaKind::Image && m.probe.video.is_some()) {
@@ -95,34 +83,20 @@ pub fn create(c: &mut Ctx, template: &str) {
                 order: MusicOrder::Shuffle,
                 ..Default::default()
             });
-            let t = unique_element_id(cfg, &format!("{id}-title"));
-            extra.elements.extend(centred(&t, "Подпись сцены", json!({ "type": "text", "text": "{channel}" }), Look(72.0, true, "#FFFFFF"), 0.0, k));
+            els.extend(centred("title", "Подпись сцены", json!({ "type": "text", "text": "{channel}" }), Look(72.0, true, "#FFFFFF"), 0.0, k));
         }
         "next" => {
             scene.background = Background::Color { color: "#111827".into() };
-            let a = unique_element_id(cfg, &format!("{id}-label"));
-            let b = unique_element_id(cfg, &format!("{id}-program"));
-            let t = unique_element_id(cfg, &format!("{id}-time"));
-            extra.elements.extend(centred(&a, "Далее в эфире", json!({ "type": "text", "text": "Далее в эфире" }), Look(48.0, false, "#FBBF24"), -130.0, k));
-            extra.elements.extend(centred(&b, "Следующая передача", json!({ "type": "text", "text": "{next_program}" }), Look(96.0, true, "#FFFFFF"), 0.0, k));
-            extra.elements.extend(centred(&t, "Время передачи", json!({ "type": "text", "text": "в {next_program_start}" }), Look(56.0, false, "#E5E7EB"), 120.0, k));
+            els.extend(centred("label", "Далее в эфире", json!({ "type": "text", "text": "Далее в эфире" }), Look(48.0, false, "#FBBF24"), -130.0, k));
+            els.extend(centred("program", "Следующая передача", json!({ "type": "text", "text": "{next_program}" }), Look(96.0, true, "#FFFFFF"), 0.0, k));
+            els.extend(centred("time", "Время передачи", json!({ "type": "text", "text": "в {next_program_start}" }), Look(56.0, false, "#E5E7EB"), 120.0, k));
         }
         _ => {}
     }
-    let mut item = MediaItem::scene(id.clone(), kind, dur, scene);
+    scene.graphics.rules = els.iter().filter_map(rule_for).collect();
+    scene.graphics.elements = els;
+    let mut item = MediaItem::scene(id, kind, dur, scene);
     item.title = title.into();
     item.folder = FOLDER.into();
-    if !extra.elements.is_empty() {
-        let mut cfg = c.model.graphics.clone();
-        for e in extra.elements {
-            let eid = e.id.clone();
-            cfg.elements.push(e);
-            if let Some(r) = gfx::rule_for(&cfg, &eid, &id, title) {
-                cfg.rules.push(r);
-            }
-        }
-        c.model.graphics = cfg.clone();
-        c.save_doc("/graphics", cfg, "Графика сцены добавлена");
-    }
     add_item(c, item, format!("Сцена «{title}» создана — она в папке «{FOLDER}» медиатеки"));
 }

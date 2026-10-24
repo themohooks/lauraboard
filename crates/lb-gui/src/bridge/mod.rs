@@ -326,6 +326,7 @@ impl Ctx {
                 playlists::rows_changed(self);
                 playlists::add_results(self);
                 scenes::refresh(self);
+                graphics::scope::library_changed(self);
             }
             Msg::Playlists(p) => {
                 self.model.playlists = p;

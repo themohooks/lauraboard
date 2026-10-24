@@ -37,7 +37,8 @@ export struct MusicRow {
     summary: string,
 }
 
-// A graphics rule limited to the scene.
+// A rule of the channel graphics limited to the scene (the way scenes
+// had graphics before they got their own).
 export struct SceneGfxRow {
     index: int,
     name: string,
@@ -68,7 +69,10 @@ export global Scenes {
     in property <bool> has-bg-thumb;
     in property <[MusicRow]> music;
     in property <[SceneGfxRow]> gfx;
-    in property <[string]> element-names;
+    // "Своя графика: элементов — 2, правил показа — 2."
+    in property <string> gfx-summary;
+    // the channel graphics (logo, ticker) show over the scene
+    in property <bool> gfx-channel: true;
     in property <[string]> folder-options;
 
     callback select(int);
@@ -85,9 +89,10 @@ export global Scenes {
     callback music-edited(int, string, string);
     callback music-pick(int);
     callback music-track-remove(int, int);
-    callback gfx-add(int);
+    callback gfx-channel-toggled(bool);
     callback gfx-toggle(int);
     callback gfx-remove(int);
+    // the graphics editor with this scene as the scope
     callback open-graphics();
     callback save();
     callback revert();
