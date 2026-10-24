@@ -1,7 +1,7 @@
 //! Home and On-Air screens: now / next, queue, quick actions, transport.
 
 use serde_json::{Value, json};
-use slint::{ComponentHandle, ModelRc, SharedString, VecModel};
+use slint::{ComponentHandle, Model, ModelRc, SharedString, VecModel};
 
 use lb_core::graphics::ElementKind;
 use lb_core::rundown::{Origin, RundownItem};
@@ -234,7 +234,19 @@ fn graphics_rows(c: &mut Ctx, active: &[String]) {
             on: active.contains(&e.id),
         })
         .collect();
-    ui.global::<Air>().set_graphics(model(rows));
+    let air = ui.global::<Air>();
+    // status comes several times a second: rebuilding the rows would
+    // recreate the buttons between press and release and lose the click
+    let current = air.get_graphics();
+    if current.row_count() == rows.len() {
+        for (i, r) in rows.into_iter().enumerate() {
+            if current.row_data(i).as_ref() != Some(&r) {
+                current.set_row_data(i, r);
+            }
+        }
+    } else {
+        air.set_graphics(model(rows));
+    }
 }
 
 pub fn element_kind_name(k: &ElementKind) -> &'static str {

@@ -58,6 +58,8 @@ export struct GRuleRow {
     kinds: [bool],
     // the element's text lines (plate) or text, replaced by this rule
     texts: [RuleTextRow],
+    // labels of `texts`, for the "insert variable into line" select
+    text-labels: [string],
     hide-empty: bool,
     error: string,
 }
@@ -247,6 +249,8 @@ export global Gfx {
     callback render();
     callback preview-animation();
     callback rule-edited(int, string, string);
+    // rule index, text line, "{variable}": appended to that line's text
+    callback rule-insert-var(int, int, string);
     callback rule-add();
     callback rule-remove(int);
     callback var-edited(int, string);

@@ -70,6 +70,8 @@ export global Lib {
     in property <int> items-total;
     in-out property <string> folder;
     in property <[string]> folder-options;
+    // folder panel beside the list (the toolbar button hides / shows it)
+    in-out property <bool> folders-shown: true;
     callback select-folder(string);
     // folder name dialog: "" closed, "new" (inside the selected folder), "rename"
     in-out property <string> folder-dialog;

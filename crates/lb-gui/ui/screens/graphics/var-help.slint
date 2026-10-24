@@ -25,10 +25,18 @@ export global VarDocs {
         { name: "next_program", text: "Следующая передача: название её блока, иначе название ролика", example: "Вечернее шоу" },
         { name: "next_program_title", text: "Название ролика следующей передачи", example: "Вечернее шоу, выпуск 12" },
         { name: "next_program_start", text: "Время начала следующей передачи, ЧЧ:ММ", example: "19:00" },
+        { name: "next_program_end", text: "Время окончания ролика следующей передачи, ЧЧ:ММ", example: "19:45" },
+        { name: "next_program_duration", text: "Длительность ролика следующей передачи", example: "45:00" },
+        { name: "next_program_date", text: "Дата начала следующей передачи, ДД.ММ", example: "24.10" },
+        { name: "next_program_category", text: "Категория ролика следующей передачи", example: "Шоу" },
+        { name: "next_program_block", text: "Название блока сетки следующей передачи", example: "Вечерний эфир" },
+        { name: "next_category", text: "Категория следующего элемента эфира", example: "Реклама" },
+        { name: "next_kind", text: "Тип следующего элемента: передача, реклама, заставка…", example: "Передача" },
+        { name: "next_end", text: "Время окончания следующего элемента, ЧЧ:ММ", example: "09:31" },
         { name: "channel", text: "Название канала из настроек", example: "LAURA TV" },
         { name: "ticker", text: "Текст бегущей строки: значение по умолчанию задаётся на вкладке «Переменные», оператор меняет его на экране «Эфир»", example: "Скидки до 50 % до конца недели" },
     ];
-    out property <string> meta-note: "Также подставляются дополнительные поля ролика и блока сетки (meta в library.json и schedule.toml): например {presenter} → «Лаура». Если значения нет, переменная заменяется пустой строкой.";
+    out property <string> meta-note: "Также подставляются дополнительные поля ролика и блока сетки (meta в library.json и schedule.toml): например {presenter} → «Лаура». Поля следующей передачи — с приставкой next_program_: {next_program_presenter}, {next_program_description}; следующего элемента — с приставкой next_. Если значения нет, переменная заменяется пустой строкой.";
 }
 
 component VarItem inherits Interactive {

@@ -59,6 +59,9 @@ export component PropertiesPanel inherits Rectangle {
     }
 
     if Gfx.p-has: sv := ScrollView {
+        // vertical scrolling only: the fields follow the panel width
+        content-width: self.visible-width;
+        horizontal-scrollbar-policy: always-off;
         VerticalLayout {
             width: sv.visible-width;
             padding: App.narrow ? Theme.sp2 : Theme.sp3;

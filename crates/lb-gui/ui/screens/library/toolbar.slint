@@ -9,18 +9,31 @@ import { Select } from "../../components/select.slint";
 import { FilterChip } from "../../components/chips.slint";
 import { SegmentedButton } from "../../components/segmented-button.slint";
 import { Button, ButtonVariant } from "../../components/button.slint";
-import { IconButton } from "../../components/icon-button.slint";
+import { IconButton, IconButtonVariant } from "../../components/icon-button.slint";
 import { CircularProgress } from "../../components/feedback.slint";
 import { Lib } from "../../state/library-state.slint";
+import { App } from "../../state/app-state.slint";
 
 export component LibraryToolbar inherits VerticalLayout {
     spacing: Theme.sp3;
 
     HorizontalLayout {
         spacing: Theme.sp2;
+        VerticalLayout {
+            alignment: center;
+            IconButton {
+                icon: Icons.folder-open;
+                toggle: true;
+                selected: Lib.folders-shown;
+                tooltip: Lib.folders-shown ? "Скрыть папки" : "Показать папки";
+                clicked => {
+                    Lib.folders-shown = !Lib.folders-shown;
+                }
+            }
+        }
         search := SearchField {
             horizontal-stretch: 1;
-            min-width: 200px;
+            min-width: App.narrow ? 140px : 200px;
             max-width: 360px;
             placeholder: "Название, id, категория, тег, путь";
             text <=> Lib.filter;
@@ -29,7 +42,7 @@ export component LibraryToolbar inherits VerticalLayout {
             }
         }
         Select {
-            width: 170px;
+            width: App.narrow ? 140px : 170px;
             options: ["Все типы", "Передачи", "Заставки", "Реклама", "Анонсы", "Заполнение", "Изображения", "Потоки"];
             current-index: Lib.kind-filter + 1;
             selected(i, _) => {
@@ -38,7 +51,7 @@ export component LibraryToolbar inherits VerticalLayout {
             }
         }
         Select {
-            width: 170px;
+            width: App.narrow ? 140px : 170px;
             options: Lib.categories;
             current-index: Lib.category-index;
             selected(i, _) => {
@@ -191,7 +204,20 @@ export component LibraryToolbar inherits VerticalLayout {
                 vertical-alignment: center;
             }
         }
-        Button {
+        // narrow window: icon only, so the folder panel still fits
+        if App.narrow: VerticalLayout {
+            alignment: center;
+            IconButton {
+                icon: Icons.check-circle;
+                variant: IconButtonVariant.outlined;
+                enabled: !Lib.checking;
+                tooltip: "Проверить файлы: доступность и читаемость";
+                clicked => {
+                    Lib.check-files();
+                }
+            }
+        }
+        if !App.narrow: Button {
             text: "Проверить файлы";
             variant: ButtonVariant.outlined;
             icon: Icons.check-circle;
@@ -203,7 +229,7 @@ export component LibraryToolbar inherits VerticalLayout {
             }
         }
         if Lib.can-browse: Button {
-            text: "Добавить ролики";
+            text: App.narrow ? "Добавить" : "Добавить ролики";
             variant: ButtonVariant.tonal;
             icon: Icons.movie;
             has-icon: true;

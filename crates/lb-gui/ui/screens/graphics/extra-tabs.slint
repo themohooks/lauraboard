@@ -18,6 +18,9 @@ import { FormSection, ToggleChips } from "../rules/form-parts.slint";
 
 component RuleCard inherits FormSection {
     in property <GRuleRow> r;
+    // variable picker for the rule's own text, and the line it fills
+    property <bool> show-vars;
+    property <int> var-line;
     title: r.name;
     hint: "id: " + r.id;
     icon: Icons.rule;
@@ -147,6 +150,43 @@ component RuleCard inherits FormSection {
             placeholder: t.design;
             edited(v) => {
                 Gfx.rule-edited(root.r.index, "text:" + k, v);
+            }
+            changed has-focus => {
+                if self.has-focus {
+                    root.var-line = k;
+                }
+            }
+        }
+        HorizontalLayout {
+            alignment: start;
+            spacing: Theme.sp2;
+            Button {
+                text: root.show-vars ? "Скрыть переменные" : "Вставить переменную";
+                icon: root.show-vars ? Icons.expand-less : Icons.expand-more;
+                has-icon: true;
+                variant: ButtonVariant.text;
+                clicked => {
+                    root.show-vars = !root.show-vars;
+                }
+            }
+            if root.show-vars && root.r.texts.length > 1: Select {
+                width: 220px;
+                label: "В строку";
+                options: root.r.text-labels;
+                current-index <=> root.var-line;
+            }
+        }
+        if root.show-vars: Rectangle {
+            border-radius: Theme.radius-m;
+            background: Theme.color.surface-container;
+            VerticalLayout {
+                padding: Theme.sp1;
+                VarList {
+                    insertable: true;
+                    insert(v) => {
+                        Gfx.rule-insert-var(root.r.index, root.var-line, v);
+                    }
+                }
             }
         }
         Switch {
