@@ -122,7 +122,16 @@ export component PropertiesPanel inherits Rectangle {
                             }
                         }
                     }
-                    Field { width: 90px; label: "Слой"; text <=> Gfx.p-layer; mono: true; }
+                    Select {
+                        width: 170px;
+                        label: "Слой";
+                        options: Gfx.layer-names;
+                        current-index <=> Gfx.p-layer;
+                        container-color: Theme.color.surface-container-low;
+                        selected => {
+                            Gfx.props-changed();
+                        }
+                    }
                 }
             }
 

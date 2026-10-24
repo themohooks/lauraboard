@@ -15,7 +15,10 @@ export struct CanvasItem {
     on-air: bool,
 }
 
+// A row of the layer panel: a layer header, or an element under it.
 export struct LayerRow {
+    header: bool,
+    // element index (-1 on headers)
     index: int,
     name: string,
     kind: string,
@@ -24,6 +27,13 @@ export struct LayerRow {
     hidden: bool,
     locked: bool,
     on-air: bool,
+    // header: elements shown under it, the layer goes on air, exclusive, folded
+    count: int,
+    enabled: bool,
+    exclusive: bool,
+    collapsed: bool,
+    // element: shown only on scenes
+    scene: bool,
 }
 
 // One text of an element as shown by a rule.
@@ -137,7 +147,25 @@ export global Gfx {
     in-out property <string> p-w;
     in-out property <string> p-h;
     in-out property <float> p-opacity: 1;
-    in-out property <string> p-layer;
+    // index in `layer-names`
+    in-out property <int> p-layer;
+    // layers, top first: "Плашки и титры · 20"
+    in property <[string]> layer-names;
+    // layer panel: 0 all, 1 common graphics, 2 graphics of scenes
+    in-out property <int> layer-filter;
+    // layer being renamed (id; i32::MIN none)
+    in-out property <int> layer-editing: -2147483648;
+    callback layer-filter-changed();
+    callback layer-collapse(int);
+    callback layer-toggle-enabled(int);
+    callback layer-toggle-exclusive(int);
+    callback layer-rename(int, string);
+    // layer id, +1 up / -1 down
+    callback layer-move(int, int);
+    callback layer-add();
+    // every element to the layer of its kind (asks first)
+    callback layer-organize();
+    callback layer-remove(int);
     in-out property <string> p-text;
     in-out property <string> p-speed;
     in-out property <string> p-twidth;
@@ -310,6 +338,7 @@ export global Gfx {
     callback add(string);
     callback duplicate();
     callback remove();
+    // element index, +1 to the layer above / -1 below
     callback layer-step(int, int);
     callback toggle-hidden(int);
     callback toggle-locked(int);

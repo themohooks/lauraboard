@@ -5,9 +5,11 @@
 //! * [`design`] — shape design fields and plate text lines
 //! * [`fonts`] — font picker (server fonts, files, Google Fonts)
 //! * [`textures`] — ready-made plate textures
+//! * [`layers`] — logical layers: the grouped layer panel and its filter
 
 mod design;
 mod fonts;
+mod layers;
 mod textures;
 
 use std::collections::HashSet;
@@ -28,7 +30,7 @@ use crate::fmt::KINDS;
 use crate::logic::placement::{self, ANCHORS, Rect};
 use crate::logic::undo::History;
 use crate::net::Msg;
-use crate::shell::{App, AppWindow, CanvasItem, GRuleRow, Gfx, LayerRow, RuleTextRow, VarRow};
+use crate::shell::{App, AppWindow, CanvasItem, GRuleRow, Gfx, RuleTextRow, VarRow};
 
 struct Drag {
     index: usize,
@@ -59,6 +61,10 @@ pub struct GraphicsState {
     /// Selected text line of a plate.
     field: usize,
     fonts: fonts::FontList,
+    /// Folded layers of the layer panel.
+    collapsed: HashSet<i32>,
+    /// Layer ids in the order of `layer-names` (top first).
+    layer_ids: Vec<i32>,
 }
 
 impl GraphicsState {
@@ -140,6 +146,7 @@ fn hex_of(c: Color) -> String {
 pub fn connect(ui: &AppWindow) {
     design::connect(ui);
     fonts::connect(ui);
+    layers::connect(ui);
     textures::connect(ui);
     let g = ui.global::<Gfx>();
     g.on_color_hex(|c| hex_of(c).into());
@@ -177,16 +184,6 @@ pub fn connect(ui: &AppWindow) {
     g.on_add(|k| with(move |c| add(c, k.as_str())));
     g.on_duplicate(|| with(duplicate));
     g.on_remove(|| with(remove));
-    g.on_layer_step(|i, d| {
-        with(move |c| {
-            mutate(c, None, |cfg| {
-                if let Some(e) = cfg.elements.get_mut(i as usize) {
-                    e.layer += d;
-                }
-            });
-            refresh(c);
-        })
-    });
     g.on_toggle_hidden(|i| with(move |c| toggle_flag(c, i as usize, true)));
     g.on_toggle_locked(|i| with(move |c| toggle_flag(c, i as usize, false)));
     g.on_toggle_exclude(|i| with(move |c| toggle_exclude(c, i as usize)));
@@ -333,25 +330,7 @@ pub fn refresh(c: &mut Ctx) {
     let items: Vec<CanvasItem> = order.iter().map(|&i| canvas_item(c, i, &cfg.elements[i], &on)).collect();
     c.gfx.items = Rc::new(VecModel::from(items));
     g.set_items(c.gfx.items.clone().into());
-    g.set_layers(vec_model(
-        order
-            .iter()
-            .rev()
-            .map(|&i| {
-                let e = &cfg.elements[i];
-                LayerRow {
-                    index: i as i32,
-                    name: s(label(e)),
-                    kind: s(kind_id(&e.kind)),
-                    kind_name: s(super::air::element_kind_name(&e.kind)),
-                    layer: e.layer,
-                    hidden: c.gfx.hidden.contains(&e.id),
-                    locked: c.gfx.locked.contains(&e.id),
-                    on_air: on.contains(&e.id),
-                }
-            })
-            .collect(),
-    ));
+    layers::rows(c);
     if c.gfx.selected.is_some_and(|i| i >= cfg.elements.len()) {
         c.gfx.selected = None;
     }
@@ -405,7 +384,7 @@ fn props(c: &mut Ctx) {
     g.set_p_anchor(ANCHORS.iter().position(|a| *a == e.placement.anchor).unwrap_or(0) as i32);
     pos_fields(c, &e);
     g.set_p_opacity(e.opacity);
-    g.set_p_layer(s(e.layer.to_string()));
+    g.set_p_layer(layers::layer_index(c, e.layer));
     let st = match &e.kind {
         ElementKind::Text { text, style } => {
             g.set_p_text(s(text.clone()));
@@ -536,9 +515,8 @@ fn props_changed(c: &mut Ctx) {
     e.placement.width = if g.get_p_w().trim().is_empty() { None } else { Some(num("Ширина", g.get_p_w(), e.placement.width.unwrap_or(0.0)).max(1.0)) };
     e.placement.height = if g.get_p_h().trim().is_empty() { None } else { Some(num("Высота", g.get_p_h(), e.placement.height.unwrap_or(0.0)).max(1.0)) };
     e.opacity = g.get_p_opacity().clamp(0.0, 1.0);
-    match g.get_p_layer().trim().parse::<i32>() {
-        Ok(l) => e.layer = l,
-        Err(_) => errors.borrow_mut().push("Слой: целое число".into()),
+    if let Some(l) = layers::layer_at(c, g.get_p_layer()) {
+        e.layer = l;
     }
     let mut color = |label: &str, v: SharedString, required: bool| -> Option<String> {
         let t = v.trim().to_string();
@@ -799,8 +777,7 @@ fn unique_id(cfg: &GraphicsConfig, base: &str) -> String {
 }
 
 fn add(c: &mut Ctx, kind: &str) {
-    let cfg = c.gfx.draft.clone().unwrap_or_default();
-    let layer = cfg.elements.iter().map(|e| e.layer).max().unwrap_or(0) + 1;
+    let mut cfg = c.gfx.draft.clone().unwrap_or_default();
     let style = TextStyle { size: 40.0, background: Some("#00000099".into()), ..Default::default() };
     let (k, name, anchor, x, y) = match kind {
         "rect" => (
@@ -861,6 +838,9 @@ fn add(c: &mut Ctx, kind: &str) {
         ),
         _ => (ElementKind::Text { text: "{title}".into(), style }, "Текст", lb_core::graphics::Anchor::BottomLeft, 96.0, 120.0),
     };
+    // the layer of its kind (made when new), not a layer of its own
+    let layer = layers::layer_for_new(c, &mut cfg, &k);
+    let new_layers = cfg.layers.clone();
     let e = Element {
         id: unique_id(&cfg, kind),
         name: name.into(),
@@ -871,7 +851,11 @@ fn add(c: &mut Ctx, kind: &str) {
         animation: Animation { anim_in: AnimKind::Fade, anim_out: AnimKind::Fade, duration: Dur(500) },
         profiles: vec![],
     };
-    mutate(c, None, |cfg| cfg.elements.push(e));
+    mutate(c, None, |cfg| {
+        cfg.layers = new_layers;
+        cfg.elements.push(e);
+    });
+    c.gfx.collapsed.remove(&layer);
     c.gfx.selected = c.gfx.draft.as_ref().map(|d| d.elements.len() - 1);
     refresh(c);
 }

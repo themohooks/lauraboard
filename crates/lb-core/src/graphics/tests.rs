@@ -101,7 +101,7 @@ fn timing_after_start_and_before_end() {
 #[test]
 fn exclusive_layer_and_manual() {
     let cfg = GraphicsConfig {
-        layers: vec![Layer { id: 5, name: "lower".into(), exclusive: true }],
+        layers: vec![Layer { exclusive: true, ..Layer::new(5, "lower") }],
         elements: vec![el("a", 5), el("b", 5), el("c", 2)],
         rules: vec![rule("ra", "a", 1), rule("rb", "b", 9)],
         vars: Default::default(),
@@ -196,4 +196,23 @@ fn empty_text_hides_the_plate() {
     };
     assert_eq!(shown(&HashMap::new()), 0);
     assert_eq!(shown(&HashMap::from([("presenter".to_string(), "Лаура".to_string())])), 1);
+}
+
+#[test]
+fn switched_off_layer_shows_nothing_by_rules() {
+    let off = Layer { enabled: false, ..Layer::new(7, "Сцены") };
+    let cfg = GraphicsConfig {
+        layers: vec![off],
+        elements: vec![el("a", 7), el("b", 1)],
+        rules: vec![rule("ra", "a", 1), rule("rb", "b", 1)],
+        vars: Default::default(),
+    };
+    let mut manual = HashMap::new();
+    let it = item(MediaKind::Program, "x");
+    let ctx = |m: &HashMap<String, Manual>| evaluate(&cfg, &GfxContext { now: now(), item: Some(&it), elapsed_ms: 0, remaining_ms: 1, profile: None, manual: m, vars: None });
+    assert_eq!(ctx(&manual).iter().map(|a| a.element.as_str()).collect::<Vec<_>>(), ["b"]);
+    manual.insert("a".to_string(), Manual::Show);
+    assert_eq!(ctx(&manual).len(), 2, "a manual show still works");
+    assert_eq!(cfg.layer_ids(), [7, 1]);
+    assert_eq!(cfg.layer_name(1), "Слой 1");
 }
