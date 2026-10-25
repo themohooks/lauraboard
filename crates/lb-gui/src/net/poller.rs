@@ -76,23 +76,38 @@ impl Poller {
             let mut last_rundown = Instant::now() - Duration::from_secs(60);
             let mut online = None;
             let mut last_jobs = String::new();
+            // the polled channel answers with an error while the server is up
+            let mut channel_lost = false;
             while !s2.load(Ordering::Relaxed) {
                 let channel = t2.lock().unwrap_or_else(|e| e.into_inner()).channel.clone();
-                let Some(ch) = channel else {
-                    std::thread::sleep(Duration::from_millis(300));
-                    continue;
+                // no channel (none in the project yet, or the last one was
+                // deleted): the job list alone tells whether the server is up
+                let status = channel.as_ref().map(|ch| api.get::<StatusView>(&format!("/channels/{ch}/status")));
+                let jobs = match &status {
+                    Some(Err(_)) | None => Some(api.get_bytes("/jobs")),
+                    Some(Ok(_)) => None,
                 };
-                let status = api.get::<StatusView>(&format!("/channels/{ch}/status"));
-                let ok = status.is_ok();
+                let lost = matches!((&status, &jobs), (Some(Err(_)), Some(Ok(_))));
+                if lost && !channel_lost {
+                    // deleted or renamed elsewhere: re-read the channel list
+                    let _ = tx.send(Msg::Apply(Box::new(|c| c.load_channels())));
+                }
+                channel_lost = lost;
+                let ok = matches!(status, Some(Ok(_))) || matches!(jobs, Some(Ok(_)));
                 if online != Some(ok) {
                     online = Some(ok);
                     let _ = tx.send(Msg::Connection(ok));
                 }
-                if let Ok(s) = status {
+                if let Some(Ok(s)) = status {
                     let _ = tx.send(Msg::Status(Box::new(s)));
                 }
+                let jobs = match jobs {
+                    Some(r) => r,
+                    None if ok => api.get_bytes("/jobs"),
+                    None => Err(String::new()),
+                };
                 if ok
-                    && let Ok(body) = api.get_bytes("/jobs")
+                    && let Ok(body) = jobs
                 {
                     let text = String::from_utf8_lossy(&body).into_owned();
                     if text != last_jobs
@@ -102,7 +117,9 @@ impl Poller {
                         let _ = tx.send(Msg::Jobs(jobs));
                     }
                 }
-                if ok && last_rundown.elapsed() >= Duration::from_secs(2) {
+                if let Some(ch) = channel.filter(|_| ok && !lost)
+                    && last_rundown.elapsed() >= Duration::from_secs(2)
+                {
                     last_rundown = Instant::now();
                     if let Ok(r) = api.get(&format!("/channels/{ch}/rundown?limit=300")) {
                         let _ = tx.send(Msg::Rundown(r));
@@ -122,6 +139,13 @@ impl Poller {
     pub fn set_channel(&self, ch: &str) {
         if let Ok(mut g) = self.target.lock() {
             g.channel = Some(ch.to_string());
+        }
+    }
+
+    /// Stop polling channel data (no channel left).
+    pub fn clear_channel(&self) {
+        if let Ok(mut g) = self.target.lock() {
+            g.channel = None;
         }
     }
 }

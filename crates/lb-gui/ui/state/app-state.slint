@@ -57,6 +57,8 @@ export global App {
     in property <bool> has-channel-avatar;
     in property <string> channel-initial;
     in property <bool> online;
+    // the project has no channels: the start screen replaces the sections
+    in property <bool> no-channels;
     in property <string> api-url;
     callback select-channel(int);
     callback refresh();

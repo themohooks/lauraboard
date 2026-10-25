@@ -44,6 +44,7 @@ import { StatsScreen } from "screens/stats/stats.slint";
 import { SourcesScreen } from "screens/sources/sources.slint";
 import { SettingsScreen } from "screens/settings/settings.slint";
 import { ScenesScreen } from "screens/scenes/scenes.slint";
+import { WelcomeScreen } from "screens/welcome/welcome.slint";
 
 export { Theme, ThemeMode } from "theme/tokens.slint";
 export { App, StatusInfo } from "state/app-state.slint";
@@ -150,7 +151,12 @@ export component AppWindow inherits Window {
             AppBar {
                 narrow: root.narrow;
             }
-            HorizontalLayout {
+            if App.no-channels: Rectangle {
+                vertical-stretch: 1;
+                background: Theme.color.surface;
+                WelcomeScreen { }
+            }
+            if !App.no-channels: HorizontalLayout {
                 NavRail {
                     items: App.nav-items;
                     current: App.section;
