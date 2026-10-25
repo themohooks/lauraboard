@@ -7,11 +7,13 @@
 //! * [`textures`] — ready-made plate textures
 //! * [`layers`] — logical layers: the grouped layer panel and its filter
 //! * [`plate_editor`] — the advanced plate editor (preview, styles)
+//! * [`scope`] — the channel graphics or the own graphics of a scene
 
 mod design;
 mod fonts;
 mod layers;
-mod plate_editor;
+pub(crate) mod plate_editor;
+pub mod scope;
 mod textures;
 
 use std::collections::HashSet;
@@ -67,6 +69,8 @@ pub struct GraphicsState {
     collapsed: HashSet<i32>,
     /// Layer ids in the order of `layer-names` (top first).
     layer_ids: Vec<i32>,
+    /// Scene whose own graphics are edited (`None`: the channel's).
+    pub(crate) scope: Option<String>,
 }
 
 impl GraphicsState {
@@ -152,6 +156,7 @@ pub fn connect(ui: &AppWindow) {
     plate_editor::connect(ui);
     textures::connect(ui);
     let g = ui.global::<Gfx>();
+    scope::connect(&g);
     g.on_color_hex(|c| hex_of(c).into());
     g.on_parse_color(|s| color_of(&s));
     g.on_select(|i| {
@@ -239,8 +244,9 @@ pub fn connect(ui: &AppWindow) {
 
 pub fn reloaded(c: &mut Ctx) {
     let was_dirty = c.gfx.dirty();
-    let changed = c.gfx.saved.as_ref() != Some(&c.model.graphics);
-    c.gfx.saved = Some(c.model.graphics.clone());
+    let source = scope::source(c);
+    let changed = c.gfx.saved.as_ref() != Some(&source);
+    c.gfx.saved = Some(source);
     if !was_dirty {
         c.gfx.draft = c.gfx.saved.clone();
     }
@@ -264,7 +270,7 @@ pub fn select(c: &mut Ctx, i: usize) {
 
 pub fn opened(c: &mut Ctx) {
     if c.gfx.draft.is_none() {
-        c.gfx.saved = Some(c.model.graphics.clone());
+        c.gfx.saved = Some(scope::source(c));
         c.gfx.draft = c.gfx.saved.clone();
     }
     refresh(c);
@@ -320,6 +326,7 @@ fn canvas_item(c: &Ctx, i: usize, e: &Element, on: &[String]) -> CanvasItem {
 
 /// Everything except the property fields.
 pub fn refresh(c: &mut Ctx) {
+    scope::show(c);
     let Some(ui) = c.window() else { return };
     let g = ui.global::<Gfx>();
     let cfg = c.gfx.draft.clone().unwrap_or_default();
@@ -922,6 +929,10 @@ fn toggle_flag(c: &mut Ctx, i: usize, hidden: bool) {
 
 fn live(c: &mut Ctx, action: &str) {
     let Some(id) = c.gfx.selected.and_then(|i| c.gfx.draft.as_ref().and_then(|d| d.elements.get(i))).map(|e| e.id.clone()) else { return };
+    if c.gfx.scope.is_some() {
+        c.toast("Графика сцены показывается сама, пока сцена в эфире — по своим правилам", false);
+        return;
+    }
     if c.gfx.saved.as_ref().is_some_and(|s| !s.elements.iter().any(|e| e.id == id)) {
         c.toast("Элемент ещё не сохранён — сохраните оформление, чтобы показать его в эфире", true);
         return;
@@ -1392,7 +1403,7 @@ fn save(c: &mut Ctx) {
         return;
     }
     if let Some(cfg) = c.gfx.draft.clone() {
-        c.save_doc("/graphics", cfg, "Графика");
+        scope::save(c, cfg);
     }
 }
 

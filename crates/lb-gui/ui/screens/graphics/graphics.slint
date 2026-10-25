@@ -8,6 +8,7 @@ import { SegmentedButton } from "../../components/segmented-button.slint";
 import { Button, ButtonVariant } from "../../components/button.slint";
 import { IconButton } from "../../components/icon-button.slint";
 import { StatusChip, StatusTone } from "../../components/indicators.slint";
+import { Select } from "../../components/select.slint";
 import { Page, PageHeader } from "../../shell/page.slint";
 import { Gfx } from "../../state/graphics-state.slint";
 import { App } from "../../state/app-state.slint";
@@ -16,6 +17,21 @@ import { GfxToolbar } from "toolbar.slint";
 import { LayersPanel } from "layers.slint";
 import { PropertiesPanel } from "properties.slint";
 import { GfxRulesTab, GfxVarsTab, GfxTemplatesTab } from "extra-tabs.slint";
+
+// The channel graphics or the own graphics of one scene (kept apart).
+component GfxScope inherits VerticalLayout {
+    alignment: center;
+    Select {
+        width: 240px;
+        options: Gfx.scopes;
+        current-index: Gfx.scope;
+        container-color: Gfx.scene-scope ? Theme.color.tertiary-container : Theme.color.surface;
+        selected(i, _) => {
+            Gfx.scope = i;
+            Gfx.scope-changed(i);
+        }
+    }
+}
 
 component GfxTabs inherits SegmentedButton {
     width: 480px;
@@ -30,6 +46,8 @@ export component GraphicsScreen inherits Page {
 
         PageHeader {
             title: "Экранная графика";
+            subtitle: Gfx.scene-scope && root.width >= 1700px ? "своя графика сцены: в эфире только на ней" : "";
+            GfxScope { }
             if !App.narrow: GfxTabs { }
             // the chip does not fit next to the tabs in a narrower window;
             // the enabled "Сохранить" says the same there

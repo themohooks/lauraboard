@@ -1,16 +1,17 @@
-//! Graphics rules limited to the selected scene (by its media id). They
-//! are ordinary rules of the channel graphics, saved right away.
+//! Screen graphics of the selected scene. The scene keeps its own
+//! elements and rules (edited in the graphics editor with the scene picked
+//! as the scope); the channel graphics show over it unless switched off.
+//! Rules of the channel graphics limited to the scene by its media id (the
+//! way scenes had graphics before) are listed too, to switch or remove.
 
-use serde_json::json;
 use slint::ComponentHandle;
 
 use lb_core::graphics::{GraphicRule, GraphicsConfig};
 
-use super::{Ctx, vec_model, with};
+use super::{Ctx, touched, vec_model, with};
 use crate::shell::{SceneGfxRow, Scenes};
 
 pub fn connect(g: &Scenes) {
-    g.on_gfx_add(|i| with(move |c| add(c, i as usize)));
     g.on_gfx_toggle(|i| {
         with(move |c| {
             change(c, "Правило показа обновлено", |cfg| {
@@ -29,14 +30,24 @@ pub fn connect(g: &Scenes) {
             })
         })
     });
-    g.on_open_graphics(|| with(|c| super::super::shell::navigate(c, "graphics")));
+    g.on_gfx_channel_toggled(|on| {
+        with(move |c| {
+            if let Some(s) = c.scenes.draft.as_mut().and_then(|m| m.scene.as_mut()) {
+                s.channel_graphics = on;
+                touched(c);
+            }
+        })
+    });
+    g.on_open_graphics(|| {
+        with(|c| {
+            if let Some(id) = c.scenes.selected.clone() {
+                super::super::graphics::scope::open_scene(c, id);
+            }
+        })
+    });
 }
 
-fn scene_id(c: &Ctx) -> Option<String> {
-    c.scenes.selected.clone()
-}
-
-/// The rule shows only on `scene`.
+/// The rule of the channel graphics shows only on `scene`.
 pub fn for_scene(r: &GraphicRule, scene: &str) -> bool {
     r.conditions.media.iter().any(|m| m == scene)
 }
@@ -45,14 +56,12 @@ pub fn show(c: &mut Ctx) {
     let Some(ui) = c.window() else { return };
     let g = ui.global::<Scenes>();
     let cfg = &c.model.graphics;
-    let names: Vec<slint::SharedString> = cfg.elements.iter().map(|e| if e.name.is_empty() { e.id.clone() } else { e.name.clone() }.into()).collect();
-    g.set_element_names(vec_model(names));
-    let rows: Vec<SceneGfxRow> = match scene_id(c) {
+    let rows: Vec<SceneGfxRow> = match &c.scenes.selected {
         Some(id) => cfg
             .rules
             .iter()
             .enumerate()
-            .filter(|(_, r)| for_scene(r, &id))
+            .filter(|(_, r)| for_scene(r, id))
             .map(|(i, r)| SceneGfxRow {
                 index: i as i32,
                 name: if r.name.is_empty() { r.id.clone() } else { r.name.clone() }.into(),
@@ -63,39 +72,29 @@ pub fn show(c: &mut Ctx) {
         None => vec![],
     };
     g.set_gfx(vec_model(rows));
+    let scene = c.scenes.draft.as_ref().and_then(|m| m.scene.as_ref());
+    g.set_gfx_channel(scene.is_none_or(|s| s.channel_graphics));
+    // the saved graphics (edited elsewhere, not part of the form)
+    let own = c.scenes.selected.as_ref().and_then(|id| c.model.library.iter().find(|m| &m.id == id)).and_then(|m| m.scene.as_ref()).map(|s| &s.graphics);
+    g.set_gfx_summary(summary(own).into());
+}
+
+fn summary(g: Option<&GraphicsConfig>) -> String {
+    let Some(g) = g.filter(|g| !g.elements.is_empty()) else { return "Своей графики у сцены нет.".into() };
+    let on = g.rules.iter().filter(|r| r.enabled).count();
+    format!("Своя графика: элементов — {}, правил показа — {on}.", g.elements.len())
 }
 
 /// Change the channel graphics and save them.
 fn change(c: &mut Ctx, done: &'static str, f: impl FnOnce(&mut GraphicsConfig)) {
+    // the editor's unsaved draft of the channel graphics would overwrite it
+    if c.gfx.scope.is_none() && c.gfx.dirty() {
+        c.toast("Сначала сохраните или сбросьте изменения на экране графики", true);
+        return;
+    }
     let mut cfg = c.model.graphics.clone();
     f(&mut cfg);
     c.model.graphics = cfg.clone();
     show(c);
     c.save_doc("/graphics", cfg, done);
-}
-
-/// A rule showing element `i` (of the graphics) on the selected scene.
-pub fn rule_for(cfg: &GraphicsConfig, element: &str, scene: &str, scene_title: &str) -> Option<GraphicRule> {
-    let mut n = 1;
-    while cfg.rules.iter().any(|r| r.id == format!("{scene}-{n}")) {
-        n += 1;
-    }
-    let el = cfg.element(element)?;
-    let name = format!("{scene_title}: {}", if el.name.is_empty() { &el.id } else { &el.name });
-    serde_json::from_value(json!({
-        "id": format!("{scene}-{n}"),
-        "name": name,
-        "element": element,
-        "priority": 10,
-        "conditions": { "media": [scene] },
-    }))
-    .ok()
-}
-
-fn add(c: &mut Ctx, i: usize) {
-    let Some(id) = scene_id(c) else { return };
-    let title = c.scenes.draft.as_ref().map(super::title).unwrap_or_else(|| id.clone());
-    let Some(el) = c.model.graphics.elements.get(i).map(|e| e.id.clone()) else { return };
-    let Some(rule) = rule_for(&c.model.graphics, &el, &id, &title) else { return };
-    change(c, "Графика сцены добавлена", move |cfg| cfg.rules.push(rule));
 }

@@ -84,6 +84,13 @@ where
         drop.sort_unstable_by(|a, b| b.cmp(a));
         for idx in drop {
             let it = self.out.remove(idx);
+            // a dropped insertion has not fired: the rule may fire again
+            // after the fixed start (a time rule at the block's start time)
+            if let Some(r) = &it.rule
+                && self.st.rule_last_fired.get(r) == Some(&it.start)
+            {
+                self.st.rule_last_fired.remove(r);
+            }
             self.warn(WarningKind::Dropped, Some(it.start), format!("dropped optional '{}' to keep {}", it.title, fixed.time()));
         }
         self.retime(window_start);

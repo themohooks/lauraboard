@@ -189,7 +189,12 @@ pub fn queue_changed(c: &mut Ctx) {
         .map(|it| {
             let block_start = it.block_key != last_block;
             last_block = it.block_key.clone();
-            queue_row(it, block_start, cur.as_deref() == Some(it.uid.as_str()), nxt.as_deref() == Some(it.uid.as_str()))
+            let why = why(&c.model, it);
+            let mut row = queue_row(it, why, block_start, cur.as_deref() == Some(it.uid.as_str()), nxt.as_deref() == Some(it.uid.as_str()));
+            if is_scene(&c.model, it) {
+                row.kind = "scene".into();
+            }
+            row
         })
         .collect();
     a.set_queue(model(rows));
@@ -201,7 +206,25 @@ pub fn queue_changed(c: &mut Ctx) {
     })));
 }
 
-pub fn queue_row(it: &RundownItem, block_start: bool, current: bool, next: bool) -> QueueRow {
+/// Why a non-main item is in the queue: the rule (by name) that inserted
+/// it, a scene covering a gap.
+fn why(m: &crate::model::Model, it: &RundownItem) -> Option<String> {
+    let scene = is_scene(m, it);
+    let rule = it.rule.as_ref().map(|id| m.rules.rules.iter().find(|r| &r.id == id).map_or(id.clone(), |r| if r.name.is_empty() { r.id.clone() } else { r.name.clone() }));
+    match (scene, rule, it.origin) {
+        (true, Some(r), _) => Some(format!("сцена по правилу «{r}»")),
+        (true, None, Origin::Filler) => Some("сцена: заполнение пустоты".into()),
+        (true, None, Origin::Main) => Some("сцена".into()),
+        (false, Some(r), _) => Some(format!("правило «{r}»")),
+        _ => None,
+    }
+}
+
+fn is_scene(m: &crate::model::Model, it: &RundownItem) -> bool {
+    !it.media.is_empty() && m.library.iter().any(|x| x.id == it.media && x.is_scene())
+}
+
+pub fn queue_row(it: &RundownItem, why: Option<String>, block_start: bool, current: bool, next: bool) -> QueueRow {
     let mut note = Vec::new();
     if let Some(d) = it.fixed_deviation_ms() {
         note.push(if d == 0 { "фикс. время".to_string() } else { format!("фикс. {:+} с", d / 1000) });
@@ -209,11 +232,11 @@ pub fn queue_row(it: &RundownItem, block_start: bool, current: bool, next: bool)
     if it.truncated {
         note.push("обрезано".into());
     }
-    if it.optional && it.origin != Origin::Main {
-        note.push("необязательный".into());
+    if let Some(w) = why {
+        note.push(w);
     }
-    if let Some(r) = &it.rule {
-        note.push(format!("правило {r}"));
+    if it.optional && it.origin != Origin::Main && it.origin != Origin::Filler {
+        note.push("необязательный".into());
     }
     QueueRow {
         start: it.start.format("%H:%M:%S").to_string().into(),

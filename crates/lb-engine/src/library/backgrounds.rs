@@ -51,6 +51,9 @@ const LOOP_FILES: Files = embed!("loops", "mp4":
 const PLATE_FILES: Files = embed!("plates", "png":
     "plate-blue-gloss", "plate-red", "plate-carbon", "plate-glass", "plate-gold", "plate-neon",
     "plate-stripes", "plate-dusk", "plate-emerald", "plate-steel", "plate-sunrise", "plate-night",
+    "plate-ocean", "plate-sky", "plate-fire", "plate-violet-gloss", "plate-mint", "plate-silver",
+    "plate-chevrons", "plate-halftone", "plate-paper", "plate-newsroom", "plate-aurora", "plate-holo",
+    "plate-rose", "plate-grid", "plate-split", "plate-cyber",
 );
 
 fn bytes(files: Files, stem: &str) -> Option<&'static [u8]> {

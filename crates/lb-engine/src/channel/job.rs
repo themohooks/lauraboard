@@ -104,6 +104,9 @@ fn scene_job(
         .cues
         .iter()
         .filter_map(|c| {
+            if c.is_silence() {
+                return Some(SceneTrack { input: String::new(), seek_ms: 0, play_ms: c.play_ms });
+            }
             let t = data.library.get(&c.media)?;
             let p = paths::resolve_str(root, &t.path);
             Path::new(&p).exists().then_some(SceneTrack { input: p, seek_ms: c.seek_ms, play_ms: c.play_ms })
@@ -117,6 +120,7 @@ fn scene_job(
         music_volume_db: plan.volume_db,
         music_fade_in_ms: plan.fade_in_ms,
         music_fade_out_ms: plan.fade_out_ms,
+        music_end_ms: plan.end_ms,
         offset_ms,
         duration_ms: remaining,
         volume_db: m.volume_db,

@@ -3,22 +3,28 @@
 //!
 //! * [`model`] — elements, placement, styles, animation
 //! * [`shape`] — shape design (gradient, border, slant, shadow…), plate fields
+//! * [`plate_style`] — a plate design saved under a name
 //! * [`config`] — layers, display rules, [`GraphicsConfig`]
 //! * [`eval`] — visibility evaluation for the current moment
 //! * [`template`] — `{placeholder}` text templates
 //! * [`program`] — timing of the programme on air (countdown, progress bar)
+//! * [`scene`] — a scene's own graphics merged in while it is on air
 
 mod config;
 mod eval;
 mod model;
+mod plate_style;
 mod program;
+mod scene;
 mod shape;
 mod template;
 
 pub use config::*;
 pub use eval::*;
 pub use model::*;
+pub use plate_style::*;
 pub use program::*;
+pub use scene::*;
 pub use shape::*;
 pub use template::*;
 

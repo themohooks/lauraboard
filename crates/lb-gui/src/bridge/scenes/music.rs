@@ -45,6 +45,7 @@ pub fn connect(g: &Scenes) {
         })
     });
     g.on_music_edited(|i, f, v| with(move |c| edited(c, i as usize, f.as_str(), v.as_str())));
+    g.on_music_fit(|i| with(move |c| fit(c, i as usize)));
     g.on_music_pick(|i| with(move |c| picker::open(c, Target::SceneTracks(i as usize), "Музыка сцены: треки")));
     g.on_music_track_remove(|i, k| {
         with(move |c| {
@@ -92,6 +93,13 @@ pub fn show(c: &mut Ctx) {
                 n => format!("{n} {} · {}", plural(n), hms(total)),
             };
             let days = (1..=7).map(|d| r.conditions.weekdays.contains(&d)).collect();
+            let length = r.length(&lib);
+            let scene_ms = m.play_duration();
+            let length_text = match (length, r.repeat) {
+                (Some(l), _) => format!("Музыка длится {}, сцена — {}{}", hms(l), hms(scene_ms), if l < scene_ms { ": остаток сцены пройдёт в тишине" } else { "" }),
+                (None, 0) => String::new(),
+                (None, _) => "Длина музыки заранее неизвестна (случайный трек или случайное начало)".into(),
+            };
             MusicRow {
                 index: i as i32,
                 name: r.name.clone().into(),
@@ -104,6 +112,16 @@ pub fn show(c: &mut Ctx) {
                 fade_in: r.fade_in.to_string().into(),
                 fade_out: r.fade_out.to_string().into(),
                 random_start: r.random_start,
+                repeat_mode: match r.repeat {
+                    0 => 0,
+                    1 => 1,
+                    _ => 2,
+                },
+                repeat_times: if r.repeat > 1 { r.repeat.to_string() } else { String::new() }.into(),
+                gap: if r.gap.ms() > 0 { r.gap.to_string() } else { String::new() }.into(),
+                delay: if r.delay.ms() > 0 { r.delay.to_string() } else { String::new() }.into(),
+                length: length_text.into(),
+                can_fit: length.is_some_and(|l| l > 0 && (l - scene_ms).abs() >= 1000),
                 from: r.conditions.from.map(|t| t.format("%H:%M").to_string()).unwrap_or_default().into(),
                 to: r.conditions.to.map(|t| t.format("%H:%M").to_string()).unwrap_or_default().into(),
                 days: vec_model(days),
@@ -162,6 +180,29 @@ fn edited(c: &mut Ctx, i: usize, field: &str, v: &str) {
                 }
                 _ => bad = Some("Нарастание и затухание — время ЧЧ:ММ:СС(.мс)"),
             },
+            "repeat-mode" => {
+                r.repeat = match v.as_str() {
+                    "1" => 1,
+                    "2" => r.repeat.max(2),
+                    _ => 0,
+                };
+                structural = true;
+            }
+            "repeat" => match v.parse::<u32>() {
+                Ok(n) if (1..=1000).contains(&n) => r.repeat = n,
+                _ if v.is_empty() => r.repeat = 2,
+                _ => bad = Some("Сколько раз: число от 1 до 1000"),
+            },
+            "gap" | "delay" => match if v.is_empty() { Ok(Dur(0)) } else { v.parse::<Dur>() } {
+                Ok(d) if d.ms() >= 0 => {
+                    if field == "gap" {
+                        r.gap = d;
+                    } else {
+                        r.delay = d;
+                    }
+                }
+                _ => bad = Some("Пауза и задержка — время ЧЧ:ММ:СС(.мс)"),
+            },
             "random-start" => {
                 r.random_start = v == "1";
                 structural = true;
@@ -201,6 +242,24 @@ fn edited(c: &mut Ctx, i: usize, field: &str, v: &str) {
     if structural || field == "category" && v.is_empty() {
         show(c);
     }
+}
+
+/// Snapshots: a rule playing `tracks` three times with pauses.
+#[cfg(feature = "snapshot")]
+pub fn demo(c: &mut Ctx, tracks: Vec<String>) {
+    edit(c, |rules| rules.push(MusicRule { name: "Музыка".into(), tracks, repeat: 3, gap: Dur(5000), ..Default::default() }));
+    show(c);
+}
+
+/// The scene lasts as long as the music of rule `i`.
+fn fit(c: &mut Ctx, i: usize) {
+    let lib = lb_core::media::Library::new(c.model.library.clone());
+    let Some(m) = c.scenes.draft.as_mut() else { return };
+    let Some(len) = m.scene.as_ref().and_then(|s| s.music.get(i)).and_then(|r| r.length(&lib)) else { return };
+    m.duration = Dur(len);
+    touched(c);
+    super::form::show(c);
+    show(c);
 }
 
 pub fn tracks_picked(c: &mut Ctx, i: usize, ids: Vec<String>) {

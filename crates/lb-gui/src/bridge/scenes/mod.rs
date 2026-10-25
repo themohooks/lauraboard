@@ -3,12 +3,12 @@
 //!
 //! * [`form`] — general settings and background of the draft
 //! * [`music`] — music rules of the draft
-//! * [`gfx`] — graphics rules limited to the scene
+//! * [`gfx`] — the scene's own graphics, channel graphics over it
 //! * [`templates`] — new scenes (broadcast clock, music break, up next)
 
 mod form;
 mod gfx;
-mod music;
+pub(crate) mod music;
 mod templates;
 
 use serde_json::json;
@@ -131,7 +131,7 @@ fn row(c: &Ctx, m: &MediaItem) -> SceneItemRow {
     SceneItemRow { id: m.id.clone().into(), title: title(m).into(), detail: format!("{} · {bg} · {music}", hms(m.play_duration())).into(), problem: problem.into() }
 }
 
-fn select(c: &mut Ctx, i: i32) {
+pub fn select(c: &mut Ctx, i: i32) {
     if c.scenes.dirty {
         let i2 = i;
         c.ask("Сохранить изменения сцены?", "Изменения выбранной сцены ещё не сохранены.", "Не сохранять", move |c| {
@@ -155,7 +155,12 @@ fn touched(c: &mut Ctx) {
 }
 
 fn save(c: &mut Ctx) {
-    let Some(item) = c.scenes.draft.clone() else { return };
+    let Some(mut item) = c.scenes.draft.clone() else { return };
+    // the graphics are edited on the graphics screen: keep their latest copy
+    let latest = c.model.library.iter().find(|m| m.id == item.id).and_then(|m| m.scene.as_ref()).map(|s| s.graphics.clone());
+    if let (Some(s), Some(g)) = (item.scene.as_mut(), latest) {
+        s.graphics = g;
+    }
     if let Some(ui) = c.window()
         && !ui.global::<Scenes>().get_e_duration().is_empty()
     {
@@ -204,7 +209,7 @@ fn duplicate(c: &mut Ctx) {
 fn remove(c: &mut Ctx) {
     let Some(item) = c.scenes.draft.clone() else { return };
     let name = title(&item);
-    c.ask(&format!("Удалить сцену «{name}»?"), "Сцена будет удалена из медиатеки. Правила графики для неё останутся (их можно удалить на экране графики).", "Удалить", move |c| {
+    c.ask(&format!("Удалить сцену «{name}»?"), "Сцена будет удалена из медиатеки вместе со своей графикой.", "Удалить", move |c| {
         c.scenes.dirty = false;
         c.scenes.selected = None;
         c.scenes.draft = None;

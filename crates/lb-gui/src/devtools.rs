@@ -367,6 +367,15 @@ fn prepare_live(section: &str) {
             }
         });
     }
+    if section == "scenes" && std::env::var("LB_SNAPSHOT_SELECT").is_ok() {
+        crate::bridge::with(|c| {
+            let pick = std::env::var("LB_SNAPSHOT_SELECT").ok().and_then(|v| v.parse().ok()).unwrap_or(0);
+            crate::bridge::scenes::select(c, pick);
+            if let Ok(ids) = std::env::var("LB_SNAPSHOT_MUSIC") {
+                crate::bridge::scenes::music::demo(c, ids.split(',').map(String::from).collect());
+            }
+        });
+    }
     if section == "graphics" {
         crate::bridge::with(|c| {
             if let Ok(tab) = std::env::var("LB_SNAPSHOT_TAB")
@@ -376,6 +385,17 @@ fn prepare_live(section: &str) {
             }
             let pick = std::env::var("LB_SNAPSHOT_SELECT").ok().and_then(|v| v.parse().ok()).unwrap_or(0);
             crate::bridge::graphics::select(c, pick);
+            if std::env::var("LB_SNAPSHOT_PLATE_EDITOR").is_ok() {
+                crate::bridge::graphics::plate_editor::demo_styles(c, &["Утреннее шоу", "Гость студии", "Погода"]);
+                crate::bridge::graphics::plate_editor::open(c);
+            }
+        });
+    }
+    if section == "sources" && std::env::var("LB_SNAPSHOT_RECORD").is_ok() {
+        crate::bridge::with(|c| {
+            if let Some(ui) = c.window() {
+                ui.global::<crate::shell::Src>().invoke_record_edit();
+            }
         });
     }
     if section == "log"

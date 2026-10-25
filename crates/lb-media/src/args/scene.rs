@@ -18,7 +18,8 @@ pub enum SceneVideo {
     Video { input: String, length_ms: i64 },
 }
 
-/// A piece of music: resolved path, where to start, how long.
+/// A piece of music: resolved path, where to start, how long. An empty
+/// `input` is silence (a pause between tracks, the delay before them).
 #[derive(Debug, Clone, PartialEq)]
 pub struct SceneTrack {
     pub input: String,
@@ -35,6 +36,8 @@ pub struct SceneJob {
     pub music_volume_db: f32,
     pub music_fade_in_ms: i64,
     pub music_fade_out_ms: i64,
+    /// The music ends this long into the airing (set number of plays).
+    pub music_end_ms: Option<i64>,
     /// Where in the scene the airing starts (after a restart / rewind).
     pub offset_ms: i64,
     pub duration_ms: i64,
@@ -76,6 +79,10 @@ pub fn scene_args(job: &SceneJob, v: &VideoFormat, a: &AudioFormat, loglevel: &s
         }
     }
     for t in &job.tracks {
+        if t.input.is_empty() {
+            args.extend(sv(&["-f", "lavfi", "-t", &secs(t.play_ms.max(1)), "-i", &silence_src(a)]));
+            continue;
+        }
         if t.seek_ms > 0 {
             args.extend(sv(&["-ss", &secs(t.seek_ms)]));
         }
@@ -102,12 +109,17 @@ pub fn scene_args(job: &SceneJob, v: &VideoFormat, a: &AudioFormat, loglevel: &s
         if job.music_volume_db.abs() > 0.01 {
             music.push(format!("volume={:.2}dB", job.music_volume_db));
         }
+        // the music starts after the leading silence (a delay)
+        let lead: i64 = job.tracks.iter().take_while(|t| t.input.is_empty()).map(|t| t.play_ms).sum();
         if job.music_fade_in_ms > 0 {
-            music.push(format!("afade=t=in:st=0:d={}", secs(job.music_fade_in_ms)));
+            let st = if lead > 0 { secs(lead) } else { "0".into() };
+            music.push(format!("afade=t=in:st={st}:d={}", secs(job.music_fade_in_ms)));
         }
-        // the scene's end is `dur` from here (the airing may start inside)
-        if job.music_fade_out_ms > 0 && dur > job.music_fade_out_ms {
-            music.push(format!("afade=t=out:st={}:d={}", secs(dur - job.music_fade_out_ms), secs(job.music_fade_out_ms)));
+        // the music ends with the scene, `dur` from here (the airing may
+        // start inside), or earlier after a set number of plays
+        let end = job.music_end_ms.filter(|e| *e > 0).map_or(dur, |e| if dur > 0 { e.min(dur) } else { e });
+        if job.music_fade_out_ms > 0 && end - lead > job.music_fade_out_ms {
+            music.push(format!("afade=t=out:st={}:d={}", secs(end - job.music_fade_out_ms), secs(job.music_fade_out_ms)));
         }
         fc.push_str(&format!("{},{af}[a]", music.join(",")));
     }
@@ -131,6 +143,7 @@ mod tests {
             music_volume_db: -6.0,
             music_fade_in_ms: 1000,
             music_fade_out_ms: 2000,
+            music_end_ms: None,
             offset_ms: 0,
             duration_ms: 60_000,
             volume_db: 0.0,
@@ -149,6 +162,26 @@ mod tests {
         assert!(s.contains("-f lavfi -i color=c=0x102030:s=1280x720:r=25"), "{s}");
         assert!(s.contains("anullsrc"));
         assert!(s.contains("[1:a:0]aresample"));
+        assert!(s.contains("-t 60.000"));
+    }
+
+    #[test]
+    fn pauses_and_music_shorter_than_the_scene() {
+        let tracks = vec![
+            SceneTrack { input: String::new(), seek_ms: 0, play_ms: 5_000 },
+            SceneTrack { input: "a.mp3".into(), seek_ms: 0, play_ms: 20_000 },
+            SceneTrack { input: String::new(), seek_ms: 0, play_ms: 2_000 },
+            SceneTrack { input: "b.mp3".into(), seek_ms: 0, play_ms: 10_000 },
+        ];
+        let mut j = job(SceneVideo::Color("#000000".into()), tracks);
+        j.music_end_ms = Some(37_000);
+        let s = joined(&j);
+        assert!(s.contains("-f lavfi -t 5.000 -i anullsrc"), "{s}");
+        assert!(s.contains("-f lavfi -t 2.000 -i anullsrc"), "{s}");
+        assert!(s.contains("concat=n=4:v=0:a=1"), "{s}");
+        assert!(s.contains("afade=t=in:st=5.000:d=1.000"), "{s}");
+        assert!(s.contains("afade=t=out:st=35.000:d=2.000"), "{s}");
+        // the scene itself still lasts its full length
         assert!(s.contains("-t 60.000"));
     }
 

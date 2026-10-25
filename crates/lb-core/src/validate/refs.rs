@@ -172,21 +172,30 @@ fn rules(ch: &ChannelData, r: &mut Report) {
 }
 
 fn graphics(ch: &ChannelData, r: &mut Report) {
-    let g = &ch.graphics;
+    graphics_doc(&ch.graphics, "graphics", r);
+    for m in ch.library.items.iter() {
+        if let Some(s) = &m.scene {
+            graphics_doc(&s.graphics, &format!("library/{}/graphics", m.id), r);
+        }
+    }
+}
+
+/// References inside one graphics document (the channel's or a scene's).
+fn graphics_doc(g: &crate::graphics::GraphicsConfig, loc: &str, r: &mut Report) {
     for rule in &g.rules {
         if g.element(&rule.element).is_none() {
-            r.error(format!("graphics/rules/{}", rule.id), format!("unknown element '{}'", rule.element));
+            r.error(format!("{loc}/rules/{}", rule.id), format!("unknown element '{}'", rule.element));
         }
     }
     for e in &g.elements {
         if let ElementKind::Clock { format, .. } = &e.kind
             && !valid_time_format(format)
         {
-            r.warn(format!("graphics/{}", e.id), format!("invalid clock format '{format}'"));
+            r.warn(format!("{loc}/{}", e.id), format!("invalid clock format '{format}'"));
         }
         if let ElementKind::Group { children } = &e.kind {
             for c in children.iter().filter(|c| g.element(c).is_none()) {
-                r.error(format!("graphics/{}", e.id), format!("unknown child element '{c}'"));
+                r.error(format!("{loc}/{}", e.id), format!("unknown child element '{c}'"));
             }
         }
     }

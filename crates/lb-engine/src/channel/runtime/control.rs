@@ -199,8 +199,9 @@ impl Runtime {
             }
         }
         self.update_graphics_state();
-        // graphics added to a channel that had none (or switched on / off):
-        // the encoder needs its overlay input reconnected
+        // graphics edits apply on the fly (the overlay stays attached);
+        // only graphics switched on for a running channel without an
+        // overlay, or new frame settings, need the encoder restarted
         if encoder_changed && let Some(t) = self.gfx_thread.take() {
             t.shutdown(); // frame size or rate may have changed
         }
@@ -209,6 +210,11 @@ impl Runtime {
             self.output.reset_codec();
             self.restart_encoder().await;
             return Ok("reloaded (encoder restarted)".into());
+        }
+        if self.running {
+            // recording settings: the recorder restarts, the broadcast goes on
+            let data = self.shared.data.read().unwrap_or_else(|e| e.into_inner()).clone();
+            self.output.apply_record(&self.shared.app.ffmpeg, &data).await;
         }
         Ok("reloaded".into())
     }
@@ -306,6 +312,5 @@ fn encoder_settings_changed(a: &ChannelConfig, b: &ChannelConfig) -> bool {
         || a.audio != b.audio
         || a.encoder != b.encoder
         || a.outputs != b.outputs
-        || a.record != b.record
         || a.preview != b.preview
 }

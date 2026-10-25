@@ -10,11 +10,13 @@ use tokio::sync::Mutex;
 use lb_core::config::FfmpegConfig;
 use lb_core::project::{ChannelData, paths};
 use lb_media::args::encoder::{EncodeJob, GfxInput, PreviewOut, encoder_args};
+use lb_media::args::record::{RecordJob, recorder_args};
 use lb_media::process::Encoder;
 use lb_media::process::encoder::PreviewFrame;
 use lb_media::progress::EncoderStats;
 
 use super::playout::SharedStdin;
+use super::recorder::RecorderSup;
 use super::recordings::Recordings;
 use super::status::OutputStatus;
 
@@ -37,6 +39,7 @@ pub struct Output {
     /// Latest preview frame (kept across encoder restarts).
     pub preview: tokio::sync::watch::Sender<PreviewFrame>,
     recordings: Recordings,
+    recorder: RecorderSup,
 }
 
 impl Output {
@@ -53,6 +56,7 @@ impl Output {
             network: vec![],
             preview,
             recordings: Recordings::default(),
+            recorder: RecorderSup::default(),
         }
     }
 
@@ -75,11 +79,9 @@ impl Output {
             self.codec = Some(lb_media::hw::resolve_codec(&ff.ffmpeg, &cfg.encoder.video_codec).await);
         }
         let codec = self.codec.clone().unwrap_or_else(|| "libx264".into());
-        let rec_dir = data.dir.join(&cfg.record.dir);
-        if cfg.record.enabled {
-            let _ = std::fs::create_dir_all(&rec_dir);
-        }
-        self.recordings.set(cfg.record.enabled.then(|| (rec_dir.clone(), cfg.record.file_prefix(&cfg.id), cfg.record.clone())));
+        // the recorder listens first: the encoder connects to it at start
+        self.apply_record(ff, data).await;
+        let record_feed = Some(self.recorder.port());
         for o in cfg.outputs.iter().filter(|o| o.enabled && !lb_core::media::is_url(&o.url)) {
             if let Some(parent) = paths::resolve(root, &o.url).parent() {
                 let _ = std::fs::create_dir_all(parent);
@@ -106,7 +108,7 @@ impl Output {
             encoder: &cfg.encoder,
             video_codec: &codec,
             outputs: &outputs,
-            record: cfg.record.enabled.then(|| (&cfg.record, rec_dir.to_string_lossy().into_owned())),
+            record_feed,
             // overlay at the video rate: anything slower makes motion stutter
             gfx: gfx_port.map(|port| GfxInput { port, fps: cfg.video.fps }),
             preview: cfg.preview.enabled.then_some(PreviewOut { width: cfg.preview.width, fps: cfg.preview.effective_fps(cfg.video.fps) }),
@@ -146,8 +148,31 @@ impl Output {
         }
     }
 
+    /// Recording settings of `data` in effect: only the recorder restarts,
+    /// and only when they changed.
+    pub async fn apply_record(&mut self, ff: &FfmpegConfig, data: &ChannelData) {
+        let cfg = &data.config;
+        let rec = &cfg.record;
+        let dir = data.dir.join(&rec.dir);
+        if rec.enabled {
+            let _ = std::fs::create_dir_all(&dir);
+        }
+        self.recordings.set(rec.enabled.then(|| (dir.clone(), rec.file_prefix(&cfg.id), rec.clone())));
+        let dir = dir.to_string_lossy();
+        let job = RecordJob {
+            rec,
+            dir: &dir,
+            channel: &cfg.id,
+            port: self.recorder.port(),
+            bitrate: rec.expected_bitrate(&cfg.encoder, &cfg.audio),
+            loglevel: &ff.loglevel,
+        };
+        self.recorder.apply(&ff.ffmpeg, recorder_args(&job)).await;
+    }
+
     /// Check whether the encoder died. Returns the error text if it did.
     pub async fn check(&mut self) -> Option<String> {
+        self.recorder.check();
         let enc = self.encoder.as_mut()?;
         let exited = enc.try_exited()?;
         let err = enc.error_text().unwrap_or_else(|| if exited { "encoder exited".into() } else { "encoder failed".into() });
@@ -200,6 +225,8 @@ impl Output {
         if let Some(mut e) = self.encoder.take() {
             e.shutdown(Duration::from_secs(5)).await;
         }
+        // after the encoder: the end of the feed closes the file
+        self.recorder.stop().await;
         self.retry_at = None;
         self.failures_in_row = 0;
     }
@@ -217,7 +244,10 @@ impl Output {
             last_error: self.last_error.clone(),
             targets: self.targets.clone(),
             problems: self.problems(),
-            recording: self.running().then(|| self.recordings.status()).flatten(),
+            recording: self.running().then(|| self.recordings.status()).flatten().map(|mut r| {
+                r.error = self.recorder.error();
+                r
+            }),
         }
     }
 

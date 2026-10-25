@@ -211,3 +211,36 @@ fn scene_at_the_time_a_block_starts() {
     let s = r.items.iter().find(|i| i.media == "hour" && i.rule.is_some()).expect("fires in the 07:00 block");
     assert_eq!(s.start, at(7, 10));
 }
+
+#[test]
+fn scene_dropped_before_a_fixed_block_fires_in_it() {
+    let mut fx = Fx::new();
+    // the last item before 07:00 ends right at it: the rule fires there,
+    // is dropped to keep 07:00, and must fire again in the 07:00 block
+    fx.add(vec![prog("a", 30), prog("n", 10), scene("hour", 60)]).playlist("a", &["a"]).playlist("n", &["n"]);
+    fx.blocks.push(fixed("a", 6, 0, pl_src("a")));
+    fx.blocks.push(fixed("n", 7, 0, pl_src("n")));
+    fx.rules.rules.push(scene_rule("s", Trigger::AtTimes { times: vec![tm(7, 0)] }, &["hour"], None));
+    let r = fx.plan(at(6, 0), at(7, 20));
+    let s = r.items.iter().find(|i| i.media == "hour" && i.rule.is_some()).expect("fires in the 07:00 block");
+    assert_eq!(s.start, at(7, 10));
+    assert_eq!(first_of_block(&r, "n").start, at(7, 0));
+}
+
+#[test]
+fn scene_at_the_start_of_a_one_item_block_before_a_follow_block() {
+    let mut fx = Fx::new();
+    fx.add(vec![prog("a", 20), prog("n", 10), prog("s", 15), scene("hour", 60)]).playlist("a", &["a"]).playlist("s", &["s"]);
+    fx.blocks.push(fixed("a", 6, 0, pl_src("a")));
+    fx.blocks.push(fixed("n", 7, 0, BlockSource::Media { items: vec!["n".into()] }));
+    fx.blocks.push(Block::new("s", None, pl_src("s")));
+    fx.rules.rules.push(scene_rule("s", Trigger::AtTimes { times: vec![tm(7, 0)] }, &["hour"], None));
+    // an intro moves the first item of the 07:00 block past 07:00
+    let mut intro = jingle_rule("intro", Trigger::BlockStart, &["j"]);
+    intro.conditions.blocks = vec!["n".into()];
+    fx.add(vec![media("j", MediaKind::Jingle, 10)]);
+    fx.rules.rules.push(intro);
+    let r = fx.plan(at(6, 0), at(7, 40));
+    let s = r.items.iter().find(|i| i.media == "hour" && i.rule.is_some()).unwrap_or_else(|| panic!("fires: {:?}", ids(&r)));
+    assert_eq!(s.start, at(7, 10) + chrono::Duration::seconds(10));
+}

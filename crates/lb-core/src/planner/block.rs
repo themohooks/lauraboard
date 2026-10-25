@@ -71,10 +71,13 @@ where
             max_items: self.max_items(inst, &src, next_is_follow),
             until,
         };
+        // before the intro: a time rule due at the block's start time fires
+        // in it even when the intro moves the first item past that time
+        let block_start = t;
         if items_done == 0 {
             self.open_block(inst, &mut t);
         }
-        let mut pr = Progress { src, count: items_done, last_main: None, block_start: t, alt_tries: 8 };
+        let mut pr = Progress { src, count: items_done, last_main: None, block_start, alt_tries: 8 };
         loop {
             if !self.can_continue(&bounds, &pr, t) {
                 break;
