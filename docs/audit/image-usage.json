@@ -1,0 +1,2563 @@
+{
+  "counting": "Only inline Markdown images outside catalogs, audit and verification pages",
+  "png_total": 205,
+  "png_embedded": 113,
+  "inline_occurrences_unique_per_page": 141,
+  "images": [
+    {
+      "image": "screenshots/guides/channel-01.png",
+      "pages": [
+        "guides/create-channel.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/guides/channel-02.png",
+      "pages": [
+        "guides/create-channel.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/guides/channel-03.png",
+      "pages": [
+        "guides/create-channel.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/guides/import-01.png",
+      "pages": [
+        "guides/import-media.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/guides/import-02.png",
+      "pages": [
+        "guides/import-media.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/guides/music-01.png",
+      "pages": [
+        "guides/scenes.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/guides/plate-01.png",
+      "pages": [
+        "guides/graphics-plates.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/guides/recording-01.png",
+      "pages": [
+        "guides/recording.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/guides/recording-02.png",
+      "pages": [
+        "guides/recording-recipes.md",
+        "guides/recording.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/guides/rules-01.png",
+      "pages": [
+        "guides/insertion-rules.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/guides/rules-02.png",
+      "pages": [
+        "guides/insertion-rules.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/guides/rules-03.png",
+      "pages": [
+        "guides/insertion-rules.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/guides/rules-04.png",
+      "pages": [
+        "guides/insertion-rules.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/guides/schedule-01.png",
+      "pages": [
+        "guides/schedule.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/guides/schedule-02.png",
+      "pages": [
+        "guides/schedule.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/installation/setup-done-dark.png",
+      "pages": [],
+      "role": "Архив: альтернативная тёмная тема используемого кадра"
+    },
+    {
+      "image": "screenshots/installation/setup-done-light.png",
+      "pages": [
+        "installation.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/installation/setup-failed-dark.png",
+      "pages": [],
+      "role": "Архив: альтернативная тёмная тема используемого кадра"
+    },
+    {
+      "image": "screenshots/installation/setup-failed-light.png",
+      "pages": [
+        "installation.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/installation/setup-location-dark.png",
+      "pages": [],
+      "role": "Архив: альтернативная тёмная тема используемого кадра"
+    },
+    {
+      "image": "screenshots/installation/setup-location-error-dark.png",
+      "pages": [],
+      "role": "Архив: альтернативная тёмная тема используемого кадра"
+    },
+    {
+      "image": "screenshots/installation/setup-location-error-light.png",
+      "pages": [
+        "installation.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/installation/setup-location-light.png",
+      "pages": [
+        "installation.md",
+        "update-and-uninstall.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/installation/setup-missing-dark.png",
+      "pages": [],
+      "role": "Архив: альтернативная тёмная тема используемого кадра"
+    },
+    {
+      "image": "screenshots/installation/setup-missing-light.png",
+      "pages": [
+        "installation.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/installation/setup-options-dark.png",
+      "pages": [],
+      "role": "Архив: альтернативная тёмная тема используемого кадра"
+    },
+    {
+      "image": "screenshots/installation/setup-options-light.png",
+      "pages": [
+        "installation.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/installation/setup-progress-dark.png",
+      "pages": [],
+      "role": "Архив: альтернативная тёмная тема используемого кадра"
+    },
+    {
+      "image": "screenshots/installation/setup-progress-light.png",
+      "pages": [
+        "installation.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/installation/setup-uninstall-dark.png",
+      "pages": [],
+      "role": "Архив: альтернативная тёмная тема используемого кадра"
+    },
+    {
+      "image": "screenshots/installation/setup-uninstall-light.png",
+      "pages": [
+        "update-and-uninstall.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/installation/setup-welcome-dark.png",
+      "pages": [],
+      "role": "Архив: альтернативная тёмная тема используемого кадра"
+    },
+    {
+      "image": "screenshots/installation/setup-welcome-light.png",
+      "pages": [
+        "installation.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/installation/setup-welcome-update-dark.png",
+      "pages": [],
+      "role": "Архив: альтернативная тёмная тема используемого кадра"
+    },
+    {
+      "image": "screenshots/installation/setup-welcome-update-light.png",
+      "pages": [
+        "update-and-uninstall.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/interface/ad-breaks-dark.png",
+      "pages": [],
+      "role": "Архив: альтернативная тёмная тема используемого кадра"
+    },
+    {
+      "image": "screenshots/interface/ad-breaks-light.png",
+      "pages": [
+        "guides/ads-promos.md",
+        "guides/ads-recipes.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/interface/ad-policies-bottom-dark.png",
+      "pages": [],
+      "role": "Архив: альтернативная тёмная тема используемого кадра"
+    },
+    {
+      "image": "screenshots/interface/ad-policies-bottom-light.png",
+      "pages": [
+        "guides/ads-promos.md",
+        "guides/ads-recipes.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/interface/ad-policies-dark.png",
+      "pages": [],
+      "role": "Архив: альтернативная тёмная тема используемого кадра"
+    },
+    {
+      "image": "screenshots/interface/ad-policies-light.png",
+      "pages": [
+        "guides/ads-promos.md",
+        "guides/ads-recipes.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/interface/ads-dark.png",
+      "pages": [],
+      "role": "Архив: альтернативная тёмная тема используемого кадра"
+    },
+    {
+      "image": "screenshots/interface/ads-light.png",
+      "pages": [
+        "guides/ads-recipes.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/interface/air-dark.png",
+      "pages": [],
+      "role": "Архив: альтернативная тёмная тема используемого кадра"
+    },
+    {
+      "image": "screenshots/interface/air-light.png",
+      "pages": [
+        "basic-usage.md",
+        "guides/air-control.md",
+        "guides/first-broadcast.md",
+        "guides/media-bulk.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/interface/channel-delete-dark.png",
+      "pages": [],
+      "role": "Архив: альтернативная тёмная тема используемого кадра"
+    },
+    {
+      "image": "screenshots/interface/channel-delete-light.png",
+      "pages": [
+        "guides/manage-channels.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/interface/channel-export-dark.png",
+      "pages": [],
+      "role": "Архив: альтернативная тёмная тема используемого кадра"
+    },
+    {
+      "image": "screenshots/interface/channel-export-light.png",
+      "pages": [
+        "guides/transfer-channel.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/interface/channel-import-dark.png",
+      "pages": [],
+      "role": "Архив: альтернативная тёмная тема используемого кадра"
+    },
+    {
+      "image": "screenshots/interface/channel-import-light.png",
+      "pages": [
+        "guides/transfer-channel.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/interface/channel-rename-dark.png",
+      "pages": [],
+      "role": "Архив: альтернативная тёмная тема используемого кадра"
+    },
+    {
+      "image": "screenshots/interface/channel-rename-light.png",
+      "pages": [
+        "guides/manage-channels.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/interface/channels-dark.png",
+      "pages": [],
+      "role": "Архив: альтернативная тёмная тема используемого кадра"
+    },
+    {
+      "image": "screenshots/interface/channels-light.png",
+      "pages": [
+        "guides/manage-channels.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/interface/clock-properties-dark.png",
+      "pages": [],
+      "role": "Архив: альтернативная тёмная тема используемого кадра"
+    },
+    {
+      "image": "screenshots/interface/clock-properties-light.png",
+      "pages": [
+        "guides/graphics-time-progress.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/interface/countdown-properties-dark.png",
+      "pages": [],
+      "role": "Архив: альтернативная тёмная тема используемого кадра"
+    },
+    {
+      "image": "screenshots/interface/countdown-properties-light.png",
+      "pages": [
+        "guides/graphics-time-progress.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/interface/encoder-bottom-dark.png",
+      "pages": [],
+      "role": "Исходник фрагмента encoder-frame-sound.png (тёмный вариант)"
+    },
+    {
+      "image": "screenshots/interface/encoder-bottom-light.png",
+      "pages": [],
+      "role": "Исходник фрагмента encoder-frame-sound.png"
+    },
+    {
+      "image": "screenshots/interface/encoder-dark.png",
+      "pages": [],
+      "role": "Архив: альтернативная тёмная тема используемого кадра"
+    },
+    {
+      "image": "screenshots/interface/encoder-light.png",
+      "pages": [
+        "guides/encoder.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/interface/encoder-middle-dark.png",
+      "pages": [],
+      "role": "Архив: альтернативная тёмная тема используемого кадра"
+    },
+    {
+      "image": "screenshots/interface/encoder-middle-light.png",
+      "pages": [
+        "guides/encoder.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/interface/graphic-animation-dark.png",
+      "pages": [],
+      "role": "Архив: альтернативная тёмная тема используемого кадра"
+    },
+    {
+      "image": "screenshots/interface/graphic-animation-light.png",
+      "pages": [
+        "guides/graphics-layout.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/interface/graphics-add-dark.png",
+      "pages": [],
+      "role": "Архив: альтернативная тёмная тема используемого кадра"
+    },
+    {
+      "image": "screenshots/interface/graphics-add-light.png",
+      "pages": [
+        "guides/graphics-text-ticker.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/interface/graphics-dark.png",
+      "pages": [
+        "guides/graphics-layout.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/interface/graphics-font-dark.png",
+      "pages": [],
+      "role": "Архив: альтернативная тёмная тема используемого кадра"
+    },
+    {
+      "image": "screenshots/interface/graphics-font-light.png",
+      "pages": [
+        "guides/graphics-plates.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/interface/graphics-light.png",
+      "pages": [
+        "guides/graphics-layout.md",
+        "guides/graphics.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/interface/graphics-rules-dark.png",
+      "pages": [],
+      "role": "Архив: альтернативная тёмная тема используемого кадра"
+    },
+    {
+      "image": "screenshots/interface/graphics-rules-light.png",
+      "pages": [
+        "guides/graphics-rule-recipes.md",
+        "guides/graphics-rules.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/interface/graphics-templates-dark.png",
+      "pages": [],
+      "role": "Архив: альтернативная тёмная тема используемого кадра"
+    },
+    {
+      "image": "screenshots/interface/graphics-templates-light.png",
+      "pages": [
+        "guides/graphics-templates.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/interface/graphics-text-properties-dark.png",
+      "pages": [],
+      "role": "Архив: альтернативная тёмная тема используемого кадра"
+    },
+    {
+      "image": "screenshots/interface/graphics-text-properties-light.png",
+      "pages": [
+        "guides/graphics-text-ticker.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/interface/graphics-vars-dark.png",
+      "pages": [],
+      "role": "Архив: альтернативная тёмная тема используемого кадра"
+    },
+    {
+      "image": "screenshots/interface/graphics-vars-light.png",
+      "pages": [
+        "guides/graphics-rule-recipes.md",
+        "guides/graphics-rules.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/interface/home-dark.png",
+      "pages": [],
+      "role": "Архив: альтернативная тёмная тема используемого кадра"
+    },
+    {
+      "image": "screenshots/interface/home-light.png",
+      "pages": [
+        "getting-started.md",
+        "guides/backup-restore.md",
+        "interface-overview.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/interface/jingles-dark.png",
+      "pages": [],
+      "role": "Архив: альтернативная тёмная тема используемого кадра"
+    },
+    {
+      "image": "screenshots/interface/jingles-light.png",
+      "pages": [
+        "guides/insertion-rules.md",
+        "guides/rule-recipes.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/interface/jobs-dark.png",
+      "pages": [],
+      "role": "Архив: альтернативная тёмная тема используемого кадра"
+    },
+    {
+      "image": "screenshots/interface/jobs-light.png",
+      "pages": [
+        "guides/jobs.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/interface/library-dark.png",
+      "pages": [],
+      "role": "Архив: альтернативная тёмная тема используемого кадра"
+    },
+    {
+      "image": "screenshots/interface/library-light.png",
+      "pages": [
+        "guides/organize-media.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/interface/log-dark.png",
+      "pages": [],
+      "role": "Архив: альтернативная тёмная тема используемого кадра"
+    },
+    {
+      "image": "screenshots/interface/log-light.png",
+      "pages": [
+        "guides/logs.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/interface/log-server-dark.png",
+      "pages": [],
+      "role": "Архив: альтернативная тёмная тема используемого кадра"
+    },
+    {
+      "image": "screenshots/interface/log-server-light.png",
+      "pages": [
+        "guides/logs.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/interface/media-bottom-dark.png",
+      "pages": [],
+      "role": "Архив: альтернативная тёмная тема используемого кадра"
+    },
+    {
+      "image": "screenshots/interface/media-bottom-light.png",
+      "pages": [
+        "guides/media-display.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/interface/media-colour-dark.png",
+      "pages": [],
+      "role": "Архив: альтернативная тёмная тема используемого кадра"
+    },
+    {
+      "image": "screenshots/interface/media-colour-light.png",
+      "pages": [
+        "guides/media-display.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/interface/media-display-dark.png",
+      "pages": [],
+      "role": "Архив: альтернативная тёмная тема используемого кадра"
+    },
+    {
+      "image": "screenshots/interface/media-display-light.png",
+      "pages": [
+        "guides/media-display.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/interface/media-edit-dark.png",
+      "pages": [],
+      "role": "Архив: альтернативная тёмная тема используемого кадра"
+    },
+    {
+      "image": "screenshots/interface/media-edit-light.png",
+      "pages": [
+        "guides/media-display.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/interface/media-folder-dark.png",
+      "pages": [],
+      "role": "Архив: альтернативная тёмная тема используемого кадра"
+    },
+    {
+      "image": "screenshots/interface/media-folder-light.png",
+      "pages": [
+        "guides/media-bulk.md",
+        "guides/organize-media.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/interface/media-import-dark.png",
+      "pages": [],
+      "role": "Архив: альтернативная тёмная тема используемого кадра"
+    },
+    {
+      "image": "screenshots/interface/media-import-light.png",
+      "pages": [
+        "guides/import-media.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/interface/media-multiselect-dark.png",
+      "pages": [],
+      "role": "Архив: альтернативная тёмная тема используемого кадра"
+    },
+    {
+      "image": "screenshots/interface/media-multiselect-light.png",
+      "pages": [
+        "guides/media-bulk.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/interface/media-transform-dark.png",
+      "pages": [],
+      "role": "Исходник фрагмента media-transforms.png (тёмный вариант)"
+    },
+    {
+      "image": "screenshots/interface/media-transform-light.png",
+      "pages": [],
+      "role": "Исходник фрагмента media-transforms.png"
+    },
+    {
+      "image": "screenshots/interface/new-channel-dark.png",
+      "pages": [],
+      "role": "Архив: альтернативная тёмная тема используемого кадра"
+    },
+    {
+      "image": "screenshots/interface/new-channel-light.png",
+      "pages": [
+        "first-launch.md",
+        "guides/create-channel.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/interface/new-playlist-dark.png",
+      "pages": [],
+      "role": "Архив: альтернативная тёмная тема используемого кадра"
+    },
+    {
+      "image": "screenshots/interface/new-playlist-light.png",
+      "pages": [
+        "guides/playlists.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/interface/output-form-dark.png",
+      "pages": [],
+      "role": "Архив: альтернативная тёмная тема используемого кадра"
+    },
+    {
+      "image": "screenshots/interface/output-form-light.png",
+      "pages": [
+        "guides/outputs.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/interface/plate-editor-dark.png",
+      "pages": [],
+      "role": "Архив: альтернативная тёмная тема используемого кадра"
+    },
+    {
+      "image": "screenshots/interface/plate-editor-light.png",
+      "pages": [
+        "guides/graphics-plates.md",
+        "guides/graphics-templates.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/interface/plate-layout-complete-dark.png",
+      "pages": [],
+      "role": "Исходник фрагмента plate-layout.png (тёмный вариант)"
+    },
+    {
+      "image": "screenshots/interface/plate-layout-complete-light.png",
+      "pages": [],
+      "role": "Исходник фрагмента plate-layout.png"
+    },
+    {
+      "image": "screenshots/interface/plate-layout-dark.png",
+      "pages": [],
+      "role": "Исходник фрагмента plate-shape-start.png (тёмный вариант)"
+    },
+    {
+      "image": "screenshots/interface/plate-layout-light.png",
+      "pages": [],
+      "role": "Исходник фрагмента plate-shape-start.png"
+    },
+    {
+      "image": "screenshots/interface/plate-shape-bottom-dark.png",
+      "pages": [],
+      "role": "Исходник фрагмента plate-shape-end.png (тёмный вариант)"
+    },
+    {
+      "image": "screenshots/interface/plate-shape-bottom-light.png",
+      "pages": [],
+      "role": "Исходник фрагмента plate-shape-end.png"
+    },
+    {
+      "image": "screenshots/interface/playlist-add-dark.png",
+      "pages": [],
+      "role": "Архив: альтернативная тёмная тема используемого кадра"
+    },
+    {
+      "image": "screenshots/interface/playlist-add-light.png",
+      "pages": [
+        "guides/playlist-operations.md",
+        "guides/playlists.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/interface/playlist-selection-dark.png",
+      "pages": [],
+      "role": "Архив: альтернативная тёмная тема используемого кадра"
+    },
+    {
+      "image": "screenshots/interface/playlist-selection-light.png",
+      "pages": [
+        "guides/playlist-operations.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/interface/playlists-dark.png",
+      "pages": [],
+      "role": "Архив: альтернативная тёмная тема используемого кадра"
+    },
+    {
+      "image": "screenshots/interface/playlists-light.png",
+      "pages": [
+        "guides/playlists.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/interface/program-time-properties-dark.png",
+      "pages": [],
+      "role": "Архив: альтернативная тёмная тема используемого кадра"
+    },
+    {
+      "image": "screenshots/interface/program-time-properties-light.png",
+      "pages": [
+        "guides/graphics-time-progress.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/interface/progress-appearance-dark.png",
+      "pages": [],
+      "role": "Архив: альтернативная тёмная тема используемого кадра"
+    },
+    {
+      "image": "screenshots/interface/progress-appearance-light.png",
+      "pages": [
+        "guides/graphics-time-progress.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/interface/progress-properties-dark.png",
+      "pages": [],
+      "role": "Архив: альтернативная тёмная тема используемого кадра"
+    },
+    {
+      "image": "screenshots/interface/progress-properties-light.png",
+      "pages": [
+        "guides/graphics-time-progress.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/interface/recording-dark.png",
+      "pages": [],
+      "role": "Архив: альтернативная тёмная тема используемого кадра"
+    },
+    {
+      "image": "screenshots/interface/recording-encoding-dark.png",
+      "pages": [],
+      "role": "Архив: альтернативная тёмная тема используемого кадра"
+    },
+    {
+      "image": "screenshots/interface/recording-encoding-light.png",
+      "pages": [
+        "guides/recording-recipes.md",
+        "guides/recording.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/interface/recording-light.png",
+      "pages": [
+        "guides/recording.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/interface/recording-storage-dark.png",
+      "pages": [],
+      "role": "Исходник фрагмента recording-codecs-storage.png (тёмный вариант)"
+    },
+    {
+      "image": "screenshots/interface/recording-storage-light.png",
+      "pages": [],
+      "role": "Исходник фрагмента recording-codecs-storage.png"
+    },
+    {
+      "image": "screenshots/interface/rule-conditions-complete-dark.png",
+      "pages": [],
+      "role": "Архив: альтернативная тёмная тема используемого кадра"
+    },
+    {
+      "image": "screenshots/interface/rule-conditions-complete-light.png",
+      "pages": [
+        "guides/insertion-rules.md",
+        "guides/rule-recipes.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/interface/rule-wizard-conditions-dark.png",
+      "pages": [],
+      "role": "Архив: альтернативная тёмная тема используемого кадра"
+    },
+    {
+      "image": "screenshots/interface/rule-wizard-conditions-light.png",
+      "pages": [
+        "guides/insertion-rules.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/interface/rule-wizard-content-dark.png",
+      "pages": [],
+      "role": "Архив: альтернативная тёмная тема используемого кадра"
+    },
+    {
+      "image": "screenshots/interface/rule-wizard-content-light.png",
+      "pages": [
+        "guides/insertion-rules.md",
+        "guides/rule-recipes.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/interface/rule-wizard-dark.png",
+      "pages": [],
+      "role": "Архив: альтернативная тёмная тема используемого кадра"
+    },
+    {
+      "image": "screenshots/interface/rule-wizard-light.png",
+      "pages": [
+        "guides/insertion-rules.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/interface/rule-wizard-limits-dark.png",
+      "pages": [],
+      "role": "Архив: альтернативная тёмная тема используемого кадра"
+    },
+    {
+      "image": "screenshots/interface/rule-wizard-limits-light.png",
+      "pages": [
+        "guides/insertion-rules.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/interface/rules-limits-dark.png",
+      "pages": [],
+      "role": "Архив: альтернативная тёмная тема используемого кадра"
+    },
+    {
+      "image": "screenshots/interface/rules-limits-light.png",
+      "pages": [
+        "guides/rule-recipes.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/interface/scene-gaps-dark.png",
+      "pages": [],
+      "role": "Архив: альтернативная тёмная тема используемого кадра"
+    },
+    {
+      "image": "screenshots/interface/scene-gaps-light.png",
+      "pages": [
+        "guides/scene-rules.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/interface/scene-music-dark.png",
+      "pages": [],
+      "role": "Ранний общий вид; в гайде использован более полный scene-music-options и его фрагменты"
+    },
+    {
+      "image": "screenshots/interface/scene-music-light.png",
+      "pages": [],
+      "role": "Ранний общий вид; в гайде использован более полный scene-music-options и его фрагменты"
+    },
+    {
+      "image": "screenshots/interface/scene-music-options-dark.png",
+      "pages": [],
+      "role": "Архив: альтернативная тёмная тема используемого кадра"
+    },
+    {
+      "image": "screenshots/interface/scene-music-options-light.png",
+      "pages": [
+        "guides/music-recipes.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/interface/scene-music-timing-dark.png",
+      "pages": [],
+      "role": "Архив: альтернативная тёмная тема используемого кадра"
+    },
+    {
+      "image": "screenshots/interface/scene-music-timing-light.png",
+      "pages": [
+        "guides/music-recipes.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/interface/scene-rules-dark.png",
+      "pages": [],
+      "role": "Архив: альтернативная тёмная тема используемого кадра"
+    },
+    {
+      "image": "screenshots/interface/scene-rules-light.png",
+      "pages": [
+        "guides/scene-rules.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/interface/scenes-dark.png",
+      "pages": [],
+      "role": "Архив: альтернативная тёмная тема используемого кадра"
+    },
+    {
+      "image": "screenshots/interface/scenes-light.png",
+      "pages": [
+        "guides/scenes.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/interface/schedule-dark.png",
+      "pages": [],
+      "role": "Архив: альтернативная тёмная тема используемого кадра"
+    },
+    {
+      "image": "screenshots/interface/schedule-light.png",
+      "pages": [
+        "guides/schedule-sources.md",
+        "guides/schedule.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/interface/schedule-properties-dark.png",
+      "pages": [],
+      "role": "Архив: альтернативная тёмная тема используемого кадра"
+    },
+    {
+      "image": "screenshots/interface/schedule-properties-light.png",
+      "pages": [
+        "guides/schedule-timing.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/interface/settings-dark.png",
+      "pages": [],
+      "role": "Архив: альтернативная тёмная тема используемого кадра"
+    },
+    {
+      "image": "screenshots/interface/settings-light.png",
+      "pages": [
+        "guides/appearance.md",
+        "guides/connection.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/interface/shape-properties-dark.png",
+      "pages": [],
+      "role": "Архив: альтернативная тёмная тема используемого кадра"
+    },
+    {
+      "image": "screenshots/interface/shape-properties-light.png",
+      "pages": [
+        "guides/graphics-text-ticker.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/interface/sources-dark.png",
+      "pages": [],
+      "role": "Архив: альтернативная тёмная тема используемого кадра"
+    },
+    {
+      "image": "screenshots/interface/sources-light.png",
+      "pages": [
+        "guides/advanced-channel.md",
+        "guides/outputs.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/interface/stats-all-dark.png",
+      "pages": [],
+      "role": "Архив: альтернативная тёмная тема используемого кадра"
+    },
+    {
+      "image": "screenshots/interface/stats-all-light.png",
+      "pages": [
+        "guides/statistics.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/interface/stats-dark.png",
+      "pages": [],
+      "role": "Архив: альтернативная тёмная тема используемого кадра"
+    },
+    {
+      "image": "screenshots/interface/stats-light.png",
+      "pages": [
+        "guides/statistics.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/interface/system-dark.png",
+      "pages": [],
+      "role": "Архив: альтернативная тёмная тема используемого кадра"
+    },
+    {
+      "image": "screenshots/interface/system-light.png",
+      "pages": [
+        "guides/statistics.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/interface/ticker-properties-dark.png",
+      "pages": [],
+      "role": "Архив: альтернативная тёмная тема используемого кадра"
+    },
+    {
+      "image": "screenshots/interface/ticker-properties-light.png",
+      "pages": [
+        "guides/graphics-text-ticker.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/interface/transitions-dark.png",
+      "pages": [],
+      "role": "Архив: альтернативная тёмная тема используемого кадра"
+    },
+    {
+      "image": "screenshots/interface/transitions-light.png",
+      "pages": [
+        "guides/rule-recipes.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/interface/welcome-dark.png",
+      "pages": [],
+      "role": "Архив: альтернативная тёмная тема используемого кадра"
+    },
+    {
+      "image": "screenshots/interface/welcome-light.png",
+      "pages": [
+        "first-launch.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/parts/encoder-frame-sound.png",
+      "pages": [
+        "guides/encoder.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/parts/encoder-video-bitrate.png",
+      "pages": [
+        "guides/encoder.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/parts/media-properties.png",
+      "pages": [
+        "guides/media-display.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/parts/media-transforms.png",
+      "pages": [
+        "guides/media-display.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/parts/plate-layout.png",
+      "pages": [
+        "guides/graphics-plates.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/parts/plate-shape-end.png",
+      "pages": [
+        "guides/graphics-plates.md",
+        "guides/graphics-text-ticker.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/parts/plate-shape-start.png",
+      "pages": [
+        "guides/graphics-plates.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/parts/plate-text.png",
+      "pages": [
+        "guides/graphics-plates.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/parts/recording-codecs-storage.png",
+      "pages": [
+        "guides/recording-recipes.md",
+        "guides/recording.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/parts/recording-files.png",
+      "pages": [
+        "guides/recording-recipes.md",
+        "guides/recording.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/parts/scene-graphics.png",
+      "pages": [
+        "guides/music-recipes.md",
+        "guides/scenes.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/parts/scene-music.png",
+      "pages": [
+        "guides/scenes.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/parts/schedule-block-bottom.png",
+      "pages": [
+        "guides/schedule-sources.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/parts/schedule-block-top.png",
+      "pages": [
+        "guides/schedule-sources.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/parts/settings-about.png",
+      "pages": [
+        "first-launch.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/parts/settings-connection.png",
+      "pages": [
+        "guides/connection.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/parts/settings-layout.png",
+      "pages": [
+        "guides/appearance.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/parts/settings-shortcuts.png",
+      "pages": [
+        "shortcuts.md"
+      ],
+      "role": "Встроен в инструкцию"
+    }
+  ],
+  "guide_sections": [
+    {
+      "task": "Как создать рекламный блок",
+      "guide": "guides/ads-promos.md",
+      "anchor": "как-создать-рекламный-блок",
+      "images": [
+        "screenshots/interface/ad-breaks-light.png"
+      ],
+      "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
+    },
+    {
+      "task": "Как запланировать рекламу",
+      "guide": "guides/ads-promos.md",
+      "anchor": "как-запланировать-рекламу",
+      "images": [],
+      "status": "Частично: инструкция; отдельный кадр этого раздела отсутствует"
+    },
+    {
+      "task": "Как ограничить показы и настроить анонсы",
+      "guide": "guides/ads-promos.md",
+      "anchor": "как-ограничить-показы-и-настроить-анонсы",
+      "images": [
+        "screenshots/interface/ad-policies-light.png",
+        "screenshots/interface/ad-policies-bottom-light.png"
+      ],
+      "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
+    },
+    {
+      "task": "Как настроить переходы",
+      "guide": "guides/ads-promos.md",
+      "anchor": "как-настроить-переходы",
+      "images": [],
+      "status": "Частично: инструкция; отдельный кадр этого раздела отсутствует"
+    },
+    {
+      "task": "Как вставить рекламу вручную и проверить показы",
+      "guide": "guides/ads-promos.md",
+      "anchor": "как-вставить-рекламу-вручную-и-проверить-показы",
+      "images": [],
+      "status": "Частично: инструкция; отдельный кадр этого раздела отсутствует"
+    },
+    {
+      "task": "Как собрать блок из списка или категории",
+      "guide": "guides/ads-recipes.md",
+      "anchor": "как-собрать-блок-из-списка-или-категории",
+      "images": [
+        "screenshots/interface/ad-breaks-light.png"
+      ],
+      "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
+    },
+    {
+      "task": "Как ограничить размер паузы и добавить оформление",
+      "guide": "guides/ads-recipes.md",
+      "anchor": "как-ограничить-размер-паузы-и-добавить-оформление",
+      "images": [],
+      "status": "Частично: инструкция; отдельный кадр этого раздела отсутствует"
+    },
+    {
+      "task": "Как ограничить рекламу и повторы анонсов",
+      "guide": "guides/ads-recipes.md",
+      "anchor": "как-ограничить-рекламу-и-повторы-анонсов",
+      "images": [
+        "screenshots/interface/ad-policies-light.png",
+        "screenshots/interface/ad-policies-bottom-light.png"
+      ],
+      "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
+    },
+    {
+      "task": "Как проверить пропуск рекламы и вернуть прежний режим",
+      "guide": "guides/ads-recipes.md",
+      "anchor": "как-проверить-пропуск-рекламы-и-вернуть-прежний-режим",
+      "images": [
+        "screenshots/interface/ads-light.png"
+      ],
+      "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
+    },
+    {
+      "task": "Как настроить резервный ролик и картинку",
+      "guide": "guides/advanced-channel.md",
+      "anchor": "как-настроить-резервный-ролик-и-картинку",
+      "images": [
+        "screenshots/interface/sources-light.png"
+      ],
+      "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
+    },
+    {
+      "task": "Как вещать плейлист последовательно без сетки",
+      "guide": "guides/advanced-channel.md",
+      "anchor": "как-вещать-плейлист-последовательно-без-сетки",
+      "images": [],
+      "status": "Частично: инструкция; отдельный кадр этого раздела отсутствует"
+    },
+    {
+      "task": "Как задать теги, метаданные и границы материала",
+      "guide": "guides/advanced-channel.md",
+      "anchor": "как-задать-теги-метаданные-и-границы-материала",
+      "images": [],
+      "status": "Частично: инструкция; отдельный кадр этого раздела отсутствует"
+    },
+    {
+      "task": "Как подготовить будущее расписание и серверные уведомления",
+      "guide": "guides/advanced-channel.md",
+      "anchor": "как-подготовить-будущее-расписание-и-серверные-уведомления",
+      "images": [],
+      "status": "Частично: инструкция; отдельный кадр этого раздела отсутствует"
+    },
+    {
+      "task": "Как пропустить, повторить или перемотать ролик",
+      "guide": "guides/air-control.md",
+      "anchor": "как-пропустить-повторить-или-перемотать-ролик",
+      "images": [],
+      "status": "Частично: инструкция; отдельный кадр этого раздела отсутствует"
+    },
+    {
+      "task": "Как поставить материал следующим или показать сейчас",
+      "guide": "guides/air-control.md",
+      "anchor": "как-поставить-материал-следующим-или-показать-сейчас",
+      "images": [],
+      "status": "Частично: инструкция; отдельный кадр этого раздела отсутствует"
+    },
+    {
+      "task": "Как поставить расписание на паузу",
+      "guide": "guides/air-control.md",
+      "anchor": "как-поставить-расписание-на-паузу",
+      "images": [],
+      "status": "Частично: инструкция; отдельный кадр этого раздела отсутствует"
+    },
+    {
+      "task": "Как переключить расписание и графику",
+      "guide": "guides/air-control.md",
+      "anchor": "как-переключить-расписание-и-графику",
+      "images": [],
+      "status": "Частично: инструкция; отдельный кадр этого раздела отсутствует"
+    },
+    {
+      "task": "Как сделать интерфейс удобнее",
+      "guide": "guides/appearance.md",
+      "anchor": "как-сделать-интерфейс-удобнее",
+      "images": [],
+      "status": "Частично: инструкция; отдельный кадр этого раздела отсутствует"
+    },
+    {
+      "task": "Как настроить уведомления",
+      "guide": "guides/appearance.md",
+      "anchor": "как-настроить-уведомления",
+      "images": [],
+      "status": "Частично: инструкция; отдельный кадр этого раздела отсутствует"
+    },
+    {
+      "task": "Как закрывать окно без остановки эфира",
+      "guide": "guides/appearance.md",
+      "anchor": "как-закрывать-окно-без-остановки-эфира",
+      "images": [],
+      "status": "Частично: инструкция; отдельный кадр этого раздела отсутствует"
+    },
+    {
+      "task": "Как сбросить настройки",
+      "guide": "guides/appearance.md",
+      "anchor": "как-сбросить-настройки",
+      "images": [
+        "screenshots/parts/settings-layout.png"
+      ],
+      "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
+    },
+    {
+      "task": "Как сохранить всё необходимое",
+      "guide": "guides/backup-restore.md",
+      "anchor": "как-сохранить-всё-необходимое",
+      "images": [],
+      "status": "Частично: инструкция; отдельный кадр этого раздела отсутствует"
+    },
+    {
+      "task": "Как сделать небольшую копию конфигурации через CLI",
+      "guide": "guides/backup-restore.md",
+      "anchor": "как-сделать-небольшую-копию-конфигурации-через-cli",
+      "images": [],
+      "status": "Частично: инструкция; отдельный кадр этого раздела отсутствует"
+    },
+    {
+      "task": "Как восстановить конфигурацию безопасно",
+      "guide": "guides/backup-restore.md",
+      "anchor": "как-восстановить-конфигурацию-безопасно",
+      "images": [
+        "screenshots/interface/home-light.png"
+      ],
+      "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
+    },
+    {
+      "task": "Как вернуть удалённый канал",
+      "guide": "guides/backup-restore.md",
+      "anchor": "как-вернуть-удалённый-канал",
+      "images": [],
+      "status": "Частично: инструкция; отдельный кадр этого раздела отсутствует"
+    },
+    {
+      "task": "Как проверить текущее подключение",
+      "guide": "guides/connection.md",
+      "anchor": "как-проверить-текущее-подключение",
+      "images": [
+        "screenshots/interface/settings-light.png",
+        "screenshots/parts/settings-connection.png"
+      ],
+      "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
+    },
+    {
+      "task": "Как открыть GUI для другого сервера",
+      "guide": "guides/connection.md",
+      "anchor": "как-открыть-gui-для-другого-сервера",
+      "images": [],
+      "status": "Частично: инструкция; отдельный кадр этого раздела отсутствует"
+    },
+    {
+      "task": "Какие права нужны",
+      "guide": "guides/connection.md",
+      "anchor": "какие-права-нужны",
+      "images": [],
+      "status": "Частично: инструкция; отдельный кадр этого раздела отсутствует"
+    },
+    {
+      "task": "Что получится",
+      "guide": "guides/create-channel.md",
+      "anchor": "что-получится",
+      "images": [],
+      "status": "Частично: инструкция; отдельный кадр этого раздела отсутствует"
+    },
+    {
+      "task": "Создать первый канал",
+      "guide": "guides/create-channel.md",
+      "anchor": "создать-первый-канал",
+      "images": [
+        "screenshots/interface/new-channel-light.png"
+      ],
+      "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
+    },
+    {
+      "task": "По шагам на экране",
+      "guide": "guides/create-channel.md",
+      "anchor": "по-шагам-на-экране",
+      "images": [
+        "screenshots/guides/channel-01.png",
+        "screenshots/guides/channel-02.png",
+        "screenshots/guides/channel-03.png"
+      ],
+      "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
+    },
+    {
+      "task": "Проверить результат и подготовить эфир",
+      "guide": "guides/create-channel.md",
+      "anchor": "проверить-результат-и-подготовить-эфир",
+      "images": [],
+      "status": "Частично: инструкция; отдельный кадр этого раздела отсутствует"
+    },
+    {
+      "task": "Если не получается",
+      "guide": "guides/create-channel.md",
+      "anchor": "если-не-получается",
+      "images": [],
+      "status": "Частично: инструкция; отдельный кадр этого раздела отсутствует"
+    },
+    {
+      "task": "Длинный диалог по частям",
+      "guide": "guides/encoder.md",
+      "anchor": "длинный-диалог-по-частям",
+      "images": [
+        "screenshots/parts/encoder-video-bitrate.png",
+        "screenshots/interface/encoder-middle-light.png",
+        "screenshots/parts/encoder-frame-sound.png"
+      ],
+      "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
+    },
+    {
+      "task": "Как включить аппаратное кодирование",
+      "guide": "guides/encoder.md",
+      "anchor": "как-включить-аппаратное-кодирование",
+      "images": [],
+      "status": "Частично: инструкция; отдельный кадр этого раздела отсутствует"
+    },
+    {
+      "task": "Подготовить канал",
+      "guide": "guides/first-broadcast.md",
+      "anchor": "подготовить-канал",
+      "images": [],
+      "status": "Частично: инструкция; отдельный кадр этого раздела отсутствует"
+    },
+    {
+      "task": "Начать и проверить вещание",
+      "guide": "guides/first-broadcast.md",
+      "anchor": "начать-и-проверить-вещание",
+      "images": [
+        "screenshots/interface/air-light.png"
+      ],
+      "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
+    },
+    {
+      "task": "Завершить проверку",
+      "guide": "guides/first-broadcast.md",
+      "anchor": "завершить-проверку",
+      "images": [],
+      "status": "Частично: инструкция; отдельный кадр этого раздела отсутствует"
+    },
+    {
+      "task": "Как поставить логотип в угол с точными отступами",
+      "guide": "guides/graphics-layout.md",
+      "anchor": "как-поставить-логотип-в-угол-с-точными-отступами",
+      "images": [
+        "screenshots/interface/graphics-light.png"
+      ],
+      "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
+    },
+    {
+      "task": "Как отличить скрытие на холсте от скрытия в эфире",
+      "guide": "guides/graphics-layout.md",
+      "anchor": "как-отличить-скрытие-на-холсте-от-скрытия-в-эфире",
+      "images": [],
+      "status": "Частично: инструкция; отдельный кадр этого раздела отсутствует"
+    },
+    {
+      "task": "Как создать слои и поменять наложение",
+      "guide": "guides/graphics-layout.md",
+      "anchor": "как-создать-слои-и-поменять-наложение",
+      "images": [
+        "screenshots/interface/graphics-dark.png"
+      ],
+      "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
+    },
+    {
+      "task": "Как не показывать две плашки одновременно",
+      "guide": "guides/graphics-layout.md",
+      "anchor": "как-не-показывать-две-плашки-одновременно",
+      "images": [],
+      "status": "Частично: инструкция; отдельный кадр этого раздела отсутствует"
+    },
+    {
+      "task": "Как добавить анимацию появления и исчезновения",
+      "guide": "guides/graphics-layout.md",
+      "anchor": "как-добавить-анимацию-появления-и-исчезновения",
+      "images": [
+        "screenshots/interface/graphic-animation-light.png"
+      ],
+      "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
+    },
+    {
+      "task": "Как собрать плашку",
+      "guide": "guides/graphics-plates.md",
+      "anchor": "как-собрать-плашку",
+      "images": [
+        "screenshots/interface/plate-editor-light.png",
+        "screenshots/guides/plate-01.png"
+      ],
+      "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
+    },
+    {
+      "task": "Как настроить фигуру, текстуру и текст",
+      "guide": "guides/graphics-plates.md",
+      "anchor": "как-настроить-фигуру-текстуру-и-текст",
+      "images": [],
+      "status": "Частично: инструкция; отдельный кадр этого раздела отсутствует"
+    },
+    {
+      "task": "Расширенный редактор по частям",
+      "guide": "guides/graphics-plates.md",
+      "anchor": "расширенный-редактор-по-частям",
+      "images": [
+        "screenshots/parts/plate-text.png",
+        "screenshots/parts/plate-layout.png",
+        "screenshots/parts/plate-shape-start.png",
+        "screenshots/parts/plate-shape-end.png"
+      ],
+      "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
+    },
+    {
+      "task": "Как выбрать или добавить шрифт",
+      "guide": "guides/graphics-plates.md",
+      "anchor": "как-выбрать-или-добавить-шрифт",
+      "images": [
+        "screenshots/interface/graphics-font-light.png"
+      ],
+      "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
+    },
+    {
+      "task": "Как повторно использовать оформление",
+      "guide": "guides/graphics-plates.md",
+      "anchor": "как-повторно-использовать-оформление",
+      "images": [],
+      "status": "Частично: инструкция; отдельный кадр этого раздела отсутствует"
+    },
+    {
+      "task": "Как повторять плашку раз в минуту",
+      "guide": "guides/graphics-rule-recipes.md",
+      "anchor": "как-повторять-плашку-раз-в-минуту",
+      "images": [
+        "screenshots/interface/graphics-rules-light.png"
+      ],
+      "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
+    },
+    {
+      "task": "Как показать анонс в последние 30 секунд",
+      "guide": "guides/graphics-rule-recipes.md",
+      "anchor": "как-показать-анонс-в-последние-30-секунд",
+      "images": [],
+      "status": "Частично: инструкция; отдельный кадр этого раздела отсутствует"
+    },
+    {
+      "task": "Как показывать графику в заданное время суток",
+      "guide": "guides/graphics-rule-recipes.md",
+      "anchor": "как-показывать-графику-в-заданное-время-суток",
+      "images": [],
+      "status": "Частично: инструкция; отдельный кадр этого раздела отсутствует"
+    },
+    {
+      "task": "Как менять текст одной плашки разными правилами",
+      "guide": "guides/graphics-rule-recipes.md",
+      "anchor": "как-менять-текст-одной-плашки-разными-правилами",
+      "images": [
+        "screenshots/interface/graphics-vars-light.png"
+      ],
+      "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
+    },
+    {
+      "task": "Как показать подпись через десять секунд после начала ролика",
+      "guide": "guides/graphics-rules.md",
+      "anchor": "как-показать-подпись-через-десять-секунд-после-начала-ролика",
+      "images": [
+        "screenshots/interface/graphics-rules-light.png"
+      ],
+      "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
+    },
+    {
+      "task": "Как настроить другие моменты показа",
+      "guide": "guides/graphics-rules.md",
+      "anchor": "как-настроить-другие-моменты-показа",
+      "images": [],
+      "status": "Частично: инструкция; отдельный кадр этого раздела отсутствует"
+    },
+    {
+      "task": "Как подставлять сведения о передаче",
+      "guide": "guides/graphics-rules.md",
+      "anchor": "как-подставлять-сведения-о-передаче",
+      "images": [
+        "screenshots/interface/graphics-vars-light.png"
+      ],
+      "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
+    },
+    {
+      "task": "Как менять бегущую строку вручную",
+      "guide": "guides/graphics-rules.md",
+      "anchor": "как-менять-бегущую-строку-вручную",
+      "images": [],
+      "status": "Частично: инструкция; отдельный кадр этого раздела отсутствует"
+    },
+    {
+      "task": "Как снять ручное управление видимостью",
+      "guide": "guides/graphics-rules.md",
+      "anchor": "как-снять-ручное-управление-видимостью",
+      "images": [],
+      "status": "Частично: инструкция; отдельный кадр этого раздела отсутствует"
+    },
+    {
+      "task": "Как сохранить весь набор оформления",
+      "guide": "guides/graphics-templates.md",
+      "anchor": "как-сохранить-весь-набор-оформления",
+      "images": [
+        "screenshots/interface/graphics-templates-light.png"
+      ],
+      "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
+    },
+    {
+      "task": "Как применить шаблон к другому каналу",
+      "guide": "guides/graphics-templates.md",
+      "anchor": "как-применить-шаблон-к-другому-каналу",
+      "images": [],
+      "status": "Частично: инструкция; отдельный кадр этого раздела отсутствует"
+    },
+    {
+      "task": "Чем стиль плашки отличается от шаблона",
+      "guide": "guides/graphics-templates.md",
+      "anchor": "чем-стиль-плашки-отличается-от-шаблона",
+      "images": [
+        "screenshots/interface/plate-editor-light.png"
+      ],
+      "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
+    },
+    {
+      "task": "Как ограничить элементы профилем оформления",
+      "guide": "guides/graphics-templates.md",
+      "anchor": "как-ограничить-элементы-профилем-оформления",
+      "images": [],
+      "status": "Частично: инструкция; отдельный кадр этого раздела отсутствует"
+    },
+    {
+      "task": "Как сделать текстовую подпись с переменными",
+      "guide": "guides/graphics-text-ticker.md",
+      "anchor": "как-сделать-текстовую-подпись-с-переменными",
+      "images": [
+        "screenshots/interface/graphics-add-light.png",
+        "screenshots/interface/graphics-text-properties-light.png"
+      ],
+      "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
+    },
+    {
+      "task": "Как настроить движение бегущей строки",
+      "guide": "guides/graphics-text-ticker.md",
+      "anchor": "как-настроить-движение-бегущей-строки",
+      "images": [
+        "screenshots/interface/ticker-properties-light.png"
+      ],
+      "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
+    },
+    {
+      "task": "Как создать фигуру с градиентом, рамкой и тенью",
+      "guide": "guides/graphics-text-ticker.md",
+      "anchor": "как-создать-фигуру-с-градиентом-рамкой-и-тенью",
+      "images": [
+        "screenshots/interface/shape-properties-light.png",
+        "screenshots/parts/plate-shape-end.png"
+      ],
+      "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
+    },
+    {
+      "task": "Как вывести часы с секундами и дату",
+      "guide": "guides/graphics-time-progress.md",
+      "anchor": "как-вывести-часы-с-секундами-и-дату",
+      "images": [
+        "screenshots/interface/clock-properties-light.png"
+      ],
+      "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
+    },
+    {
+      "task": "Как сделать обратный отсчёт до следующей передачи",
+      "guide": "guides/graphics-time-progress.md",
+      "anchor": "как-сделать-обратный-отсчёт-до-следующей-передачи",
+      "images": [
+        "screenshots/interface/countdown-properties-light.png"
+      ],
+      "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
+    },
+    {
+      "task": "Как показать время передачи без рекламных вставок",
+      "guide": "guides/graphics-time-progress.md",
+      "anchor": "как-показать-время-передачи-без-рекламных-вставок",
+      "images": [
+        "screenshots/interface/program-time-properties-light.png"
+      ],
+      "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
+    },
+    {
+      "task": "Как создать полосу прогресса",
+      "guide": "guides/graphics-time-progress.md",
+      "anchor": "как-создать-полосу-прогресса",
+      "images": [
+        "screenshots/interface/progress-properties-light.png",
+        "screenshots/interface/progress-appearance-light.png"
+      ],
+      "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
+    },
+    {
+      "task": "Как добавить логотип",
+      "guide": "guides/graphics.md",
+      "anchor": "как-добавить-логотип",
+      "images": [
+        "screenshots/interface/graphics-light.png"
+      ],
+      "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
+    },
+    {
+      "task": "Как добавить другие элементы",
+      "guide": "guides/graphics.md",
+      "anchor": "как-добавить-другие-элементы",
+      "images": [],
+      "status": "Частично: инструкция; отдельный кадр этого раздела отсутствует"
+    },
+    {
+      "task": "Как организовать слои и анимации",
+      "guide": "guides/graphics.md",
+      "anchor": "как-организовать-слои-и-анимации",
+      "images": [],
+      "status": "Частично: инструкция; отдельный кадр этого раздела отсутствует"
+    },
+    {
+      "task": "Как импортировать материалы",
+      "guide": "guides/import-media.md",
+      "anchor": "как-импортировать-материалы",
+      "images": [
+        "screenshots/interface/media-import-light.png"
+      ],
+      "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
+    },
+    {
+      "task": "По шагам на экране",
+      "guide": "guides/import-media.md",
+      "anchor": "по-шагам-на-экране",
+      "images": [
+        "screenshots/guides/import-01.png",
+        "screenshots/guides/import-02.png"
+      ],
+      "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
+    },
+    {
+      "task": "Ссылки на файлы или копии",
+      "guide": "guides/import-media.md",
+      "anchor": "ссылки-на-файлы-или-копии",
+      "images": [],
+      "status": "Частично: инструкция; отдельный кадр этого раздела отсутствует"
+    },
+    {
+      "task": "Как добавить сетевой поток",
+      "guide": "guides/import-media.md",
+      "anchor": "как-добавить-сетевой-поток",
+      "images": [],
+      "status": "Частично: инструкция; отдельный кадр этого раздела отсутствует"
+    },
+    {
+      "task": "Если импорт не удался",
+      "guide": "guides/import-media.md",
+      "anchor": "если-импорт-не-удался",
+      "images": [],
+      "status": "Частично: инструкция; отдельный кадр этого раздела отсутствует"
+    },
+    {
+      "task": "Как создать правило через мастер",
+      "guide": "guides/insertion-rules.md",
+      "anchor": "как-создать-правило-через-мастер",
+      "images": [
+        "screenshots/interface/rule-wizard-light.png"
+      ],
+      "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
+    },
+    {
+      "task": "По шагам на экране",
+      "guide": "guides/insertion-rules.md",
+      "anchor": "по-шагам-на-экране",
+      "images": [
+        "screenshots/guides/rules-01.png",
+        "screenshots/guides/rules-02.png",
+        "screenshots/guides/rules-03.png"
+      ],
+      "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
+    },
+    {
+      "task": "Как выбрать другой момент вставки",
+      "guide": "guides/insertion-rules.md",
+      "anchor": "как-выбрать-другой-момент-вставки",
+      "images": [],
+      "status": "Частично: инструкция; отдельный кадр этого раздела отсутствует"
+    },
+    {
+      "task": "Как уточнить условия и приоритеты",
+      "guide": "guides/insertion-rules.md",
+      "anchor": "как-уточнить-условия-и-приоритеты",
+      "images": [
+        "screenshots/interface/jingles-light.png"
+      ],
+      "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
+    },
+    {
+      "task": "Нижняя часть редактора и шаги мастера",
+      "guide": "guides/insertion-rules.md",
+      "anchor": "нижняя-часть-редактора-и-шаги-мастера",
+      "images": [
+        "screenshots/interface/rule-wizard-content-light.png",
+        "screenshots/interface/rule-wizard-conditions-light.png",
+        "screenshots/interface/rule-wizard-limits-light.png",
+        "screenshots/interface/rule-conditions-complete-light.png",
+        "screenshots/guides/rules-04.png"
+      ],
+      "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
+    },
+    {
+      "task": "Как проверить результат",
+      "guide": "guides/insertion-rules.md",
+      "anchor": "как-проверить-результат",
+      "images": [],
+      "status": "Частично: инструкция; отдельный кадр этого раздела отсутствует"
+    },
+    {
+      "task": "Как найти событие",
+      "guide": "guides/logs.md",
+      "anchor": "как-найти-событие",
+      "images": [
+        "screenshots/interface/log-light.png"
+      ],
+      "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
+    },
+    {
+      "task": "Как получить журнал сервера",
+      "guide": "guides/logs.md",
+      "anchor": "как-получить-журнал-сервера",
+      "images": [
+        "screenshots/interface/log-server-light.png"
+      ],
+      "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
+    },
+    {
+      "task": "Как описать проблему",
+      "guide": "guides/logs.md",
+      "anchor": "как-описать-проблему",
+      "images": [],
+      "status": "Частично: инструкция; отдельный кадр этого раздела отсутствует"
+    },
+    {
+      "task": "Как переключиться на другой канал",
+      "guide": "guides/manage-channels.md",
+      "anchor": "как-переключиться-на-другой-канал",
+      "images": [],
+      "status": "Частично: инструкция; отдельный кадр этого раздела отсутствует"
+    },
+    {
+      "task": "Как изменить название, идентификатор и аватар",
+      "guide": "guides/manage-channels.md",
+      "anchor": "как-изменить-название-идентификатор-и-аватар",
+      "images": [
+        "screenshots/interface/channel-rename-light.png"
+      ],
+      "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
+    },
+    {
+      "task": "Как сделать полную копию канала",
+      "guide": "guides/manage-channels.md",
+      "anchor": "как-сделать-полную-копию-канала",
+      "images": [],
+      "status": "Частично: инструкция; отдельный кадр этого раздела отсутствует"
+    },
+    {
+      "task": "Как настроить автозапуск",
+      "guide": "guides/manage-channels.md",
+      "anchor": "как-настроить-автозапуск",
+      "images": [],
+      "status": "Частично: инструкция; отдельный кадр этого раздела отсутствует"
+    },
+    {
+      "task": "Как удалить канал",
+      "guide": "guides/manage-channels.md",
+      "anchor": "как-удалить-канал",
+      "images": [
+        "screenshots/interface/channel-delete-light.png"
+      ],
+      "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
+    },
+    {
+      "task": "Как перенести подборку в виртуальную папку",
+      "guide": "guides/media-bulk.md",
+      "anchor": "как-перенести-подборку-в-виртуальную-папку",
+      "images": [
+        "screenshots/interface/media-multiselect-light.png"
+      ],
+      "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
+    },
+    {
+      "task": "Как добавить несколько материалов в плейлист или очередь",
+      "guide": "guides/media-bulk.md",
+      "anchor": "как-добавить-несколько-материалов-в-плейлист-или-очередь",
+      "images": [
+        "screenshots/interface/air-light.png"
+      ],
+      "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
+    },
+    {
+      "task": "Как временно исключить подборку без удаления файлов",
+      "guide": "guides/media-bulk.md",
+      "anchor": "как-временно-исключить-подборку-без-удаления-файлов",
+      "images": [],
+      "status": "Частично: инструкция; отдельный кадр этого раздела отсутствует"
+    },
+    {
+      "task": "Как перенести или убрать ветку папок",
+      "guide": "guides/media-bulk.md",
+      "anchor": "как-перенести-или-убрать-ветку-папок",
+      "images": [
+        "screenshots/interface/media-folder-light.png"
+      ],
+      "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
+    },
+    {
+      "task": "Длинная форма по частям",
+      "guide": "guides/media-display.md",
+      "anchor": "длинная-форма-по-частям",
+      "images": [
+        "screenshots/parts/media-properties.png",
+        "screenshots/parts/media-transforms.png",
+        "screenshots/interface/media-bottom-light.png"
+      ],
+      "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
+    },
+    {
+      "task": "Как исправить поля, обрезку и ориентацию",
+      "guide": "guides/media-display.md",
+      "anchor": "как-исправить-поля-обрезку-и-ориентацию",
+      "images": [
+        "screenshots/interface/media-display-light.png"
+      ],
+      "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
+    },
+    {
+      "task": "Как скорректировать цвет, резкость и шум",
+      "guide": "guides/media-display.md",
+      "anchor": "как-скорректировать-цвет-резкость-и-шум",
+      "images": [
+        "screenshots/interface/media-colour-light.png"
+      ],
+      "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
+    },
+    {
+      "task": "Как вернуть прежний вид",
+      "guide": "guides/media-display.md",
+      "anchor": "как-вернуть-прежний-вид",
+      "images": [],
+      "status": "Частично: инструкция; отдельный кадр этого раздела отсутствует"
+    },
+    {
+      "task": "Как подобрать музыку из списка, папки или категории",
+      "guide": "guides/music-recipes.md",
+      "anchor": "как-подобрать-музыку-из-списка-папки-или-категории",
+      "images": [
+        "screenshots/interface/scene-music-options-light.png"
+      ],
+      "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
+    },
+    {
+      "task": "Как настроить дневную и ночную музыку",
+      "guide": "guides/music-recipes.md",
+      "anchor": "как-настроить-дневную-и-ночную-музыку",
+      "images": [],
+      "status": "Частично: инструкция; отдельный кадр этого раздела отсутствует"
+    },
+    {
+      "task": "Как проиграть музыку один или несколько раз",
+      "guide": "guides/music-recipes.md",
+      "anchor": "как-проиграть-музыку-один-или-несколько-раз",
+      "images": [
+        "screenshots/interface/scene-music-timing-light.png"
+      ],
+      "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
+    },
+    {
+      "task": "Как закончить сцену вместе с музыкой",
+      "guide": "guides/music-recipes.md",
+      "anchor": "как-закончить-сцену-вместе-с-музыкой",
+      "images": [],
+      "status": "Частично: инструкция; отдельный кадр этого раздела отсутствует"
+    },
+    {
+      "task": "Как оставить сцену без общего логотипа",
+      "guide": "guides/music-recipes.md",
+      "anchor": "как-оставить-сцену-без-общего-логотипа",
+      "images": [
+        "screenshots/parts/scene-graphics.png"
+      ],
+      "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
+    },
+    {
+      "task": "Как найти и отсортировать материалы",
+      "guide": "guides/organize-media.md",
+      "anchor": "как-найти-и-отсортировать-материалы",
+      "images": [],
+      "status": "Частично: инструкция; отдельный кадр этого раздела отсутствует"
+    },
+    {
+      "task": "Как создать, переместить и удалить папку",
+      "guide": "guides/organize-media.md",
+      "anchor": "как-создать-переместить-и-удалить-папку",
+      "images": [
+        "screenshots/interface/media-folder-light.png"
+      ],
+      "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
+    },
+    {
+      "task": "Как выполнить массовое действие",
+      "guide": "guides/organize-media.md",
+      "anchor": "как-выполнить-массовое-действие",
+      "images": [],
+      "status": "Частично: инструкция; отдельный кадр этого раздела отсутствует"
+    },
+    {
+      "task": "Как изменить свойства и удалить материал",
+      "guide": "guides/organize-media.md",
+      "anchor": "как-изменить-свойства-и-удалить-материал",
+      "images": [],
+      "status": "Частично: инструкция; отдельный кадр этого раздела отсутствует"
+    },
+    {
+      "task": "Как добавить RTMP-выход",
+      "guide": "guides/outputs.md",
+      "anchor": "как-добавить-rtmp-выход",
+      "images": [
+        "screenshots/interface/output-form-light.png"
+      ],
+      "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
+    },
+    {
+      "task": "Как выбрать другой протокол",
+      "guide": "guides/outputs.md",
+      "anchor": "как-выбрать-другой-протокол",
+      "images": [],
+      "status": "Частично: инструкция; отдельный кадр этого раздела отсутствует"
+    },
+    {
+      "task": "Как подключить входящий поток",
+      "guide": "guides/outputs.md",
+      "anchor": "как-подключить-входящий-поток",
+      "images": [],
+      "status": "Частично: инструкция; отдельный кадр этого раздела отсутствует"
+    },
+    {
+      "task": "Как переставить и продублировать строку",
+      "guide": "guides/playlist-operations.md",
+      "anchor": "как-переставить-и-продублировать-строку",
+      "images": [
+        "screenshots/interface/playlist-selection-light.png"
+      ],
+      "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
+    },
+    {
+      "task": "Как оставить заставку на месте при перемешивании",
+      "guide": "guides/playlist-operations.md",
+      "anchor": "как-оставить-заставку-на-месте-при-перемешивании",
+      "images": [],
+      "status": "Частично: инструкция; отдельный кадр этого раздела отсутствует"
+    },
+    {
+      "task": "Как исключить строку только из этого списка",
+      "guide": "guides/playlist-operations.md",
+      "anchor": "как-исключить-строку-только-из-этого-списка",
+      "images": [
+        "screenshots/interface/playlist-add-light.png"
+      ],
+      "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
+    },
+    {
+      "task": "Как подать строку в эфир без изменения сетки",
+      "guide": "guides/playlist-operations.md",
+      "anchor": "как-подать-строку-в-эфир-без-изменения-сетки",
+      "images": [],
+      "status": "Частично: инструкция; отдельный кадр этого раздела отсутствует"
+    },
+    {
+      "task": "Как создать и заполнить плейлист",
+      "guide": "guides/playlists.md",
+      "anchor": "как-создать-и-заполнить-плейлист",
+      "images": [
+        "screenshots/interface/playlists-light.png",
+        "screenshots/interface/new-playlist-light.png",
+        "screenshots/interface/playlist-add-light.png"
+      ],
+      "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
+    },
+    {
+      "task": "Как настроить повтор, перемешивание и закрепление",
+      "guide": "guides/playlists.md",
+      "anchor": "как-настроить-повтор-перемешивание-и-закрепление",
+      "images": [],
+      "status": "Частично: инструкция; отдельный кадр этого раздела отсутствует"
+    },
+    {
+      "task": "Как удалить запись, очистить или удалить список",
+      "guide": "guides/playlists.md",
+      "anchor": "как-удалить-запись-очистить-или-удалить-список",
+      "images": [],
+      "status": "Частично: инструкция; отдельный кадр этого раздела отсутствует"
+    },
+    {
+      "task": "Как импортировать и экспортировать M3U",
+      "guide": "guides/playlists.md",
+      "anchor": "как-импортировать-и-экспортировать-m3u",
+      "images": [],
+      "status": "Частично: инструкция; отдельный кадр этого раздела отсутствует"
+    },
+    {
+      "task": "Как записывать поток без отдельного перекодирования",
+      "guide": "guides/recording-recipes.md",
+      "anchor": "как-записывать-поток-без-отдельного-перекодирования",
+      "images": [
+        "screenshots/parts/recording-files.png"
+      ],
+      "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
+    },
+    {
+      "task": "Как сделать отдельную запись меньшего размера",
+      "guide": "guides/recording-recipes.md",
+      "anchor": "как-сделать-отдельную-запись-меньшего-размера",
+      "images": [
+        "screenshots/interface/recording-encoding-light.png"
+      ],
+      "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
+    },
+    {
+      "task": "Как записать только звук",
+      "guide": "guides/recording-recipes.md",
+      "anchor": "как-записать-только-звук",
+      "images": [
+        "screenshots/parts/recording-codecs-storage.png"
+      ],
+      "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
+    },
+    {
+      "task": "Как разделять запись и очищать старые файлы",
+      "guide": "guides/recording-recipes.md",
+      "anchor": "как-разделять-запись-и-очищать-старые-файлы",
+      "images": [
+        "screenshots/guides/recording-02.png"
+      ],
+      "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
+    },
+    {
+      "task": "Как включить запись",
+      "guide": "guides/recording.md",
+      "anchor": "как-включить-запись",
+      "images": [
+        "screenshots/interface/recording-light.png",
+        "screenshots/guides/recording-01.png"
+      ],
+      "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
+    },
+    {
+      "task": "Как выбрать формат и звук",
+      "guide": "guides/recording.md",
+      "anchor": "как-выбрать-формат-и-звук",
+      "images": [],
+      "status": "Частично: инструкция; отдельный кадр этого раздела отсутствует"
+    },
+    {
+      "task": "Длинный диалог по частям",
+      "guide": "guides/recording.md",
+      "anchor": "длинный-диалог-по-частям",
+      "images": [
+        "screenshots/parts/recording-files.png",
+        "screenshots/interface/recording-encoding-light.png",
+        "screenshots/parts/recording-codecs-storage.png",
+        "screenshots/guides/recording-02.png"
+      ],
+      "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
+    },
+    {
+      "task": "Как ограничить хранение",
+      "guide": "guides/recording.md",
+      "anchor": "как-ограничить-хранение",
+      "images": [],
+      "status": "Частично: инструкция; отдельный кадр этого раздела отсутствует"
+    },
+    {
+      "task": "Заставка перед новостями и после передачи",
+      "guide": "guides/rule-recipes.md",
+      "anchor": "заставка-перед-новостями-и-после-передачи",
+      "images": [
+        "screenshots/interface/jingles-light.png"
+      ],
+      "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
+    },
+    {
+      "task": "Вставка после определённых роликов или плейлиста",
+      "guide": "guides/rule-recipes.md",
+      "anchor": "вставка-после-определённых-роликов-или-плейлиста",
+      "images": [
+        "screenshots/interface/rule-wizard-content-light.png"
+      ],
+      "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
+    },
+    {
+      "task": "Разные правила утром, ночью и по выходным",
+      "guide": "guides/rule-recipes.md",
+      "anchor": "разные-правила-утром-ночью-и-по-выходным",
+      "images": [
+        "screenshots/interface/rule-conditions-complete-light.png"
+      ],
+      "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
+    },
+    {
+      "task": "Вставка в заданные моменты дня",
+      "guide": "guides/rule-recipes.md",
+      "anchor": "вставка-в-заданные-моменты-дня",
+      "images": [],
+      "status": "Частично: инструкция; отдельный кадр этого раздела отсутствует"
+    },
+    {
+      "task": "Как разрешить конкуренцию и не потерять обязательную вставку",
+      "guide": "guides/rule-recipes.md",
+      "anchor": "как-разрешить-конкуренцию-и-не-потерять-обязательную-вставку",
+      "images": [
+        "screenshots/interface/rules-limits-light.png"
+      ],
+      "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
+    },
+    {
+      "task": "Как настроить затемнение между роликами",
+      "guide": "guides/rule-recipes.md",
+      "anchor": "как-настроить-затемнение-между-роликами",
+      "images": [
+        "screenshots/interface/transitions-light.png"
+      ],
+      "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
+    },
+    {
+      "task": "Как показывать сцену после передач",
+      "guide": "guides/scene-rules.md",
+      "anchor": "как-показывать-сцену-после-передач",
+      "images": [
+        "screenshots/interface/scene-rules-light.png"
+      ],
+      "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
+    },
+    {
+      "task": "Как закрывать паузы перед новостями",
+      "guide": "guides/scene-rules.md",
+      "anchor": "как-закрывать-паузы-перед-новостями",
+      "images": [
+        "screenshots/interface/scene-gaps-light.png"
+      ],
+      "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
+    },
+    {
+      "task": "Как создать сцену из шаблона",
+      "guide": "guides/scenes.md",
+      "anchor": "как-создать-сцену-из-шаблона",
+      "images": [
+        "screenshots/interface/scenes-light.png"
+      ],
+      "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
+    },
+    {
+      "task": "Как добавить музыку и выбрать порядок",
+      "guide": "guides/scenes.md",
+      "anchor": "как-добавить-музыку-и-выбрать-порядок",
+      "images": [
+        "screenshots/parts/scene-music.png",
+        "screenshots/guides/music-01.png"
+      ],
+      "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
+    },
+    {
+      "task": "Как добавить собственную графику сцены",
+      "guide": "guides/scenes.md",
+      "anchor": "как-добавить-собственную-графику-сцены",
+      "images": [
+        "screenshots/parts/scene-graphics.png"
+      ],
+      "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
+    },
+    {
+      "task": "Как поставить сцену в эфир",
+      "guide": "guides/scenes.md",
+      "anchor": "как-поставить-сцену-в-эфир",
+      "images": [],
+      "status": "Частично: инструкция; отдельный кадр этого раздела отсутствует"
+    },
+    {
+      "task": "Как поставить плейлист, отдельные ролики, категорию или рекламу",
+      "guide": "guides/schedule-sources.md",
+      "anchor": "как-поставить-плейлист-отдельные-ролики-категорию-или-рекламу",
+      "images": [
+        "screenshots/interface/schedule-light.png"
+      ],
+      "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
+    },
+    {
+      "task": "Как ограничить блок «следом» и начать плейлист заново",
+      "guide": "guides/schedule-sources.md",
+      "anchor": "как-ограничить-блок-следом-и-начать-плейлист-заново",
+      "images": [
+        "screenshots/parts/schedule-block-top.png"
+      ],
+      "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
+    },
+    {
+      "task": "Как добавить заставки и разрешить заполнение промежутка",
+      "guide": "guides/schedule-sources.md",
+      "anchor": "как-добавить-заставки-и-разрешить-заполнение-промежутка",
+      "images": [
+        "screenshots/parts/schedule-block-bottom.png"
+      ],
+      "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
+    },
+    {
+      "task": "Как выбрать поведение при опоздании",
+      "guide": "guides/schedule-timing.md",
+      "anchor": "как-выбрать-поведение-при-опоздании",
+      "images": [],
+      "status": "Частично: инструкция; отдельный кадр этого раздела отсутствует"
+    },
+    {
+      "task": "Как заполнить промежутки",
+      "guide": "guides/schedule-timing.md",
+      "anchor": "как-заполнить-промежутки",
+      "images": [],
+      "status": "Частично: инструкция; отдельный кадр этого раздела отсутствует"
+    },
+    {
+      "task": "Как читать прогноз и проверять изменения",
+      "guide": "guides/schedule-timing.md",
+      "anchor": "как-читать-прогноз-и-проверять-изменения",
+      "images": [],
+      "status": "Частично: инструкция; отдельный кадр этого раздела отсутствует"
+    },
+    {
+      "task": "Как создать расписание и первый блок",
+      "guide": "guides/schedule.md",
+      "anchor": "как-создать-расписание-и-первый-блок",
+      "images": [
+        "screenshots/interface/schedule-light.png"
+      ],
+      "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
+    },
+    {
+      "task": "По шагам на экране",
+      "guide": "guides/schedule.md",
+      "anchor": "по-шагам-на-экране",
+      "images": [
+        "screenshots/guides/schedule-01.png",
+        "screenshots/guides/schedule-02.png"
+      ],
+      "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
+    },
+    {
+      "task": "Как назначить шаблоны на будни и выходные",
+      "guide": "guides/schedule.md",
+      "anchor": "как-назначить-шаблоны-на-будни-и-выходные",
+      "images": [],
+      "status": "Частично: инструкция; отдельный кадр этого раздела отсутствует"
+    },
+    {
+      "task": "Как выбрать активное расписание",
+      "guide": "guides/schedule.md",
+      "anchor": "как-выбрать-активное-расписание",
+      "images": [],
+      "status": "Частично: инструкция; отдельный кадр этого раздела отсутствует"
+    },
+    {
+      "task": "Как получить статистику показов",
+      "guide": "guides/statistics.md",
+      "anchor": "как-получить-статистику-показов",
+      "images": [
+        "screenshots/interface/stats-light.png",
+        "screenshots/interface/stats-all-light.png"
+      ],
+      "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
+    },
+    {
+      "task": "Как посмотреть нагрузку",
+      "guide": "guides/statistics.md",
+      "anchor": "как-посмотреть-нагрузку",
+      "images": [
+        "screenshots/interface/system-light.png"
+      ],
+      "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
+    },
+    {
+      "task": "Если отчёт пустой или экспорт не удался",
+      "guide": "guides/statistics.md",
+      "anchor": "если-отчёт-пустой-или-экспорт-не-удался",
+      "images": [],
+      "status": "Частично: инструкция; отдельный кадр этого раздела отсутствует"
+    },
+    {
+      "task": "Как создать архив канала с материалами",
+      "guide": "guides/transfer-channel.md",
+      "anchor": "как-создать-архив-канала-с-материалами",
+      "images": [
+        "screenshots/interface/channel-export-light.png"
+      ],
+      "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
+    },
+    {
+      "task": "Как импортировать архив",
+      "guide": "guides/transfer-channel.md",
+      "anchor": "как-импортировать-архив",
+      "images": [
+        "screenshots/interface/channel-import-light.png"
+      ],
+      "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
+    },
+    {
+      "task": "Что не заменяет экспорт",
+      "guide": "guides/transfer-channel.md",
+      "anchor": "что-не-заменяет-экспорт",
+      "images": [],
+      "status": "Частично: инструкция; отдельный кадр этого раздела отсутствует"
+    }
+  ]
+}

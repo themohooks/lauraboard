@@ -542,6 +542,144 @@
       "options": {
         "LB_SNAPSHOT_TAB": "1"
       }
+    },
+    {
+      "name": "clock-properties",
+      "mode": "live",
+      "section": "graphics",
+      "options": {
+        "select": 0,
+        "scroll": [
+          1760,
+          700,
+          -180
+        ],
+        "size": "1920x1080"
+      },
+      "fixture": "six distinct teaching elements, local API; persist false"
+    },
+    {
+      "name": "countdown-properties",
+      "mode": "live",
+      "section": "graphics",
+      "options": {
+        "select": 1,
+        "scroll": [
+          1760,
+          700,
+          -180
+        ],
+        "size": "1920x1080"
+      },
+      "fixture": "six distinct teaching elements, local API; persist false"
+    },
+    {
+      "name": "program-time-properties",
+      "mode": "live",
+      "section": "graphics",
+      "options": {
+        "select": 2,
+        "scroll": [
+          1760,
+          700,
+          -180
+        ],
+        "size": "1920x1080"
+      },
+      "fixture": "six distinct teaching elements, local API; persist false"
+    },
+    {
+      "name": "progress-properties",
+      "mode": "live",
+      "section": "graphics",
+      "options": {
+        "select": 3,
+        "scroll": [
+          1760,
+          700,
+          -180
+        ],
+        "size": "1920x1080"
+      },
+      "fixture": "six distinct teaching elements, local API; persist false"
+    },
+    {
+      "name": "shape-properties",
+      "mode": "live",
+      "section": "graphics",
+      "options": {
+        "select": 4,
+        "scroll": [
+          1760,
+          700,
+          -180
+        ],
+        "size": "1920x1080"
+      },
+      "fixture": "six distinct teaching elements, local API; persist false"
+    },
+    {
+      "name": "ticker-properties",
+      "mode": "live",
+      "section": "graphics",
+      "options": {
+        "select": 5,
+        "scroll": [
+          1760,
+          700,
+          -180
+        ],
+        "size": "1920x1080"
+      },
+      "fixture": "six distinct teaching elements, local API; persist false"
+    },
+    {
+      "name": "progress-appearance",
+      "mode": "live",
+      "section": "graphics",
+      "options": {
+        "select": 3,
+        "scroll": [
+          1760,
+          700,
+          -550
+        ],
+        "size": "1920x1080"
+      },
+      "fixture": "six distinct teaching elements, local API; persist false"
+    },
+    {
+      "name": "graphic-animation",
+      "mode": "live",
+      "section": "graphics",
+      "options": {
+        "select": 0,
+        "scroll": [
+          1760,
+          700,
+          -1200
+        ],
+        "size": "1920x1080"
+      },
+      "fixture": "six distinct teaching elements, local API; persist false"
+    },
+    {
+      "name": "media-multiselect",
+      "mode": "live",
+      "section": "library",
+      "options": {
+        "size": "1920x1080"
+      },
+      "note": "real selection only; properties dialog not opened"
+    },
+    {
+      "name": "playlist-selection",
+      "mode": "live",
+      "section": "playlists",
+      "options": {
+        "size": "1440x960"
+      },
+      "note": "real selection only; properties dialog not opened"
     }
   ],
   "privacy": "System hostname explicitly masked; cropped settings exclude personal profile paths; private originals not published",

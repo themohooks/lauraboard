@@ -22,6 +22,8 @@ PARTS=[
  ('scene-music-options',(624,769,1400,944),'scene-graphics'),
  ('recording',(376,281,1040,548),'recording-files'),
  ('recording-storage',(376,281,1040,791),'recording-codecs-storage'),
+ ('schedule-properties',(1096,116,1415,480),'schedule-block-top'),
+ ('schedule-properties',(1096,489,1415,820),'schedule-block-bottom'),
 ]
 
 def crop(source,box,name):

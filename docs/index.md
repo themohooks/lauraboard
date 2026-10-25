@@ -24,6 +24,8 @@ Laurabrod автоматизирует вещание интернет-теле�
 - [Логотип, текст, часы и бегущая строка](guides/graphics.md), [плашки и шрифты](guides/graphics-plates.md), [автоматический показ и переменные](guides/graphics-rules.md).
 - [Изображение и громкость материала](guides/media-display.md), [кодирование и формат канала](guides/encoder.md).
 
+Подробно: [таймеры и прогресс](guides/graphics-time-progress.md), [слои и анимации](guides/graphics-layout.md), [текст и фигуры](guides/graphics-text-ticker.md), [шаблоны](guides/graphics-templates.md), [режимы показа](guides/graphics-rule-recipes.md), [рецепты вставок](guides/rule-recipes.md), [музыкальные подборки](guides/music-recipes.md), [источники блоков](guides/schedule-sources.md).
+
 ## Работа оператора
 
 - [Обзор интерфейса](interface-overview.md) и [ежедневный порядок работы](basic-usage.md).

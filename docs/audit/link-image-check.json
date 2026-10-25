@@ -1,7 +1,7 @@
 {
-  "markdown_files": 63,
-  "local_links_checked": 1021,
-  "png_files": 183,
+  "markdown_files": 76,
+  "local_links_checked": 1521,
+  "png_files": 205,
   "external_links_not_checked": [
     "https://slint.dev"
   ],
@@ -282,6 +282,26 @@
       "height": 960,
       "bytes": 269556
     },
+    "screenshots/interface/clock-properties-dark.png": {
+      "width": 1920,
+      "height": 1080,
+      "bytes": 274637
+    },
+    "screenshots/interface/clock-properties-light.png": {
+      "width": 1920,
+      "height": 1080,
+      "bytes": 275299
+    },
+    "screenshots/interface/countdown-properties-dark.png": {
+      "width": 1920,
+      "height": 1080,
+      "bytes": 266330
+    },
+    "screenshots/interface/countdown-properties-light.png": {
+      "width": 1920,
+      "height": 1080,
+      "bytes": 266963
+    },
     "screenshots/interface/encoder-bottom-dark.png": {
       "width": 1440,
       "height": 960,
@@ -311,6 +331,16 @@
       "width": 1440,
       "height": 960,
       "bytes": 266331
+    },
+    "screenshots/interface/graphic-animation-dark.png": {
+      "width": 1920,
+      "height": 1080,
+      "bytes": 268531
+    },
+    "screenshots/interface/graphic-animation-light.png": {
+      "width": 1920,
+      "height": 1080,
+      "bytes": 269130
     },
     "screenshots/interface/graphics-add-dark.png": {
       "width": 1440,
@@ -502,6 +532,16 @@
       "height": 960,
       "bytes": 298564
     },
+    "screenshots/interface/media-multiselect-dark.png": {
+      "width": 1920,
+      "height": 1080,
+      "bytes": 359691
+    },
+    "screenshots/interface/media-multiselect-light.png": {
+      "width": 1920,
+      "height": 1080,
+      "bytes": 361296
+    },
     "screenshots/interface/media-transform-dark.png": {
       "width": 1440,
       "height": 960,
@@ -592,6 +632,16 @@
       "height": 960,
       "bytes": 216858
     },
+    "screenshots/interface/playlist-selection-dark.png": {
+      "width": 1440,
+      "height": 960,
+      "bytes": 149256
+    },
+    "screenshots/interface/playlist-selection-light.png": {
+      "width": 1440,
+      "height": 960,
+      "bytes": 149088
+    },
     "screenshots/interface/playlists-dark.png": {
       "width": 1440,
       "height": 960,
@@ -601,6 +651,36 @@
       "width": 1440,
       "height": 960,
       "bytes": 149314
+    },
+    "screenshots/interface/program-time-properties-dark.png": {
+      "width": 1920,
+      "height": 1080,
+      "bytes": 291642
+    },
+    "screenshots/interface/program-time-properties-light.png": {
+      "width": 1920,
+      "height": 1080,
+      "bytes": 292463
+    },
+    "screenshots/interface/progress-appearance-dark.png": {
+      "width": 1920,
+      "height": 1080,
+      "bytes": 286838
+    },
+    "screenshots/interface/progress-appearance-light.png": {
+      "width": 1920,
+      "height": 1080,
+      "bytes": 287026
+    },
+    "screenshots/interface/progress-properties-dark.png": {
+      "width": 1920,
+      "height": 1080,
+      "bytes": 293783
+    },
+    "screenshots/interface/progress-properties-light.png": {
+      "width": 1920,
+      "height": 1080,
+      "bytes": 294241
     },
     "screenshots/interface/recording-dark.png": {
       "width": 1440,
@@ -782,6 +862,16 @@
       "height": 960,
       "bytes": 237475
     },
+    "screenshots/interface/shape-properties-dark.png": {
+      "width": 1920,
+      "height": 1080,
+      "bytes": 274761
+    },
+    "screenshots/interface/shape-properties-light.png": {
+      "width": 1920,
+      "height": 1080,
+      "bytes": 275396
+    },
     "screenshots/interface/sources-dark.png": {
       "width": 1440,
       "height": 960,
@@ -821,6 +911,16 @@
       "width": 1440,
       "height": 960,
       "bytes": 164772
+    },
+    "screenshots/interface/ticker-properties-dark.png": {
+      "width": 1920,
+      "height": 1080,
+      "bytes": 268517
+    },
+    "screenshots/interface/ticker-properties-light.png": {
+      "width": 1920,
+      "height": 1080,
+      "bytes": 269090
     },
     "screenshots/interface/transitions-dark.png": {
       "width": 1440,
@@ -901,6 +1001,16 @@
       "width": 776,
       "height": 623,
       "bytes": 62546
+    },
+    "screenshots/parts/schedule-block-bottom.png": {
+      "width": 319,
+      "height": 331,
+      "bytes": 22948
+    },
+    "screenshots/parts/schedule-block-top.png": {
+      "width": 319,
+      "height": 364,
+      "bytes": 25962
     },
     "screenshots/parts/settings-about.png": {
       "width": 851,

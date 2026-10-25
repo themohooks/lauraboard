@@ -14,6 +14,12 @@
 
 Headless-режим не создаёт системный трей; недоступный переключатель на его снимке не описывает возможность обычного запуска Windows. Снимок не доказывает прохождение всех действий формы. [Пределы проверки](../verification.md). [Манифест захвата](capture-manifest.json) фиксирует режимы, разделы и параметры съёмки; средство изолированной копии дополнено только прокруткой и отключением всплывающих уведомлений при захвате.
 
+## Дополнительный захват подробных свойств
+
+Часы, отсчёт, прогресс, фигура, бегущая строка и анимации сняты в учебном канале отдельными состояниями панели свойств (1920×1080). Положение и содержимое графики подготовлены через API; панели открыты реальным интерфейсом. `playlist-selection` показывает выделение строки, а не открытие свойств. `media-multiselect` показывает выделение нескольких записей. Запись при этом выключена; использовался локальный эфир. Для длинных свойств блока сетки добавлены верхний и нижний фрагменты одного полного кадра.
+
+[Какие изображения встроены в гайды](../image-usage.md). Тёмные варианты сохранены как альтернативная тема; их повторное размещение не требуется для описания тех же полей.
+
 ## Каталог исходников и иллюстраций
 
 | Изображение | Файл |
@@ -73,12 +79,18 @@ Headless-режим не создаёт системный трей; недос�
 | channel-rename-light | [PNG](interface/channel-rename-light.png) |
 | channels-dark | [PNG](interface/channels-dark.png) |
 | channels-light | [PNG](interface/channels-light.png) |
+| clock-properties-dark | [PNG](interface/clock-properties-dark.png) |
+| clock-properties-light | [PNG](interface/clock-properties-light.png) |
+| countdown-properties-dark | [PNG](interface/countdown-properties-dark.png) |
+| countdown-properties-light | [PNG](interface/countdown-properties-light.png) |
 | encoder-bottom-dark | [PNG](interface/encoder-bottom-dark.png) |
 | encoder-bottom-light | [PNG](interface/encoder-bottom-light.png) |
 | encoder-dark | [PNG](interface/encoder-dark.png) |
 | encoder-light | [PNG](interface/encoder-light.png) |
 | encoder-middle-dark | [PNG](interface/encoder-middle-dark.png) |
 | encoder-middle-light | [PNG](interface/encoder-middle-light.png) |
+| graphic-animation-dark | [PNG](interface/graphic-animation-dark.png) |
+| graphic-animation-light | [PNG](interface/graphic-animation-light.png) |
 | graphics-add-dark | [PNG](interface/graphics-add-dark.png) |
 | graphics-add-light | [PNG](interface/graphics-add-light.png) |
 | graphics-dark | [PNG](interface/graphics-dark.png) |
@@ -117,6 +129,8 @@ Headless-режим не создаёт системный трей; недос�
 | media-folder-light | [PNG](interface/media-folder-light.png) |
 | media-import-dark | [PNG](interface/media-import-dark.png) |
 | media-import-light | [PNG](interface/media-import-light.png) |
+| media-multiselect-dark | [PNG](interface/media-multiselect-dark.png) |
+| media-multiselect-light | [PNG](interface/media-multiselect-light.png) |
 | media-transform-dark | [PNG](interface/media-transform-dark.png) |
 | media-transform-light | [PNG](interface/media-transform-light.png) |
 | new-channel-dark | [PNG](interface/new-channel-dark.png) |
@@ -135,8 +149,16 @@ Headless-режим не создаёт системный трей; недос�
 | plate-shape-bottom-light | [PNG](interface/plate-shape-bottom-light.png) |
 | playlist-add-dark | [PNG](interface/playlist-add-dark.png) |
 | playlist-add-light | [PNG](interface/playlist-add-light.png) |
+| playlist-selection-dark | [PNG](interface/playlist-selection-dark.png) |
+| playlist-selection-light | [PNG](interface/playlist-selection-light.png) |
 | playlists-dark | [PNG](interface/playlists-dark.png) |
 | playlists-light | [PNG](interface/playlists-light.png) |
+| program-time-properties-dark | [PNG](interface/program-time-properties-dark.png) |
+| program-time-properties-light | [PNG](interface/program-time-properties-light.png) |
+| progress-appearance-dark | [PNG](interface/progress-appearance-dark.png) |
+| progress-appearance-light | [PNG](interface/progress-appearance-light.png) |
+| progress-properties-dark | [PNG](interface/progress-properties-dark.png) |
+| progress-properties-light | [PNG](interface/progress-properties-light.png) |
 | recording-dark | [PNG](interface/recording-dark.png) |
 | recording-encoding-dark | [PNG](interface/recording-encoding-dark.png) |
 | recording-encoding-light | [PNG](interface/recording-encoding-light.png) |
@@ -173,6 +195,8 @@ Headless-режим не создаёт системный трей; недос�
 | schedule-properties-light | [PNG](interface/schedule-properties-light.png) |
 | settings-dark | [PNG](interface/settings-dark.png) |
 | settings-light | [PNG](interface/settings-light.png) |
+| shape-properties-dark | [PNG](interface/shape-properties-dark.png) |
+| shape-properties-light | [PNG](interface/shape-properties-light.png) |
 | sources-dark | [PNG](interface/sources-dark.png) |
 | sources-light | [PNG](interface/sources-light.png) |
 | stats-all-dark | [PNG](interface/stats-all-dark.png) |
@@ -181,6 +205,8 @@ Headless-режим не создаёт системный трей; недос�
 | stats-light | [PNG](interface/stats-light.png) |
 | system-dark | [PNG](interface/system-dark.png) |
 | system-light | [PNG](interface/system-light.png) |
+| ticker-properties-dark | [PNG](interface/ticker-properties-dark.png) |
+| ticker-properties-light | [PNG](interface/ticker-properties-light.png) |
 | transitions-dark | [PNG](interface/transitions-dark.png) |
 | transitions-light | [PNG](interface/transitions-light.png) |
 | welcome-dark | [PNG](interface/welcome-dark.png) |
@@ -197,9 +223,9 @@ Headless-режим не создаёт системный трей; недос�
 | recording-files | [PNG](parts/recording-files.png) |
 | scene-graphics | [PNG](parts/scene-graphics.png) |
 | scene-music | [PNG](parts/scene-music.png) |
+| schedule-block-bottom | [PNG](parts/schedule-block-bottom.png) |
+| schedule-block-top | [PNG](parts/schedule-block-top.png) |
 | settings-about | [PNG](parts/settings-about.png) |
 | settings-connection | [PNG](parts/settings-connection.png) |
 | settings-layout | [PNG](parts/settings-layout.png) |
 | settings-shortcuts | [PNG](parts/settings-shortcuts.png) |
-
-[Главная](../index.md) · [Покрытие задач](../coverage.md)
