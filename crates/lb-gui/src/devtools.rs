@@ -385,6 +385,10 @@ fn prepare_live(section: &str) {
             }
             let pick = std::env::var("LB_SNAPSHOT_SELECT").ok().and_then(|v| v.parse().ok()).unwrap_or(0);
             crate::bridge::graphics::select(c, pick);
+            if std::env::var("LB_SNAPSHOT_PLATE_EDITOR").is_ok() {
+                crate::bridge::graphics::plate_editor::demo_styles(c, &["Утреннее шоу", "Гость студии", "Погода"]);
+                crate::bridge::graphics::plate_editor::open(c);
+            }
         });
     }
     if section == "log"

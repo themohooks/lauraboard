@@ -12,7 +12,7 @@
 mod design;
 mod fonts;
 mod layers;
-mod plate_editor;
+pub(crate) mod plate_editor;
 pub mod scope;
 mod textures;
 

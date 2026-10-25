@@ -14,6 +14,8 @@ import { Switch } from "../../components/switch.slint";
 import { Interactive } from "../../components/interactive.slint";
 import { SegmentedButton } from "../../components/segmented-button.slint";
 import { Button, ButtonVariant } from "../../components/button.slint";
+import { IconButton } from "../../components/icon-button.slint";
+import { TextField } from "../../components/text-field.slint";
 import { CircularProgress } from "../../components/feedback.slint";
 import { Dialog, DialogActions } from "../../components/dialog.slint";
 import { Gfx } from "../../state/graphics-state.slint";
@@ -39,6 +41,87 @@ component PresetTile inherits Interactive {
         type-style: Theme.label-large;
         horizontal-alignment: center;
         vertical-alignment: center;
+    }
+}
+
+// A saved style of the user: apply on click, remove with the cross.
+component MineTile inherits Interactive {
+    in property <string> name;
+    in property <int> index;
+    radius: Theme.radius-m;
+    height: 40px;
+    background: Theme.color.secondary-container;
+    accessible-role: button;
+    accessible-label: name;
+    clicked => {
+        Gfx.plate-style-apply(index);
+    }
+    HorizontalLayout {
+        padding-left: Theme.sp3;
+        Label {
+            horizontal-stretch: 1;
+            text: name;
+            type-style: Theme.label-large;
+            color: Theme.color.on-secondary-container;
+            vertical-alignment: center;
+            overflow: elide;
+        }
+        IconButton {
+            icon: Icons.close;
+            tooltip: "Удалить стиль «" + name + "»";
+            clicked => {
+                Gfx.plate-style-remove(index);
+            }
+        }
+    }
+}
+
+// The user's own styles: save the current design under a name, apply it
+// to any plate.
+component MyStyles inherits VerticalLayout {
+    spacing: Theme.sp2;
+    Label {
+        text: "Мои стили — сохраните оформление этой плашки, чтобы применять его к другим";
+        type-style: Theme.title-small;
+        wrap: word-wrap;
+    }
+    for row in (Gfx.pe-mine.length + 2) / 3: HorizontalLayout {
+        spacing: Theme.sp2;
+        for i in [0, 1, 2]: Rectangle {
+            horizontal-stretch: 1;
+            height: 40px;
+            if row * 3 + i < Gfx.pe-mine.length: MineTile {
+                width: parent.width;
+                index: row * 3 + i;
+                name: Gfx.pe-mine[row * 3 + i];
+            }
+        }
+    }
+    HorizontalLayout {
+        spacing: Theme.sp2;
+        TextField {
+            horizontal-stretch: 1;
+            label: "Название стиля";
+            text <=> Gfx.pe-mine-name;
+            placeholder: "Например, «Гость утреннего шоу»";
+            container-color: Theme.color.surface-container-low;
+            accepted => {
+                Gfx.plate-style-save();
+            }
+        }
+        VerticalLayout {
+            alignment: center;
+            Button {
+                text: "Сохранить стиль";
+                icon: Icons.save;
+                has-icon: true;
+                variant: ButtonVariant.tonal;
+                tooltip: "Фон, форма, отступы, раскладка и шрифты строк — без текста";
+                clicked => {
+                    Gfx.plate-style-save();
+                }
+            }
+        }
     }
 }
 
@@ -229,7 +312,9 @@ export component PlateEditorDialog inherits Dialog {
                 VerticalLayout {
                     width: sv-left.visible-width;
                     padding-right: Theme.sp2;
+                    spacing: Theme.sp3;
                     alignment: start;
+                    MyStyles { }
                     PlateSection { }
                 }
             }

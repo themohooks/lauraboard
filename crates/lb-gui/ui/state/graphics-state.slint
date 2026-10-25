@@ -268,6 +268,12 @@ export global Gfx {
     in property <[string]> pe-presets;
     callback open-plate-editor();
     callback plate-preset(int);
+    // the user's own saved styles (names), the name for a new one
+    in property <[string]> pe-mine;
+    in-out property <string> pe-mine-name;
+    callback plate-style-save();
+    callback plate-style-apply(int);
+    callback plate-style-remove(int);
     in property <[PlateFieldRow]> pl-fields;
     in-out property <int> pl-field;
     in-out property <string> pl-label;

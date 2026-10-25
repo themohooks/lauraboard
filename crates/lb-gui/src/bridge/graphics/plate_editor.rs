@@ -5,7 +5,7 @@
 use serde_json::json;
 use slint::{ComponentHandle, Image, Rgba8Pixel, SharedPixelBuffer};
 
-use lb_core::graphics::{Accent, ElementKind, PlateField, PlateLayout, ShapeStyle, Side, TextAlign, TextStyle, VAlign};
+use lb_core::graphics::{Accent, ElementKind, PlateField, PlateLayout, PlateStyle, ShapeStyle, Side, TextAlign, TextStyle, VAlign};
 
 use super::{mutate, props, refresh, s, update_item, with};
 use crate::bridge::{Ctx, vec_model};
@@ -18,16 +18,89 @@ const MARGIN: u32 = 24;
 pub fn connect(ui: &AppWindow) {
     let g = ui.global::<Gfx>();
     g.set_pe_presets(vec_model(PRESETS.iter().map(|(n, _)| s(*n)).collect()));
-    g.on_open_plate_editor(|| {
-        with(|c| {
-            if let Some(ui) = c.window() {
-                ui.global::<Gfx>().set_pe_open(true);
-            }
-            preview(c);
-        })
-    });
+    g.on_open_plate_editor(|| with(open));
     g.on_plate_preset(|i| with(move |c| apply_preset(c, i.max(0) as usize)));
     g.on_pick_plate_icon(|| with(pick_icon));
+    g.on_plate_style_save(|| with(save_style));
+    g.on_plate_style_apply(|i| with(move |c| apply_style(c, i.max(0) as usize)));
+    g.on_plate_style_remove(|i| with(move |c| remove_style(c, i.max(0) as usize)));
+}
+
+// ------------------------------------------------------------ the user's styles
+
+/// Names of the saved styles into the editor.
+pub fn show_styles(c: &mut Ctx) {
+    let Some(ui) = c.window() else { return };
+    ui.global::<Gfx>().set_pe_mine(vec_model(c.prefs.plate_styles.iter().map(|st| s(st.name.clone())).collect()));
+}
+
+/// Save the selected plate's design under the typed name (the same name
+/// replaces the old style).
+fn save_style(c: &mut Ctx) {
+    let Some(ui) = c.window() else { return };
+    let g = ui.global::<Gfx>();
+    let name = g.get_pe_mine_name().trim().to_string();
+    if name.is_empty() {
+        c.toast("Введите название стиля", true);
+        return;
+    }
+    let Some((sel, _)) = selected_plate(c) else { return };
+    let Some(st) = c.gfx.draft.as_ref().and_then(|d| d.elements.get(sel)).and_then(|e| PlateStyle::capture(&name, &e.kind)) else { return };
+    let styles = &mut c.prefs.plate_styles;
+    let replaced = match styles.iter_mut().find(|x| x.name.eq_ignore_ascii_case(&name)) {
+        Some(x) => {
+            *x = st;
+            true
+        }
+        None => {
+            styles.push(st);
+            false
+        }
+    };
+    c.prefs.save();
+    g.set_pe_mine_name("".into());
+    show_styles(c);
+    c.toast(if replaced { format!("Стиль «{name}» обновлён") } else { format!("Стиль «{name}» сохранён — он доступен для любой плашки") }, false);
+}
+
+fn apply_style(c: &mut Ctx, i: usize) {
+    let Some((sel, _)) = selected_plate(c) else { return };
+    let Some(st) = c.prefs.plate_styles.get(i).cloned() else { return };
+    mutate(c, None, |cfg| {
+        if let Some(e) = cfg.elements.get_mut(sel) {
+            st.apply(&mut e.kind);
+        }
+    });
+    update_item(c, sel);
+    refresh(c);
+    c.toast(format!("Стиль «{}» применён — текст строк сохранён", st.name), false);
+}
+
+fn remove_style(c: &mut Ctx, i: usize) {
+    let Some(name) = c.prefs.plate_styles.get(i).map(|st| st.name.clone()) else { return };
+    c.ask("Удалить стиль?", &format!("Стиль «{name}» пропадёт из списка. Плашки, к которым он применён, не изменятся."), "Удалить", move |c| {
+        if let Some(j) = c.prefs.plate_styles.iter().position(|st| st.name == name) {
+            c.prefs.plate_styles.remove(j);
+            c.prefs.save();
+        }
+        show_styles(c);
+    });
+}
+
+pub fn open(c: &mut Ctx) {
+    if let Some(ui) = c.window() {
+        ui.global::<Gfx>().set_pe_open(true);
+    }
+    show_styles(c);
+    preview(c);
+}
+
+/// Snapshots: the selected plate saved as styles `names`.
+#[cfg(feature = "snapshot")]
+pub fn demo_styles(c: &mut Ctx, names: &[&str]) {
+    let Some((sel, _)) = selected_plate(c) else { return };
+    let Some(e) = c.gfx.draft.as_ref().and_then(|d| d.elements.get(sel)) else { return };
+    c.prefs.plate_styles = names.iter().filter_map(|n| PlateStyle::capture(n, &e.kind)).collect();
 }
 
 /// The selected element, when it is a plate.

@@ -71,6 +71,8 @@ pub struct UiPrefs {
     pub close_to_tray: bool,
     /// System notifications (Windows / Linux / macOS).
     pub notify: NotifyPrefs,
+    /// Plate designs saved by the user ("my styles").
+    pub plate_styles: Vec<lb_core::graphics::PlateStyle>,
     /// Written to disk on change (off for headless tools).
     #[serde(skip)]
     pub persist: bool,
@@ -89,6 +91,7 @@ impl Default for UiPrefs {
             library_grid: false,
             close_to_tray: true,
             notify: NotifyPrefs::default(),
+            plate_styles: Vec::new(),
             persist: true,
         }
     }
