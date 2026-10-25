@@ -2,32 +2,11 @@
 
 use serde::{Deserialize, Serialize};
 
-use super::{EncoderConfig, RateControl};
+use super::{AudioFormat, EncoderConfig, RateControl};
 use crate::Dur;
 
-/// Container of the recorded files.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
-#[serde(rename_all = "snake_case")]
-pub enum RecordFormat {
-    /// Fragmented MP4: plays everywhere, stays readable if the program or
-    /// the computer stops mid-file.
-    #[default]
-    Mp4,
-    /// Matroska.
-    Mkv,
-    /// MPEG transport stream (the most robust, largest files).
-    Ts,
-}
-
-impl RecordFormat {
-    pub fn extension(self) -> &'static str {
-        match self {
-            RecordFormat::Mp4 => "mp4",
-            RecordFormat::Mkv => "mkv",
-            RecordFormat::Ts => "ts",
-        }
-    }
-}
+mod codec;
+pub use codec::*;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct RecordConfig {
@@ -57,6 +36,12 @@ pub struct RecordConfig {
     /// `<prefix>-YYYYMMDD-HHMMSS.<ext>`.
     #[serde(default, skip_serializing_if = "String::is_empty")]
     pub prefix: String,
+    /// Picture: as on air, or encoded again (other codec, size, quality).
+    #[serde(default)]
+    pub video: RecordVideo,
+    /// Sound: as on air, or encoded again (codec, bitrate, sample rate).
+    #[serde(default)]
+    pub audio: RecordAudio,
 }
 
 impl RecordConfig {
@@ -88,6 +73,44 @@ impl RecordConfig {
     }
 }
 
+impl RecordConfig {
+    /// Picture codec in effect (`None`: sound only). One the container
+    /// does not take falls back to copying.
+    pub fn video_codec(&self) -> Option<RecordVideoCodec> {
+        let ok = self.format.video_codecs();
+        if ok.is_empty() {
+            return None;
+        }
+        Some(if ok.contains(&self.video.codec) { self.video.codec } else { ok[0] })
+    }
+
+    /// Sound codec in effect: the configured one, or the container's first.
+    pub fn audio_codec(&self) -> RecordAudioCodec {
+        let ok = self.format.audio_codecs();
+        if ok.contains(&self.audio.codec) { self.audio.codec } else { ok[0] }
+    }
+
+    /// Expected bitrate of the recording (bits/s), for the file size limit.
+    pub fn expected_bitrate(&self, e: &EncoderConfig, a: &AudioFormat) -> Option<f64> {
+        let video = match self.video_codec() {
+            None => 0.0,
+            Some(RecordVideoCodec::Copy) => video_bitrate(e)?,
+            Some(_) => parse_rate(&self.video.bitrate).or_else(|| video_bitrate(e))?,
+        };
+        let sr = if self.audio.sample_rate > 0 { self.audio.sample_rate } else { a.sample_rate } as f64;
+        let ch = if self.audio.channels > 0 { self.audio.channels } else { a.channels } as f64;
+        let pcm = sr * ch * if self.audio.bits >= 24 { 24.0 } else { 16.0 };
+        let audio = match self.audio_codec() {
+            RecordAudioCodec::Copy => parse_rate(&e.audio_bitrate).unwrap_or(128_000.0),
+            RecordAudioCodec::Pcm => pcm,
+            // lossless compression: about 60 % of PCM for broadcast sound
+            RecordAudioCodec::Flac => pcm * 0.6,
+            _ => parse_rate(&self.audio.bitrate).unwrap_or(192_000.0),
+        };
+        Some(video + audio)
+    }
+}
+
 impl Default for RecordConfig {
     fn default() -> Self {
         RecordConfig {
@@ -99,6 +122,8 @@ impl Default for RecordConfig {
             keep_days: 0,
             max_total_gb: 0.0,
             prefix: String::new(),
+            video: RecordVideo::default(),
+            audio: RecordAudio::default(),
         }
     }
 }
@@ -119,14 +144,18 @@ pub fn parse_rate(s: &str) -> Option<f64> {
 /// constant quality without a cap the rate is unknown: twice the nominal
 /// bitrate is assumed, so files stay under a size limit.
 pub fn expected_bitrate(e: &EncoderConfig) -> Option<f64> {
+    Some(video_bitrate(e)? + parse_rate(&e.audio_bitrate).unwrap_or(128_000.0))
+}
+
+/// Expected video bitrate of the encoder output (bits/s).
+fn video_bitrate(e: &EncoderConfig) -> Option<f64> {
     let nominal = parse_rate(&e.video_bitrate);
     let cap = e.maxrate.as_deref().and_then(parse_rate);
-    let video = match e.rate_control {
+    match e.rate_control {
         RateControl::Cbr => nominal,
         RateControl::Vbr => cap.or(nominal.map(|n| n * 1.5)),
         RateControl::Quality => cap.or(nominal.map(|n| n * 2.0)),
-    }?;
-    Some(video + parse_rate(&e.audio_bitrate).unwrap_or(128_000.0))
+    }
 }
 
 #[cfg(test)]
@@ -157,6 +186,35 @@ mod tests {
         let r: RecordConfig = toml::from_str("enabled = true\ndir = \"rec\"\nsegment = \"00:30:00\"").unwrap();
         assert_eq!(r.format, RecordFormat::Mp4);
         assert_eq!(r.segment_secs(None), 1800);
-        assert_eq!(RecordConfig { prefix: "Мой канал/1".into(), ..r }.file_prefix("main"), "Мой_канал_1");
+        assert_eq!(RecordConfig { prefix: "Мой канал/1".into(), ..r.clone() }.file_prefix("main"), "Мой_канал_1");
+        assert_eq!(r.video_codec(), Some(RecordVideoCodec::Copy));
+        assert_eq!(r.audio_codec(), RecordAudioCodec::Copy);
+    }
+
+    #[test]
+    fn codecs_follow_the_container() {
+        let mut r = RecordConfig { format: RecordFormat::Flv, ..Default::default() };
+        r.video.codec = RecordVideoCodec::H265;
+        r.audio.codec = RecordAudioCodec::Flac;
+        // FLV takes neither: copy
+        assert_eq!(r.video_codec(), Some(RecordVideoCodec::Copy));
+        assert_eq!(r.audio_codec(), RecordAudioCodec::Copy);
+        r.format = RecordFormat::Wav;
+        assert_eq!(r.video_codec(), None);
+        assert_eq!(r.audio_codec(), RecordAudioCodec::Pcm);
+    }
+
+    #[test]
+    fn audio_only_bitrate() {
+        let (e, a) = (EncoderConfig::default(), AudioFormat::default());
+        let mut r = RecordConfig { format: RecordFormat::Mp3, ..Default::default() };
+        r.audio.bitrate = "320k".into();
+        assert_eq!(r.expected_bitrate(&e, &a), Some(320_000.0));
+        r.format = RecordFormat::Wav;
+        r.audio.bits = 24;
+        let pcm = a.sample_rate as f64 * a.channels as f64 * 24.0;
+        assert_eq!(r.expected_bitrate(&e, &a), Some(pcm));
+        let video: RecordConfig = Default::default();
+        assert_eq!(video.expected_bitrate(&e, &a), expected_bitrate(&e));
     }
 }

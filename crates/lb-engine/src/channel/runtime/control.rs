@@ -211,6 +211,11 @@ impl Runtime {
             self.restart_encoder().await;
             return Ok("reloaded (encoder restarted)".into());
         }
+        if self.running {
+            // recording settings: the recorder restarts, the broadcast goes on
+            let data = self.shared.data.read().unwrap_or_else(|e| e.into_inner()).clone();
+            self.output.apply_record(&self.shared.app.ffmpeg, &data).await;
+        }
         Ok("reloaded".into())
     }
 
@@ -307,6 +312,5 @@ fn encoder_settings_changed(a: &ChannelConfig, b: &ChannelConfig) -> bool {
         || a.audio != b.audio
         || a.encoder != b.encoder
         || a.outputs != b.outputs
-        || a.record != b.record
         || a.preview != b.preview
 }

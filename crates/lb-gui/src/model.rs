@@ -73,6 +73,8 @@ pub struct RecordingView {
     pub total_bytes: u64,
     #[serde(default)]
     pub free_bytes: Option<u64>,
+    #[serde(default)]
+    pub error: Option<String>,
 }
 
 #[derive(Debug, Clone, Deserialize, Default)]

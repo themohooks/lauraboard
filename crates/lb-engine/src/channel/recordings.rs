@@ -2,7 +2,7 @@
 //! of old files by age and by the total size of the channel's recordings.
 //!
 //! Only files named like the recorder names them are touched
-//! (`<prefix>-YYYYMMDD-HHMMSS.<mp4|mkv|ts>`); the newest one is never
+//! (`<prefix>-YYYYMMDD-HHMMSS.<ext>`); the newest one is never
 //! deleted (it is being written).
 
 use std::path::{Path, PathBuf};
@@ -10,7 +10,7 @@ use std::time::{Duration, Instant, SystemTime};
 
 use serde::{Deserialize, Serialize};
 
-use lb_core::config::RecordConfig;
+use lb_core::config::{RecordConfig, RecordFormat};
 
 /// How often the directory is looked at for the status.
 const SCAN_EVERY: Duration = Duration::from_secs(5);
@@ -30,6 +30,9 @@ pub struct RecordingStatus {
     /// Free space on the disk, when known.
     #[serde(default)]
     pub free_bytes: Option<u64>,
+    /// Why the recorder does not work right now.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub error: Option<String>,
 }
 
 /// A recording file.
@@ -45,7 +48,7 @@ fn is_recording(name: &str, prefix: &str) -> bool {
     let Some(rest) = name.strip_prefix(prefix).and_then(|r| r.strip_prefix('-')) else { return false };
     let Some((stamp, ext)) = rest.rsplit_once('.') else { return false };
     let ok_stamp = stamp.len() == 15 && stamp.as_bytes()[8] == b'-' && stamp.bytes().enumerate().all(|(i, b)| i == 8 || b.is_ascii_digit());
-    ok_stamp && matches!(ext, "mp4" | "mkv" | "ts")
+    ok_stamp && RecordFormat::extensions().any(|e| e == ext)
 }
 
 /// Recordings of `prefix` in `dir`, oldest first.
@@ -135,6 +138,7 @@ impl Recordings {
                 files: files.len(),
                 total_bytes: files.iter().map(|f| f.bytes).sum(),
                 free_bytes: crate::system::free_space(dir),
+                error: None,
             });
         }
         deleted
@@ -157,7 +161,8 @@ mod tests {
     fn names() {
         assert!(is_recording("main-20261024-120000.mp4", "main"));
         assert!(is_recording("main-20261024-120000.ts", "main"));
-        assert!(!is_recording("main-20261024-120000.mov", "main"));
+        assert!(is_recording("main-20261024-120000.flac", "main"));
+        assert!(!is_recording("main-20261024-120000.txt", "main"));
         assert!(!is_recording("main2-20261024-120000.mp4", "main"));
         assert!(!is_recording("main-notes.mp4", "main"));
     }

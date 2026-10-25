@@ -6,6 +6,7 @@
 //! * [`runtime`] — the actor: transitions, supervision, publishing
 //! * [`playout`] — feeding one item through a decoder into the encoder
 //! * [`output`] — encoder supervisor
+//! * [`recorder`] — recorder process supervision (fed by the encoder)
 //! * [`recordings`] — recording status and clean-up of old files
 //! * [`gfx`] — graphics rendering thread
 //! * [`job`] — rundown item → decoder command line
@@ -18,6 +19,7 @@ pub mod gfx;
 pub mod job;
 pub mod output;
 pub mod playout;
+pub mod recorder;
 pub mod recordings;
 pub mod runtime;
 pub mod scheduler;

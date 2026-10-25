@@ -1,7 +1,9 @@
-// Recording of the broadcast to files: on / off, format, folder, file
-// length and size, how long and how much to keep. Saving restarts the
-// encoder (short break on air).
+// Recording of the broadcast to files: on / off, format (video or sound
+// only), picture and sound (as on air or encoded again), folder, file
+// length and size, how long and how much to keep. The recorder runs apart
+// from the encoder: saving never interrupts the broadcast.
 
+import { ScrollView } from "std-widgets.slint";
 import { Theme } from "../../theme/tokens.slint";
 import { Icons } from "../../theme/icons.slint";
 import { Dialog, DialogActions } from "../../components/dialog.slint";
@@ -13,21 +15,43 @@ import { Button, ButtonVariant } from "../../components/button.slint";
 import { IconButton } from "../../components/icon-button.slint";
 import { Src } from "../../state/sources-state.slint";
 
+component Section inherits VerticalLayout {
+    in property <string> title;
+    in property <string> hint;
+    spacing: Theme.sp3;
+    padding-top: Theme.sp2;
+    VerticalLayout {
+        spacing: 2px;
+        Label {
+            text: root.title;
+            type-style: Theme.title-small;
+            color: Theme.color.primary;
+        }
+        if root.hint != "": Label {
+            text: root.hint;
+            type-style: Theme.body-small;
+            color: Theme.color.on-surface-variant;
+            wrap: word-wrap;
+        }
+    }
+    @children
+}
+
 component Field inherits TextField {
     horizontal-stretch: 1;
     container-color: Theme.color.surface-container-high;
 }
 
-component Heading inherits Label {
-    type-style: Theme.title-small;
-    color: Theme.color.primary;
+component Choice inherits Select {
+    horizontal-stretch: 1;
+    container-color: Theme.color.surface-container-high;
 }
 
 export component RecordDialog inherits Dialog {
     open: Src.dialog == "record";
-    dialog-width: 640px;
+    dialog-width: 720px;
     title: "Запись эфира";
-    text: "Пишется то же, что уходит в эфир: с графикой и звуком. Файлы делятся по времени и размеру и называются по дате начала.";
+    text: "Пишется то же, что уходит в эфир: с графикой и звуком. Запись идёт отдельно от кодировщика — изменение настроек не прерывает эфир.";
     has-icon: true;
     icon: Icons.radio-button-checked;
     dismissed => {
@@ -39,84 +63,195 @@ export component RecordDialog inherits Dialog {
         checked <=> Src.r-enabled;
     }
 
-    Heading {
-        text: "Файлы";
-    }
-    HorizontalLayout {
-        spacing: Theme.sp3;
-        Select {
-            horizontal-stretch: 1;
-            label: "Формат";
-            options: ["MP4 — открывается везде", "MKV (Matroska)", "TS — самый надёжный, крупнее"];
-            current-index <=> Src.r-format;
-            container-color: Theme.color.surface-container-high;
-            supporting: "MP4 пишется фрагментами: файл читается даже после сбоя";
-        }
-        Field {
-            label: "Префикс имени";
-            text <=> Src.r-prefix;
-            placeholder: Src.r-prefix-hint;
-            supporting: "Имя: префикс-дата-время";
-        }
-    }
-    HorizontalLayout {
-        spacing: Theme.sp2;
-        Field {
-            label: "Папка";
-            text <=> Src.r-dir;
-            mono: true;
-            supporting: "Полный путь или папка внутри папки канала";
-        }
+    sv := ScrollView {
+        height: min(520px, root.height - 300px);
         VerticalLayout {
-            alignment: start;
-            padding-top: 4px;
-            IconButton {
-                icon: Icons.folder-open;
-                tooltip: "Выбрать папку";
-                clicked => {
-                    Src.record-browse();
+            width: sv.visible-width;
+            padding-right: Theme.sp3;
+            spacing: Theme.sp3;
+
+            Section {
+                title: "Файлы";
+                HorizontalLayout {
+                    spacing: Theme.sp3;
+                    Choice {
+                        label: "Формат";
+                        options: [
+                            "MP4 — открывается везде",
+                            "MKV (Matroska) — любые кодеки",
+                            "TS — самый надёжный",
+                            "MOV — для монтажа",
+                            "FLV",
+                            "MP3 — только звук",
+                            "M4A (AAC) — только звук",
+                            "OGG (Opus) — только звук",
+                            "FLAC — звук без потерь",
+                            "WAV — звук без сжатия",
+                        ];
+                        current-index <=> Src.r-format;
+                        selected => {
+                            Src.record-format-changed();
+                        }
+                        supporting: "MP4, MOV и M4A пишутся фрагментами: файл читается даже после сбоя";
+                    }
+                    Field {
+                        label: "Префикс имени";
+                        text <=> Src.r-prefix;
+                        placeholder: Src.r-prefix-hint;
+                        supporting: "Имя: префикс-дата-время";
+                    }
+                }
+                HorizontalLayout {
+                    spacing: Theme.sp2;
+                    Field {
+                        label: "Папка";
+                        text <=> Src.r-dir;
+                        mono: true;
+                        supporting: "Полный путь или папка внутри папки канала";
+                    }
+                    VerticalLayout {
+                        alignment: start;
+                        padding-top: 4px;
+                        IconButton {
+                            icon: Icons.folder-open;
+                            tooltip: "Выбрать папку";
+                            clicked => {
+                                Src.record-browse();
+                            }
+                        }
+                    }
+                }
+                HorizontalLayout {
+                    spacing: Theme.sp3;
+                    Field {
+                        label: "Длина файла";
+                        suffix: "мин";
+                        text <=> Src.r-segment;
+                        mono: true;
+                        supporting: "Новый файл через это время";
+                    }
+                    Field {
+                        label: "Максимальный размер файла";
+                        suffix: "МБ";
+                        text <=> Src.r-max-mb;
+                        placeholder: "без ограничения";
+                        mono: true;
+                        supporting: "Длина файла сокращается по битрейту записи";
+                    }
                 }
             }
-        }
-    }
-    HorizontalLayout {
-        spacing: Theme.sp3;
-        Field {
-            label: "Длина файла";
-            suffix: "мин";
-            text <=> Src.r-segment;
-            mono: true;
-            supporting: "Новый файл через это время";
-        }
-        Field {
-            label: "Максимальный размер файла";
-            suffix: "МБ";
-            text <=> Src.r-max-mb;
-            placeholder: "без ограничения";
-            mono: true;
-            supporting: "Длина файла сокращается по битрейту кодировщика";
-        }
-    }
 
-    Heading {
-        text: "Хранение";
-    }
-    HorizontalLayout {
-        spacing: Theme.sp3;
-        Field {
-            label: "Хранить";
-            suffix: "дней";
-            text <=> Src.r-keep-days;
-            placeholder: "всегда";
-            mono: true;
-        }
-        Field {
-            label: "Всего на диске не больше";
-            suffix: "ГБ";
-            text <=> Src.r-max-gb;
-            placeholder: "без ограничения";
-            mono: true;
-            supporting: "Старые записи удаляются, текущая — никогда";
+            if !Src.r-audio-only: Section {
+                title: "Изображение";
+                hint: "«Как в эфире» не нагружает компьютер. Своё сжатие — другой кодек, размер или качество, но кодируется ещё раз.";
+                HorizontalLayout {
+                    spacing: Theme.sp3;
+                    Choice {
+                        label: "Кодек";
+                        options: Src.r-vcodecs;
+                        current-index <=> Src.r-vcodec;
+                    }
+                    Choice {
+                        label: "Размер кадра";
+                        options: ["Как в эфире", "2160p (4K)", "1440p", "1080p", "720p", "576p", "480p", "360p"];
+                        current-index <=> Src.r-height;
+                        enabled: Src.r-vcodec > 0;
+                    }
+                }
+                if Src.r-vcodec > 0: HorizontalLayout {
+                    spacing: Theme.sp3;
+                    Choice {
+                        label: "Сжатие";
+                        options: ["Качество (CRF)", "Битрейт"];
+                        current-index <=> Src.r-vmode;
+                    }
+                    if Src.r-vmode == 0: Field {
+                        label: "Качество";
+                        text <=> Src.r-crf;
+                        placeholder: "23";
+                        mono: true;
+                        supporting: "0–51, меньше — лучше";
+                    }
+                    if Src.r-vmode == 1: Field {
+                        label: "Битрейт видео";
+                        text <=> Src.r-vbitrate;
+                        placeholder: "4000k";
+                        mono: true;
+                        supporting: "k — кбит/с, M — Мбит/с";
+                    }
+                    Choice {
+                        label: "Пресет скорости";
+                        options: ["ultrafast", "superfast", "veryfast", "faster", "fast", "medium", "slow"];
+                        current-index <=> Src.r-preset;
+                    }
+                }
+            }
+
+            Section {
+                title: "Звук";
+                hint: Src.r-a-copy ? "Как в эфире: без перекодирования." : "Звук кодируется заново с этими настройками.";
+                HorizontalLayout {
+                    spacing: Theme.sp3;
+                    Choice {
+                        label: "Кодек";
+                        options: Src.r-acodecs;
+                        current-index <=> Src.r-acodec;
+                        selected => {
+                            Src.record-acodec-changed();
+                        }
+                    }
+                    if Src.r-a-has-bitrate: Field {
+                        label: "Битрейт звука";
+                        text <=> Src.r-abitrate;
+                        placeholder: "192k";
+                        mono: true;
+                        supporting: "Например 128k, 192k, 320k";
+                    }
+                    if Src.r-a-has-bits: Choice {
+                        label: "Разрядность";
+                        options: ["16 бит", "24 бита"];
+                        current-index <=> Src.r-bits;
+                    }
+                }
+                HorizontalLayout {
+                    spacing: Theme.sp3;
+                    Choice {
+                        label: "Частота";
+                        options: ["Как в эфире", "22 050 Гц", "32 000 Гц", "44 100 Гц", "48 000 Гц", "96 000 Гц"];
+                        current-index <=> Src.r-arate;
+                        enabled: !Src.r-a-copy;
+                        supporting: "Opus пишется в 48 000 Гц";
+                    }
+                    Choice {
+                        label: "Каналы";
+                        options: ["Как в эфире", "Моно", "Стерео"];
+                        current-index <=> Src.r-achannels;
+                        enabled: !Src.r-a-copy;
+                    }
+                }
+            }
+
+            Section {
+                title: "Хранение";
+                HorizontalLayout {
+                    spacing: Theme.sp3;
+                    Field {
+                        label: "Хранить";
+                        suffix: "дней";
+                        text <=> Src.r-keep-days;
+                        placeholder: "всегда";
+                        mono: true;
+                    }
+                    Field {
+                        label: "Всего на диске не больше";
+                        suffix: "ГБ";
+                        text <=> Src.r-max-gb;
+                        placeholder: "без ограничения";
+                        mono: true;
+                        supporting: "Старые записи удаляются, текущая — никогда";
+                    }
+                }
+            }
         }
     }
 

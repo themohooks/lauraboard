@@ -1,6 +1,6 @@
 //! Output targets → `tee` muxer slave specifications.
 
-use lb_core::config::{OutputTarget, RecordConfig, RecordFormat};
+use lb_core::config::OutputTarget;
 
 /// Guess the container from the URL when not configured.
 pub fn guess_format(url: &str) -> &'static str {
@@ -62,26 +62,19 @@ pub fn tee_slave(o: &OutputTarget) -> String {
     format!("[{opts}]{}", escape_tee(&o.url))
 }
 
-/// Tee slave for segmented local recording into `dir` (resolved). Files
-/// are cut by time; with a size limit the length follows from `bitrate`
-/// (expected bits/s of the output).
-pub fn record_slave(rec: &RecordConfig, dir: &str, channel: &str, bitrate: Option<f64>) -> String {
-    let seg = rec.segment_secs(bitrate);
-    let ext = rec.format.extension();
-    let pattern = format!("{}/{}-%Y%m%d-%H%M%S.{ext}", dir.trim_end_matches(['/', '\\']), rec.file_prefix(channel));
-    let format = match rec.format {
-        // fragmented: a file cut short by a crash or power loss still plays
-        RecordFormat::Mp4 => "segment_format=mp4:segment_format_options=movflags=+frag_keyframe+empty_moov+default_base_moof",
-        RecordFormat::Mkv => "segment_format=matroska",
-        RecordFormat::Ts => "segment_format=mpegts",
-    };
-    format!("[f=segment:segment_time={seg}:{format}:strftime=1:reset_timestamps=1:onfail=ignore]{}", escape_tee(&pattern))
+/// Tee slave feeding the recorder (a separate ffmpeg listening on local
+/// `port`, see [`super::record`]): queued like a network target, so the
+/// recorder can restart with new settings, or stall, without touching the
+/// encoder.
+pub fn record_feed_slave(port: u16) -> String {
+    // reconnect quickly: the recorder is back within a second of a restart
+    let fifo = NETWORK_FIFO.replace("recovery_wait_time=5", "recovery_wait_time=1");
+    format!("[f=mpegts:bsfs/v=dump_extra:onfail=ignore:{fifo}]tcp://127.0.0.1:{port}")
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use lb_core::Dur;
 
     fn out(url: &str) -> OutputTarget {
         OutputTarget { name: "x".into(), url: url.into(), enabled: true, format: None }
@@ -101,14 +94,9 @@ mod tests {
     }
 
     #[test]
-    fn record_pattern() {
-        let rec = RecordConfig { enabled: true, dir: "rec".into(), segment: Dur::mins(30), format: RecordFormat::Ts, ..Default::default() };
-        let s = record_slave(&rec, "D:\\tv\\rec\\", "main", None);
-        assert!(s.contains("segment_time=1800"));
-        assert!(s.ends_with("]D:/tv/rec/main-%Y%m%d-%H%M%S.ts"));
-        let mp4 = RecordConfig { max_file_mb: 500, prefix: "laura".into(), format: RecordFormat::Mp4, ..rec };
-        let s = record_slave(&mp4, "rec", "main", Some(4_000_000.0));
-        assert!(s.contains("segment_time=970:segment_format=mp4:segment_format_options=movflags=+frag_keyframe"), "{s}");
-        assert!(s.ends_with("]rec/laura-%Y%m%d-%H%M%S.mp4"));
+    fn feed() {
+        let s = record_feed_slave(41000);
+        assert!(s.starts_with("[f=mpegts:bsfs/v=dump_extra:onfail=ignore:use_fifo=1:"), "{s}");
+        assert!(s.ends_with("]tcp://127.0.0.1:41000"));
     }
 }

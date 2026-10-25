@@ -7,6 +7,7 @@
 //! * [`scene`] — scene: background with music tracks
 //! * [`encoder`] — overlay graphics, encode and push to outputs
 //! * [`outputs`] — output target URL → muxer options (tee syntax)
+//! * [`record`] — recorder: files from the encoder's local feed
 //! * [`color`] — colour string conversion
 //! * [`loops`] — ready-made seamless background videos
 
@@ -16,6 +17,7 @@ pub mod encoder;
 pub mod filters;
 pub mod loops;
 pub mod outputs;
+pub mod record;
 pub mod scene;
 pub mod slate;
 

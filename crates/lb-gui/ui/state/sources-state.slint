@@ -118,8 +118,33 @@ export global Src {
     in property <string> k-error;
     // recording settings dialog (dialog == "record")
     in-out property <bool> r-enabled;
-    // 0 MP4, 1 MKV, 2 TS
+    // RecordFormat::ALL order: MP4, MKV, TS, MOV, FLV, MP3, M4A, OGG, FLAC, WAV
     in-out property <int> r-format;
+    // the format has no picture
+    in property <bool> r-audio-only;
+    // picture: codecs the format takes (first = as on air)
+    in property <[string]> r-vcodecs;
+    in-out property <int> r-vcodec;
+    // picture encoded again: 0 constant quality, 1 bitrate
+    in-out property <int> r-vmode;
+    in-out property <string> r-crf;
+    in-out property <string> r-vbitrate;
+    in-out property <int> r-preset;
+    // 0 = as on air, then 2160 … 360
+    in-out property <int> r-height;
+    // sound: codecs the format takes
+    in property <[string]> r-acodecs;
+    in-out property <int> r-acodec;
+    in property <bool> r-a-copy;
+    in property <bool> r-a-has-bitrate;
+    in property <bool> r-a-has-bits;
+    in-out property <string> r-abitrate;
+    // 0 = as on air, then 22050 … 96000
+    in-out property <int> r-arate;
+    // 0 = as on air, 1 mono, 2 stereo
+    in-out property <int> r-achannels;
+    // 0 = 16 bit, 1 = 24 bit
+    in-out property <int> r-bits;
     in-out property <string> r-dir;
     // minutes per file
     in-out property <string> r-segment;
@@ -133,6 +158,8 @@ export global Src {
     callback record-edit();
     callback record-browse();
     callback record-save();
+    callback record-format-changed();
+    callback record-acodec-changed();
 
     callback encoder-edit();
     callback encoder-codec-changed();

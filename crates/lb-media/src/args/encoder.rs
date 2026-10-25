@@ -1,9 +1,9 @@
 //! Encoder: reads the intermediate stream on stdin, overlays graphics,
 //! encodes and pushes to all outputs; writes an MJPEG preview to stdout.
 
-use lb_core::config::{AudioFormat, EncoderConfig, OutputTarget, RateControl, RecordConfig, VideoFormat};
+use lb_core::config::{AudioFormat, EncoderConfig, OutputTarget, RateControl, VideoFormat};
 
-use super::outputs::{record_slave, tee_slave};
+use super::outputs::{record_feed_slave, tee_slave};
 use super::{base_args, fps_str, sv};
 
 /// Graphics overlay input (raw RGBA frames over TCP from the engine).
@@ -28,8 +28,10 @@ pub struct EncodeJob<'a> {
     /// Concrete video codec (after resolving `auto`).
     pub video_codec: &'a str,
     pub outputs: &'a [OutputTarget],
-    /// Recording with its resolved directory.
-    pub record: Option<(&'a RecordConfig, String)>,
+    /// Local port of the recorder: the encoder feeds it a copy of the
+    /// output (always while it runs, so recording settings never need an
+    /// encoder restart).
+    pub record_feed: Option<u16>,
     pub gfx: Option<GfxInput>,
     pub preview: Option<PreviewOut>,
     pub loglevel: &'a str,
@@ -225,8 +227,8 @@ fn double_rate(r: &str) -> String {
 
 fn tee_spec(j: &EncodeJob) -> String {
     let mut slaves: Vec<String> = j.outputs.iter().filter(|o| o.enabled).map(tee_slave).collect();
-    if let Some((rec, dir)) = &j.record {
-        slaves.push(record_slave(rec, dir, j.channel, lb_core::config::expected_bitrate(j.encoder)));
+    if let Some(port) = j.record_feed {
+        slaves.push(record_feed_slave(port));
     }
     if slaves.is_empty() {
         // nothing configured: still run the pipeline (preview, monitoring)
@@ -247,7 +249,7 @@ mod tests {
             encoder: e,
             video_codec: &e.video_codec,
             outputs: outs,
-            record: None,
+            record_feed: None,
             gfx: Some(GfxInput { port: 40000, fps: 10.0 }),
             preview: Some(PreviewOut { width: 480, fps: 5.0 }),
             loglevel: "warning",

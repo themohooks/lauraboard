@@ -391,6 +391,13 @@ fn prepare_live(section: &str) {
             }
         });
     }
+    if section == "sources" && std::env::var("LB_SNAPSHOT_RECORD").is_ok() {
+        crate::bridge::with(|c| {
+            if let Some(ui) = c.window() {
+                ui.global::<crate::shell::Src>().invoke_record_edit();
+            }
+        });
+    }
     if section == "log"
         && let Ok(tab) = std::env::var("LB_SNAPSHOT_TAB")
     {
