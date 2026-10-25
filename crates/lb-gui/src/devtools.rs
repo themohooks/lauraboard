@@ -230,6 +230,15 @@ fn demo_overlay(ui: &AppWindow, name: &str) {
             c.set_e_name("Основной канал".into());
             c.set_form("import".into());
         }
+        // start screen of a project without channels
+        "welcome" => {
+            let g = ui.global::<crate::shell::App>();
+            g.set_no_channels(true);
+            g.set_channels(model(Vec::new()));
+            g.set_channel_index(-1);
+            g.set_channel_name("".into());
+            g.set_channel_initial("".into());
+        }
         _ => return,
     }
     ui.set_section("home".into());

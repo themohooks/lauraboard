@@ -287,8 +287,14 @@ impl Ctx {
                     self.model.channel = list.first().cloned();
                 }
                 self.model.channels = list;
-                if let Some(c) = self.model.channel.clone() {
-                    self.channel_selected(&c);
+                match self.model.channel.clone() {
+                    Some(c) => self.channel_selected(&c),
+                    None => self.channel_cleared(),
+                }
+                // only a list the server sent opens the start screen (not
+                // the empty one before the first answer)
+                if let Some(ui) = self.window() {
+                    ui.global::<App>().set_no_channels(self.model.channels.is_empty());
                 }
                 shell::channels_changed(self);
                 channels::refresh(self);
@@ -404,6 +410,24 @@ impl Ctx {
             self.thumbs.clear();
         }
         self.poller.set_channel(ch);
+    }
+
+    /// The project has no channels (first start, or the last one was
+    /// deleted): stop polling and forget the data of the old channel.
+    fn channel_cleared(&mut self) {
+        self.poller.clear_channel();
+        self.pl = Default::default();
+        self.gfx = Default::default();
+        self.lib.checked.clear();
+        self.lib.loaded = false;
+        self.thumbs.clear();
+        self.model.status = Default::default();
+        self.model.rundown = Default::default();
+        air::status_changed(self);
+        air::queue_changed(self);
+        if let Some(ui) = self.window() {
+            ui.global::<crate::shell::Chan>().set_open(false);
+        }
     }
 
     // ------------------------------------------------------------ requests

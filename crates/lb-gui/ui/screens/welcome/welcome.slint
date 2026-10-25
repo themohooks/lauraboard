@@ -1,0 +1,63 @@
+// Start screen: shown instead of the sections while the project has no
+// channels (first start, or the last channel was deleted).
+
+import { Theme } from "../../theme/tokens.slint";
+import { Icons } from "../../theme/icons.slint";
+import { Label } from "../../components/label.slint";
+import { EmptyState } from "../../components/feedback.slint";
+import { Button, ButtonVariant } from "../../components/button.slint";
+import { App } from "../../state/app-state.slint";
+import { Chan } from "../../state/channels-state.slint";
+import { Page } from "../../shell/page.slint";
+
+export component WelcomeScreen inherits Page {
+    VerticalLayout {
+        alignment: center;
+        padding: Theme.sp6;
+        HorizontalLayout {
+            alignment: center;
+            VerticalLayout {
+                max-width: 520px;
+                spacing: Theme.sp4;
+                EmptyState {
+                    icon: Icons.live-tv;
+                    title: "В проекте пока нет каналов";
+                    text: "Создайте первый канал, чтобы собрать медиатеку, плейлисты и сетку вещания, или импортируйте готовый канал из архива.";
+                    HorizontalLayout {
+                        spacing: Theme.sp3;
+                        Button {
+                            text: "Создать канал";
+                            variant: ButtonVariant.filled;
+                            has-icon: true;
+                            icon: Icons.add;
+                            enabled: App.online;
+                            clicked => {
+                                App.new-channel-id = "";
+                                App.new-channel-name = "";
+                                App.validate-new-channel("");
+                                App.new-channel-open = true;
+                            }
+                        }
+                        Button {
+                            text: "Импорт из архива";
+                            variant: ButtonVariant.outlined;
+                            has-icon: true;
+                            icon: Icons.upload;
+                            enabled: App.online;
+                            clicked => {
+                                Chan.open-import();
+                            }
+                        }
+                    }
+                }
+                if !App.online: Label {
+                    text: "Нет связи с сервером — кнопки станут доступны, когда связь восстановится.";
+                    type-style: Theme.body-small;
+                    color: Theme.color.error;
+                    horizontal-alignment: center;
+                    wrap: word-wrap;
+                }
+            }
+        }
+    }
+}
