@@ -1,0 +1,115 @@
+[
+  {
+    "name": "create-rename-scene",
+    "ok": true,
+    "detail": "created studio, renamed; scene saved through real API"
+  },
+  {
+    "name": "playlist-m3u",
+    "ok": true,
+    "detail": "created, moved entries, retrieved and exported M3U"
+  },
+  {
+    "name": "config-editors",
+    "ok": true,
+    "detail": "roundtripped schedule, rules, graphics; enabled MP4 recording"
+  },
+  {
+    "name": "local-hls-preview",
+    "ok": true,
+    "detail": "HLS playlist contains segments; real preview JPEG received"
+  },
+  {
+    "name": "playback-controls",
+    "ok": true,
+    "detail": "manual, queue, clear, play_now, seek, restart, graphics, ticker, return accepted; not a GUI walkthrough"
+  },
+  {
+    "name": "archive-roundtrip",
+    "ok": true,
+    "detail": {
+      "media_files": 41,
+      "outputs_removed": true,
+      "imported_stopped": true
+    }
+  },
+  {
+    "name": "validation-errors",
+    "ok": true,
+    "detail": {
+      "duplicate-id": {
+        "code": 400,
+        "body": "{\"error\":\"configuration has errors: channel 'studio' already exists\"}"
+      },
+      "bad-id": {
+        "code": 400,
+        "body": "{\"error\":\"configuration has errors: channel id 'неверное имя': use latin letters, digits, '-' and '_'\"}"
+      },
+      "wrong-archive": {
+        "code": 400,
+        "body": "{\"error\":\"PROJECT\\\\target\\\\doc-audit\\\\training.m3u: not a ZIP archive (invalid Zip archive: Could not find EOCD)\"}"
+      },
+      "odd-width": {
+        "code": 400,
+        "body": "{\"error\":\"validation failed: channel.toml: video width and height must be even numbers\"}"
+      }
+    }
+  },
+  {
+    "name": "recording-streams",
+    "ok": true,
+    "detail": [
+      {
+        "codec_name": "h264",
+        "codec_type": "video"
+      },
+      {
+        "codec_name": "aac",
+        "codec_type": "audio"
+      }
+    ]
+  },
+  {
+    "name": "config-backup-restore",
+    "ok": true,
+    "detail": {
+      "files": 34,
+      "restore_conflict_rejected": true,
+      "media_excluded": true
+    }
+  },
+  {
+    "name": "stats-asrun-csv-system-logs",
+    "ok": true,
+    "detail": {
+      "asrun_records": 24,
+      "stats_items": 24,
+      "csv_bytes": 358,
+      "system_and_logs_read": true
+    }
+  },
+  {
+    "name": "import-copy-properties",
+    "ok": true,
+    "detail": "real background copy, saved title, category, folder, volume and display; source file retained"
+  },
+  {
+    "name": "missing-file-diagnostics",
+    "ok": true,
+    "detail": "missing file detected by real validation; test reference removed; no source file deleted"
+  },
+  {
+    "name": "duplicate-soft-delete",
+    "ok": true,
+    "detail": "duplicate has no outputs/autostart; soft deletion moved folder into project deleted/"
+  },
+  {
+    "name": "recording-full-decode",
+    "ok": true,
+    "detail": {
+      "scope": "one completed synthetic MP4, full video and audio decode",
+      "returncode": 0,
+      "stderr": ""
+    }
+  }
+]

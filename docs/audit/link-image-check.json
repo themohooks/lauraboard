@@ -1,0 +1,926 @@
+{
+  "markdown_files": 63,
+  "local_links_checked": 1021,
+  "png_files": 183,
+  "external_links_not_checked": [
+    "https://slint.dev"
+  ],
+  "errors": [],
+  "images": {
+    "screenshots/guides/channel-01.png": {
+      "width": 1440,
+      "height": 1087,
+      "bytes": 260896
+    },
+    "screenshots/guides/channel-02.png": {
+      "width": 1440,
+      "height": 1087,
+      "bytes": 215084
+    },
+    "screenshots/guides/channel-03.png": {
+      "width": 1440,
+      "height": 1161,
+      "bytes": 219448
+    },
+    "screenshots/guides/import-01.png": {
+      "width": 1440,
+      "height": 1087,
+      "bytes": 238980
+    },
+    "screenshots/guides/import-02.png": {
+      "width": 1440,
+      "height": 1198,
+      "bytes": 255202
+    },
+    "screenshots/guides/music-01.png": {
+      "width": 1440,
+      "height": 1161,
+      "bytes": 184841
+    },
+    "screenshots/guides/plate-01.png": {
+      "width": 1440,
+      "height": 1198,
+      "bytes": 200501
+    },
+    "screenshots/guides/recording-01.png": {
+      "width": 1440,
+      "height": 1198,
+      "bytes": 214012
+    },
+    "screenshots/guides/recording-02.png": {
+      "width": 1440,
+      "height": 1161,
+      "bytes": 207754
+    },
+    "screenshots/guides/rules-01.png": {
+      "width": 1440,
+      "height": 1124,
+      "bytes": 171857
+    },
+    "screenshots/guides/rules-02.png": {
+      "width": 1440,
+      "height": 1161,
+      "bytes": 163690
+    },
+    "screenshots/guides/rules-03.png": {
+      "width": 1440,
+      "height": 1161,
+      "bytes": 176835
+    },
+    "screenshots/guides/rules-04.png": {
+      "width": 1440,
+      "height": 1124,
+      "bytes": 177327
+    },
+    "screenshots/guides/schedule-01.png": {
+      "width": 1440,
+      "height": 1161,
+      "bytes": 190404
+    },
+    "screenshots/guides/schedule-02.png": {
+      "width": 1440,
+      "height": 1124,
+      "bytes": 222867
+    },
+    "screenshots/installation/setup-done-dark.png": {
+      "width": 880,
+      "height": 640,
+      "bytes": 69697
+    },
+    "screenshots/installation/setup-done-light.png": {
+      "width": 880,
+      "height": 640,
+      "bytes": 69680
+    },
+    "screenshots/installation/setup-failed-dark.png": {
+      "width": 880,
+      "height": 640,
+      "bytes": 59295
+    },
+    "screenshots/installation/setup-failed-light.png": {
+      "width": 880,
+      "height": 640,
+      "bytes": 58821
+    },
+    "screenshots/installation/setup-location-dark.png": {
+      "width": 880,
+      "height": 640,
+      "bytes": 106295
+    },
+    "screenshots/installation/setup-location-error-dark.png": {
+      "width": 880,
+      "height": 640,
+      "bytes": 97136
+    },
+    "screenshots/installation/setup-location-error-light.png": {
+      "width": 880,
+      "height": 640,
+      "bytes": 96985
+    },
+    "screenshots/installation/setup-location-light.png": {
+      "width": 880,
+      "height": 640,
+      "bytes": 106299
+    },
+    "screenshots/installation/setup-missing-dark.png": {
+      "width": 880,
+      "height": 640,
+      "bytes": 53448
+    },
+    "screenshots/installation/setup-missing-light.png": {
+      "width": 880,
+      "height": 640,
+      "bytes": 53213
+    },
+    "screenshots/installation/setup-options-dark.png": {
+      "width": 880,
+      "height": 640,
+      "bytes": 115903
+    },
+    "screenshots/installation/setup-options-light.png": {
+      "width": 880,
+      "height": 640,
+      "bytes": 116141
+    },
+    "screenshots/installation/setup-progress-dark.png": {
+      "width": 880,
+      "height": 640,
+      "bytes": 46746
+    },
+    "screenshots/installation/setup-progress-light.png": {
+      "width": 880,
+      "height": 640,
+      "bytes": 46632
+    },
+    "screenshots/installation/setup-uninstall-dark.png": {
+      "width": 880,
+      "height": 640,
+      "bytes": 75008
+    },
+    "screenshots/installation/setup-uninstall-light.png": {
+      "width": 880,
+      "height": 640,
+      "bytes": 75237
+    },
+    "screenshots/installation/setup-welcome-dark.png": {
+      "width": 880,
+      "height": 640,
+      "bytes": 113566
+    },
+    "screenshots/installation/setup-welcome-light.png": {
+      "width": 880,
+      "height": 640,
+      "bytes": 113960
+    },
+    "screenshots/installation/setup-welcome-update-dark.png": {
+      "width": 880,
+      "height": 640,
+      "bytes": 93814
+    },
+    "screenshots/installation/setup-welcome-update-light.png": {
+      "width": 880,
+      "height": 640,
+      "bytes": 94285
+    },
+    "screenshots/interface/ad-breaks-dark.png": {
+      "width": 1440,
+      "height": 960,
+      "bytes": 170121
+    },
+    "screenshots/interface/ad-breaks-light.png": {
+      "width": 1440,
+      "height": 960,
+      "bytes": 169971
+    },
+    "screenshots/interface/ad-policies-bottom-dark.png": {
+      "width": 1440,
+      "height": 960,
+      "bytes": 152614
+    },
+    "screenshots/interface/ad-policies-bottom-light.png": {
+      "width": 1440,
+      "height": 960,
+      "bytes": 153018
+    },
+    "screenshots/interface/ad-policies-dark.png": {
+      "width": 1440,
+      "height": 960,
+      "bytes": 151828
+    },
+    "screenshots/interface/ad-policies-light.png": {
+      "width": 1440,
+      "height": 960,
+      "bytes": 152213
+    },
+    "screenshots/interface/ads-dark.png": {
+      "width": 1440,
+      "height": 960,
+      "bytes": 215556
+    },
+    "screenshots/interface/ads-light.png": {
+      "width": 1440,
+      "height": 960,
+      "bytes": 216238
+    },
+    "screenshots/interface/air-dark.png": {
+      "width": 1440,
+      "height": 960,
+      "bytes": 403562
+    },
+    "screenshots/interface/air-light.png": {
+      "width": 1440,
+      "height": 960,
+      "bytes": 405373
+    },
+    "screenshots/interface/channel-delete-dark.png": {
+      "width": 1440,
+      "height": 960,
+      "bytes": 264037
+    },
+    "screenshots/interface/channel-delete-light.png": {
+      "width": 1440,
+      "height": 960,
+      "bytes": 265684
+    },
+    "screenshots/interface/channel-export-dark.png": {
+      "width": 1440,
+      "height": 960,
+      "bytes": 269979
+    },
+    "screenshots/interface/channel-export-light.png": {
+      "width": 1440,
+      "height": 960,
+      "bytes": 271201
+    },
+    "screenshots/interface/channel-import-dark.png": {
+      "width": 1440,
+      "height": 960,
+      "bytes": 272357
+    },
+    "screenshots/interface/channel-import-light.png": {
+      "width": 1440,
+      "height": 960,
+      "bytes": 273800
+    },
+    "screenshots/interface/channel-rename-dark.png": {
+      "width": 1440,
+      "height": 960,
+      "bytes": 311606
+    },
+    "screenshots/interface/channel-rename-light.png": {
+      "width": 1440,
+      "height": 960,
+      "bytes": 312777
+    },
+    "screenshots/interface/channels-dark.png": {
+      "width": 1440,
+      "height": 960,
+      "bytes": 268833
+    },
+    "screenshots/interface/channels-light.png": {
+      "width": 1440,
+      "height": 960,
+      "bytes": 269556
+    },
+    "screenshots/interface/encoder-bottom-dark.png": {
+      "width": 1440,
+      "height": 960,
+      "bytes": 262693
+    },
+    "screenshots/interface/encoder-bottom-light.png": {
+      "width": 1440,
+      "height": 960,
+      "bytes": 264075
+    },
+    "screenshots/interface/encoder-dark.png": {
+      "width": 1440,
+      "height": 960,
+      "bytes": 279472
+    },
+    "screenshots/interface/encoder-light.png": {
+      "width": 1440,
+      "height": 960,
+      "bytes": 281060
+    },
+    "screenshots/interface/encoder-middle-dark.png": {
+      "width": 1440,
+      "height": 960,
+      "bytes": 265135
+    },
+    "screenshots/interface/encoder-middle-light.png": {
+      "width": 1440,
+      "height": 960,
+      "bytes": 266331
+    },
+    "screenshots/interface/graphics-add-dark.png": {
+      "width": 1440,
+      "height": 960,
+      "bytes": 260163
+    },
+    "screenshots/interface/graphics-add-light.png": {
+      "width": 1440,
+      "height": 960,
+      "bytes": 260259
+    },
+    "screenshots/interface/graphics-dark.png": {
+      "width": 1920,
+      "height": 1080,
+      "bytes": 268661
+    },
+    "screenshots/interface/graphics-font-dark.png": {
+      "width": 1440,
+      "height": 960,
+      "bytes": 220554
+    },
+    "screenshots/interface/graphics-font-light.png": {
+      "width": 1440,
+      "height": 960,
+      "bytes": 222802
+    },
+    "screenshots/interface/graphics-light.png": {
+      "width": 1920,
+      "height": 1080,
+      "bytes": 268579
+    },
+    "screenshots/interface/graphics-rules-dark.png": {
+      "width": 1920,
+      "height": 1080,
+      "bytes": 259464
+    },
+    "screenshots/interface/graphics-rules-light.png": {
+      "width": 1920,
+      "height": 1080,
+      "bytes": 259983
+    },
+    "screenshots/interface/graphics-templates-dark.png": {
+      "width": 1920,
+      "height": 1080,
+      "bytes": 142168
+    },
+    "screenshots/interface/graphics-templates-light.png": {
+      "width": 1920,
+      "height": 1080,
+      "bytes": 142705
+    },
+    "screenshots/interface/graphics-text-properties-dark.png": {
+      "width": 1920,
+      "height": 1080,
+      "bytes": 273618
+    },
+    "screenshots/interface/graphics-text-properties-light.png": {
+      "width": 1920,
+      "height": 1080,
+      "bytes": 274016
+    },
+    "screenshots/interface/graphics-vars-dark.png": {
+      "width": 1920,
+      "height": 1080,
+      "bytes": 308509
+    },
+    "screenshots/interface/graphics-vars-light.png": {
+      "width": 1920,
+      "height": 1080,
+      "bytes": 310551
+    },
+    "screenshots/interface/home-dark.png": {
+      "width": 1440,
+      "height": 960,
+      "bytes": 316455
+    },
+    "screenshots/interface/home-light.png": {
+      "width": 1440,
+      "height": 960,
+      "bytes": 317283
+    },
+    "screenshots/interface/jingles-dark.png": {
+      "width": 1440,
+      "height": 960,
+      "bytes": 218008
+    },
+    "screenshots/interface/jingles-light.png": {
+      "width": 1440,
+      "height": 960,
+      "bytes": 218196
+    },
+    "screenshots/interface/jobs-dark.png": {
+      "width": 1440,
+      "height": 960,
+      "bytes": 264981
+    },
+    "screenshots/interface/jobs-light.png": {
+      "width": 1440,
+      "height": 960,
+      "bytes": 265991
+    },
+    "screenshots/interface/library-dark.png": {
+      "width": 1440,
+      "height": 960,
+      "bytes": 287468
+    },
+    "screenshots/interface/library-light.png": {
+      "width": 1440,
+      "height": 960,
+      "bytes": 288804
+    },
+    "screenshots/interface/log-dark.png": {
+      "width": 1440,
+      "height": 960,
+      "bytes": 123146
+    },
+    "screenshots/interface/log-light.png": {
+      "width": 1440,
+      "height": 960,
+      "bytes": 123245
+    },
+    "screenshots/interface/log-server-dark.png": {
+      "width": 1440,
+      "height": 960,
+      "bytes": 629378
+    },
+    "screenshots/interface/log-server-light.png": {
+      "width": 1440,
+      "height": 960,
+      "bytes": 638459
+    },
+    "screenshots/interface/media-bottom-dark.png": {
+      "width": 1440,
+      "height": 960,
+      "bytes": 314927
+    },
+    "screenshots/interface/media-bottom-light.png": {
+      "width": 1440,
+      "height": 960,
+      "bytes": 316126
+    },
+    "screenshots/interface/media-colour-dark.png": {
+      "width": 1440,
+      "height": 960,
+      "bytes": 315181
+    },
+    "screenshots/interface/media-colour-light.png": {
+      "width": 1440,
+      "height": 960,
+      "bytes": 316367
+    },
+    "screenshots/interface/media-display-dark.png": {
+      "width": 1440,
+      "height": 960,
+      "bytes": 292807
+    },
+    "screenshots/interface/media-display-light.png": {
+      "width": 1440,
+      "height": 960,
+      "bytes": 294001
+    },
+    "screenshots/interface/media-edit-dark.png": {
+      "width": 1440,
+      "height": 960,
+      "bytes": 293496
+    },
+    "screenshots/interface/media-edit-light.png": {
+      "width": 1440,
+      "height": 960,
+      "bytes": 294649
+    },
+    "screenshots/interface/media-folder-dark.png": {
+      "width": 1440,
+      "height": 960,
+      "bytes": 260400
+    },
+    "screenshots/interface/media-folder-light.png": {
+      "width": 1440,
+      "height": 960,
+      "bytes": 261421
+    },
+    "screenshots/interface/media-import-dark.png": {
+      "width": 1440,
+      "height": 960,
+      "bytes": 297549
+    },
+    "screenshots/interface/media-import-light.png": {
+      "width": 1440,
+      "height": 960,
+      "bytes": 298564
+    },
+    "screenshots/interface/media-transform-dark.png": {
+      "width": 1440,
+      "height": 960,
+      "bytes": 303696
+    },
+    "screenshots/interface/media-transform-light.png": {
+      "width": 1440,
+      "height": 960,
+      "bytes": 305332
+    },
+    "screenshots/interface/new-channel-dark.png": {
+      "width": 1440,
+      "height": 960,
+      "bytes": 256539
+    },
+    "screenshots/interface/new-channel-light.png": {
+      "width": 1440,
+      "height": 960,
+      "bytes": 258881
+    },
+    "screenshots/interface/new-playlist-dark.png": {
+      "width": 1440,
+      "height": 960,
+      "bytes": 168190
+    },
+    "screenshots/interface/new-playlist-light.png": {
+      "width": 1440,
+      "height": 960,
+      "bytes": 168509
+    },
+    "screenshots/interface/output-form-dark.png": {
+      "width": 1440,
+      "height": 960,
+      "bytes": 273020
+    },
+    "screenshots/interface/output-form-light.png": {
+      "width": 1440,
+      "height": 960,
+      "bytes": 274542
+    },
+    "screenshots/interface/plate-editor-dark.png": {
+      "width": 1440,
+      "height": 960,
+      "bytes": 232998
+    },
+    "screenshots/interface/plate-editor-light.png": {
+      "width": 1440,
+      "height": 960,
+      "bytes": 234685
+    },
+    "screenshots/interface/plate-layout-complete-dark.png": {
+      "width": 1440,
+      "height": 960,
+      "bytes": 250339
+    },
+    "screenshots/interface/plate-layout-complete-light.png": {
+      "width": 1440,
+      "height": 960,
+      "bytes": 251943
+    },
+    "screenshots/interface/plate-layout-dark.png": {
+      "width": 1440,
+      "height": 960,
+      "bytes": 256079
+    },
+    "screenshots/interface/plate-layout-light.png": {
+      "width": 1440,
+      "height": 960,
+      "bytes": 257913
+    },
+    "screenshots/interface/plate-shape-bottom-dark.png": {
+      "width": 1440,
+      "height": 960,
+      "bytes": 243080
+    },
+    "screenshots/interface/plate-shape-bottom-light.png": {
+      "width": 1440,
+      "height": 960,
+      "bytes": 244473
+    },
+    "screenshots/interface/playlist-add-dark.png": {
+      "width": 1440,
+      "height": 960,
+      "bytes": 216829
+    },
+    "screenshots/interface/playlist-add-light.png": {
+      "width": 1440,
+      "height": 960,
+      "bytes": 216858
+    },
+    "screenshots/interface/playlists-dark.png": {
+      "width": 1440,
+      "height": 960,
+      "bytes": 149785
+    },
+    "screenshots/interface/playlists-light.png": {
+      "width": 1440,
+      "height": 960,
+      "bytes": 149314
+    },
+    "screenshots/interface/recording-dark.png": {
+      "width": 1440,
+      "height": 960,
+      "bytes": 263370
+    },
+    "screenshots/interface/recording-encoding-dark.png": {
+      "width": 1440,
+      "height": 960,
+      "bytes": 261373
+    },
+    "screenshots/interface/recording-encoding-light.png": {
+      "width": 1440,
+      "height": 960,
+      "bytes": 262265
+    },
+    "screenshots/interface/recording-light.png": {
+      "width": 1440,
+      "height": 960,
+      "bytes": 264320
+    },
+    "screenshots/interface/recording-storage-dark.png": {
+      "width": 1440,
+      "height": 960,
+      "bytes": 260830
+    },
+    "screenshots/interface/recording-storage-light.png": {
+      "width": 1440,
+      "height": 960,
+      "bytes": 261697
+    },
+    "screenshots/interface/rule-conditions-complete-dark.png": {
+      "width": 1440,
+      "height": 960,
+      "bytes": 221569
+    },
+    "screenshots/interface/rule-conditions-complete-light.png": {
+      "width": 1440,
+      "height": 960,
+      "bytes": 221924
+    },
+    "screenshots/interface/rule-wizard-conditions-dark.png": {
+      "width": 1440,
+      "height": 960,
+      "bytes": 185993
+    },
+    "screenshots/interface/rule-wizard-conditions-light.png": {
+      "width": 1440,
+      "height": 960,
+      "bytes": 186098
+    },
+    "screenshots/interface/rule-wizard-content-dark.png": {
+      "width": 1440,
+      "height": 960,
+      "bytes": 206790
+    },
+    "screenshots/interface/rule-wizard-content-light.png": {
+      "width": 1440,
+      "height": 960,
+      "bytes": 207108
+    },
+    "screenshots/interface/rule-wizard-dark.png": {
+      "width": 1440,
+      "height": 960,
+      "bytes": 194877
+    },
+    "screenshots/interface/rule-wizard-light.png": {
+      "width": 1440,
+      "height": 960,
+      "bytes": 195477
+    },
+    "screenshots/interface/rule-wizard-limits-dark.png": {
+      "width": 1440,
+      "height": 960,
+      "bytes": 203732
+    },
+    "screenshots/interface/rule-wizard-limits-light.png": {
+      "width": 1440,
+      "height": 960,
+      "bytes": 204088
+    },
+    "screenshots/interface/rules-limits-dark.png": {
+      "width": 1440,
+      "height": 960,
+      "bytes": 224003
+    },
+    "screenshots/interface/rules-limits-light.png": {
+      "width": 1440,
+      "height": 960,
+      "bytes": 224264
+    },
+    "screenshots/interface/scene-gaps-dark.png": {
+      "width": 1440,
+      "height": 960,
+      "bytes": 151460
+    },
+    "screenshots/interface/scene-gaps-light.png": {
+      "width": 1440,
+      "height": 960,
+      "bytes": 151948
+    },
+    "screenshots/interface/scene-music-dark.png": {
+      "width": 1440,
+      "height": 960,
+      "bytes": 211453
+    },
+    "screenshots/interface/scene-music-light.png": {
+      "width": 1440,
+      "height": 960,
+      "bytes": 211400
+    },
+    "screenshots/interface/scene-music-options-dark.png": {
+      "width": 1440,
+      "height": 960,
+      "bytes": 236459
+    },
+    "screenshots/interface/scene-music-options-light.png": {
+      "width": 1440,
+      "height": 960,
+      "bytes": 236939
+    },
+    "screenshots/interface/scene-music-timing-dark.png": {
+      "width": 1440,
+      "height": 960,
+      "bytes": 236459
+    },
+    "screenshots/interface/scene-music-timing-light.png": {
+      "width": 1440,
+      "height": 960,
+      "bytes": 236939
+    },
+    "screenshots/interface/scene-rules-dark.png": {
+      "width": 1440,
+      "height": 960,
+      "bytes": 148578
+    },
+    "screenshots/interface/scene-rules-light.png": {
+      "width": 1440,
+      "height": 960,
+      "bytes": 148697
+    },
+    "screenshots/interface/scenes-dark.png": {
+      "width": 1440,
+      "height": 960,
+      "bytes": 211465
+    },
+    "screenshots/interface/scenes-light.png": {
+      "width": 1440,
+      "height": 960,
+      "bytes": 211401
+    },
+    "screenshots/interface/schedule-dark.png": {
+      "width": 1440,
+      "height": 960,
+      "bytes": 274330
+    },
+    "screenshots/interface/schedule-light.png": {
+      "width": 1440,
+      "height": 960,
+      "bytes": 276385
+    },
+    "screenshots/interface/schedule-properties-dark.png": {
+      "width": 1440,
+      "height": 960,
+      "bytes": 306854
+    },
+    "screenshots/interface/schedule-properties-light.png": {
+      "width": 1440,
+      "height": 960,
+      "bytes": 309088
+    },
+    "screenshots/interface/settings-dark.png": {
+      "width": 1440,
+      "height": 960,
+      "bytes": 236971
+    },
+    "screenshots/interface/settings-light.png": {
+      "width": 1440,
+      "height": 960,
+      "bytes": 237475
+    },
+    "screenshots/interface/sources-dark.png": {
+      "width": 1440,
+      "height": 960,
+      "bytes": 257079
+    },
+    "screenshots/interface/sources-light.png": {
+      "width": 1440,
+      "height": 960,
+      "bytes": 257455
+    },
+    "screenshots/interface/stats-all-dark.png": {
+      "width": 1440,
+      "height": 960,
+      "bytes": 207696
+    },
+    "screenshots/interface/stats-all-light.png": {
+      "width": 1440,
+      "height": 960,
+      "bytes": 207722
+    },
+    "screenshots/interface/stats-dark.png": {
+      "width": 1440,
+      "height": 960,
+      "bytes": 170609
+    },
+    "screenshots/interface/stats-light.png": {
+      "width": 1440,
+      "height": 960,
+      "bytes": 170655
+    },
+    "screenshots/interface/system-dark.png": {
+      "width": 1440,
+      "height": 960,
+      "bytes": 165498
+    },
+    "screenshots/interface/system-light.png": {
+      "width": 1440,
+      "height": 960,
+      "bytes": 164772
+    },
+    "screenshots/interface/transitions-dark.png": {
+      "width": 1440,
+      "height": 960,
+      "bytes": 131429
+    },
+    "screenshots/interface/transitions-light.png": {
+      "width": 1440,
+      "height": 960,
+      "bytes": 131606
+    },
+    "screenshots/interface/welcome-dark.png": {
+      "width": 1440,
+      "height": 960,
+      "bytes": 58165
+    },
+    "screenshots/interface/welcome-light.png": {
+      "width": 1440,
+      "height": 960,
+      "bytes": 58060
+    },
+    "screenshots/parts/encoder-frame-sound.png": {
+      "width": 664,
+      "height": 511,
+      "bytes": 56267
+    },
+    "screenshots/parts/encoder-video-bitrate.png": {
+      "width": 664,
+      "height": 446,
+      "bytes": 55280
+    },
+    "screenshots/parts/media-properties.png": {
+      "width": 420,
+      "height": 541,
+      "bytes": 31362
+    },
+    "screenshots/parts/media-transforms.png": {
+      "width": 374,
+      "height": 627,
+      "bytes": 41836
+    },
+    "screenshots/parts/plate-layout.png": {
+      "width": 578,
+      "height": 380,
+      "bytes": 33104
+    },
+    "screenshots/parts/plate-shape-end.png": {
+      "width": 578,
+      "height": 531,
+      "bytes": 36649
+    },
+    "screenshots/parts/plate-shape-start.png": {
+      "width": 578,
+      "height": 260,
+      "bytes": 19482
+    },
+    "screenshots/parts/plate-text.png": {
+      "width": 578,
+      "height": 585,
+      "bytes": 34585
+    },
+    "screenshots/parts/recording-codecs-storage.png": {
+      "width": 664,
+      "height": 510,
+      "bytes": 52865
+    },
+    "screenshots/parts/recording-files.png": {
+      "width": 664,
+      "height": 267,
+      "bytes": 34677
+    },
+    "screenshots/parts/scene-graphics.png": {
+      "width": 776,
+      "height": 175,
+      "bytes": 29760
+    },
+    "screenshots/parts/scene-music.png": {
+      "width": 776,
+      "height": 623,
+      "bytes": 62546
+    },
+    "screenshots/parts/settings-about.png": {
+      "width": 851,
+      "height": 208,
+      "bytes": 17436
+    },
+    "screenshots/parts/settings-connection.png": {
+      "width": 851,
+      "height": 190,
+      "bytes": 28304
+    },
+    "screenshots/parts/settings-layout.png": {
+      "width": 851,
+      "height": 106,
+      "bytes": 13989
+    },
+    "screenshots/parts/settings-shortcuts.png": {
+      "width": 851,
+      "height": 273,
+      "bytes": 35659
+    }
+  }
+}

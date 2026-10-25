@@ -1,0 +1,549 @@
+{
+  "application": "Laurabrod",
+  "version": "0.1.0",
+  "revision": "553a617",
+  "date": "2026-10-26",
+  "method": "real Slint UI, real API except explicitly marked built-in-demo; documentation copy adds scroll events only",
+  "captures": [
+    {
+      "name": "home",
+      "mode": "live",
+      "section": "home",
+      "options": {}
+    },
+    {
+      "name": "air",
+      "mode": "live",
+      "section": "air",
+      "options": {}
+    },
+    {
+      "name": "library",
+      "mode": "live",
+      "section": "library",
+      "options": {}
+    },
+    {
+      "name": "playlists",
+      "mode": "live",
+      "section": "playlists",
+      "options": {}
+    },
+    {
+      "name": "schedule",
+      "mode": "live",
+      "section": "schedule",
+      "options": {}
+    },
+    {
+      "name": "jingles",
+      "mode": "live",
+      "section": "jingles",
+      "options": {}
+    },
+    {
+      "name": "ads",
+      "mode": "live",
+      "section": "ads",
+      "options": {}
+    },
+    {
+      "name": "ad-breaks",
+      "mode": "live",
+      "section": "ads",
+      "options": {
+        "LB_SNAPSHOT_TAB": "1"
+      }
+    },
+    {
+      "name": "ad-policies",
+      "mode": "live",
+      "section": "ads",
+      "options": {
+        "LB_SNAPSHOT_TAB": "2"
+      }
+    },
+    {
+      "name": "transitions",
+      "mode": "live",
+      "section": "jingles",
+      "options": {
+        "LB_SNAPSHOT_TAB": "1"
+      }
+    },
+    {
+      "name": "graphics",
+      "mode": "live",
+      "section": "graphics",
+      "options": {}
+    },
+    {
+      "name": "graphics-rules",
+      "mode": "live",
+      "section": "graphics",
+      "options": {
+        "LB_SNAPSHOT_TAB": "1"
+      }
+    },
+    {
+      "name": "graphics-vars",
+      "mode": "live",
+      "section": "graphics",
+      "options": {
+        "LB_SNAPSHOT_TAB": "2"
+      }
+    },
+    {
+      "name": "sources",
+      "mode": "live",
+      "section": "sources",
+      "options": {}
+    },
+    {
+      "name": "recording",
+      "mode": "live",
+      "section": "sources",
+      "options": {
+        "LB_SNAPSHOT_RECORD": "1"
+      }
+    },
+    {
+      "name": "stats",
+      "mode": "live",
+      "section": "stats",
+      "options": {}
+    },
+    {
+      "name": "system",
+      "mode": "live",
+      "section": "stats",
+      "options": {
+        "LB_SNAPSHOT_TAB": "1"
+      }
+    },
+    {
+      "name": "log",
+      "mode": "live",
+      "section": "log",
+      "options": {}
+    },
+    {
+      "name": "settings",
+      "mode": "live",
+      "section": "settings",
+      "options": {}
+    },
+    {
+      "name": "media-edit",
+      "mode": "live",
+      "section": "library",
+      "options": {
+        "LB_SNAPSHOT_EDIT": "0"
+      }
+    },
+    {
+      "name": "rule-wizard",
+      "mode": "live",
+      "section": "jingles",
+      "options": {
+        "LB_SNAPSHOT_WIZARD": "0"
+      }
+    },
+    {
+      "name": "scenes",
+      "mode": "live",
+      "section": "scenes",
+      "options": {
+        "LB_SNAPSHOT_SELECT": "0"
+      }
+    },
+    {
+      "name": "channels",
+      "mode": "live",
+      "section": "home",
+      "options": {
+        "LB_SNAPSHOT_CLICKS": "456,30"
+      }
+    },
+    {
+      "name": "new-channel",
+      "mode": "live",
+      "section": "home",
+      "options": {
+        "LB_SNAPSHOT_CLICKS": "456,30;910,667"
+      }
+    },
+    {
+      "name": "channel-rename",
+      "mode": "live",
+      "section": "home",
+      "options": {
+        "LB_SNAPSHOT_CLICKS": "456,30;887,398"
+      }
+    },
+    {
+      "name": "media-import",
+      "mode": "live",
+      "section": "library",
+      "options": {
+        "LB_SNAPSHOT_CLICKS": "1365,148"
+      }
+    },
+    {
+      "name": "schedule-properties",
+      "mode": "live",
+      "section": "schedule",
+      "options": {
+        "LB_SNAPSHOT_CLICKS": "1328,730"
+      }
+    },
+    {
+      "name": "encoder",
+      "mode": "live",
+      "section": "sources",
+      "options": {
+        "LB_SNAPSHOT_CLICKS": "1328,158"
+      }
+    },
+    {
+      "name": "scene-rules",
+      "mode": "live",
+      "section": "scenes",
+      "options": {
+        "LB_SNAPSHOT_SELECT": "0",
+        "LB_SNAPSHOT_CLICKS": "746,96"
+      }
+    },
+    {
+      "name": "scene-gaps",
+      "mode": "live",
+      "section": "scenes",
+      "options": {
+        "LB_SNAPSHOT_SELECT": "0",
+        "LB_SNAPSHOT_CLICKS": "900,96"
+      }
+    },
+    {
+      "name": "plate-editor",
+      "mode": "live",
+      "section": "graphics",
+      "options": {
+        "LB_SNAPSHOT_SELECT": "2",
+        "LB_SNAPSHOT_PLATE_EDITOR": "1"
+      }
+    },
+    {
+      "name": "output-form",
+      "mode": "live",
+      "section": "sources",
+      "options": {
+        "LB_SNAPSHOT_CLICKS": "810,489"
+      }
+    },
+    {
+      "name": "channel-export",
+      "mode": "built-in-demo",
+      "section": "channel-export"
+    },
+    {
+      "name": "channel-import",
+      "mode": "built-in-demo",
+      "section": "channel-import"
+    },
+    {
+      "name": "jobs",
+      "mode": "built-in-demo",
+      "section": "jobs"
+    },
+    {
+      "name": "welcome",
+      "mode": "built-in-demo",
+      "section": "welcome"
+    },
+    {
+      "name": "channel-delete",
+      "mode": "live",
+      "section": "home",
+      "options": {
+        "LB_SNAPSHOT_CLICKS": "456,30;1044,398"
+      }
+    },
+    {
+      "name": "new-playlist",
+      "mode": "live",
+      "section": "playlists",
+      "options": {
+        "LB_SNAPSHOT_CLICKS": "496,107"
+      }
+    },
+    {
+      "name": "playlist-add",
+      "mode": "live",
+      "section": "playlists",
+      "options": {
+        "LB_SNAPSHOT_CLICKS": "1360,155"
+      }
+    },
+    {
+      "name": "media-display",
+      "mode": "live",
+      "section": "library",
+      "options": {
+        "LB_SNAPSHOT_EDIT": "0",
+        "LB_SNAPSHOT_CLICKS": "1431,850"
+      }
+    },
+    {
+      "name": "scene-music",
+      "mode": "live",
+      "section": "scenes",
+      "options": {
+        "LB_SNAPSHOT_SELECT": "0",
+        "LB_SNAPSHOT_CLICKS": "1415,850"
+      }
+    },
+    {
+      "name": "media-folder",
+      "mode": "live",
+      "section": "library",
+      "options": {
+        "LB_SNAPSHOT_CLICKS": "378,95"
+      }
+    },
+    {
+      "name": "graphics-add",
+      "mode": "live",
+      "section": "graphics",
+      "options": {
+        "LB_SNAPSHOT_CLICKS": "310,155"
+      }
+    },
+    {
+      "name": "graphics-font",
+      "mode": "live",
+      "section": "graphics",
+      "options": {
+        "LB_SNAPSHOT_SELECT": "2",
+        "LB_SNAPSHOT_PLATE_EDITOR": "1",
+        "LB_SNAPSHOT_CLICKS": "1186,241"
+      }
+    },
+    {
+      "name": "media-transform",
+      "mode": "live-scroll",
+      "size": "1440x960",
+      "options": {
+        "LB_SNAPSHOT_EDIT": "0",
+        "LB_DOC_SCROLLS": "1250,700,-550"
+      }
+    },
+    {
+      "name": "media-colour",
+      "mode": "live-scroll",
+      "size": "1440x960",
+      "options": {
+        "LB_SNAPSHOT_EDIT": "0",
+        "LB_DOC_SCROLLS": "1250,700,-1100"
+      }
+    },
+    {
+      "name": "scene-music-options",
+      "mode": "live-scroll",
+      "size": "1440x960",
+      "options": {
+        "LB_SNAPSHOT_SELECT": "0",
+        "LB_DOC_SCROLLS": "1150,760,-650"
+      }
+    },
+    {
+      "name": "scene-music-timing",
+      "mode": "live-scroll",
+      "size": "1440x960",
+      "options": {
+        "LB_SNAPSHOT_SELECT": "0",
+        "LB_DOC_SCROLLS": "1150,760,-1150"
+      }
+    },
+    {
+      "name": "encoder-bottom",
+      "mode": "live-scroll",
+      "size": "1440x960",
+      "options": {
+        "LB_SNAPSHOT_CLICKS": "1328,158",
+        "LB_DOC_SCROLLS": "800,600,-520"
+      }
+    },
+    {
+      "name": "recording-storage",
+      "mode": "live-scroll",
+      "size": "1440x960",
+      "options": {
+        "LB_SNAPSHOT_RECORD": "1",
+        "LB_DOC_SCROLLS": "800,600,-500"
+      }
+    },
+    {
+      "name": "rules-limits",
+      "mode": "live-scroll",
+      "size": "1440x960",
+      "options": {
+        "LB_DOC_SCROLLS": "1100,700,-850"
+      }
+    },
+    {
+      "name": "ad-policies-bottom",
+      "mode": "live-scroll",
+      "size": "1440x960",
+      "options": {
+        "LB_SNAPSHOT_TAB": "2",
+        "LB_DOC_SCROLLS": "1100,700,-500"
+      }
+    },
+    {
+      "name": "rule-wizard-content",
+      "mode": "live-scroll",
+      "size": "1440x960",
+      "options": {
+        "LB_SNAPSHOT_WIZARD": "1"
+      }
+    },
+    {
+      "name": "rule-wizard-conditions",
+      "mode": "live-scroll",
+      "size": "1440x960",
+      "options": {
+        "LB_SNAPSHOT_WIZARD": "2"
+      }
+    },
+    {
+      "name": "rule-wizard-limits",
+      "mode": "live-scroll",
+      "size": "1440x960",
+      "options": {
+        "LB_SNAPSHOT_WIZARD": "3"
+      }
+    },
+    {
+      "name": "plate-layout",
+      "mode": "live-scroll",
+      "size": "1440x960",
+      "options": {
+        "LB_SNAPSHOT_SELECT": "2",
+        "LB_SNAPSHOT_PLATE_EDITOR": "1",
+        "LB_DOC_SCROLLS": "970,650,-650"
+      }
+    },
+    {
+      "name": "graphics",
+      "mode": "live-scroll",
+      "size": "1920x1080",
+      "options": {}
+    },
+    {
+      "name": "graphics-rules",
+      "mode": "live-scroll",
+      "size": "1920x1080",
+      "options": {
+        "LB_SNAPSHOT_TAB": "1"
+      }
+    },
+    {
+      "name": "graphics-vars",
+      "mode": "live-scroll",
+      "size": "1920x1080",
+      "options": {
+        "LB_SNAPSHOT_TAB": "2"
+      }
+    },
+    {
+      "name": "graphics-templates",
+      "mode": "live-scroll",
+      "size": "1920x1080",
+      "options": {
+        "LB_SNAPSHOT_TAB": "3"
+      }
+    },
+    {
+      "name": "graphics-text-properties",
+      "mode": "live-scroll",
+      "size": "1920x1080",
+      "options": {
+        "LB_SNAPSHOT_SELECT": "3",
+        "LB_DOC_SCROLLS": "1780,750,-650"
+      }
+    },
+    {
+      "name": "plate-layout-complete",
+      "mode": "live-scroll",
+      "size": "1440x960",
+      "options": {
+        "LB_SNAPSHOT_SELECT": "2",
+        "LB_SNAPSHOT_PLATE_EDITOR": "1",
+        "LB_DOC_SCROLLS": "970,650,-430"
+      }
+    },
+    {
+      "name": "plate-shape-bottom",
+      "mode": "live-scroll",
+      "size": "1440x960",
+      "options": {
+        "LB_SNAPSHOT_SELECT": "2",
+        "LB_SNAPSHOT_PLATE_EDITOR": "1",
+        "LB_DOC_SCROLLS": "970,650,-1100"
+      }
+    },
+    {
+      "name": "recording-encoding",
+      "mode": "live-scroll",
+      "size": "1440x960",
+      "options": {
+        "LB_SNAPSHOT_RECORD": "1",
+        "LB_DOC_SCROLLS": "800,600,-290"
+      }
+    },
+    {
+      "name": "encoder-middle",
+      "mode": "live-scroll",
+      "size": "1440x960",
+      "options": {
+        "LB_SNAPSHOT_CLICKS": "1328,158",
+        "LB_DOC_SCROLLS": "800,600,-280"
+      }
+    },
+    {
+      "name": "media-bottom",
+      "mode": "live-scroll",
+      "size": "1440x960",
+      "options": {
+        "LB_SNAPSHOT_EDIT": "0",
+        "LB_DOC_SCROLLS": "1250,700,-2000"
+      }
+    },
+    {
+      "name": "rule-conditions-complete",
+      "mode": "live-scroll",
+      "size": "1440x960",
+      "options": {
+        "LB_DOC_SCROLLS": "1100,700,-430"
+      }
+    },
+    {
+      "name": "stats-all",
+      "mode": "live-scroll",
+      "size": "1440x960",
+      "options": {
+        "LB_SNAPSHOT_CLICKS": "640,332"
+      }
+    },
+    {
+      "name": "log-server",
+      "mode": "live-scroll",
+      "size": "1440x960",
+      "options": {
+        "LB_SNAPSHOT_TAB": "1"
+      }
+    }
+  ],
+  "privacy": "System hostname explicitly masked; cropped settings exclude personal profile paths; private originals not published",
+  "annotations": "15 PNG tutorials with numbered boxes and arrows; raw frames and logical crops separately catalogued"
+}

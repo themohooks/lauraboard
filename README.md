@@ -50,6 +50,8 @@ cargo build --release
 
 ## Документация
 
+Начните с [руководства оператора](docs/index.md): [как создать свой канал](docs/guides/create-channel.md), [настроить правила вставок](docs/guides/insertion-rules.md), [составить сетку вещания](docs/guides/schedule.md). [Полный каталог гайдов](docs/guides/index.md) содержит пошаговые инструкции со снимками программы, [каталог неполадок](docs/troubleshooting/index.md) — решения ошибок. [Отчёт о проверке](docs/verification.md) показывает проверенные сценарии и ограничения.
+
 | Документ | Содержание |
 |---|---|
 | [docs/install.md](docs/install.md) | Установка и запуск на Windows и Linux, службы |
