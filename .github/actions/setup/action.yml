@@ -17,14 +17,35 @@ runs:
         printf '%s\n' 'CARGO_BUILD_JOBS=1' 'CARGO_PROFILE_DEV_DEBUG=0' 'CARGO_PROFILE_TEST_DEBUG=0' >> "$GITHUB_ENV"
         free -h
         df -h .
+    - name: Use the primary Ubuntu archive on Linux x64
+      if: runner.os == 'Linux' && runner.arch == 'X64'
+      shell: bash
+      run: |
+        sudo python3 - <<'PY'
+        from pathlib import Path
+        import re
+        directory = Path('/etc/apt/sources.list.d')
+        sources = [Path('/etc/apt/sources.list'), *directory.glob('*.list'), *directory.glob('*.sources')]
+        for path in sources:
+            if not path.is_file():
+                continue
+            original = path.read_text()
+            updated = re.sub(r'https?://azure\.archive\.ubuntu\.com/ubuntu(?=[/\s]|$)', 'https://archive.ubuntu.com/ubuntu', original)
+            if updated != original:
+                path.write_text(updated)
+                print(f'Using the primary Ubuntu archive in {path}')
+        PY
     - name: Install Linux build dependencies
       if: runner.os == 'Linux'
       shell: bash
       run: |
-        sudo apt-get update
-        sudo apt-get install --no-install-recommends -y \
+        sudo timeout --kill-after=30s 10m env DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=l bash -e <<'APT'
+        apt_options=(-o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 -o DPkg::Lock::Timeout=60)
+        apt-get "${apt_options[@]}" update
+        apt-get "${apt_options[@]}" install --no-install-recommends -y \
           build-essential pkg-config libfontconfig-dev libxkbcommon-dev \
           libxkbcommon-x11-dev libwayland-dev libgl1-mesa-dev libssl-dev
+        APT
     - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable
       with:
         toolchain: ${{ inputs.toolchain }}
