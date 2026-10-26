@@ -2,7 +2,7 @@
 //! The compositor reads the latest transparent frame without waiting for IO.
 
 use std::collections::HashMap;
-use std::io::{BufRead, BufReader, Write};
+use std::io::{BufRead, BufReader, Read, Write};
 use std::net::{TcpListener, TcpStream};
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
@@ -398,13 +398,32 @@ impl FileServer {
 }
 
 fn serve_file(mut stream: TcpStream, root: &Path, ruffle: Option<&Path>, wrapper: &str) {
-    let _ = stream.set_read_timeout(Some(Duration::from_secs(2)));
-    let _ = stream.set_write_timeout(Some(Duration::from_secs(3)));
-    let mut reader = BufReader::new(&mut stream);
-    let mut request = String::new();
-    if reader.read_line(&mut request).is_err() || request.len() > 8192 {
+    // Windows can inherit the listener's nonblocking mode on accepted
+    // sockets. Individual requests need blocking reads with a timeout.
+    if stream.set_nonblocking(false).is_err() {
         return;
     }
+    let _ = stream.set_read_timeout(Some(Duration::from_secs(2)));
+    let _ = stream.set_write_timeout(Some(Duration::from_secs(3)));
+    let mut reader = BufReader::new(&mut stream).take(64 * 1024);
+    let mut request = String::new();
+    if reader.by_ref().take(8193).read_line(&mut request).is_err() || request.len() > 8192 || !request.ends_with('\n') {
+        return;
+    }
+    // Dropping a TCP socket with unread request headers can reset the
+    // connection and discard the response on the client (notably macOS).
+    // Wait for the empty line, while bounding the entire request head.
+    let mut header = String::new();
+    loop {
+        header.clear();
+        if reader.read_line(&mut header).unwrap_or(0) == 0 {
+            return;
+        }
+        if header == "\r\n" || header == "\n" {
+            break;
+        }
+    }
+    drop(reader);
     let raw = request.split_whitespace().nth(1).unwrap_or("/").split('?').next().unwrap_or("/");
     let Ok(path) = percent_encoding::percent_decode_str(raw).decode_utf8() else { return };
     let (body, content_type) = if path == "/__lb_swf.html" {
@@ -508,6 +527,35 @@ mod tests {
         let _ = std::fs::remove_file(html);
         let _ = std::fs::remove_file(outside);
         let _ = std::fs::remove_dir(root);
+        let _ = std::fs::remove_dir(dir);
+    }
+
+    #[test]
+    fn local_server_waits_for_complete_request_headers() {
+        use std::io::{ErrorKind, Read};
+        let dir = std::env::temp_dir().join(format!("lb-web-headers-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let html = dir.join("test.html");
+        std::fs::write(&html, "<b>complete response</b>").unwrap();
+        let server = FileServer::start(&html).unwrap();
+        let url = url::Url::parse(&server.url).unwrap();
+        let mut stream = TcpStream::connect(("127.0.0.1", url.port().unwrap())).unwrap();
+        stream.set_read_timeout(Some(Duration::from_millis(200))).unwrap();
+        // Separate TCP writes make the premature response reproducible, even
+        // on platforms that usually buffer the entire request in one read.
+        for part in ["GET /test.html HTTP/1.1\r\n", "Host: localhost\r\nX-Test: fragmented\r\n"] {
+            stream.write_all(part.as_bytes()).unwrap();
+            let mut byte = [0];
+            let error = stream.read(&mut byte).expect_err("server replied before the end of the request headers");
+            assert!(matches!(error.kind(), ErrorKind::WouldBlock | ErrorKind::TimedOut), "{error}");
+        }
+        stream.write_all(b"\r\n").unwrap();
+        stream.set_read_timeout(Some(Duration::from_secs(3))).unwrap();
+        let mut response = String::new();
+        stream.read_to_string(&mut response).unwrap();
+        assert!(response.starts_with("HTTP/1.1 200 OK\r\n"), "{response}");
+        assert!(response.ends_with("\r\n\r\n<b>complete response</b>"), "{response}");
+        let _ = std::fs::remove_file(html);
         let _ = std::fs::remove_dir(dir);
     }
 }

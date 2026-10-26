@@ -10,6 +10,13 @@ inputs:
 runs:
   using: composite
   steps:
+    - name: Configure Linux build resource usage
+      if: runner.os == 'Linux'
+      shell: bash
+      run: |
+        printf '%s\n' 'CARGO_BUILD_JOBS=1' 'CARGO_PROFILE_DEV_DEBUG=0' 'CARGO_PROFILE_TEST_DEBUG=0' >> "$GITHUB_ENV"
+        free -h
+        df -h .
     - name: Install Linux build dependencies
       if: runner.os == 'Linux'
       shell: bash

@@ -128,7 +128,12 @@ jobs:
           RESULTS: ${{ toJSON(needs) }}
         run: |
           python3 - <<'PY'
-          import json, os
+          import json, os, sys
           results = json.loads(os.environ['RESULTS'])
-          assert all(job['result'] == 'success' for job in results.values()), results
+          failed = {name: job['result'] for name, job in results.items() if job['result'] != 'success'}
+          for name, result in failed.items():
+              print(f'::error::Required CI group "{name}" ended with "{result}". Open that group\'s job logs for the original error.')
+          if failed:
+              sys.exit(1)
+          print('All required CI groups passed.')
           PY
