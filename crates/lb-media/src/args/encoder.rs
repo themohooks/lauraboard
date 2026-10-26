@@ -3,6 +3,7 @@
 
 use lb_core::config::{AudioFormat, EncoderConfig, OutputTarget, RateControl, VideoFormat};
 
+use super::filters::sync_resample;
 use super::outputs::{record_feed_slave, tee_slave};
 use super::{base_args, fps_str, sv};
 
@@ -112,7 +113,7 @@ fn filter_graph(j: &EncodeJob) -> String {
     let gain = if j.audio.volume_db.abs() > 0.01 { format!("volume={:.2}dB,", j.audio.volume_db) } else { String::new() };
     // Resample against timestamps BEFORE any sample-count timestamp reset.
     // Fill/trim gaps and gently compensate clock drift on long broadcasts.
-    parts.push(format!("[0:a]aresample={}:async=1000:first_pts=0,{gain}anull[aout]", j.audio.sample_rate));
+    parts.push(format!("[0:a]{},{gain}anull[aout]", sync_resample(j.audio.sample_rate)));
     parts.join(";")
 }
 

@@ -1,0 +1,7 @@
+# This GitHub-hosted label is newer than actionlint 1.7.12's built-in list.
+# https://docs.github.com/en/actions/reference/runners/github-hosted-runners
+# actionlint uses this setting to accept additional runner labels, including
+# newly released hosted images; it does not change where the job runs.
+self-hosted-runner:
+  labels:
+    - ubuntu-26.04

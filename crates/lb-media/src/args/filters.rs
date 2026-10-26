@@ -122,7 +122,7 @@ pub fn audio_chain(a: &AudioFormat, volume_db: f32, fade_in_ms: i64, fade_out_ms
     };
     // Preserve the source A/V timeline, including delayed audio starts and
     // timestamp gaps, before sending samples to the continuous encoder.
-    let mut f: Vec<String> = vec![format!("aresample={}:async=1000:first_pts=0", a.sample_rate)];
+    let mut f: Vec<String> = vec![sync_resample(a.sample_rate)];
     if a.normalize {
         f.push("loudnorm=I=-23:TP=-2:LRA=11".into());
         f.push(format!("aresample={}", a.sample_rate));
@@ -139,6 +139,13 @@ pub fn audio_chain(a: &AudioFormat, volume_db: f32, fade_in_ms: i64, fade_out_ms
     }
     f.push("apad".into());
     f.join(",")
+}
+
+/// Enable the resampler from the first frame, even at equal sample rates.
+/// FFmpeg 6.1 otherwise starts it lazily at the first clock correction,
+/// resets its output timestamps and inserts spurious silence to catch up.
+pub(crate) fn sync_resample(sample_rate: u32) -> String {
+    format!("aresample={sample_rate}:async=1000:first_pts=0:flags=res")
 }
 
 /// `anullsrc` source matching the channel audio format.

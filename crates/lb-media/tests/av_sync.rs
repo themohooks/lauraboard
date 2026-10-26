@@ -86,7 +86,18 @@ fn encode(input: Vec<u8>, channels: u32) -> Vec<u8> {
         preview: None,
         loglevel: "error",
     });
-    run("ffmpeg", &args, input)
+    if let Some(dir) = std::env::var_os("LB_AV_SYNC_ARTIFACTS") {
+        let dir = std::path::PathBuf::from(dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        let name = format!("{}-{channels}", std::thread::current().name().unwrap_or("test"));
+        std::fs::write(dir.join(format!("{name}-input.ts")), &input).unwrap();
+        std::fs::write(dir.join(format!("{name}-args.json")), serde_json::to_vec_pretty(&args).unwrap()).unwrap();
+        let output = run("ffmpeg", &args, input);
+        std::fs::write(dir.join(format!("{name}-output.mkv")), &output).unwrap();
+        output
+    } else {
+        run("ffmpeg", &args, input)
+    }
 }
 
 fn assert_sync(encoded: Vec<u8>, channels: u32, count: usize) {
@@ -101,16 +112,7 @@ fn assert_sync(encoded: Vec<u8>, channels: u32, count: usize) {
         }
         was_white = white;
     }
-    let mut tones = Vec::new();
-    let mut last_loud = None;
-    for (i, bytes) in samples.chunks_exact(4).enumerate() {
-        if f32::from_le_bytes(bytes.try_into().unwrap()).abs() > 0.1 {
-            if last_loud.is_none_or(|last| i - last > 4800) {
-                tones.push(i as f64 / 48000.0);
-            }
-            last_loud = Some(i);
-        }
-    }
+    let tones = tone_times(&samples);
     assert_eq!(flashes.len(), count, "lost flashes with {channels} channels");
     assert_eq!(tones.len(), count, "lost tones with {channels} channels");
     for (i, (flash, tone)) in flashes.iter().zip(&tones).enumerate() {
@@ -131,6 +133,20 @@ fn assert_sync(encoded: Vec<u8>, channels: u32, count: usize) {
             .fold(0.0_f64, f64::max)
     };
     assert!((end("video") - end("audio")).abs() < 0.15, "A/V tails diverged");
+}
+
+fn tone_times(samples: &[u8]) -> Vec<f64> {
+    let mut tones = Vec::new();
+    let mut last_loud = None;
+    for (i, bytes) in samples.chunks_exact(4).enumerate() {
+        if f32::from_le_bytes(bytes.try_into().unwrap()).abs() > 0.1 {
+            if last_loud.is_none_or(|last| i - last > 4800) {
+                tones.push(i as f64 / 48000.0);
+            }
+            last_loud = Some(i);
+        }
+    }
+    tones
 }
 
 #[test]
@@ -167,6 +183,40 @@ fn continuous_audio_clock_drift_is_compensated() {
         vec![],
     );
     assert_sync(encode(clip, 2), 2, 120);
+}
+
+#[test]
+#[ignore = "requires FFmpeg"]
+fn source_audio_clock_drift_is_compensated() {
+    // Also exercise the per-item audio chain: equal nominal sample rates
+    // must not let FFmpeg 6.1 reset the resampler when drift first appears.
+    for normalize in [false, true] {
+        let audio = AudioFormat { normalize, ..Default::default() };
+        let chain = lb_media::args::filters::audio_chain(&audio, 0.0, 0, 0, 6000);
+        let samples = ffmpeg(
+            &[
+                "-f",
+                "lavfi",
+                "-i",
+                "aevalsrc=if(between(mod(t*1.005\\,1)\\,0.24\\,0.48)\\,0.3*sin(2*PI*1000*t)\\,0):s=48000:d=5.970149,asetpts=PTS*1.005",
+                "-af",
+                &chain,
+                "-t",
+                "6",
+                "-ac",
+                "1",
+                "-f",
+                "f32le",
+                "pipe:1",
+            ],
+            vec![],
+        );
+        let tones = tone_times(&samples);
+        assert_eq!(tones.len(), 6, "lost source tones: normalize={normalize}");
+        for (i, tone) in tones.iter().enumerate() {
+            assert!((tone - (i as f64 + 0.24)).abs() < 0.03, "source tone {i} at {tone:.3}s: normalize={normalize}");
+        }
+    }
 }
 
 #[test]
