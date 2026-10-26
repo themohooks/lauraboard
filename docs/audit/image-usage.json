@@ -1,8 +1,8 @@
 {
   "counting": "Only inline Markdown images outside catalogs, audit and verification pages",
-  "png_total": 205,
-  "png_embedded": 113,
-  "inline_occurrences_unique_per_page": 141,
+  "png_total": 266,
+  "png_embedded": 150,
+  "inline_occurrences_unique_per_page": 203,
   "images": [
     {
       "image": "screenshots/guides/channel-01.png",
@@ -21,7 +21,8 @@
     {
       "image": "screenshots/guides/channel-03.png",
       "pages": [
-        "guides/create-channel.md"
+        "guides/create-channel.md",
+        "guides/first-channel-workshop.md"
       ],
       "role": "Встроен в инструкцию"
     },
@@ -35,6 +36,7 @@
     {
       "image": "screenshots/guides/import-02.png",
       "pages": [
+        "guides/first-channel-workshop.md",
         "guides/import-media.md"
       ],
       "role": "Встроен в инструкцию"
@@ -99,6 +101,7 @@
     {
       "image": "screenshots/guides/schedule-01.png",
       "pages": [
+        "guides/first-channel-workshop.md",
         "guides/schedule.md"
       ],
       "role": "Встроен в инструкцию"
@@ -293,7 +296,9 @@
         "basic-usage.md",
         "guides/air-control.md",
         "guides/first-broadcast.md",
-        "guides/media-bulk.md"
+        "guides/first-channel-workshop.md",
+        "guides/media-bulk.md",
+        "guides/operator-workshop.md"
       ],
       "role": "Встроен в инструкцию"
     },
@@ -360,26 +365,97 @@
     {
       "image": "screenshots/interface/clock-properties-dark.png",
       "pages": [],
-      "role": "Архив: альтернативная тёмная тема используемого кадра"
+      "role": "Архив: исходник/вариант, отдельно в инструкции не встроен"
     },
     {
       "image": "screenshots/interface/clock-properties-light.png",
-      "pages": [
-        "guides/graphics-time-progress.md"
-      ],
-      "role": "Встроен в инструкцию"
+      "pages": [],
+      "role": "Полный исходник; в инструкциях используются 1 фрагм."
     },
     {
       "image": "screenshots/interface/countdown-properties-dark.png",
       "pages": [],
-      "role": "Архив: альтернативная тёмная тема используемого кадра"
+      "role": "Архив: исходник/вариант, отдельно в инструкции не встроен"
     },
     {
       "image": "screenshots/interface/countdown-properties-light.png",
-      "pages": [
-        "guides/graphics-time-progress.md"
-      ],
-      "role": "Встроен в инструкцию"
+      "pages": [],
+      "role": "Полный исходник; в инструкциях используются 1 фрагм."
+    },
+    {
+      "image": "screenshots/interface/element-avatar-end-light.png",
+      "pages": [],
+      "role": "Конец формы сохранён как исходник; обсуждаемые поля показаны другим фрагментом этой формы"
+    },
+    {
+      "image": "screenshots/interface/element-avatar-top-light.png",
+      "pages": [],
+      "role": "Полный исходник; в инструкциях используются 1 фрагм."
+    },
+    {
+      "image": "screenshots/interface/element-group-top-light.png",
+      "pages": [],
+      "role": "Полный исходник; в инструкциях используются 1 фрагм."
+    },
+    {
+      "image": "screenshots/interface/element-image-end-light.png",
+      "pages": [],
+      "role": "Конец формы сохранён как исходник; обсуждаемые поля показаны другим фрагментом этой формы"
+    },
+    {
+      "image": "screenshots/interface/element-image-top-light.png",
+      "pages": [],
+      "role": "Полный исходник; в инструкциях используются 3 фрагм."
+    },
+    {
+      "image": "screenshots/interface/element-plate-design-light.png",
+      "pages": [],
+      "role": "Полный исходник; в инструкциях используются 1 фрагм."
+    },
+    {
+      "image": "screenshots/interface/element-plate-end-light.png",
+      "pages": [],
+      "role": "Полный исходник; в инструкциях используются 1 фрагм."
+    },
+    {
+      "image": "screenshots/interface/element-plate-lines-light.png",
+      "pages": [],
+      "role": "Полный исходник; в инструкциях используются 1 фрагм."
+    },
+    {
+      "image": "screenshots/interface/element-plate-top-light.png",
+      "pages": [],
+      "role": "Полный исходник; в инструкциях используются 2 фрагм."
+    },
+    {
+      "image": "screenshots/interface/element-shape-design-light.png",
+      "pages": [],
+      "role": "Полный исходник; в инструкциях используются 2 фрагм."
+    },
+    {
+      "image": "screenshots/interface/element-shape-end-light.png",
+      "pages": [],
+      "role": "Полный исходник; в инструкциях используются 2 фрагм."
+    },
+    {
+      "image": "screenshots/interface/element-shape-top-light.png",
+      "pages": [],
+      "role": "Полный исходник; в инструкциях используются 1 фрагм."
+    },
+    {
+      "image": "screenshots/interface/element-text-end-light.png",
+      "pages": [],
+      "role": "Конец формы сохранён как исходник; обсуждаемые поля показаны другим фрагментом этой формы"
+    },
+    {
+      "image": "screenshots/interface/element-text-style-light.png",
+      "pages": [],
+      "role": "Полный исходник; в инструкциях используются 2 фрагм."
+    },
+    {
+      "image": "screenshots/interface/element-text-top-light.png",
+      "pages": [],
+      "role": "Полный исходник; в инструкциях используются 1 фрагм."
     },
     {
       "image": "screenshots/interface/encoder-bottom-dark.png",
@@ -526,7 +602,8 @@
       "pages": [
         "getting-started.md",
         "guides/backup-restore.md",
-        "interface-overview.md"
+        "interface-overview.md",
+        "start-here.md"
       ],
       "role": "Встроен в инструкцию"
     },
@@ -667,14 +744,12 @@
     {
       "image": "screenshots/interface/media-multiselect-dark.png",
       "pages": [],
-      "role": "Архив: альтернативная тёмная тема используемого кадра"
+      "role": "Архив: исходник/вариант, отдельно в инструкции не встроен"
     },
     {
       "image": "screenshots/interface/media-multiselect-light.png",
-      "pages": [
-        "guides/media-bulk.md"
-      ],
-      "role": "Встроен в инструкцию"
+      "pages": [],
+      "role": "Полный исходник; в инструкциях используются 1 фрагм."
     },
     {
       "image": "screenshots/interface/media-transform-dark.png",
@@ -707,6 +782,7 @@
     {
       "image": "screenshots/interface/new-playlist-light.png",
       "pages": [
+        "guides/first-channel-workshop.md",
         "guides/playlists.md"
       ],
       "role": "Встроен в инструкцию"
@@ -719,6 +795,7 @@
     {
       "image": "screenshots/interface/output-form-light.png",
       "pages": [
+        "guides/first-channel-workshop.md",
         "guides/outputs.md"
       ],
       "role": "Встроен в инструкцию"
@@ -774,6 +851,7 @@
     {
       "image": "screenshots/interface/playlist-add-light.png",
       "pages": [
+        "guides/first-channel-workshop.md",
         "guides/playlist-operations.md",
         "guides/playlists.md"
       ],
@@ -806,38 +884,32 @@
     {
       "image": "screenshots/interface/program-time-properties-dark.png",
       "pages": [],
-      "role": "Архив: альтернативная тёмная тема используемого кадра"
+      "role": "Архив: исходник/вариант, отдельно в инструкции не встроен"
     },
     {
       "image": "screenshots/interface/program-time-properties-light.png",
-      "pages": [
-        "guides/graphics-time-progress.md"
-      ],
-      "role": "Встроен в инструкцию"
+      "pages": [],
+      "role": "Полный исходник; в инструкциях используются 1 фрагм."
     },
     {
       "image": "screenshots/interface/progress-appearance-dark.png",
       "pages": [],
-      "role": "Архив: альтернативная тёмная тема используемого кадра"
+      "role": "Архив: исходник/вариант, отдельно в инструкции не встроен"
     },
     {
       "image": "screenshots/interface/progress-appearance-light.png",
-      "pages": [
-        "guides/graphics-time-progress.md"
-      ],
-      "role": "Встроен в инструкцию"
+      "pages": [],
+      "role": "Полный исходник; в инструкциях используются 1 фрагм."
     },
     {
       "image": "screenshots/interface/progress-properties-dark.png",
       "pages": [],
-      "role": "Архив: альтернативная тёмная тема используемого кадра"
+      "role": "Архив: исходник/вариант, отдельно в инструкции не встроен"
     },
     {
       "image": "screenshots/interface/progress-properties-light.png",
-      "pages": [
-        "guides/graphics-time-progress.md"
-      ],
-      "role": "Встроен в инструкцию"
+      "pages": [],
+      "role": "Полный исходник; в инструкциях используются 2 фрагм."
     },
     {
       "image": "screenshots/interface/recording-dark.png",
@@ -1059,14 +1131,12 @@
     {
       "image": "screenshots/interface/shape-properties-dark.png",
       "pages": [],
-      "role": "Архив: альтернативная тёмная тема используемого кадра"
+      "role": "Архив: исходник/вариант, отдельно в инструкции не встроен"
     },
     {
       "image": "screenshots/interface/shape-properties-light.png",
-      "pages": [
-        "guides/graphics-text-ticker.md"
-      ],
-      "role": "Встроен в инструкцию"
+      "pages": [],
+      "role": "Архив: исходник/вариант, отдельно в инструкции не встроен"
     },
     {
       "image": "screenshots/interface/sources-dark.png",
@@ -1089,6 +1159,7 @@
     {
       "image": "screenshots/interface/stats-all-light.png",
       "pages": [
+        "guides/operator-workshop.md",
         "guides/statistics.md"
       ],
       "role": "Встроен в инструкцию"
@@ -1106,6 +1177,11 @@
       "role": "Встроен в инструкцию"
     },
     {
+      "image": "screenshots/interface/stream-dialog-light.png",
+      "pages": [],
+      "role": "Полный исходник; в инструкциях используются 1 фрагм."
+    },
+    {
       "image": "screenshots/interface/system-dark.png",
       "pages": [],
       "role": "Архив: альтернативная тёмная тема используемого кадра"
@@ -1120,14 +1196,12 @@
     {
       "image": "screenshots/interface/ticker-properties-dark.png",
       "pages": [],
-      "role": "Архив: альтернативная тёмная тема используемого кадра"
+      "role": "Архив: исходник/вариант, отдельно в инструкции не встроен"
     },
     {
       "image": "screenshots/interface/ticker-properties-light.png",
-      "pages": [
-        "guides/graphics-text-ticker.md"
-      ],
-      "role": "Встроен в инструкцию"
+      "pages": [],
+      "role": "Полный исходник; в инструкциях используются 1 фрагм."
     },
     {
       "image": "screenshots/interface/transitions-dark.png",
@@ -1154,6 +1228,48 @@
       "role": "Встроен в инструкцию"
     },
     {
+      "image": "screenshots/parts/ads-duration-fill.png",
+      "pages": [
+        "guides/ads-recipes.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/parts/ads-intro-usage.png",
+      "pages": [
+        "guides/ads-recipes.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/parts/ads-source-order.png",
+      "pages": [
+        "guides/ads-recipes.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/parts/air-position-times.png",
+      "pages": [
+        "guides/air-control.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/parts/air-queue-columns.png",
+      "pages": [
+        "guides/air-control.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/parts/air-transport.png",
+      "pages": [
+        "guides/air-control.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
       "image": "screenshots/parts/encoder-frame-sound.png",
       "pages": [
         "guides/encoder.md"
@@ -1168,8 +1284,229 @@
       "role": "Встроен в инструкцию"
     },
     {
+      "image": "screenshots/parts/gfx-animation-profile.png",
+      "pages": [
+        "guides/graphics-properties.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/parts/gfx-avatar-file.png",
+      "pages": [
+        "guides/graphics-elements.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/parts/gfx-clock-format.png",
+      "pages": [
+        "guides/graphics-elements.md",
+        "guides/graphics-time-progress.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/parts/gfx-countdown-target.png",
+      "pages": [
+        "guides/graphics-elements.md",
+        "guides/graphics-time-progress.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/parts/gfx-group-children.png",
+      "pages": [
+        "guides/graphics-elements.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/parts/gfx-image-animation-profile.png",
+      "pages": [
+        "guides/graphics-properties.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/parts/gfx-image-file.png",
+      "pages": [
+        "guides/graphics-elements.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/parts/gfx-plate-design.png",
+      "pages": [
+        "guides/graphics-elements.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/parts/gfx-plate-dimensions.png",
+      "pages": [
+        "guides/graphics-elements.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/parts/gfx-plate-line-style.png",
+      "pages": [
+        "guides/graphics-elements.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/parts/gfx-plate-lines.png",
+      "pages": [
+        "guides/graphics-elements.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/parts/gfx-plate-result.png",
+      "pages": [
+        "guides/graphics-elements.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/parts/gfx-position.png",
+      "pages": [
+        "guides/graphics-elements.md",
+        "guides/graphics-properties.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/parts/gfx-program-exclusions.png",
+      "pages": [
+        "guides/graphics-elements.md",
+        "guides/graphics-time-progress.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/parts/gfx-progress-appearance.png",
+      "pages": [
+        "guides/graphics-elements.md",
+        "guides/graphics-time-progress.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/parts/gfx-progress-dimensions.png",
+      "pages": [
+        "guides/graphics-elements.md",
+        "guides/graphics-time-progress.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/parts/gfx-progress-exclusions.png",
+      "pages": [
+        "guides/graphics-elements.md",
+        "guides/graphics-time-progress.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/parts/gfx-shape-accent-texture.png",
+      "pages": [
+        "guides/graphics-elements.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/parts/gfx-shape-animation.png",
+      "pages": [
+        "guides/graphics-properties.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/parts/gfx-shape-gradient-border.png",
+      "pages": [
+        "guides/graphics-elements.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/parts/gfx-shape-shadow.png",
+      "pages": [
+        "guides/graphics-elements.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/parts/gfx-shape-size.png",
+      "pages": [
+        "guides/graphics-elements.md",
+        "guides/graphics-text-ticker.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/parts/gfx-text-background.png",
+      "pages": [
+        "guides/graphics-properties.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/parts/gfx-text-content.png",
+      "pages": [
+        "guides/graphics-elements.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/parts/gfx-text-font-outline.png",
+      "pages": [
+        "guides/graphics-properties.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/parts/gfx-ticker-speed-text.png",
+      "pages": [
+        "guides/graphics-elements.md",
+        "guides/graphics-text-ticker.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/parts/import-copy-actions.png",
+      "pages": [
+        "guides/import-media.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/parts/import-path-type-folder.png",
+      "pages": [
+        "guides/import-media.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/parts/log-search-levels.png",
+      "pages": [
+        "guides/logs.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/parts/media-bulk-toolbar.png",
+      "pages": [
+        "guides/media-bulk.md",
+        "guides/organize-media.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
       "image": "screenshots/parts/media-properties.png",
       "pages": [
+        "guides/first-channel-workshop.md",
         "guides/media-display.md"
       ],
       "role": "Встроен в инструкцию"
@@ -1178,6 +1515,27 @@
       "image": "screenshots/parts/media-transforms.png",
       "pages": [
         "guides/media-display.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/parts/music-days-hours.png",
+      "pages": [
+        "guides/music-recipes.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/parts/music-track-sources.png",
+      "pages": [
+        "guides/music-recipes.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/parts/music-volume-repeat.png",
+      "pages": [
+        "guides/music-recipes.md"
       ],
       "role": "Встроен в инструкцию"
     },
@@ -1211,6 +1569,13 @@
       "role": "Встроен в инструкцию"
     },
     {
+      "image": "screenshots/parts/playlist-name-modes.png",
+      "pages": [
+        "guides/playlists.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
       "image": "screenshots/parts/recording-codecs-storage.png",
       "pages": [
         "guides/recording-recipes.md",
@@ -1221,8 +1586,30 @@
     {
       "image": "screenshots/parts/recording-files.png",
       "pages": [
+        "guides/first-channel-workshop.md",
         "guides/recording-recipes.md",
         "guides/recording.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/parts/rule-content-filters.png",
+      "pages": [
+        "guides/rule-recipes.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/parts/rule-priority-options.png",
+      "pages": [
+        "guides/rule-recipes.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/parts/rule-week-time.png",
+      "pages": [
+        "guides/rule-recipes.md"
       ],
       "role": "Встроен в инструкцию"
     },
@@ -1244,6 +1631,7 @@
     {
       "image": "screenshots/parts/schedule-block-bottom.png",
       "pages": [
+        "guides/scene-rules.md",
         "guides/schedule-sources.md"
       ],
       "role": "Встроен в инструкцию"
@@ -1251,7 +1639,15 @@
     {
       "image": "screenshots/parts/schedule-block-top.png",
       "pages": [
-        "guides/schedule-sources.md"
+        "guides/schedule-sources.md",
+        "guides/schedule-timing.md"
+      ],
+      "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/parts/schedule-choice-days.png",
+      "pages": [
+        "guides/schedule.md"
       ],
       "role": "Встроен в инструкцию"
     },
@@ -1265,7 +1661,8 @@
     {
       "image": "screenshots/parts/settings-connection.png",
       "pages": [
-        "guides/connection.md"
+        "guides/connection.md",
+        "guides/first-channel-workshop.md"
       ],
       "role": "Встроен в инструкцию"
     },
@@ -1282,9 +1679,23 @@
         "shortcuts.md"
       ],
       "role": "Встроен в инструкцию"
+    },
+    {
+      "image": "screenshots/parts/stream-name-url-duration.png",
+      "pages": [
+        "guides/outputs.md"
+      ],
+      "role": "Встроен в инструкцию"
     }
   ],
   "guide_sections": [
+    {
+      "task": "С чего начать, чтобы реклама действительно появилась",
+      "guide": "guides/ads-promos.md",
+      "anchor": "с-чего-начать-чтобы-реклама-действительно-появилась",
+      "images": [],
+      "status": "Частично: инструкция; отдельный кадр этого раздела отсутствует"
+    },
     {
       "task": "Как создать рекламный блок",
       "guide": "guides/ads-promos.md",
@@ -1361,6 +1772,24 @@
       "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
     },
     {
+      "task": "Как читать содержимое, длительность и оформление отдельно",
+      "guide": "guides/ads-recipes.md",
+      "anchor": "как-читать-содержимое-длительность-и-оформление-отдельно",
+      "images": [
+        "screenshots/parts/ads-source-order.png",
+        "screenshots/parts/ads-duration-fill.png",
+        "screenshots/parts/ads-intro-usage.png"
+      ],
+      "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
+    },
+    {
+      "task": "Как подготовиться к действиям вне интерфейса",
+      "guide": "guides/advanced-channel.md",
+      "anchor": "как-подготовиться-к-действиям-вне-интерфейса",
+      "images": [],
+      "status": "Частично: инструкция; отдельный кадр этого раздела отсутствует"
+    },
+    {
       "task": "Как настроить резервный ролик и картинку",
       "guide": "guides/advanced-channel.md",
       "anchor": "как-настроить-резервный-ролик-и-картинку",
@@ -1389,6 +1818,24 @@
       "anchor": "как-подготовить-будущее-расписание-и-серверные-уведомления",
       "images": [],
       "status": "Частично: инструкция; отдельный кадр этого раздела отсутствует"
+    },
+    {
+      "task": "Как выбрать команду по намерению оператора",
+      "guide": "guides/air-control.md",
+      "anchor": "как-выбрать-команду-по-намерению-оператора",
+      "images": [],
+      "status": "Частично: инструкция; отдельный кадр этого раздела отсутствует"
+    },
+    {
+      "task": "Как читать позицию, время и очередь на экране",
+      "guide": "guides/air-control.md",
+      "anchor": "как-читать-позицию-время-и-очередь-на-экране",
+      "images": [
+        "screenshots/parts/air-position-times.png",
+        "screenshots/parts/air-transport.png",
+        "screenshots/parts/air-queue-columns.png"
+      ],
+      "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
     },
     {
       "task": "Как пропустить, повторить или перемотать ролик",
@@ -1426,6 +1873,13 @@
       "status": "Частично: инструкция; отдельный кадр этого раздела отсутствует"
     },
     {
+      "task": "Как подобрать масштаб и вернуть удобный вид",
+      "guide": "guides/appearance.md",
+      "anchor": "как-подобрать-масштаб-и-вернуть-удобный-вид",
+      "images": [],
+      "status": "Частично: инструкция; отдельный кадр этого раздела отсутствует"
+    },
+    {
       "task": "Как настроить уведомления",
       "guide": "guides/appearance.md",
       "anchor": "как-настроить-уведомления",
@@ -1447,6 +1901,13 @@
         "screenshots/parts/settings-layout.png"
       ],
       "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
+    },
+    {
+      "task": "Как выбрать копию и проверить её до восстановления",
+      "guide": "guides/backup-restore.md",
+      "anchor": "как-выбрать-копию-и-проверить-её-до-восстановления",
+      "images": [],
+      "status": "Частично: инструкция; отдельный кадр этого раздела отсутствует"
     },
     {
       "task": "Как сохранить всё необходимое",
@@ -1489,6 +1950,13 @@
       "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
     },
     {
+      "task": "Как проверить подключение до ввода команд",
+      "guide": "guides/connection.md",
+      "anchor": "как-проверить-подключение-до-ввода-команд",
+      "images": [],
+      "status": "Частично: инструкция; отдельный кадр этого раздела отсутствует"
+    },
+    {
       "task": "Как открыть GUI для другого сервера",
       "guide": "guides/connection.md",
       "anchor": "как-открыть-gui-для-другого-сервера",
@@ -1506,6 +1974,13 @@
       "task": "Что получится",
       "guide": "guides/create-channel.md",
       "anchor": "что-получится",
+      "images": [],
+      "status": "Частично: инструкция; отдельный кадр этого раздела отсутствует"
+    },
+    {
+      "task": "Как заполнить форму без путаницы",
+      "guide": "guides/create-channel.md",
+      "anchor": "как-заполнить-форму-без-путаницы",
       "images": [],
       "status": "Частично: инструкция; отдельный кадр этого раздела отсутствует"
     },
@@ -1555,9 +2030,23 @@
       "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
     },
     {
+      "task": "Как изменить один параметр и понять результат",
+      "guide": "guides/encoder.md",
+      "anchor": "как-изменить-один-параметр-и-понять-результат",
+      "images": [],
+      "status": "Частично: инструкция; отдельный кадр этого раздела отсутствует"
+    },
+    {
       "task": "Как включить аппаратное кодирование",
       "guide": "guides/encoder.md",
       "anchor": "как-включить-аппаратное-кодирование",
+      "images": [],
+      "status": "Частично: инструкция; отдельный кадр этого раздела отсутствует"
+    },
+    {
+      "task": "Как пройти подготовку без пропущенных действий",
+      "guide": "guides/first-broadcast.md",
+      "anchor": "как-пройти-подготовку-без-пропущенных-действий",
       "images": [],
       "status": "Частично: инструкция; отдельный кадр этого раздела отсутствует"
     },
@@ -1583,6 +2072,211 @@
       "anchor": "завершить-проверку",
       "images": [],
       "status": "Частично: инструкция; отдельный кадр этого раздела отсутствует"
+    },
+    {
+      "task": "Шаг 1. Убедитесь, что открыта нужная программа",
+      "guide": "guides/first-channel-workshop.md",
+      "anchor": "шаг-1-убедитесь-что-открыта-нужная-программа",
+      "images": [
+        "screenshots/parts/settings-connection.png"
+      ],
+      "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
+    },
+    {
+      "task": "Шаг 2. Создайте учебный канал",
+      "guide": "guides/first-channel-workshop.md",
+      "anchor": "шаг-2-создайте-учебный-канал",
+      "images": [
+        "screenshots/guides/channel-03.png"
+      ],
+      "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
+    },
+    {
+      "task": "Шаг 3. Добавьте первое видео",
+      "guide": "guides/first-channel-workshop.md",
+      "anchor": "шаг-3-добавьте-первое-видео",
+      "images": [
+        "screenshots/guides/import-02.png"
+      ],
+      "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
+    },
+    {
+      "task": "Шаг 4. Добавьте второе видео и проверьте свойства",
+      "guide": "guides/first-channel-workshop.md",
+      "anchor": "шаг-4-добавьте-второе-видео-и-проверьте-свойства",
+      "images": [
+        "screenshots/parts/media-properties.png"
+      ],
+      "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
+    },
+    {
+      "task": "Шаг 5. Соберите плейлист",
+      "guide": "guides/first-channel-workshop.md",
+      "anchor": "шаг-5-соберите-плейлист",
+      "images": [
+        "screenshots/interface/new-playlist-light.png",
+        "screenshots/interface/playlist-add-light.png"
+      ],
+      "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
+    },
+    {
+      "task": "Шаг 6. Назначьте плейлист расписанию",
+      "guide": "guides/first-channel-workshop.md",
+      "anchor": "шаг-6-назначьте-плейлист-расписанию",
+      "images": [
+        "screenshots/guides/schedule-01.png"
+      ],
+      "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
+    },
+    {
+      "task": "Шаг 7. Выберите это расписание для эфира",
+      "guide": "guides/first-channel-workshop.md",
+      "anchor": "шаг-7-выберите-это-расписание-для-эфира",
+      "images": [
+        "screenshots/interface/air-light.png"
+      ],
+      "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
+    },
+    {
+      "task": "Шаг 8. Добавьте локальный выход",
+      "guide": "guides/first-channel-workshop.md",
+      "anchor": "шаг-8-добавьте-локальный-выход",
+      "images": [
+        "screenshots/interface/output-form-light.png"
+      ],
+      "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
+    },
+    {
+      "task": "Шаг 9. Запустите эфир и проверьте результат",
+      "guide": "guides/first-channel-workshop.md",
+      "anchor": "шаг-9-запустите-эфир-и-проверьте-результат",
+      "images": [],
+      "status": "Частично: инструкция; отдельный кадр этого раздела отсутствует"
+    },
+    {
+      "task": "Шаг 10. Проверьте короткую запись",
+      "guide": "guides/first-channel-workshop.md",
+      "anchor": "шаг-10-проверьте-короткую-запись",
+      "images": [
+        "screenshots/parts/recording-files.png"
+      ],
+      "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
+    },
+    {
+      "task": "Шаг 11. Закончите занятие и сохраните результат",
+      "guide": "guides/first-channel-workshop.md",
+      "anchor": "шаг-11-закончите-занятие-и-сохраните-результат",
+      "images": [],
+      "status": "Частично: инструкция; отдельный кадр этого раздела отсутствует"
+    },
+    {
+      "task": "Изображение: как добавить собственный логотип",
+      "guide": "guides/graphics-elements.md",
+      "anchor": "изображение-как-добавить-собственный-логотип",
+      "images": [
+        "screenshots/parts/gfx-image-file.png",
+        "screenshots/parts/gfx-position.png"
+      ],
+      "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
+    },
+    {
+      "task": "Аватар канала: как использовать уже выбранную картинку",
+      "guide": "guides/graphics-elements.md",
+      "anchor": "аватар-канала-как-использовать-уже-выбранную-картинку",
+      "images": [
+        "screenshots/parts/gfx-avatar-file.png"
+      ],
+      "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
+    },
+    {
+      "task": "Текст: как разделить содержимое и внешний вид",
+      "guide": "guides/graphics-elements.md",
+      "anchor": "текст-как-разделить-содержимое-и-внешний-вид",
+      "images": [
+        "screenshots/parts/gfx-text-content.png"
+      ],
+      "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
+    },
+    {
+      "task": "Бегущая строка: как задать сообщение, скорость и ширину",
+      "guide": "guides/graphics-elements.md",
+      "anchor": "бегущая-строка-как-задать-сообщение-скорость-и-ширину",
+      "images": [
+        "screenshots/parts/gfx-ticker-speed-text.png"
+      ],
+      "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
+    },
+    {
+      "task": "Часы: как отдельно настроить время и дату",
+      "guide": "guides/graphics-elements.md",
+      "anchor": "часы-как-отдельно-настроить-время-и-дату",
+      "images": [
+        "screenshots/parts/gfx-clock-format.png"
+      ],
+      "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
+    },
+    {
+      "task": "Таймер: как выбрать событие отсчёта",
+      "guide": "guides/graphics-elements.md",
+      "anchor": "таймер-как-выбрать-событие-отсчёта",
+      "images": [
+        "screenshots/parts/gfx-countdown-target.png"
+      ],
+      "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
+    },
+    {
+      "task": "До конца передачи: как исключить рекламу из расчёта",
+      "guide": "guides/graphics-elements.md",
+      "anchor": "до-конца-передачи-как-исключить-рекламу-из-расчёта",
+      "images": [
+        "screenshots/parts/gfx-program-exclusions.png"
+      ],
+      "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
+    },
+    {
+      "task": "Прогресс передачи: как настроить основу, заполнение и оформление",
+      "guide": "guides/graphics-elements.md",
+      "anchor": "прогресс-передачи-как-настроить-основу-заполнение-и-оформление",
+      "images": [
+        "screenshots/parts/gfx-progress-dimensions.png",
+        "screenshots/parts/gfx-progress-exclusions.png",
+        "screenshots/parts/gfx-progress-appearance.png"
+      ],
+      "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
+    },
+    {
+      "task": "Фигура: как настроить размер, градиент, рамку, тень и акцент",
+      "guide": "guides/graphics-elements.md",
+      "anchor": "фигура-как-настроить-размер-градиент-рамку-тень-и-акцент",
+      "images": [
+        "screenshots/parts/gfx-shape-size.png",
+        "screenshots/parts/gfx-shape-gradient-border.png",
+        "screenshots/parts/gfx-shape-shadow.png",
+        "screenshots/parts/gfx-shape-accent-texture.png"
+      ],
+      "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
+    },
+    {
+      "task": "Плашка с текстом: как отдельно настроить фон, строки и стиль строки",
+      "guide": "guides/graphics-elements.md",
+      "anchor": "плашка-с-текстом-как-отдельно-настроить-фон-строки-и-стиль-строки",
+      "images": [
+        "screenshots/parts/gfx-plate-dimensions.png",
+        "screenshots/parts/gfx-plate-lines.png",
+        "screenshots/parts/gfx-plate-line-style.png",
+        "screenshots/parts/gfx-plate-design.png",
+        "screenshots/parts/gfx-plate-result.png"
+      ],
+      "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
+    },
+    {
+      "task": "Группа: как изменить состав заранее подготовленной композиции",
+      "guide": "guides/graphics-elements.md",
+      "anchor": "группа-как-изменить-состав-заранее-подготовленной-композиции",
+      "images": [
+        "screenshots/parts/gfx-group-children.png"
+      ],
+      "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
     },
     {
       "task": "Как поставить логотип в угол с точными отступами",
@@ -1655,6 +2349,15 @@
       "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
     },
     {
+      "task": "Как разобрать дополнительные поля раскладки плашки",
+      "guide": "guides/graphics-plates.md",
+      "anchor": "как-разобрать-дополнительные-поля-раскладки-плашки",
+      "images": [
+        "screenshots/parts/plate-layout.png"
+      ],
+      "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
+    },
+    {
       "task": "Как выбрать или добавить шрифт",
       "guide": "guides/graphics-plates.md",
       "anchor": "как-выбрать-или-добавить-шрифт",
@@ -1667,6 +2370,51 @@
       "task": "Как повторно использовать оформление",
       "guide": "guides/graphics-plates.md",
       "anchor": "как-повторно-использовать-оформление",
+      "images": [],
+      "status": "Частично: инструкция; отдельный кадр этого раздела отсутствует"
+    },
+    {
+      "task": "Как задать положение, размер и прозрачность",
+      "guide": "guides/graphics-properties.md",
+      "anchor": "как-задать-положение-размер-и-прозрачность",
+      "images": [
+        "screenshots/parts/gfx-position.png"
+      ],
+      "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
+    },
+    {
+      "task": "Как настроить шрифт, цвет, обводку и тень",
+      "guide": "guides/graphics-properties.md",
+      "anchor": "как-настроить-шрифт-цвет-обводку-и-тень",
+      "images": [
+        "screenshots/parts/gfx-text-font-outline.png"
+      ],
+      "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
+    },
+    {
+      "task": "Как настроить подложку, отступ и расстояние между буквами",
+      "guide": "guides/graphics-properties.md",
+      "anchor": "как-настроить-подложку-отступ-и-расстояние-между-буквами",
+      "images": [
+        "screenshots/parts/gfx-text-background.png"
+      ],
+      "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
+    },
+    {
+      "task": "Как настроить появление, исчезновение и профили",
+      "guide": "guides/graphics-properties.md",
+      "anchor": "как-настроить-появление-исчезновение-и-профили",
+      "images": [
+        "screenshots/parts/gfx-animation-profile.png",
+        "screenshots/parts/gfx-shape-animation.png",
+        "screenshots/parts/gfx-image-animation-profile.png"
+      ],
+      "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
+    },
+    {
+      "task": "Как проверить изменения и вернуться к прежнему виду",
+      "guide": "guides/graphics-properties.md",
+      "anchor": "как-проверить-изменения-и-вернуться-к-прежнему-виду",
       "images": [],
       "status": "Частично: инструкция; отдельный кадр этого раздела отсутствует"
     },
@@ -1774,6 +2522,13 @@
       "status": "Частично: инструкция; отдельный кадр этого раздела отсутствует"
     },
     {
+      "task": "Как удалить заготовку и не перепутать её с текущим оформлением",
+      "guide": "guides/graphics-templates.md",
+      "anchor": "как-удалить-заготовку-и-не-перепутать-её-с-текущим-оформлением",
+      "images": [],
+      "status": "Частично: инструкция; отдельный кадр этого раздела отсутствует"
+    },
+    {
       "task": "Как сделать текстовую подпись с переменными",
       "guide": "guides/graphics-text-ticker.md",
       "anchor": "как-сделать-текстовую-подпись-с-переменными",
@@ -1788,7 +2543,7 @@
       "guide": "guides/graphics-text-ticker.md",
       "anchor": "как-настроить-движение-бегущей-строки",
       "images": [
-        "screenshots/interface/ticker-properties-light.png"
+        "screenshots/parts/gfx-ticker-speed-text.png"
       ],
       "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
     },
@@ -1797,7 +2552,7 @@
       "guide": "guides/graphics-text-ticker.md",
       "anchor": "как-создать-фигуру-с-градиентом-рамкой-и-тенью",
       "images": [
-        "screenshots/interface/shape-properties-light.png",
+        "screenshots/parts/gfx-shape-size.png",
         "screenshots/parts/plate-shape-end.png"
       ],
       "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
@@ -1807,7 +2562,7 @@
       "guide": "guides/graphics-time-progress.md",
       "anchor": "как-вывести-часы-с-секундами-и-дату",
       "images": [
-        "screenshots/interface/clock-properties-light.png"
+        "screenshots/parts/gfx-clock-format.png"
       ],
       "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
     },
@@ -1816,7 +2571,7 @@
       "guide": "guides/graphics-time-progress.md",
       "anchor": "как-сделать-обратный-отсчёт-до-следующей-передачи",
       "images": [
-        "screenshots/interface/countdown-properties-light.png"
+        "screenshots/parts/gfx-countdown-target.png"
       ],
       "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
     },
@@ -1825,7 +2580,7 @@
       "guide": "guides/graphics-time-progress.md",
       "anchor": "как-показать-время-передачи-без-рекламных-вставок",
       "images": [
-        "screenshots/interface/program-time-properties-light.png"
+        "screenshots/parts/gfx-program-exclusions.png"
       ],
       "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
     },
@@ -1834,8 +2589,9 @@
       "guide": "guides/graphics-time-progress.md",
       "anchor": "как-создать-полосу-прогресса",
       "images": [
-        "screenshots/interface/progress-properties-light.png",
-        "screenshots/interface/progress-appearance-light.png"
+        "screenshots/parts/gfx-progress-dimensions.png",
+        "screenshots/parts/gfx-progress-exclusions.png",
+        "screenshots/parts/gfx-progress-appearance.png"
       ],
       "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
     },
@@ -1863,6 +2619,15 @@
       "status": "Частично: инструкция; отдельный кадр этого раздела отсутствует"
     },
     {
+      "task": "Как подготовить путь, тип и категорию",
+      "guide": "guides/import-media.md",
+      "anchor": "как-подготовить-путь-тип-и-категорию",
+      "images": [
+        "screenshots/interface/media-import-light.png"
+      ],
+      "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
+    },
+    {
       "task": "Как импортировать материалы",
       "guide": "guides/import-media.md",
       "anchor": "как-импортировать-материалы",
@@ -1878,6 +2643,16 @@
       "images": [
         "screenshots/guides/import-01.png",
         "screenshots/guides/import-02.png"
+      ],
+      "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
+    },
+    {
+      "task": "Как отдельно проверить параметры перед импортом",
+      "guide": "guides/import-media.md",
+      "anchor": "как-отдельно-проверить-параметры-перед-импортом",
+      "images": [
+        "screenshots/parts/import-path-type-folder.png",
+        "screenshots/parts/import-copy-actions.png"
       ],
       "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
     },
@@ -1899,6 +2674,13 @@
       "task": "Если импорт не удался",
       "guide": "guides/import-media.md",
       "anchor": "если-импорт-не-удался",
+      "images": [],
+      "status": "Частично: инструкция; отдельный кадр этого раздела отсутствует"
+    },
+    {
+      "task": "Как проверить все четыре части правила",
+      "guide": "guides/insertion-rules.md",
+      "anchor": "как-проверить-все-четыре-части-правила",
       "images": [],
       "status": "Частично: инструкция; отдельный кадр этого раздела отсутствует"
     },
@@ -1959,11 +2741,27 @@
       "status": "Частично: инструкция; отдельный кадр этого раздела отсутствует"
     },
     {
+      "task": "Как действовать в каждом состоянии задания",
+      "guide": "guides/jobs.md",
+      "anchor": "как-действовать-в-каждом-состоянии-задания",
+      "images": [],
+      "status": "Частично: инструкция; отдельный кадр этого раздела отсутствует"
+    },
+    {
       "task": "Как найти событие",
       "guide": "guides/logs.md",
       "anchor": "как-найти-событие",
       "images": [
         "screenshots/interface/log-light.png"
+      ],
+      "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
+    },
+    {
+      "task": "Как пользоваться фильтрами журнала отдельно от эфира",
+      "guide": "guides/logs.md",
+      "anchor": "как-пользоваться-фильтрами-журнала-отдельно-от-эфира",
+      "images": [
+        "screenshots/parts/log-search-levels.png"
       ],
       "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
     },
@@ -1977,9 +2775,25 @@
       "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
     },
     {
+      "task": "Как читать сообщение и искать причину по порядку",
+      "guide": "guides/logs.md",
+      "anchor": "как-читать-сообщение-и-искать-причину-по-порядку",
+      "images": [
+        "screenshots/interface/log-server-light.png"
+      ],
+      "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
+    },
+    {
       "task": "Как описать проблему",
       "guide": "guides/logs.md",
       "anchor": "как-описать-проблему",
+      "images": [],
+      "status": "Частично: инструкция; отдельный кадр этого раздела отсутствует"
+    },
+    {
+      "task": "Как выбрать нужную операцию с каналом",
+      "guide": "guides/manage-channels.md",
+      "anchor": "как-выбрать-нужную-операцию-с-каналом",
       "images": [],
       "status": "Частично: инструкция; отдельный кадр этого раздела отсутствует"
     },
@@ -2027,7 +2841,7 @@
       "guide": "guides/media-bulk.md",
       "anchor": "как-перенести-подборку-в-виртуальную-папку",
       "images": [
-        "screenshots/interface/media-multiselect-light.png"
+        "screenshots/parts/media-bulk-toolbar.png"
       ],
       "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
     },
@@ -2134,6 +2948,79 @@
       "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
     },
     {
+      "task": "Как читать музыкальную форму по трём частям",
+      "guide": "guides/music-recipes.md",
+      "anchor": "как-читать-музыкальную-форму-по-трём-частям",
+      "images": [
+        "screenshots/parts/music-track-sources.png",
+        "screenshots/parts/music-volume-repeat.png",
+        "screenshots/parts/music-days-hours.png"
+      ],
+      "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
+    },
+    {
+      "task": "Шаг 1. Проверьте канал до запуска",
+      "guide": "guides/operator-workshop.md",
+      "anchor": "шаг-1-проверьте-канал-до-запуска",
+      "images": [
+        "screenshots/interface/air-light.png"
+      ],
+      "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
+    },
+    {
+      "task": "Шаг 2. Поставьте ролик следующим и отмените свою очередь",
+      "guide": "guides/operator-workshop.md",
+      "anchor": "шаг-2-поставьте-ролик-следующим-и-отмените-свою-очередь",
+      "images": [],
+      "status": "Частично: инструкция; отдельный кадр этого раздела отсутствует"
+    },
+    {
+      "task": "Шаг 3. Сравните повтор, пропуск и немедленный показ",
+      "guide": "guides/operator-workshop.md",
+      "anchor": "шаг-3-сравните-повтор-пропуск-и-немедленный-показ",
+      "images": [],
+      "status": "Частично: инструкция; отдельный кадр этого раздела отсутствует"
+    },
+    {
+      "task": "Шаг 4. Перейдите на ручную работу и вернитесь",
+      "guide": "guides/operator-workshop.md",
+      "anchor": "шаг-4-перейдите-на-ручную-работу-и-вернитесь",
+      "images": [],
+      "status": "Частично: инструкция; отдельный кадр этого раздела отсутствует"
+    },
+    {
+      "task": "Шаг 5. Проверьте графику и снимите ручное вмешательство",
+      "guide": "guides/operator-workshop.md",
+      "anchor": "шаг-5-проверьте-графику-и-снимите-ручное-вмешательство",
+      "images": [],
+      "status": "Частично: инструкция; отдельный кадр этого раздела отсутствует"
+    },
+    {
+      "task": "Шаг 6. Найдите событие и сохраните отчёт",
+      "guide": "guides/operator-workshop.md",
+      "anchor": "шаг-6-найдите-событие-и-сохраните-отчёт",
+      "images": [
+        "screenshots/interface/stats-all-light.png"
+      ],
+      "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
+    },
+    {
+      "task": "Шаг 7. Правильно завершите работу",
+      "guide": "guides/operator-workshop.md",
+      "anchor": "шаг-7-правильно-завершите-работу",
+      "images": [],
+      "status": "Частично: инструкция; отдельный кадр этого раздела отсутствует"
+    },
+    {
+      "task": "Как не перепутать поиск, выделение и включение",
+      "guide": "guides/organize-media.md",
+      "anchor": "как-не-перепутать-поиск-выделение-и-включение",
+      "images": [
+        "screenshots/parts/media-bulk-toolbar.png"
+      ],
+      "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
+    },
+    {
       "task": "Как найти и отсортировать материалы",
       "guide": "guides/organize-media.md",
       "anchor": "как-найти-и-отсортировать-материалы",
@@ -2164,6 +3051,15 @@
       "status": "Частично: инструкция; отдельный кадр этого раздела отсутствует"
     },
     {
+      "task": "Как заполнить форму точки и проверить адрес",
+      "guide": "guides/outputs.md",
+      "anchor": "как-заполнить-форму-точки-и-проверить-адрес",
+      "images": [
+        "screenshots/interface/output-form-light.png"
+      ],
+      "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
+    },
+    {
       "task": "Как добавить RTMP-выход",
       "guide": "guides/outputs.md",
       "anchor": "как-добавить-rtmp-выход",
@@ -2178,6 +3074,15 @@
       "anchor": "как-выбрать-другой-протокол",
       "images": [],
       "status": "Частично: инструкция; отдельный кадр этого раздела отсутствует"
+    },
+    {
+      "task": "Как заполнить форму входящего потока по полям",
+      "guide": "guides/outputs.md",
+      "anchor": "как-заполнить-форму-входящего-потока-по-полям",
+      "images": [
+        "screenshots/parts/stream-name-url-duration.png"
+      ],
+      "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
     },
     {
       "task": "Как подключить входящий поток",
@@ -2219,6 +3124,13 @@
       "status": "Частично: инструкция; отдельный кадр этого раздела отсутствует"
     },
     {
+      "task": "Как понять, что редактируется именно плейлист",
+      "guide": "guides/playlists.md",
+      "anchor": "как-понять-что-редактируется-именно-плейлист",
+      "images": [],
+      "status": "Частично: инструкция; отдельный кадр этого раздела отсутствует"
+    },
+    {
       "task": "Как создать и заполнить плейлист",
       "guide": "guides/playlists.md",
       "anchor": "как-создать-и-заполнить-плейлист",
@@ -2233,8 +3145,10 @@
       "task": "Как настроить повтор, перемешивание и закрепление",
       "guide": "guides/playlists.md",
       "anchor": "как-настроить-повтор-перемешивание-и-закрепление",
-      "images": [],
-      "status": "Частично: инструкция; отдельный кадр этого раздела отсутствует"
+      "images": [
+        "screenshots/parts/playlist-name-modes.png"
+      ],
+      "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
     },
     {
       "task": "Как удалить запись, очистить или удалить список",
@@ -2283,6 +3197,15 @@
       "anchor": "как-разделять-запись-и-очищать-старые-файлы",
       "images": [
         "screenshots/guides/recording-02.png"
+      ],
+      "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
+    },
+    {
+      "task": "Как не перепутать эфир, запись и готовый файл",
+      "guide": "guides/recording.md",
+      "anchor": "как-не-перепутать-эфир-запись-и-готовый-файл",
+      "images": [
+        "screenshots/parts/recording-files.png"
       ],
       "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
     },
@@ -2375,6 +3298,17 @@
       "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
     },
     {
+      "task": "Как заполнить условия, часы и приоритет по отдельности",
+      "guide": "guides/rule-recipes.md",
+      "anchor": "как-заполнить-условия-часы-и-приоритет-по-отдельности",
+      "images": [
+        "screenshots/parts/rule-content-filters.png",
+        "screenshots/parts/rule-week-time.png",
+        "screenshots/parts/rule-priority-options.png"
+      ],
+      "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
+    },
+    {
       "task": "Как показывать сцену после передач",
       "guide": "guides/scene-rules.md",
       "anchor": "как-показывать-сцену-после-передач",
@@ -2384,11 +3318,29 @@
       "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
     },
     {
+      "task": "Как выбрать между вставкой сцены и заполнением пустоты",
+      "guide": "guides/scene-rules.md",
+      "anchor": "как-выбрать-между-вставкой-сцены-и-заполнением-пустоты",
+      "images": [
+        "screenshots/parts/schedule-block-bottom.png"
+      ],
+      "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
+    },
+    {
       "task": "Как закрывать паузы перед новостями",
       "guide": "guides/scene-rules.md",
       "anchor": "как-закрывать-паузы-перед-новостями",
       "images": [
         "screenshots/interface/scene-gaps-light.png"
+      ],
+      "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
+    },
+    {
+      "task": "Как собрать первую сцену по слоям смысла",
+      "guide": "guides/scenes.md",
+      "anchor": "как-собрать-первую-сцену-по-слоям-смысла",
+      "images": [
+        "screenshots/interface/scenes-light.png"
       ],
       "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
     },
@@ -2462,6 +3414,15 @@
       "status": "Частично: инструкция; отдельный кадр этого раздела отсутствует"
     },
     {
+      "task": "Как разобрать опоздание на конкретном примере",
+      "guide": "guides/schedule-timing.md",
+      "anchor": "как-разобрать-опоздание-на-конкретном-примере",
+      "images": [
+        "screenshots/parts/schedule-block-top.png"
+      ],
+      "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
+    },
+    {
       "task": "Как заполнить промежутки",
       "guide": "guides/schedule-timing.md",
       "anchor": "как-заполнить-промежутки",
@@ -2474,6 +3435,15 @@
       "anchor": "как-читать-прогноз-и-проверять-изменения",
       "images": [],
       "status": "Частично: инструкция; отдельный кадр этого раздела отсутствует"
+    },
+    {
+      "task": "Как различать дату, шаблон и активное расписание",
+      "guide": "guides/schedule.md",
+      "anchor": "как-различать-дату-шаблон-и-активное-расписание",
+      "images": [
+        "screenshots/interface/schedule-light.png"
+      ],
+      "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
     },
     {
       "task": "Как создать расписание и первый блок",
@@ -2498,8 +3468,10 @@
       "task": "Как назначить шаблоны на будни и выходные",
       "guide": "guides/schedule.md",
       "anchor": "как-назначить-шаблоны-на-будни-и-выходные",
-      "images": [],
-      "status": "Частично: инструкция; отдельный кадр этого раздела отсутствует"
+      "images": [
+        "screenshots/parts/schedule-choice-days.png"
+      ],
+      "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
     },
     {
       "task": "Как выбрать активное расписание",
@@ -2517,6 +3489,13 @@
         "screenshots/interface/stats-all-light.png"
       ],
       "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
+    },
+    {
+      "task": "Как выбрать правильный отчёт за смену",
+      "guide": "guides/statistics.md",
+      "anchor": "как-выбрать-правильный-отчёт-за-смену",
+      "images": [],
+      "status": "Частично: инструкция; отдельный кадр этого раздела отсутствует"
     },
     {
       "task": "Как посмотреть нагрузку",
@@ -2542,6 +3521,13 @@
         "screenshots/interface/channel-export-light.png"
       ],
       "status": "Частично: код и снимок; полный GUI-проход не подтверждён"
+    },
+    {
+      "task": "Как выбрать состав архива под свою задачу",
+      "guide": "guides/transfer-channel.md",
+      "anchor": "как-выбрать-состав-архива-под-свою-задачу",
+      "images": [],
+      "status": "Частично: инструкция; отдельный кадр этого раздела отсутствует"
     },
     {
       "task": "Как импортировать архив",

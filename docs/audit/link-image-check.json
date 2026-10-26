@@ -1,7 +1,7 @@
 {
-  "markdown_files": 76,
-  "local_links_checked": 1521,
-  "png_files": 205,
+  "markdown_files": 81,
+  "local_links_checked": 2031,
+  "png_files": 266,
   "external_links_not_checked": [
     "https://slint.dev"
   ],
@@ -301,6 +301,81 @@
       "width": 1920,
       "height": 1080,
       "bytes": 266963
+    },
+    "screenshots/interface/element-avatar-end-light.png": {
+      "width": 1920,
+      "height": 1080,
+      "bytes": 215698
+    },
+    "screenshots/interface/element-avatar-top-light.png": {
+      "width": 1920,
+      "height": 1080,
+      "bytes": 215925
+    },
+    "screenshots/interface/element-group-top-light.png": {
+      "width": 1920,
+      "height": 1080,
+      "bytes": 217876
+    },
+    "screenshots/interface/element-image-end-light.png": {
+      "width": 1920,
+      "height": 1080,
+      "bytes": 214907
+    },
+    "screenshots/interface/element-image-top-light.png": {
+      "width": 1920,
+      "height": 1080,
+      "bytes": 214847
+    },
+    "screenshots/interface/element-plate-design-light.png": {
+      "width": 1920,
+      "height": 1080,
+      "bytes": 237466
+    },
+    "screenshots/interface/element-plate-end-light.png": {
+      "width": 1920,
+      "height": 1080,
+      "bytes": 224602
+    },
+    "screenshots/interface/element-plate-lines-light.png": {
+      "width": 1920,
+      "height": 1080,
+      "bytes": 236392
+    },
+    "screenshots/interface/element-plate-top-light.png": {
+      "width": 1920,
+      "height": 1080,
+      "bytes": 234827
+    },
+    "screenshots/interface/element-shape-design-light.png": {
+      "width": 1920,
+      "height": 1080,
+      "bytes": 225058
+    },
+    "screenshots/interface/element-shape-end-light.png": {
+      "width": 1920,
+      "height": 1080,
+      "bytes": 226083
+    },
+    "screenshots/interface/element-shape-top-light.png": {
+      "width": 1920,
+      "height": 1080,
+      "bytes": 222388
+    },
+    "screenshots/interface/element-text-end-light.png": {
+      "width": 1920,
+      "height": 1080,
+      "bytes": 219169
+    },
+    "screenshots/interface/element-text-style-light.png": {
+      "width": 1920,
+      "height": 1080,
+      "bytes": 218539
+    },
+    "screenshots/interface/element-text-top-light.png": {
+      "width": 1920,
+      "height": 1080,
+      "bytes": 217788
     },
     "screenshots/interface/encoder-bottom-dark.png": {
       "width": 1440,
@@ -902,6 +977,11 @@
       "height": 960,
       "bytes": 170655
     },
+    "screenshots/interface/stream-dialog-light.png": {
+      "width": 1440,
+      "height": 960,
+      "bytes": 227077
+    },
     "screenshots/interface/system-dark.png": {
       "width": 1440,
       "height": 960,
@@ -942,6 +1022,36 @@
       "height": 960,
       "bytes": 58060
     },
+    "screenshots/parts/ads-duration-fill.png": {
+      "width": 832,
+      "height": 133,
+      "bytes": 12568
+    },
+    "screenshots/parts/ads-intro-usage.png": {
+      "width": 832,
+      "height": 206,
+      "bytes": 14125
+    },
+    "screenshots/parts/ads-source-order.png": {
+      "width": 832,
+      "height": 159,
+      "bytes": 18034
+    },
+    "screenshots/parts/air-position-times.png": {
+      "width": 715,
+      "height": 92,
+      "bytes": 11831
+    },
+    "screenshots/parts/air-queue-columns.png": {
+      "width": 417,
+      "height": 193,
+      "bytes": 23629
+    },
+    "screenshots/parts/air-transport.png": {
+      "width": 740,
+      "height": 73,
+      "bytes": 12096
+    },
     "screenshots/parts/encoder-frame-sound.png": {
       "width": 664,
       "height": 511,
@@ -952,6 +1062,156 @@
       "height": 446,
       "bytes": 55280
     },
+    "screenshots/parts/gfx-animation-profile.png": {
+      "width": 350,
+      "height": 267,
+      "bytes": 17463
+    },
+    "screenshots/parts/gfx-avatar-file.png": {
+      "width": 350,
+      "height": 118,
+      "bytes": 14572
+    },
+    "screenshots/parts/gfx-clock-format.png": {
+      "width": 350,
+      "height": 135,
+      "bytes": 13610
+    },
+    "screenshots/parts/gfx-countdown-target.png": {
+      "width": 350,
+      "height": 149,
+      "bytes": 10353
+    },
+    "screenshots/parts/gfx-group-children.png": {
+      "width": 350,
+      "height": 91,
+      "bytes": 8258
+    },
+    "screenshots/parts/gfx-image-animation-profile.png": {
+      "width": 350,
+      "height": 259,
+      "bytes": 17430
+    },
+    "screenshots/parts/gfx-image-file.png": {
+      "width": 350,
+      "height": 118,
+      "bytes": 13697
+    },
+    "screenshots/parts/gfx-plate-design.png": {
+      "width": 350,
+      "height": 488,
+      "bytes": 30397
+    },
+    "screenshots/parts/gfx-plate-dimensions.png": {
+      "width": 350,
+      "height": 313,
+      "bytes": 20789
+    },
+    "screenshots/parts/gfx-plate-line-style.png": {
+      "width": 350,
+      "height": 558,
+      "bytes": 32882
+    },
+    "screenshots/parts/gfx-plate-lines.png": {
+      "width": 350,
+      "height": 417,
+      "bytes": 29438
+    },
+    "screenshots/parts/gfx-plate-result.png": {
+      "width": 675,
+      "height": 153,
+      "bytes": 12618
+    },
+    "screenshots/parts/gfx-position.png": {
+      "width": 350,
+      "height": 209,
+      "bytes": 13107
+    },
+    "screenshots/parts/gfx-program-exclusions.png": {
+      "width": 350,
+      "height": 340,
+      "bytes": 32566
+    },
+    "screenshots/parts/gfx-progress-appearance.png": {
+      "width": 350,
+      "height": 572,
+      "bytes": 34958
+    },
+    "screenshots/parts/gfx-progress-dimensions.png": {
+      "width": 350,
+      "height": 329,
+      "bytes": 22544
+    },
+    "screenshots/parts/gfx-progress-exclusions.png": {
+      "width": 350,
+      "height": 171,
+      "bytes": 20442
+    },
+    "screenshots/parts/gfx-shape-accent-texture.png": {
+      "width": 350,
+      "height": 264,
+      "bytes": 18666
+    },
+    "screenshots/parts/gfx-shape-animation.png": {
+      "width": 350,
+      "height": 262,
+      "bytes": 17443
+    },
+    "screenshots/parts/gfx-shape-gradient-border.png": {
+      "width": 350,
+      "height": 238,
+      "bytes": 17187
+    },
+    "screenshots/parts/gfx-shape-shadow.png": {
+      "width": 350,
+      "height": 114,
+      "bytes": 5809
+    },
+    "screenshots/parts/gfx-shape-size.png": {
+      "width": 350,
+      "height": 157,
+      "bytes": 10428
+    },
+    "screenshots/parts/gfx-text-background.png": {
+      "width": 350,
+      "height": 196,
+      "bytes": 12187
+    },
+    "screenshots/parts/gfx-text-content.png": {
+      "width": 350,
+      "height": 150,
+      "bytes": 11619
+    },
+    "screenshots/parts/gfx-text-font-outline.png": {
+      "width": 350,
+      "height": 357,
+      "bytes": 20079
+    },
+    "screenshots/parts/gfx-ticker-speed-text.png": {
+      "width": 350,
+      "height": 222,
+      "bytes": 17152
+    },
+    "screenshots/parts/import-copy-actions.png": {
+      "width": 484,
+      "height": 234,
+      "bytes": 22307
+    },
+    "screenshots/parts/import-path-type-folder.png": {
+      "width": 484,
+      "height": 211,
+      "bytes": 20967
+    },
+    "screenshots/parts/log-search-levels.png": {
+      "width": 1178,
+      "height": 50,
+      "bytes": 9032
+    },
+    "screenshots/parts/media-bulk-toolbar.png": {
+      "width": 973,
+      "height": 53,
+      "bytes": 9116
+    },
     "screenshots/parts/media-properties.png": {
       "width": 420,
       "height": 541,
@@ -961,6 +1221,21 @@
       "width": 374,
       "height": 627,
       "bytes": 41836
+    },
+    "screenshots/parts/music-days-hours.png": {
+      "width": 738,
+      "height": 91,
+      "bytes": 8208
+    },
+    "screenshots/parts/music-track-sources.png": {
+      "width": 738,
+      "height": 221,
+      "bytes": 19228
+    },
+    "screenshots/parts/music-volume-repeat.png": {
+      "width": 738,
+      "height": 162,
+      "bytes": 24267
     },
     "screenshots/parts/plate-layout.png": {
       "width": 578,
@@ -982,6 +1257,11 @@
       "height": 585,
       "bytes": 34585
     },
+    "screenshots/parts/playlist-name-modes.png": {
+      "width": 879,
+      "height": 166,
+      "bytes": 24539
+    },
     "screenshots/parts/recording-codecs-storage.png": {
       "width": 664,
       "height": 510,
@@ -991,6 +1271,21 @@
       "width": 664,
       "height": 267,
       "bytes": 34677
+    },
+    "screenshots/parts/rule-content-filters.png": {
+      "width": 693,
+      "height": 261,
+      "bytes": 27104
+    },
+    "screenshots/parts/rule-priority-options.png": {
+      "width": 693,
+      "height": 272,
+      "bytes": 28564
+    },
+    "screenshots/parts/rule-week-time.png": {
+      "width": 693,
+      "height": 131,
+      "bytes": 6611
     },
     "screenshots/parts/scene-graphics.png": {
       "width": 776,
@@ -1012,6 +1307,11 @@
       "height": 364,
       "bytes": 25962
     },
+    "screenshots/parts/schedule-choice-days.png": {
+      "width": 822,
+      "height": 119,
+      "bytes": 17303
+    },
     "screenshots/parts/settings-about.png": {
       "width": 851,
       "height": 208,
@@ -1031,6 +1331,11 @@
       "width": 851,
       "height": 273,
       "bytes": 35659
+    },
+    "screenshots/parts/stream-name-url-duration.png": {
+      "width": 484,
+      "height": 270,
+      "bytes": 20527
     }
   }
 }

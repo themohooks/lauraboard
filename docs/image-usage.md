@@ -2,7 +2,7 @@
 
 Считаются только изображения, встроенные в пользовательские страницы через синтаксис Markdown. Ссылки каталога, реестра покрытия и отчёта не увеличивают результат. Этот счётчик не доказывает полноту функций или выполнение действий.
 
-Встроено **113 из 205 PNG**. Остальные перечислены с причиной хранения. Дубли темы и исходники фрагментов не требуют повторного размещения ради счётчика.
+Встроено **150 из 266 PNG**. Остальные перечислены с причиной хранения. Дубли темы и исходники фрагментов не требуют повторного размещения ради счётчика.
 
 [Машинный отчёт](audit/image-usage.json) · [Скрипт](tools/audit_usage.py) · [Задачи и пробелы](coverage.md) · [Каталог гайдов](guides/index.md)
 
@@ -10,9 +10,9 @@
 |---|---|---|
 | [channel-01.png](screenshots/guides/channel-01.png) | Встроен в инструкцию | [guides/create-channel.md](guides/create-channel.md) |
 | [channel-02.png](screenshots/guides/channel-02.png) | Встроен в инструкцию | [guides/create-channel.md](guides/create-channel.md) |
-| [channel-03.png](screenshots/guides/channel-03.png) | Встроен в инструкцию | [guides/create-channel.md](guides/create-channel.md) |
+| [channel-03.png](screenshots/guides/channel-03.png) | Встроен в инструкцию | [guides/create-channel.md](guides/create-channel.md), [guides/first-channel-workshop.md](guides/first-channel-workshop.md) |
 | [import-01.png](screenshots/guides/import-01.png) | Встроен в инструкцию | [guides/import-media.md](guides/import-media.md) |
-| [import-02.png](screenshots/guides/import-02.png) | Встроен в инструкцию | [guides/import-media.md](guides/import-media.md) |
+| [import-02.png](screenshots/guides/import-02.png) | Встроен в инструкцию | [guides/first-channel-workshop.md](guides/first-channel-workshop.md), [guides/import-media.md](guides/import-media.md) |
 | [music-01.png](screenshots/guides/music-01.png) | Встроен в инструкцию | [guides/scenes.md](guides/scenes.md) |
 | [plate-01.png](screenshots/guides/plate-01.png) | Встроен в инструкцию | [guides/graphics-plates.md](guides/graphics-plates.md) |
 | [recording-01.png](screenshots/guides/recording-01.png) | Встроен в инструкцию | [guides/recording.md](guides/recording.md) |
@@ -21,7 +21,7 @@
 | [rules-02.png](screenshots/guides/rules-02.png) | Встроен в инструкцию | [guides/insertion-rules.md](guides/insertion-rules.md) |
 | [rules-03.png](screenshots/guides/rules-03.png) | Встроен в инструкцию | [guides/insertion-rules.md](guides/insertion-rules.md) |
 | [rules-04.png](screenshots/guides/rules-04.png) | Встроен в инструкцию | [guides/insertion-rules.md](guides/insertion-rules.md) |
-| [schedule-01.png](screenshots/guides/schedule-01.png) | Встроен в инструкцию | [guides/schedule.md](guides/schedule.md) |
+| [schedule-01.png](screenshots/guides/schedule-01.png) | Встроен в инструкцию | [guides/first-channel-workshop.md](guides/first-channel-workshop.md), [guides/schedule.md](guides/schedule.md) |
 | [schedule-02.png](screenshots/guides/schedule-02.png) | Встроен в инструкцию | [guides/schedule.md](guides/schedule.md) |
 | [setup-done-dark.png](screenshots/installation/setup-done-dark.png) | Архив: альтернативная тёмная тема используемого кадра | — |
 | [setup-done-light.png](screenshots/installation/setup-done-light.png) | Встроен в инструкцию | [installation.md](installation.md) |
@@ -52,7 +52,7 @@
 | [ads-dark.png](screenshots/interface/ads-dark.png) | Архив: альтернативная тёмная тема используемого кадра | — |
 | [ads-light.png](screenshots/interface/ads-light.png) | Встроен в инструкцию | [guides/ads-recipes.md](guides/ads-recipes.md) |
 | [air-dark.png](screenshots/interface/air-dark.png) | Архив: альтернативная тёмная тема используемого кадра | — |
-| [air-light.png](screenshots/interface/air-light.png) | Встроен в инструкцию | [basic-usage.md](basic-usage.md), [guides/air-control.md](guides/air-control.md), [guides/first-broadcast.md](guides/first-broadcast.md), [guides/media-bulk.md](guides/media-bulk.md) |
+| [air-light.png](screenshots/interface/air-light.png) | Встроен в инструкцию | [basic-usage.md](basic-usage.md), [guides/air-control.md](guides/air-control.md), [guides/first-broadcast.md](guides/first-broadcast.md), [guides/first-channel-workshop.md](guides/first-channel-workshop.md), [guides/media-bulk.md](guides/media-bulk.md), [guides/operator-workshop.md](guides/operator-workshop.md) |
 | [channel-delete-dark.png](screenshots/interface/channel-delete-dark.png) | Архив: альтернативная тёмная тема используемого кадра | — |
 | [channel-delete-light.png](screenshots/interface/channel-delete-light.png) | Встроен в инструкцию | [guides/manage-channels.md](guides/manage-channels.md) |
 | [channel-export-dark.png](screenshots/interface/channel-export-dark.png) | Архив: альтернативная тёмная тема используемого кадра | — |
@@ -63,10 +63,25 @@
 | [channel-rename-light.png](screenshots/interface/channel-rename-light.png) | Встроен в инструкцию | [guides/manage-channels.md](guides/manage-channels.md) |
 | [channels-dark.png](screenshots/interface/channels-dark.png) | Архив: альтернативная тёмная тема используемого кадра | — |
 | [channels-light.png](screenshots/interface/channels-light.png) | Встроен в инструкцию | [guides/manage-channels.md](guides/manage-channels.md) |
-| [clock-properties-dark.png](screenshots/interface/clock-properties-dark.png) | Архив: альтернативная тёмная тема используемого кадра | — |
-| [clock-properties-light.png](screenshots/interface/clock-properties-light.png) | Встроен в инструкцию | [guides/graphics-time-progress.md](guides/graphics-time-progress.md) |
-| [countdown-properties-dark.png](screenshots/interface/countdown-properties-dark.png) | Архив: альтернативная тёмная тема используемого кадра | — |
-| [countdown-properties-light.png](screenshots/interface/countdown-properties-light.png) | Встроен в инструкцию | [guides/graphics-time-progress.md](guides/graphics-time-progress.md) |
+| [clock-properties-dark.png](screenshots/interface/clock-properties-dark.png) | Архив: исходник/вариант, отдельно в инструкции не встроен | — |
+| [clock-properties-light.png](screenshots/interface/clock-properties-light.png) | Полный исходник; в инструкциях используются 1 фрагм. | — |
+| [countdown-properties-dark.png](screenshots/interface/countdown-properties-dark.png) | Архив: исходник/вариант, отдельно в инструкции не встроен | — |
+| [countdown-properties-light.png](screenshots/interface/countdown-properties-light.png) | Полный исходник; в инструкциях используются 1 фрагм. | — |
+| [element-avatar-end-light.png](screenshots/interface/element-avatar-end-light.png) | Конец формы сохранён как исходник; обсуждаемые поля показаны другим фрагментом этой формы | — |
+| [element-avatar-top-light.png](screenshots/interface/element-avatar-top-light.png) | Полный исходник; в инструкциях используются 1 фрагм. | — |
+| [element-group-top-light.png](screenshots/interface/element-group-top-light.png) | Полный исходник; в инструкциях используются 1 фрагм. | — |
+| [element-image-end-light.png](screenshots/interface/element-image-end-light.png) | Конец формы сохранён как исходник; обсуждаемые поля показаны другим фрагментом этой формы | — |
+| [element-image-top-light.png](screenshots/interface/element-image-top-light.png) | Полный исходник; в инструкциях используются 3 фрагм. | — |
+| [element-plate-design-light.png](screenshots/interface/element-plate-design-light.png) | Полный исходник; в инструкциях используются 1 фрагм. | — |
+| [element-plate-end-light.png](screenshots/interface/element-plate-end-light.png) | Полный исходник; в инструкциях используются 1 фрагм. | — |
+| [element-plate-lines-light.png](screenshots/interface/element-plate-lines-light.png) | Полный исходник; в инструкциях используются 1 фрагм. | — |
+| [element-plate-top-light.png](screenshots/interface/element-plate-top-light.png) | Полный исходник; в инструкциях используются 2 фрагм. | — |
+| [element-shape-design-light.png](screenshots/interface/element-shape-design-light.png) | Полный исходник; в инструкциях используются 2 фрагм. | — |
+| [element-shape-end-light.png](screenshots/interface/element-shape-end-light.png) | Полный исходник; в инструкциях используются 2 фрагм. | — |
+| [element-shape-top-light.png](screenshots/interface/element-shape-top-light.png) | Полный исходник; в инструкциях используются 1 фрагм. | — |
+| [element-text-end-light.png](screenshots/interface/element-text-end-light.png) | Конец формы сохранён как исходник; обсуждаемые поля показаны другим фрагментом этой формы | — |
+| [element-text-style-light.png](screenshots/interface/element-text-style-light.png) | Полный исходник; в инструкциях используются 2 фрагм. | — |
+| [element-text-top-light.png](screenshots/interface/element-text-top-light.png) | Полный исходник; в инструкциях используются 1 фрагм. | — |
 | [encoder-bottom-dark.png](screenshots/interface/encoder-bottom-dark.png) | Исходник фрагмента encoder-frame-sound.png (тёмный вариант) | — |
 | [encoder-bottom-light.png](screenshots/interface/encoder-bottom-light.png) | Исходник фрагмента encoder-frame-sound.png | — |
 | [encoder-dark.png](screenshots/interface/encoder-dark.png) | Архив: альтернативная тёмная тема используемого кадра | — |
@@ -90,7 +105,7 @@
 | [graphics-vars-dark.png](screenshots/interface/graphics-vars-dark.png) | Архив: альтернативная тёмная тема используемого кадра | — |
 | [graphics-vars-light.png](screenshots/interface/graphics-vars-light.png) | Встроен в инструкцию | [guides/graphics-rule-recipes.md](guides/graphics-rule-recipes.md), [guides/graphics-rules.md](guides/graphics-rules.md) |
 | [home-dark.png](screenshots/interface/home-dark.png) | Архив: альтернативная тёмная тема используемого кадра | — |
-| [home-light.png](screenshots/interface/home-light.png) | Встроен в инструкцию | [getting-started.md](getting-started.md), [guides/backup-restore.md](guides/backup-restore.md), [interface-overview.md](interface-overview.md) |
+| [home-light.png](screenshots/interface/home-light.png) | Встроен в инструкцию | [getting-started.md](getting-started.md), [guides/backup-restore.md](guides/backup-restore.md), [interface-overview.md](interface-overview.md), [start-here.md](start-here.md) |
 | [jingles-dark.png](screenshots/interface/jingles-dark.png) | Архив: альтернативная тёмная тема используемого кадра | — |
 | [jingles-light.png](screenshots/interface/jingles-light.png) | Встроен в инструкцию | [guides/insertion-rules.md](guides/insertion-rules.md), [guides/rule-recipes.md](guides/rule-recipes.md) |
 | [jobs-dark.png](screenshots/interface/jobs-dark.png) | Архив: альтернативная тёмная тема используемого кадра | — |
@@ -113,16 +128,16 @@
 | [media-folder-light.png](screenshots/interface/media-folder-light.png) | Встроен в инструкцию | [guides/media-bulk.md](guides/media-bulk.md), [guides/organize-media.md](guides/organize-media.md) |
 | [media-import-dark.png](screenshots/interface/media-import-dark.png) | Архив: альтернативная тёмная тема используемого кадра | — |
 | [media-import-light.png](screenshots/interface/media-import-light.png) | Встроен в инструкцию | [guides/import-media.md](guides/import-media.md) |
-| [media-multiselect-dark.png](screenshots/interface/media-multiselect-dark.png) | Архив: альтернативная тёмная тема используемого кадра | — |
-| [media-multiselect-light.png](screenshots/interface/media-multiselect-light.png) | Встроен в инструкцию | [guides/media-bulk.md](guides/media-bulk.md) |
+| [media-multiselect-dark.png](screenshots/interface/media-multiselect-dark.png) | Архив: исходник/вариант, отдельно в инструкции не встроен | — |
+| [media-multiselect-light.png](screenshots/interface/media-multiselect-light.png) | Полный исходник; в инструкциях используются 1 фрагм. | — |
 | [media-transform-dark.png](screenshots/interface/media-transform-dark.png) | Исходник фрагмента media-transforms.png (тёмный вариант) | — |
 | [media-transform-light.png](screenshots/interface/media-transform-light.png) | Исходник фрагмента media-transforms.png | — |
 | [new-channel-dark.png](screenshots/interface/new-channel-dark.png) | Архив: альтернативная тёмная тема используемого кадра | — |
 | [new-channel-light.png](screenshots/interface/new-channel-light.png) | Встроен в инструкцию | [first-launch.md](first-launch.md), [guides/create-channel.md](guides/create-channel.md) |
 | [new-playlist-dark.png](screenshots/interface/new-playlist-dark.png) | Архив: альтернативная тёмная тема используемого кадра | — |
-| [new-playlist-light.png](screenshots/interface/new-playlist-light.png) | Встроен в инструкцию | [guides/playlists.md](guides/playlists.md) |
+| [new-playlist-light.png](screenshots/interface/new-playlist-light.png) | Встроен в инструкцию | [guides/first-channel-workshop.md](guides/first-channel-workshop.md), [guides/playlists.md](guides/playlists.md) |
 | [output-form-dark.png](screenshots/interface/output-form-dark.png) | Архив: альтернативная тёмная тема используемого кадра | — |
-| [output-form-light.png](screenshots/interface/output-form-light.png) | Встроен в инструкцию | [guides/outputs.md](guides/outputs.md) |
+| [output-form-light.png](screenshots/interface/output-form-light.png) | Встроен в инструкцию | [guides/first-channel-workshop.md](guides/first-channel-workshop.md), [guides/outputs.md](guides/outputs.md) |
 | [plate-editor-dark.png](screenshots/interface/plate-editor-dark.png) | Архив: альтернативная тёмная тема используемого кадра | — |
 | [plate-editor-light.png](screenshots/interface/plate-editor-light.png) | Встроен в инструкцию | [guides/graphics-plates.md](guides/graphics-plates.md), [guides/graphics-templates.md](guides/graphics-templates.md) |
 | [plate-layout-complete-dark.png](screenshots/interface/plate-layout-complete-dark.png) | Исходник фрагмента plate-layout.png (тёмный вариант) | — |
@@ -132,17 +147,17 @@
 | [plate-shape-bottom-dark.png](screenshots/interface/plate-shape-bottom-dark.png) | Исходник фрагмента plate-shape-end.png (тёмный вариант) | — |
 | [plate-shape-bottom-light.png](screenshots/interface/plate-shape-bottom-light.png) | Исходник фрагмента plate-shape-end.png | — |
 | [playlist-add-dark.png](screenshots/interface/playlist-add-dark.png) | Архив: альтернативная тёмная тема используемого кадра | — |
-| [playlist-add-light.png](screenshots/interface/playlist-add-light.png) | Встроен в инструкцию | [guides/playlist-operations.md](guides/playlist-operations.md), [guides/playlists.md](guides/playlists.md) |
+| [playlist-add-light.png](screenshots/interface/playlist-add-light.png) | Встроен в инструкцию | [guides/first-channel-workshop.md](guides/first-channel-workshop.md), [guides/playlist-operations.md](guides/playlist-operations.md), [guides/playlists.md](guides/playlists.md) |
 | [playlist-selection-dark.png](screenshots/interface/playlist-selection-dark.png) | Архив: альтернативная тёмная тема используемого кадра | — |
 | [playlist-selection-light.png](screenshots/interface/playlist-selection-light.png) | Встроен в инструкцию | [guides/playlist-operations.md](guides/playlist-operations.md) |
 | [playlists-dark.png](screenshots/interface/playlists-dark.png) | Архив: альтернативная тёмная тема используемого кадра | — |
 | [playlists-light.png](screenshots/interface/playlists-light.png) | Встроен в инструкцию | [guides/playlists.md](guides/playlists.md) |
-| [program-time-properties-dark.png](screenshots/interface/program-time-properties-dark.png) | Архив: альтернативная тёмная тема используемого кадра | — |
-| [program-time-properties-light.png](screenshots/interface/program-time-properties-light.png) | Встроен в инструкцию | [guides/graphics-time-progress.md](guides/graphics-time-progress.md) |
-| [progress-appearance-dark.png](screenshots/interface/progress-appearance-dark.png) | Архив: альтернативная тёмная тема используемого кадра | — |
-| [progress-appearance-light.png](screenshots/interface/progress-appearance-light.png) | Встроен в инструкцию | [guides/graphics-time-progress.md](guides/graphics-time-progress.md) |
-| [progress-properties-dark.png](screenshots/interface/progress-properties-dark.png) | Архив: альтернативная тёмная тема используемого кадра | — |
-| [progress-properties-light.png](screenshots/interface/progress-properties-light.png) | Встроен в инструкцию | [guides/graphics-time-progress.md](guides/graphics-time-progress.md) |
+| [program-time-properties-dark.png](screenshots/interface/program-time-properties-dark.png) | Архив: исходник/вариант, отдельно в инструкции не встроен | — |
+| [program-time-properties-light.png](screenshots/interface/program-time-properties-light.png) | Полный исходник; в инструкциях используются 1 фрагм. | — |
+| [progress-appearance-dark.png](screenshots/interface/progress-appearance-dark.png) | Архив: исходник/вариант, отдельно в инструкции не встроен | — |
+| [progress-appearance-light.png](screenshots/interface/progress-appearance-light.png) | Полный исходник; в инструкциях используются 1 фрагм. | — |
+| [progress-properties-dark.png](screenshots/interface/progress-properties-dark.png) | Архив: исходник/вариант, отдельно в инструкции не встроен | — |
+| [progress-properties-light.png](screenshots/interface/progress-properties-light.png) | Полный исходник; в инструкциях используются 2 фрагм. | — |
 | [recording-dark.png](screenshots/interface/recording-dark.png) | Архив: альтернативная тёмная тема используемого кадра | — |
 | [recording-encoding-dark.png](screenshots/interface/recording-encoding-dark.png) | Архив: альтернативная тёмная тема используемого кадра | — |
 | [recording-encoding-light.png](screenshots/interface/recording-encoding-light.png) | Встроен в инструкцию | [guides/recording-recipes.md](guides/recording-recipes.md), [guides/recording.md](guides/recording.md) |
@@ -179,37 +194,83 @@
 | [schedule-properties-light.png](screenshots/interface/schedule-properties-light.png) | Встроен в инструкцию | [guides/schedule-timing.md](guides/schedule-timing.md) |
 | [settings-dark.png](screenshots/interface/settings-dark.png) | Архив: альтернативная тёмная тема используемого кадра | — |
 | [settings-light.png](screenshots/interface/settings-light.png) | Встроен в инструкцию | [guides/appearance.md](guides/appearance.md), [guides/connection.md](guides/connection.md) |
-| [shape-properties-dark.png](screenshots/interface/shape-properties-dark.png) | Архив: альтернативная тёмная тема используемого кадра | — |
-| [shape-properties-light.png](screenshots/interface/shape-properties-light.png) | Встроен в инструкцию | [guides/graphics-text-ticker.md](guides/graphics-text-ticker.md) |
+| [shape-properties-dark.png](screenshots/interface/shape-properties-dark.png) | Архив: исходник/вариант, отдельно в инструкции не встроен | — |
+| [shape-properties-light.png](screenshots/interface/shape-properties-light.png) | Архив: исходник/вариант, отдельно в инструкции не встроен | — |
 | [sources-dark.png](screenshots/interface/sources-dark.png) | Архив: альтернативная тёмная тема используемого кадра | — |
 | [sources-light.png](screenshots/interface/sources-light.png) | Встроен в инструкцию | [guides/advanced-channel.md](guides/advanced-channel.md), [guides/outputs.md](guides/outputs.md) |
 | [stats-all-dark.png](screenshots/interface/stats-all-dark.png) | Архив: альтернативная тёмная тема используемого кадра | — |
-| [stats-all-light.png](screenshots/interface/stats-all-light.png) | Встроен в инструкцию | [guides/statistics.md](guides/statistics.md) |
+| [stats-all-light.png](screenshots/interface/stats-all-light.png) | Встроен в инструкцию | [guides/operator-workshop.md](guides/operator-workshop.md), [guides/statistics.md](guides/statistics.md) |
 | [stats-dark.png](screenshots/interface/stats-dark.png) | Архив: альтернативная тёмная тема используемого кадра | — |
 | [stats-light.png](screenshots/interface/stats-light.png) | Встроен в инструкцию | [guides/statistics.md](guides/statistics.md) |
+| [stream-dialog-light.png](screenshots/interface/stream-dialog-light.png) | Полный исходник; в инструкциях используются 1 фрагм. | — |
 | [system-dark.png](screenshots/interface/system-dark.png) | Архив: альтернативная тёмная тема используемого кадра | — |
 | [system-light.png](screenshots/interface/system-light.png) | Встроен в инструкцию | [guides/statistics.md](guides/statistics.md) |
-| [ticker-properties-dark.png](screenshots/interface/ticker-properties-dark.png) | Архив: альтернативная тёмная тема используемого кадра | — |
-| [ticker-properties-light.png](screenshots/interface/ticker-properties-light.png) | Встроен в инструкцию | [guides/graphics-text-ticker.md](guides/graphics-text-ticker.md) |
+| [ticker-properties-dark.png](screenshots/interface/ticker-properties-dark.png) | Архив: исходник/вариант, отдельно в инструкции не встроен | — |
+| [ticker-properties-light.png](screenshots/interface/ticker-properties-light.png) | Полный исходник; в инструкциях используются 1 фрагм. | — |
 | [transitions-dark.png](screenshots/interface/transitions-dark.png) | Архив: альтернативная тёмная тема используемого кадра | — |
 | [transitions-light.png](screenshots/interface/transitions-light.png) | Встроен в инструкцию | [guides/rule-recipes.md](guides/rule-recipes.md) |
 | [welcome-dark.png](screenshots/interface/welcome-dark.png) | Архив: альтернативная тёмная тема используемого кадра | — |
 | [welcome-light.png](screenshots/interface/welcome-light.png) | Встроен в инструкцию | [first-launch.md](first-launch.md) |
+| [ads-duration-fill.png](screenshots/parts/ads-duration-fill.png) | Встроен в инструкцию | [guides/ads-recipes.md](guides/ads-recipes.md) |
+| [ads-intro-usage.png](screenshots/parts/ads-intro-usage.png) | Встроен в инструкцию | [guides/ads-recipes.md](guides/ads-recipes.md) |
+| [ads-source-order.png](screenshots/parts/ads-source-order.png) | Встроен в инструкцию | [guides/ads-recipes.md](guides/ads-recipes.md) |
+| [air-position-times.png](screenshots/parts/air-position-times.png) | Встроен в инструкцию | [guides/air-control.md](guides/air-control.md) |
+| [air-queue-columns.png](screenshots/parts/air-queue-columns.png) | Встроен в инструкцию | [guides/air-control.md](guides/air-control.md) |
+| [air-transport.png](screenshots/parts/air-transport.png) | Встроен в инструкцию | [guides/air-control.md](guides/air-control.md) |
 | [encoder-frame-sound.png](screenshots/parts/encoder-frame-sound.png) | Встроен в инструкцию | [guides/encoder.md](guides/encoder.md) |
 | [encoder-video-bitrate.png](screenshots/parts/encoder-video-bitrate.png) | Встроен в инструкцию | [guides/encoder.md](guides/encoder.md) |
-| [media-properties.png](screenshots/parts/media-properties.png) | Встроен в инструкцию | [guides/media-display.md](guides/media-display.md) |
+| [gfx-animation-profile.png](screenshots/parts/gfx-animation-profile.png) | Встроен в инструкцию | [guides/graphics-properties.md](guides/graphics-properties.md) |
+| [gfx-avatar-file.png](screenshots/parts/gfx-avatar-file.png) | Встроен в инструкцию | [guides/graphics-elements.md](guides/graphics-elements.md) |
+| [gfx-clock-format.png](screenshots/parts/gfx-clock-format.png) | Встроен в инструкцию | [guides/graphics-elements.md](guides/graphics-elements.md), [guides/graphics-time-progress.md](guides/graphics-time-progress.md) |
+| [gfx-countdown-target.png](screenshots/parts/gfx-countdown-target.png) | Встроен в инструкцию | [guides/graphics-elements.md](guides/graphics-elements.md), [guides/graphics-time-progress.md](guides/graphics-time-progress.md) |
+| [gfx-group-children.png](screenshots/parts/gfx-group-children.png) | Встроен в инструкцию | [guides/graphics-elements.md](guides/graphics-elements.md) |
+| [gfx-image-animation-profile.png](screenshots/parts/gfx-image-animation-profile.png) | Встроен в инструкцию | [guides/graphics-properties.md](guides/graphics-properties.md) |
+| [gfx-image-file.png](screenshots/parts/gfx-image-file.png) | Встроен в инструкцию | [guides/graphics-elements.md](guides/graphics-elements.md) |
+| [gfx-plate-design.png](screenshots/parts/gfx-plate-design.png) | Встроен в инструкцию | [guides/graphics-elements.md](guides/graphics-elements.md) |
+| [gfx-plate-dimensions.png](screenshots/parts/gfx-plate-dimensions.png) | Встроен в инструкцию | [guides/graphics-elements.md](guides/graphics-elements.md) |
+| [gfx-plate-line-style.png](screenshots/parts/gfx-plate-line-style.png) | Встроен в инструкцию | [guides/graphics-elements.md](guides/graphics-elements.md) |
+| [gfx-plate-lines.png](screenshots/parts/gfx-plate-lines.png) | Встроен в инструкцию | [guides/graphics-elements.md](guides/graphics-elements.md) |
+| [gfx-plate-result.png](screenshots/parts/gfx-plate-result.png) | Встроен в инструкцию | [guides/graphics-elements.md](guides/graphics-elements.md) |
+| [gfx-position.png](screenshots/parts/gfx-position.png) | Встроен в инструкцию | [guides/graphics-elements.md](guides/graphics-elements.md), [guides/graphics-properties.md](guides/graphics-properties.md) |
+| [gfx-program-exclusions.png](screenshots/parts/gfx-program-exclusions.png) | Встроен в инструкцию | [guides/graphics-elements.md](guides/graphics-elements.md), [guides/graphics-time-progress.md](guides/graphics-time-progress.md) |
+| [gfx-progress-appearance.png](screenshots/parts/gfx-progress-appearance.png) | Встроен в инструкцию | [guides/graphics-elements.md](guides/graphics-elements.md), [guides/graphics-time-progress.md](guides/graphics-time-progress.md) |
+| [gfx-progress-dimensions.png](screenshots/parts/gfx-progress-dimensions.png) | Встроен в инструкцию | [guides/graphics-elements.md](guides/graphics-elements.md), [guides/graphics-time-progress.md](guides/graphics-time-progress.md) |
+| [gfx-progress-exclusions.png](screenshots/parts/gfx-progress-exclusions.png) | Встроен в инструкцию | [guides/graphics-elements.md](guides/graphics-elements.md), [guides/graphics-time-progress.md](guides/graphics-time-progress.md) |
+| [gfx-shape-accent-texture.png](screenshots/parts/gfx-shape-accent-texture.png) | Встроен в инструкцию | [guides/graphics-elements.md](guides/graphics-elements.md) |
+| [gfx-shape-animation.png](screenshots/parts/gfx-shape-animation.png) | Встроен в инструкцию | [guides/graphics-properties.md](guides/graphics-properties.md) |
+| [gfx-shape-gradient-border.png](screenshots/parts/gfx-shape-gradient-border.png) | Встроен в инструкцию | [guides/graphics-elements.md](guides/graphics-elements.md) |
+| [gfx-shape-shadow.png](screenshots/parts/gfx-shape-shadow.png) | Встроен в инструкцию | [guides/graphics-elements.md](guides/graphics-elements.md) |
+| [gfx-shape-size.png](screenshots/parts/gfx-shape-size.png) | Встроен в инструкцию | [guides/graphics-elements.md](guides/graphics-elements.md), [guides/graphics-text-ticker.md](guides/graphics-text-ticker.md) |
+| [gfx-text-background.png](screenshots/parts/gfx-text-background.png) | Встроен в инструкцию | [guides/graphics-properties.md](guides/graphics-properties.md) |
+| [gfx-text-content.png](screenshots/parts/gfx-text-content.png) | Встроен в инструкцию | [guides/graphics-elements.md](guides/graphics-elements.md) |
+| [gfx-text-font-outline.png](screenshots/parts/gfx-text-font-outline.png) | Встроен в инструкцию | [guides/graphics-properties.md](guides/graphics-properties.md) |
+| [gfx-ticker-speed-text.png](screenshots/parts/gfx-ticker-speed-text.png) | Встроен в инструкцию | [guides/graphics-elements.md](guides/graphics-elements.md), [guides/graphics-text-ticker.md](guides/graphics-text-ticker.md) |
+| [import-copy-actions.png](screenshots/parts/import-copy-actions.png) | Встроен в инструкцию | [guides/import-media.md](guides/import-media.md) |
+| [import-path-type-folder.png](screenshots/parts/import-path-type-folder.png) | Встроен в инструкцию | [guides/import-media.md](guides/import-media.md) |
+| [log-search-levels.png](screenshots/parts/log-search-levels.png) | Встроен в инструкцию | [guides/logs.md](guides/logs.md) |
+| [media-bulk-toolbar.png](screenshots/parts/media-bulk-toolbar.png) | Встроен в инструкцию | [guides/media-bulk.md](guides/media-bulk.md), [guides/organize-media.md](guides/organize-media.md) |
+| [media-properties.png](screenshots/parts/media-properties.png) | Встроен в инструкцию | [guides/first-channel-workshop.md](guides/first-channel-workshop.md), [guides/media-display.md](guides/media-display.md) |
 | [media-transforms.png](screenshots/parts/media-transforms.png) | Встроен в инструкцию | [guides/media-display.md](guides/media-display.md) |
+| [music-days-hours.png](screenshots/parts/music-days-hours.png) | Встроен в инструкцию | [guides/music-recipes.md](guides/music-recipes.md) |
+| [music-track-sources.png](screenshots/parts/music-track-sources.png) | Встроен в инструкцию | [guides/music-recipes.md](guides/music-recipes.md) |
+| [music-volume-repeat.png](screenshots/parts/music-volume-repeat.png) | Встроен в инструкцию | [guides/music-recipes.md](guides/music-recipes.md) |
 | [plate-layout.png](screenshots/parts/plate-layout.png) | Встроен в инструкцию | [guides/graphics-plates.md](guides/graphics-plates.md) |
 | [plate-shape-end.png](screenshots/parts/plate-shape-end.png) | Встроен в инструкцию | [guides/graphics-plates.md](guides/graphics-plates.md), [guides/graphics-text-ticker.md](guides/graphics-text-ticker.md) |
 | [plate-shape-start.png](screenshots/parts/plate-shape-start.png) | Встроен в инструкцию | [guides/graphics-plates.md](guides/graphics-plates.md) |
 | [plate-text.png](screenshots/parts/plate-text.png) | Встроен в инструкцию | [guides/graphics-plates.md](guides/graphics-plates.md) |
+| [playlist-name-modes.png](screenshots/parts/playlist-name-modes.png) | Встроен в инструкцию | [guides/playlists.md](guides/playlists.md) |
 | [recording-codecs-storage.png](screenshots/parts/recording-codecs-storage.png) | Встроен в инструкцию | [guides/recording-recipes.md](guides/recording-recipes.md), [guides/recording.md](guides/recording.md) |
-| [recording-files.png](screenshots/parts/recording-files.png) | Встроен в инструкцию | [guides/recording-recipes.md](guides/recording-recipes.md), [guides/recording.md](guides/recording.md) |
+| [recording-files.png](screenshots/parts/recording-files.png) | Встроен в инструкцию | [guides/first-channel-workshop.md](guides/first-channel-workshop.md), [guides/recording-recipes.md](guides/recording-recipes.md), [guides/recording.md](guides/recording.md) |
+| [rule-content-filters.png](screenshots/parts/rule-content-filters.png) | Встроен в инструкцию | [guides/rule-recipes.md](guides/rule-recipes.md) |
+| [rule-priority-options.png](screenshots/parts/rule-priority-options.png) | Встроен в инструкцию | [guides/rule-recipes.md](guides/rule-recipes.md) |
+| [rule-week-time.png](screenshots/parts/rule-week-time.png) | Встроен в инструкцию | [guides/rule-recipes.md](guides/rule-recipes.md) |
 | [scene-graphics.png](screenshots/parts/scene-graphics.png) | Встроен в инструкцию | [guides/music-recipes.md](guides/music-recipes.md), [guides/scenes.md](guides/scenes.md) |
 | [scene-music.png](screenshots/parts/scene-music.png) | Встроен в инструкцию | [guides/scenes.md](guides/scenes.md) |
-| [schedule-block-bottom.png](screenshots/parts/schedule-block-bottom.png) | Встроен в инструкцию | [guides/schedule-sources.md](guides/schedule-sources.md) |
-| [schedule-block-top.png](screenshots/parts/schedule-block-top.png) | Встроен в инструкцию | [guides/schedule-sources.md](guides/schedule-sources.md) |
+| [schedule-block-bottom.png](screenshots/parts/schedule-block-bottom.png) | Встроен в инструкцию | [guides/scene-rules.md](guides/scene-rules.md), [guides/schedule-sources.md](guides/schedule-sources.md) |
+| [schedule-block-top.png](screenshots/parts/schedule-block-top.png) | Встроен в инструкцию | [guides/schedule-sources.md](guides/schedule-sources.md), [guides/schedule-timing.md](guides/schedule-timing.md) |
+| [schedule-choice-days.png](screenshots/parts/schedule-choice-days.png) | Встроен в инструкцию | [guides/schedule.md](guides/schedule.md) |
 | [settings-about.png](screenshots/parts/settings-about.png) | Встроен в инструкцию | [first-launch.md](first-launch.md) |
-| [settings-connection.png](screenshots/parts/settings-connection.png) | Встроен в инструкцию | [guides/connection.md](guides/connection.md) |
+| [settings-connection.png](screenshots/parts/settings-connection.png) | Встроен в инструкцию | [guides/connection.md](guides/connection.md), [guides/first-channel-workshop.md](guides/first-channel-workshop.md) |
 | [settings-layout.png](screenshots/parts/settings-layout.png) | Встроен в инструкцию | [guides/appearance.md](guides/appearance.md) |
 | [settings-shortcuts.png](screenshots/parts/settings-shortcuts.png) | Встроен в инструкцию | [shortcuts.md](shortcuts.md) |
+| [stream-name-url-duration.png](screenshots/parts/stream-name-url-duration.png) | Встроен в инструкцию | [guides/outputs.md](guides/outputs.md) |

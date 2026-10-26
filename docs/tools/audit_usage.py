@@ -56,6 +56,12 @@ def main():
                           'status':'Частично: код и снимок; полный GUI-проход не подтверждён' if images else
                                    'Частично: инструкция; отдельный кадр этого раздела отсутствует'})
     pngs = sorted(p.relative_to(ROOT).as_posix() for p in (ROOT/'screenshots').rglob('*.png'))
+    focused_sources = collections.defaultdict(list)
+    focus_manifest = ROOT/'screenshots/focus-manifest.json'
+    if focus_manifest.exists():
+        for part in json.loads(focus_manifest.read_text('utf8')):
+            if usage[part['output']]:
+                focused_sources[part['source']].append(part['output'])
     rows = []
     cropped_sources = {
         'encoder-bottom': 'encoder-frame-sound',
@@ -73,6 +79,10 @@ def main():
             role = 'Архив: альтернативная тёмная тема используемого кадра'
         elif path.endswith('-light.png') and usage[path.replace('-light.png','-dark.png')]:
             role = 'Архив: альтернативная светлая тема используемого кадра'
+        elif focused_sources[path]:
+            role = 'Полный исходник; в инструкциях используются '+str(len(focused_sources[path]))+' фрагм.'
+        elif path.startswith('screenshots/interface/element-') and '-end-' in path:
+            role = 'Конец формы сохранён как исходник; обсуждаемые поля показаны другим фрагментом этой формы'
         elif base in cropped_sources and usage['screenshots/parts/'+cropped_sources[base]+'.png']:
             role = 'Исходник фрагмента '+cropped_sources[base]+'.png'+(' (тёмный вариант)' if path.endswith('-dark.png') else '')
         elif base == 'scene-music':

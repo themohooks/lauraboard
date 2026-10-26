@@ -20,6 +20,14 @@ Headless-режим не создаёт системный трей; недос�
 
 [Какие изображения встроены в гайды](../image-usage.md). Тёмные варианты сохранены как альтернативная тема; их повторное размещение не требуется для описания тех же полей.
 
+## Фрагменты для отдельных действий
+
+В новом дополнении общие кадры оставлены для ориентации. Группы полей показаны отдельными неизменёнными фрагментами: импорт, массовые действия, плейлист, дни сетки, условия и приоритеты правил, реклама, музыка, эфир, журнал и каждый тип графики. [Координаты и исходники](focus-manifest.json), [скрипт подготовки](../tools/prepare_focus.py).
+
+Дополнительные `element-*` сняты настоящим интерфейсом с одним учебным элементом (для группы — с дочерними элементами). В плашке — вымышленные имя и должность. Файлы `*-end` сохраняют конец формы как исходник, даже когда поля уже целиком видны в другом кадре. Снимок `stream-dialog` подтверждает открытие пустой формы входящего потока; внешний поток не подключался.
+
+Полные исходники не встраиваются повторно только ради счётчика. В гайдах показывается нужная область; подписи и таблицы объясняют сокращённые длинные названия закрытых списков, не заменяя текст внутри изображения.
+
 ## Каталог исходников и иллюстраций
 
 | Изображение | Файл |
@@ -83,6 +91,21 @@ Headless-режим не создаёт системный трей; недос�
 | clock-properties-light | [PNG](interface/clock-properties-light.png) |
 | countdown-properties-dark | [PNG](interface/countdown-properties-dark.png) |
 | countdown-properties-light | [PNG](interface/countdown-properties-light.png) |
+| element-avatar-end-light | [PNG](interface/element-avatar-end-light.png) |
+| element-avatar-top-light | [PNG](interface/element-avatar-top-light.png) |
+| element-group-top-light | [PNG](interface/element-group-top-light.png) |
+| element-image-end-light | [PNG](interface/element-image-end-light.png) |
+| element-image-top-light | [PNG](interface/element-image-top-light.png) |
+| element-plate-design-light | [PNG](interface/element-plate-design-light.png) |
+| element-plate-end-light | [PNG](interface/element-plate-end-light.png) |
+| element-plate-lines-light | [PNG](interface/element-plate-lines-light.png) |
+| element-plate-top-light | [PNG](interface/element-plate-top-light.png) |
+| element-shape-design-light | [PNG](interface/element-shape-design-light.png) |
+| element-shape-end-light | [PNG](interface/element-shape-end-light.png) |
+| element-shape-top-light | [PNG](interface/element-shape-top-light.png) |
+| element-text-end-light | [PNG](interface/element-text-end-light.png) |
+| element-text-style-light | [PNG](interface/element-text-style-light.png) |
+| element-text-top-light | [PNG](interface/element-text-top-light.png) |
 | encoder-bottom-dark | [PNG](interface/encoder-bottom-dark.png) |
 | encoder-bottom-light | [PNG](interface/encoder-bottom-light.png) |
 | encoder-dark | [PNG](interface/encoder-dark.png) |
@@ -203,6 +226,7 @@ Headless-режим не создаёт системный трей; недос�
 | stats-all-light | [PNG](interface/stats-all-light.png) |
 | stats-dark | [PNG](interface/stats-dark.png) |
 | stats-light | [PNG](interface/stats-light.png) |
+| stream-dialog-light | [PNG](interface/stream-dialog-light.png) |
 | system-dark | [PNG](interface/system-dark.png) |
 | system-light | [PNG](interface/system-light.png) |
 | ticker-properties-dark | [PNG](interface/ticker-properties-dark.png) |
@@ -211,21 +235,66 @@ Headless-режим не создаёт системный трей; недос�
 | transitions-light | [PNG](interface/transitions-light.png) |
 | welcome-dark | [PNG](interface/welcome-dark.png) |
 | welcome-light | [PNG](interface/welcome-light.png) |
+| ads-duration-fill | [PNG](parts/ads-duration-fill.png) |
+| ads-intro-usage | [PNG](parts/ads-intro-usage.png) |
+| ads-source-order | [PNG](parts/ads-source-order.png) |
+| air-position-times | [PNG](parts/air-position-times.png) |
+| air-queue-columns | [PNG](parts/air-queue-columns.png) |
+| air-transport | [PNG](parts/air-transport.png) |
 | encoder-frame-sound | [PNG](parts/encoder-frame-sound.png) |
 | encoder-video-bitrate | [PNG](parts/encoder-video-bitrate.png) |
+| gfx-animation-profile | [PNG](parts/gfx-animation-profile.png) |
+| gfx-avatar-file | [PNG](parts/gfx-avatar-file.png) |
+| gfx-clock-format | [PNG](parts/gfx-clock-format.png) |
+| gfx-countdown-target | [PNG](parts/gfx-countdown-target.png) |
+| gfx-group-children | [PNG](parts/gfx-group-children.png) |
+| gfx-image-animation-profile | [PNG](parts/gfx-image-animation-profile.png) |
+| gfx-image-file | [PNG](parts/gfx-image-file.png) |
+| gfx-plate-design | [PNG](parts/gfx-plate-design.png) |
+| gfx-plate-dimensions | [PNG](parts/gfx-plate-dimensions.png) |
+| gfx-plate-line-style | [PNG](parts/gfx-plate-line-style.png) |
+| gfx-plate-lines | [PNG](parts/gfx-plate-lines.png) |
+| gfx-plate-result | [PNG](parts/gfx-plate-result.png) |
+| gfx-position | [PNG](parts/gfx-position.png) |
+| gfx-program-exclusions | [PNG](parts/gfx-program-exclusions.png) |
+| gfx-progress-appearance | [PNG](parts/gfx-progress-appearance.png) |
+| gfx-progress-dimensions | [PNG](parts/gfx-progress-dimensions.png) |
+| gfx-progress-exclusions | [PNG](parts/gfx-progress-exclusions.png) |
+| gfx-shape-accent-texture | [PNG](parts/gfx-shape-accent-texture.png) |
+| gfx-shape-animation | [PNG](parts/gfx-shape-animation.png) |
+| gfx-shape-gradient-border | [PNG](parts/gfx-shape-gradient-border.png) |
+| gfx-shape-shadow | [PNG](parts/gfx-shape-shadow.png) |
+| gfx-shape-size | [PNG](parts/gfx-shape-size.png) |
+| gfx-text-background | [PNG](parts/gfx-text-background.png) |
+| gfx-text-content | [PNG](parts/gfx-text-content.png) |
+| gfx-text-font-outline | [PNG](parts/gfx-text-font-outline.png) |
+| gfx-ticker-speed-text | [PNG](parts/gfx-ticker-speed-text.png) |
+| import-copy-actions | [PNG](parts/import-copy-actions.png) |
+| import-path-type-folder | [PNG](parts/import-path-type-folder.png) |
+| log-search-levels | [PNG](parts/log-search-levels.png) |
+| media-bulk-toolbar | [PNG](parts/media-bulk-toolbar.png) |
 | media-properties | [PNG](parts/media-properties.png) |
 | media-transforms | [PNG](parts/media-transforms.png) |
+| music-days-hours | [PNG](parts/music-days-hours.png) |
+| music-track-sources | [PNG](parts/music-track-sources.png) |
+| music-volume-repeat | [PNG](parts/music-volume-repeat.png) |
 | plate-layout | [PNG](parts/plate-layout.png) |
 | plate-shape-end | [PNG](parts/plate-shape-end.png) |
 | plate-shape-start | [PNG](parts/plate-shape-start.png) |
 | plate-text | [PNG](parts/plate-text.png) |
+| playlist-name-modes | [PNG](parts/playlist-name-modes.png) |
 | recording-codecs-storage | [PNG](parts/recording-codecs-storage.png) |
 | recording-files | [PNG](parts/recording-files.png) |
+| rule-content-filters | [PNG](parts/rule-content-filters.png) |
+| rule-priority-options | [PNG](parts/rule-priority-options.png) |
+| rule-week-time | [PNG](parts/rule-week-time.png) |
 | scene-graphics | [PNG](parts/scene-graphics.png) |
 | scene-music | [PNG](parts/scene-music.png) |
 | schedule-block-bottom | [PNG](parts/schedule-block-bottom.png) |
 | schedule-block-top | [PNG](parts/schedule-block-top.png) |
+| schedule-choice-days | [PNG](parts/schedule-choice-days.png) |
 | settings-about | [PNG](parts/settings-about.png) |
 | settings-connection | [PNG](parts/settings-connection.png) |
 | settings-layout | [PNG](parts/settings-layout.png) |
 | settings-shortcuts | [PNG](parts/settings-shortcuts.png) |
+| stream-name-url-duration | [PNG](parts/stream-name-url-duration.png) |

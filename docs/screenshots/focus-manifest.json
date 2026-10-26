@@ -1,0 +1,497 @@
+[
+  {
+    "source": "screenshots/interface/media-import-light.png",
+    "box": [
+      478,
+      337,
+      962,
+      548
+    ],
+    "output": "screenshots/parts/import-path-type-folder.png",
+    "method": "unchanged pixel crop, no scaling or control edits"
+  },
+  {
+    "source": "screenshots/interface/media-import-light.png",
+    "box": [
+      478,
+      554,
+      962,
+      788
+    ],
+    "output": "screenshots/parts/import-copy-actions.png",
+    "method": "unchanged pixel crop, no scaling or control edits"
+  },
+  {
+    "source": "screenshots/interface/media-multiselect-light.png",
+    "box": [
+      494,
+      124,
+      1467,
+      177
+    ],
+    "output": "screenshots/parts/media-bulk-toolbar.png",
+    "method": "unchanged pixel crop, no scaling or control edits"
+  },
+  {
+    "source": "screenshots/interface/playlists-light.png",
+    "box": [
+      548,
+      65,
+      1427,
+      231
+    ],
+    "output": "screenshots/parts/playlist-name-modes.png",
+    "method": "unchanged pixel crop, no scaling or control edits"
+  },
+  {
+    "source": "screenshots/interface/schedule-light.png",
+    "box": [
+      246,
+      65,
+      1068,
+      184
+    ],
+    "output": "screenshots/parts/schedule-choice-days.png",
+    "method": "unchanged pixel crop, no scaling or control edits"
+  },
+  {
+    "source": "screenshots/interface/stream-dialog-light.png",
+    "box": [
+      478,
+      410,
+      962,
+      680
+    ],
+    "output": "screenshots/parts/stream-name-url-duration.png",
+    "method": "unchanged pixel crop, no scaling or control edits"
+  },
+  {
+    "source": "screenshots/interface/air-light.png",
+    "box": [
+      260,
+      405,
+      975,
+      497
+    ],
+    "output": "screenshots/parts/air-position-times.png",
+    "method": "unchanged pixel crop, no scaling or control edits"
+  },
+  {
+    "source": "screenshots/interface/air-light.png",
+    "box": [
+      248,
+      602,
+      988,
+      675
+    ],
+    "output": "screenshots/parts/air-transport.png",
+    "method": "unchanged pixel crop, no scaling or control edits"
+  },
+  {
+    "source": "screenshots/interface/air-light.png",
+    "box": [
+      1007,
+      192,
+      1424,
+      385
+    ],
+    "output": "screenshots/parts/air-queue-columns.png",
+    "method": "unchanged pixel crop, no scaling or control edits"
+  },
+  {
+    "source": "screenshots/interface/log-light.png",
+    "box": [
+      246,
+      130,
+      1424,
+      180
+    ],
+    "output": "screenshots/parts/log-search-levels.png",
+    "method": "unchanged pixel crop, no scaling or control edits"
+  },
+  {
+    "source": "screenshots/interface/ad-breaks-light.png",
+    "box": [
+      563,
+      227,
+      1395,
+      386
+    ],
+    "output": "screenshots/parts/ads-source-order.png",
+    "method": "unchanged pixel crop, no scaling or control edits"
+  },
+  {
+    "source": "screenshots/interface/ad-breaks-light.png",
+    "box": [
+      563,
+      399,
+      1395,
+      532
+    ],
+    "output": "screenshots/parts/ads-duration-fill.png",
+    "method": "unchanged pixel crop, no scaling or control edits"
+  },
+  {
+    "source": "screenshots/interface/ad-breaks-light.png",
+    "box": [
+      563,
+      544,
+      1395,
+      750
+    ],
+    "output": "screenshots/parts/ads-intro-usage.png",
+    "method": "unchanged pixel crop, no scaling or control edits"
+  },
+  {
+    "source": "screenshots/interface/rule-conditions-complete-light.png",
+    "box": [
+      695,
+      185,
+      1388,
+      446
+    ],
+    "output": "screenshots/parts/rule-content-filters.png",
+    "method": "unchanged pixel crop, no scaling or control edits"
+  },
+  {
+    "source": "screenshots/interface/rule-conditions-complete-light.png",
+    "box": [
+      695,
+      451,
+      1388,
+      582
+    ],
+    "output": "screenshots/parts/rule-week-time.png",
+    "method": "unchanged pixel crop, no scaling or control edits"
+  },
+  {
+    "source": "screenshots/interface/rule-conditions-complete-light.png",
+    "box": [
+      695,
+      610,
+      1388,
+      882
+    ],
+    "output": "screenshots/parts/rule-priority-options.png",
+    "method": "unchanged pixel crop, no scaling or control edits"
+  },
+  {
+    "source": "screenshots/interface/scene-music-options-light.png",
+    "box": [
+      644,
+      202,
+      1382,
+      423
+    ],
+    "output": "screenshots/parts/music-track-sources.png",
+    "method": "unchanged pixel crop, no scaling or control edits"
+  },
+  {
+    "source": "screenshots/interface/scene-music-options-light.png",
+    "box": [
+      644,
+      426,
+      1382,
+      588
+    ],
+    "output": "screenshots/parts/music-volume-repeat.png",
+    "method": "unchanged pixel crop, no scaling or control edits"
+  },
+  {
+    "source": "screenshots/interface/scene-music-options-light.png",
+    "box": [
+      644,
+      599,
+      1382,
+      690
+    ],
+    "output": "screenshots/parts/music-days-hours.png",
+    "method": "unchanged pixel crop, no scaling or control edits"
+  },
+  {
+    "source": "screenshots/interface/element-image-top-light.png",
+    "box": [
+      1524,
+      242,
+      1874,
+      451
+    ],
+    "output": "screenshots/parts/gfx-position.png",
+    "method": "unchanged pixel crop, no scaling or control edits"
+  },
+  {
+    "source": "screenshots/interface/element-image-top-light.png",
+    "box": [
+      1524,
+      493,
+      1874,
+      611
+    ],
+    "output": "screenshots/parts/gfx-image-file.png",
+    "method": "unchanged pixel crop, no scaling or control edits"
+  },
+  {
+    "source": "screenshots/interface/element-group-top-light.png",
+    "box": [
+      1524,
+      493,
+      1874,
+      584
+    ],
+    "output": "screenshots/parts/gfx-group-children.png",
+    "method": "unchanged pixel crop, no scaling or control edits"
+  },
+  {
+    "source": "screenshots/interface/element-avatar-top-light.png",
+    "box": [
+      1524,
+      493,
+      1874,
+      611
+    ],
+    "output": "screenshots/parts/gfx-avatar-file.png",
+    "method": "unchanged pixel crop, no scaling or control edits"
+  },
+  {
+    "source": "screenshots/interface/element-image-top-light.png",
+    "box": [
+      1524,
+      635,
+      1874,
+      894
+    ],
+    "output": "screenshots/parts/gfx-image-animation-profile.png",
+    "method": "unchanged pixel crop, no scaling or control edits"
+  },
+  {
+    "source": "screenshots/interface/element-text-top-light.png",
+    "box": [
+      1524,
+      493,
+      1874,
+      643
+    ],
+    "output": "screenshots/parts/gfx-text-content.png",
+    "method": "unchanged pixel crop, no scaling or control edits"
+  },
+  {
+    "source": "screenshots/interface/element-text-style-light.png",
+    "box": [
+      1524,
+      387,
+      1874,
+      744
+    ],
+    "output": "screenshots/parts/gfx-text-font-outline.png",
+    "method": "unchanged pixel crop, no scaling or control edits"
+  },
+  {
+    "source": "screenshots/interface/element-text-style-light.png",
+    "box": [
+      1524,
+      747,
+      1874,
+      943
+    ],
+    "output": "screenshots/parts/gfx-text-background.png",
+    "method": "unchanged pixel crop, no scaling or control edits"
+  },
+  {
+    "source": "screenshots/interface/graphic-animation-light.png",
+    "box": [
+      1524,
+      781,
+      1874,
+      1048
+    ],
+    "output": "screenshots/parts/gfx-animation-profile.png",
+    "method": "unchanged pixel crop, no scaling or control edits"
+  },
+  {
+    "source": "screenshots/interface/clock-properties-light.png",
+    "box": [
+      1524,
+      310,
+      1874,
+      445
+    ],
+    "output": "screenshots/parts/gfx-clock-format.png",
+    "method": "unchanged pixel crop, no scaling or control edits"
+  },
+  {
+    "source": "screenshots/interface/countdown-properties-light.png",
+    "box": [
+      1524,
+      310,
+      1874,
+      459
+    ],
+    "output": "screenshots/parts/gfx-countdown-target.png",
+    "method": "unchanged pixel crop, no scaling or control edits"
+  },
+  {
+    "source": "screenshots/interface/program-time-properties-light.png",
+    "box": [
+      1524,
+      310,
+      1874,
+      650
+    ],
+    "output": "screenshots/parts/gfx-program-exclusions.png",
+    "method": "unchanged pixel crop, no scaling or control edits"
+  },
+  {
+    "source": "screenshots/interface/ticker-properties-light.png",
+    "box": [
+      1524,
+      310,
+      1874,
+      532
+    ],
+    "output": "screenshots/parts/gfx-ticker-speed-text.png",
+    "method": "unchanged pixel crop, no scaling or control edits"
+  },
+  {
+    "source": "screenshots/interface/progress-properties-light.png",
+    "box": [
+      1524,
+      310,
+      1874,
+      639
+    ],
+    "output": "screenshots/parts/gfx-progress-dimensions.png",
+    "method": "unchanged pixel crop, no scaling or control edits"
+  },
+  {
+    "source": "screenshots/interface/progress-properties-light.png",
+    "box": [
+      1524,
+      645,
+      1874,
+      816
+    ],
+    "output": "screenshots/parts/gfx-progress-exclusions.png",
+    "method": "unchanged pixel crop, no scaling or control edits"
+  },
+  {
+    "source": "screenshots/interface/progress-appearance-light.png",
+    "box": [
+      1524,
+      463,
+      1874,
+      1035
+    ],
+    "output": "screenshots/parts/gfx-progress-appearance.png",
+    "method": "unchanged pixel crop, no scaling or control edits"
+  },
+  {
+    "source": "screenshots/interface/element-shape-top-light.png",
+    "box": [
+      1524,
+      493,
+      1874,
+      650
+    ],
+    "output": "screenshots/parts/gfx-shape-size.png",
+    "method": "unchanged pixel crop, no scaling or control edits"
+  },
+  {
+    "source": "screenshots/interface/element-shape-design-light.png",
+    "box": [
+      1524,
+      280,
+      1874,
+      518
+    ],
+    "output": "screenshots/parts/gfx-shape-gradient-border.png",
+    "method": "unchanged pixel crop, no scaling or control edits"
+  },
+  {
+    "source": "screenshots/interface/element-shape-design-light.png",
+    "box": [
+      1524,
+      524,
+      1874,
+      638
+    ],
+    "output": "screenshots/parts/gfx-shape-shadow.png",
+    "method": "unchanged pixel crop, no scaling or control edits"
+  },
+  {
+    "source": "screenshots/interface/element-shape-end-light.png",
+    "box": [
+      1524,
+      486,
+      1874,
+      750
+    ],
+    "output": "screenshots/parts/gfx-shape-accent-texture.png",
+    "method": "unchanged pixel crop, no scaling or control edits"
+  },
+  {
+    "source": "screenshots/interface/element-shape-end-light.png",
+    "box": [
+      1524,
+      784,
+      1874,
+      1046
+    ],
+    "output": "screenshots/parts/gfx-shape-animation.png",
+    "method": "unchanged pixel crop, no scaling or control edits"
+  },
+  {
+    "source": "screenshots/interface/element-plate-top-light.png",
+    "box": [
+      1524,
+      614,
+      1874,
+      927
+    ],
+    "output": "screenshots/parts/gfx-plate-dimensions.png",
+    "method": "unchanged pixel crop, no scaling or control edits"
+  },
+  {
+    "source": "screenshots/interface/element-plate-lines-light.png",
+    "box": [
+      1524,
+      433,
+      1874,
+      850
+    ],
+    "output": "screenshots/parts/gfx-plate-lines.png",
+    "method": "unchanged pixel crop, no scaling or control edits"
+  },
+  {
+    "source": "screenshots/interface/element-plate-design-light.png",
+    "box": [
+      1524,
+      532,
+      1874,
+      1020
+    ],
+    "output": "screenshots/parts/gfx-plate-design.png",
+    "method": "unchanged pixel crop, no scaling or control edits"
+  },
+  {
+    "source": "screenshots/interface/element-plate-end-light.png",
+    "box": [
+      1524,
+      184,
+      1874,
+      742
+    ],
+    "output": "screenshots/parts/gfx-plate-line-style.png",
+    "method": "unchanged pixel crop, no scaling or control edits"
+  },
+  {
+    "source": "screenshots/interface/element-plate-top-light.png",
+    "box": [
+      375,
+      582,
+      1050,
+      735
+    ],
+    "output": "screenshots/parts/gfx-plate-result.png",
+    "method": "unchanged pixel crop, no scaling or control edits"
+  }
+]

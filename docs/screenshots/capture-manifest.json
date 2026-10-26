@@ -680,6 +680,183 @@
         "size": "1440x960"
       },
       "note": "real selection only; properties dialog not opened"
+    },
+    {
+      "name": "element-text-top",
+      "mode": "live",
+      "section": "graphics",
+      "options": {
+        "size": "1920x1080",
+        "select": 0,
+        "scroll": 0
+      },
+      "note": "One synthetic teaching element; actual properties; only light output published; no operation through native file picker claimed"
+    },
+    {
+      "name": "element-text-style",
+      "mode": "live",
+      "section": "graphics",
+      "options": {
+        "size": "1920x1080",
+        "select": 0,
+        "scroll": 300
+      },
+      "note": "One synthetic teaching element; actual properties; only light output published; no operation through native file picker claimed"
+    },
+    {
+      "name": "element-text-end",
+      "mode": "live",
+      "section": "graphics",
+      "options": {
+        "size": "1920x1080",
+        "select": 0,
+        "scroll": 1500
+      },
+      "note": "One synthetic teaching element; actual properties; only light output published; no operation through native file picker claimed"
+    },
+    {
+      "name": "element-image-top",
+      "mode": "live",
+      "section": "graphics",
+      "options": {
+        "size": "1920x1080",
+        "select": 0,
+        "scroll": 0
+      },
+      "note": "One synthetic teaching element; actual properties; only light output published; no operation through native file picker claimed"
+    },
+    {
+      "name": "element-image-end",
+      "mode": "live",
+      "section": "graphics",
+      "options": {
+        "size": "1920x1080",
+        "select": 0,
+        "scroll": 1500
+      },
+      "note": "One synthetic teaching element; actual properties; only light output published; no operation through native file picker claimed"
+    },
+    {
+      "name": "element-avatar-top",
+      "mode": "live",
+      "section": "graphics",
+      "options": {
+        "size": "1920x1080",
+        "select": 0,
+        "scroll": 0
+      },
+      "note": "One synthetic teaching element; actual properties; only light output published; no operation through native file picker claimed"
+    },
+    {
+      "name": "element-avatar-end",
+      "mode": "live",
+      "section": "graphics",
+      "options": {
+        "size": "1920x1080",
+        "select": 0,
+        "scroll": 1500
+      },
+      "note": "One synthetic teaching element; actual properties; only light output published; no operation through native file picker claimed"
+    },
+    {
+      "name": "element-shape-top",
+      "mode": "live",
+      "section": "graphics",
+      "options": {
+        "size": "1920x1080",
+        "select": 0,
+        "scroll": 0
+      },
+      "note": "One synthetic teaching element; actual properties; only light output published; no operation through native file picker claimed"
+    },
+    {
+      "name": "element-shape-design",
+      "mode": "live",
+      "section": "graphics",
+      "options": {
+        "size": "1920x1080",
+        "select": 0,
+        "scroll": 400
+      },
+      "note": "One synthetic teaching element; actual properties; only light output published; no operation through native file picker claimed"
+    },
+    {
+      "name": "element-shape-end",
+      "mode": "live",
+      "section": "graphics",
+      "options": {
+        "size": "1920x1080",
+        "select": 0,
+        "scroll": 1500
+      },
+      "note": "One synthetic teaching element; actual properties; only light output published; no operation through native file picker claimed"
+    },
+    {
+      "name": "element-plate-top",
+      "mode": "live",
+      "section": "graphics",
+      "options": {
+        "size": "1920x1080",
+        "select": 0,
+        "scroll": 0
+      },
+      "note": "One synthetic teaching element; actual properties; only light output published; no operation through native file picker claimed"
+    },
+    {
+      "name": "element-plate-lines",
+      "mode": "live",
+      "section": "graphics",
+      "options": {
+        "size": "1920x1080",
+        "select": 0,
+        "scroll": 500
+      },
+      "note": "One synthetic teaching element; actual properties; only light output published; no operation through native file picker claimed"
+    },
+    {
+      "name": "element-plate-design",
+      "mode": "live",
+      "section": "graphics",
+      "options": {
+        "size": "1920x1080",
+        "select": 0,
+        "scroll": 850
+      },
+      "note": "One synthetic teaching element; actual properties; only light output published; no operation through native file picker claimed"
+    },
+    {
+      "name": "element-plate-end",
+      "mode": "live",
+      "section": "graphics",
+      "options": {
+        "size": "1920x1080",
+        "select": 0,
+        "scroll": 2000
+      },
+      "note": "One synthetic teaching element; actual properties; only light output published; no operation through native file picker claimed"
+    },
+    {
+      "name": "stream-dialog",
+      "mode": "live",
+      "section": "sources",
+      "options": {
+        "size": "1440x960",
+        "click": [
+          1300,
+          560
+        ]
+      },
+      "note": "Real empty dialog; no external stream configured"
+    },
+    {
+      "name": "element-group-top",
+      "mode": "live",
+      "section": "graphics",
+      "options": {
+        "size": "1920x1080",
+        "select": 0
+      },
+      "note": "Group with two synthetic children prepared through isolated API; not a GUI group creation operation"
     }
   ],
   "privacy": "System hostname explicitly masked; cropped settings exclude personal profile paths; private originals not published",
