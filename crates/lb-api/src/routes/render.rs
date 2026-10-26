@@ -65,16 +65,25 @@ pub async fn render(State(s): State<AppState>, c: Caller, Path(id): Path<String>
     let png = tokio::task::spawn_blocking(move || {
         let active = active_set(&b.config, b.elements.as_deref(), b.t_ms);
         let mut comp = Compositor::new(w, hgt, b.config, &root);
+        comp.prepare_web(std::time::Duration::from_secs(15))?;
         let now = chrono::Local::now().naive_local();
-        comp.render(&FrameContext { now, active: &active, vars: &vars, item_remaining_ms: remaining, next_program_ms: next_ms, program: Some(&program) });
-        let png = comp.png()?;
-        match b.width {
+        comp.render(&FrameContext {
+            now,
+            active: &active,
+            vars: &vars,
+            item_remaining_ms: remaining,
+            next_program_ms: next_ms,
+            program: Some(&program),
+        });
+        let png = comp.png().ok_or("render failed")?;
+        Ok::<_, String>(match b.width {
             Some(ow) if ow > 0 && ow < w => scale_png(&png, ow),
             _ => Some(png),
-        }
+        })
     })
     .await
     .map_err(|e| ApiError::new(axum::http::StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
+    .map_err(|e| ApiError::bad_request(e))?
     .ok_or_else(|| ApiError::new(axum::http::StatusCode::INTERNAL_SERVER_ERROR, "render failed"))?;
     Ok(([(header::CONTENT_TYPE, "image/png"), (header::CACHE_CONTROL, "no-store")], png).into_response())
 }

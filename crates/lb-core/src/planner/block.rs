@@ -158,15 +158,63 @@ where
         let dur = m.play_duration();
         let mut planned = dur;
         let mut truncated = false;
+        // Timed rules at this boundary precede the main item. Conditions
+        // are evaluated at the scheduled instant, with the upcoming item.
+        if b.rules {
+            let ctx = self.main_ctx(inst, m, cat.clone(), pl_id.clone(), t2);
+            for r in self
+                .firing_rules(|r| r.time_conflict == crate::rules::TimeConflict::Truncate && r.trigger.occurrence(t2, t2).is_some(), &ctx)
+            {
+                if self.st.rule_last_fired.get(&r.id).is_none_or(|last| *last < t2) {
+                    self.apply_rule(r, &mut t2, Some(inst));
+                }
+            }
+        }
+        // Materialise the earliest interrupting insertion before cutting.
+        // A failed probability check or empty source must never cut a clip.
+        let mut timed = Vec::new();
+        if b.rules {
+            let end = bd.hard_end.map_or(crate::add_ms(t2, planned), |h| h.min(crate::add_ms(t2, planned)));
+            let mut from = crate::add_ms(t2, 1);
+            while from <= end {
+                let at = self
+                    .inp
+                    .rules
+                    .rules
+                    .iter()
+                    .filter(|r| r.enabled && r.time_conflict == crate::rules::TimeConflict::Truncate)
+                    .filter_map(|r| r.trigger.occurrence(from, end))
+                    .min();
+                let Some(at) = at else { break };
+                let ctx = self.main_ctx(inst, m, cat.clone(), pl_id.clone(), at);
+                let mark = self.out.len();
+                let mut after = at;
+                for r in self.firing_rules(
+                    |r| r.time_conflict == crate::rules::TimeConflict::Truncate && r.trigger.occurrence(at, at).is_some(),
+                    &ctx,
+                ) {
+                    self.apply_rule(r, &mut after, Some(inst));
+                }
+                timed = self.out.split_off(mark);
+                if !timed.is_empty() {
+                    planned = diff_ms(at, t2);
+                    truncated = planned < dur;
+                    break;
+                }
+                from = crate::add_ms(at, 1);
+            }
+        }
+        let mut block_truncated = false;
         if let Some(h) = bd.hard_end {
             let room = diff_ms(h, t2);
-            if dur > room {
+            if planned > room {
                 let can_cut = b.allow_truncate && room >= MIN_TRUNCATED_PLAY_MS;
                 match b.late_policy {
                     LatePolicy::Finish => {}
                     LatePolicy::Truncate if can_cut => {
                         planned = room;
                         truncated = true;
+                        block_truncated = true;
                     }
                     _ => {
                         // does not fit: undo pre-rules and maybe try a shorter item
@@ -193,15 +241,24 @@ where
             _ => None,
         };
         self.push_main(m, t, inst, cat, pl_id, cursor_after, planned, truncated);
-        if truncated {
+        if block_truncated {
             self.warn(WarningKind::Truncated, Some(*t), format!("'{}' truncated to fit {}", m.title, bd.hard_end.unwrap().time()));
+        }
+        for (index, mut item) in timed.into_iter().enumerate() {
+            item.start = *t;
+            if index == 0 {
+                item.fixed_start = Some(*t);
+            }
+            item.optional = false;
+            *t = item.end();
+            self.out.push(item);
         }
         let pass_end = self.pass_ended(&next_src);
         pr.src = next_src;
         pr.count += 1;
         pr.last_main = Some(m.id.clone());
         self.after_main(inst, m, t, pr.count, pr.block_start, pass_end.as_deref());
-        if truncated { Step::PlacedLast } else { Step::Placed }
+        if block_truncated { Step::PlacedLast } else { Step::Placed }
     }
 
     /// Category sources may substitute a shorter item that fits.
@@ -246,7 +303,15 @@ where
 
     /// Rules evaluated after each main item (`pass_end`: the playlist
     /// whose last entry it was).
-    fn after_main(&mut self, inst: &Inst<'a>, m: &'a MediaItem, t: &mut WallTime, count: usize, block_start: WallTime, pass_end: Option<&str>) {
+    fn after_main(
+        &mut self,
+        inst: &Inst<'a>,
+        m: &'a MediaItem,
+        t: &mut WallTime,
+        count: usize,
+        block_start: WallTime,
+        pass_end: Option<&str>,
+    ) {
         let b = inst.block;
         if !b.rules {
             return;
@@ -267,10 +332,15 @@ where
                 }
                 Trigger::AfterMedia { items } => items.iter().any(|i| i == &m.id),
                 Trigger::AfterPlaylist { playlist } => pass_end.is_some_and(|p| p.eq_ignore_ascii_case(playlist)),
-                Trigger::AtTimes { times } => {
+                Trigger::AtTimes { .. } | Trigger::Hourly { .. } => {
+                    if r.time_conflict == crate::rules::TimeConflict::Truncate { return false; }
                     // a time right at the block start counts for this block
-                    let since = last_fired.get(&r.id).copied().filter(|x| *x >= block_start).unwrap_or(block_start - chrono::Duration::milliseconds(1));
-                    time_passed(times, since, now)
+                    let since = last_fired
+                        .get(&r.id)
+                        .copied()
+                        .filter(|x| *x >= block_start)
+                        .unwrap_or(block_start - chrono::Duration::milliseconds(1));
+                    r.trigger.occurrence(crate::add_ms(since, 1), now).is_some()
                 }
                 _ => false,
             },
@@ -280,13 +350,4 @@ where
             self.apply_rule(r, t, Some(inst));
         }
     }
-}
-
-/// One of the daily `times` falls in `(since, now]`.
-fn time_passed(times: &[chrono::NaiveTime], since: WallTime, now: WallTime) -> bool {
-    let days = [now.date() - chrono::Duration::days(1), now.date()];
-    times.iter().any(|t| days.iter().any(|d| {
-        let at = d.and_time(*t);
-        at > since && at <= now
-    }))
 }

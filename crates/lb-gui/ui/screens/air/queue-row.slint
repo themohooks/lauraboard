@@ -12,6 +12,7 @@ import { QueueRow } from "../../state/air-state.slint";
 export component QueueRowView inherits ListRow {
     in property <QueueRow> item;
     in property <bool> show-block: true;
+    height: Theme.compact ? 52px : 72px;
 
     current: item.current;
     accent: Theme.status.live;
@@ -29,7 +30,7 @@ export component QueueRowView inherits ListRow {
     VerticalLayout {
         alignment: center;
         Icon {
-            source: root.item.current ? Icons.sensors : root.item.next ? Icons.skip-next : Kinds.icon-of(root.item.kind);
+            source: Kinds.icon-of(root.item.kind);
             size: 16px;
             tint: root.item.current ? Theme.status.live : root.item.next ? Theme.status.preview : Kinds.color-of(root.item.kind);
         }
@@ -41,6 +42,11 @@ export component QueueRowView inherits ListRow {
             text: root.item.kind == "gap" ? "Пустота — нет материала" : root.item.title;
             type-style: root.item.main ? Theme.label-large : Theme.body-medium;
             color: root.item.kind == "gap" ? Theme.color.error : Theme.color.on-surface;
+        }
+        Label {
+            text: (root.item.current ? "● В эфире · " : root.item.next ? "Следующий · " : "") + Kinds.name-of(root.item.kind);
+            type-style: Theme.label-small;
+            color: Kinds.color-of(root.item.kind);
         }
         if root.item.note != "" && Theme.compact == false: Label {
             text: root.item.note;

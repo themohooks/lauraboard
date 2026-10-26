@@ -25,7 +25,7 @@ export component WhenSection inherits FormSection {
         Select {
             horizontal-stretch: 1;
             label: "Триггер";
-            options: ["Каждые N роликов", "Каждые N минут", "В начале блока", "В конце блока", "Между блоками", "После категории", "Перед категорией", "После роликов", "После плейлиста", "В заданное время"];
+            options: ["Каждые N роликов", "Каждые N минут", "В начале блока", "В конце блока", "Между блоками", "После категории", "Перед категорией", "После роликов", "После плейлиста", "В заданное время", "Каждый час", "В начале эфира", "В конце эфира"];
             current-index <=> Rules.f-trigger;
             container-color: root.field-bg;
             selected => {
@@ -79,13 +79,32 @@ export component WhenSection inherits FormSection {
             text <=> Rules.f-times;
             error: Rules.e-times;
             placeholder: "12:00, 18:30";
-            supporting: "после первого ролика, который закончится в это время или позже";
+            supporting: "ЧЧ:ММ или ЧЧ:ММ:СС, через запятую";
             mono: true;
             container-color: root.field-bg;
             edited => {
                 Rules.form-changed();
             }
         }
+    }
+    if Rules.f-trigger == 10: HorizontalLayout {
+        spacing: Theme.sp3;
+        TextField { label: "Минута часа (0–59)"; text <=> Rules.f-hour-minute; edited => { Rules.form-changed(); } }
+        TextField { label: "Секунда (0–59)"; text <=> Rules.f-hour-second; edited => { Rules.form-changed(); } }
+    }
+    if Rules.f-trigger == 10 && Rules.e-times != "": Label {
+        text: Rules.e-times;
+        color: Theme.color.error;
+        wrap: word-wrap;
+    }
+    if Rules.f-trigger == 9 || Rules.f-trigger == 10: VerticalLayout {
+        Switch { text: "Точное время важнее: обрезать текущий ролик"; checked <=> Rules.f-time-cut; toggled => { Rules.form-changed(); } }
+        Label { text: Rules.f-time-cut ? "Ролик завершится в заданную секунду, затем начнётся вставка." : "Вставка начнётся после окончания текущего ролика."; wrap: word-wrap; color: Theme.color.on-surface-variant; }
+    }
+    if Rules.f-trigger == 11 || Rules.f-trigger == 12: Label {
+        text: "Срабатывает при запуске / остановке вещания. Завершающая вставка проиграется перед отключением выхода. Аварийное завершение программы не ждёт вставку.";
+        wrap: word-wrap;
+        color: Theme.color.on-surface-variant;
     }
     if Rules.f-trigger == 8: Label {
         text: "Срабатывает каждый раз, когда в эфире заканчивается последний ролик плейлиста.";

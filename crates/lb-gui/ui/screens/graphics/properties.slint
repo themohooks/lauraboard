@@ -208,7 +208,7 @@ export component PropertiesPanel inherits Rectangle {
                     Select {
                         horizontal-stretch: 1;
                         label: "Показывает";
-                        options: ["Ход передачи", "Ход ролика"];
+                        options: ["Ход блока / плейлиста", "Ход текущего ролика"];
                         current-index <=> Gfx.pg-target;
                         container-color: Theme.color.surface-container-low;
                         selected => {
@@ -280,9 +280,9 @@ export component PropertiesPanel inherits Rectangle {
                     spacing: Theme.sp2;
                     Field {
                         horizontal-stretch: 1;
-                        label: "Файл изображения";
+                        label: "Файл графики / анимации";
                         text <=> Gfx.p-path;
-                        supporting: "PNG / JPEG / WebP, путь от корня проекта или абсолютный";
+                        supporting: "PNG / JPEG / WebP / HTML / SWF. Для HTML и SWF задайте ширину и высоту. Нужен Edge / Chrome; SWF — Ruffle (интернет или локальный пакет).";
                     }
                     VerticalLayout {
                         alignment: start;

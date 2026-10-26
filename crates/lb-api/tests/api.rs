@@ -60,6 +60,25 @@ async fn local_access_without_tokens() {
 }
 
 #[tokio::test]
+async fn graphic_commands_immediately_publish_the_new_state() {
+    let dir = project(vec![]);
+    let app = app(&dir).await;
+    let graphics = r##"{"elements":[{"id":"logo","type":"rect","color":"#ffffff","width":20,"height":20}],"rules":[{"id":"always","element":"logo"}]}"##;
+    let (status, body) = call(&app, "PUT", "/api/v1/channels/main/graphics", None, Some(graphics)).await;
+    assert_eq!(status, StatusCode::OK, "{body}");
+    for (command, visible) in [("hide", false), ("show", true), ("auto", true)] {
+        let body = if command == "auto" { r#"{"cmd":"graphic_auto","element":"logo"}"#.to_string() }
+            else { format!(r#"{{"cmd":"graphic","element":"logo","action":"{command}"}}"#) };
+        let (status, response) = call(&app, "POST", "/api/v1/channels/main/command", None, Some(&body)).await;
+        assert_eq!(status, StatusCode::OK, "{response}");
+        let (_, response) = call(&app, "GET", "/api/v1/channels/main/status", None, None).await;
+        let state: serde_json::Value = serde_json::from_str(&response).unwrap();
+        let on = state["graphics"].as_array().unwrap().iter().any(|g| g["element"] == "logo");
+        assert_eq!(on, visible, "{command}: {response}");
+    }
+}
+
+#[tokio::test]
 async fn roles_are_enforced() {
     let dir = project(vec![
         ApiToken { name: "view".into(), token: "v-token".into(), role: Role::Viewer },

@@ -75,7 +75,12 @@ pub fn snapshot(out: &Path, section: &str, width: u32, height: u32, scale: f32, 
     ui.show().map_err(|e| e.to_string())?;
     match live {
         Some(url) => {
-            let opts = crate::GuiOptions { base_url: url.to_string(), token: std::env::var("LB_TOKEN").ok(), channel: None, embedded_engine: false };
+            let opts = crate::GuiOptions {
+                base_url: url.to_string(),
+                token: std::env::var("LB_TOKEN").ok(),
+                channel: None,
+                embedded_engine: false,
+            };
             let prefs = crate::prefs::UiPrefs { section: name.to_string(), persist: false, ..Default::default() };
             crate::bridge::start(&ui, &opts, prefs);
             pump_for(&jobs, Duration::from_secs(6));
@@ -123,12 +128,26 @@ pub fn snapshot(out: &Path, section: &str, width: u32, height: u32, scale: f32, 
 fn snapshot_notify(out: &Path, window: &Rc<MinimalSoftwareWindow>, scale: f32) -> Result<(), String> {
     use crate::shell::{NoticeRow, NotifyWindow, Popups};
     let ui = NotifyWindow::new().map_err(|e| e.to_string())?;
-    let n = |id, title: &str, body: &str, urgency, initial: &str| NoticeRow { id, title: title.into(), body: body.into(), time: "21:04".into(), urgency, initial: initial.into(), ..Default::default() };
+    let n = |id, title: &str, body: &str, urgency, initial: &str| NoticeRow {
+        id,
+        title: title.into(),
+        body: body.into(),
+        time: "21:04".into(),
+        urgency,
+        initial: initial.into(),
+        ..Default::default()
+    };
     let rows = vec![
         n(1, "Главный: в эфире", "Вечерние новости", 0, "Г"),
         n(2, "Главный: точка вещания недоступна", "rtmp://live.example.com/app — соединение отклонено", 1, "Г"),
-        n(3, "Детский: кодировщик остановлен", "ffmpeg завершился с ошибкой 1
-Эфир прерван, идёт перезапуск.", 2, "Д"),
+        n(
+            3,
+            "Детский: кодировщик остановлен",
+            "ffmpeg завершился с ошибкой 1
+Эфир прерван, идёт перезапуск.",
+            2,
+            "Д",
+        ),
     ];
     let count = rows.len() as u32;
     ui.global::<Popups>().set_items(model(rows));
@@ -211,8 +230,22 @@ fn demo_overlay(ui: &AppWindow, name: &str) {
             j.set_progress(0.42);
             j.set_summary("42 % · Экспорт канала «Основной канал»".into());
             j.set_rows(model(vec![
-                JobRow { id: 2, title: "Экспорт канала «Основной канал»".into(), channel: "main".into(), state: "running".into(), text: "42 % · 17/42: media/5f1c….mp4".into(), progress: 0.42 },
-                JobRow { id: 1, title: "Копирование файлов в медиатеку (3)".into(), channel: "main".into(), state: "done".into(), text: "Готово".into(), progress: 1.0 },
+                JobRow {
+                    id: 2,
+                    title: "Экспорт канала «Основной канал»".into(),
+                    channel: "main".into(),
+                    state: "running".into(),
+                    text: "42 % · 17/42: media/5f1c….mp4".into(),
+                    progress: 0.42,
+                },
+                JobRow {
+                    id: 1,
+                    title: "Копирование файлов в медиатеку (3)".into(),
+                    channel: "main".into(),
+                    state: "done".into(),
+                    text: "Готово".into(),
+                    progress: 1.0,
+                },
             ]));
             j.set_open(true);
         }
@@ -223,8 +256,11 @@ fn demo_overlay(ui: &AppWindow, name: &str) {
         }
         "channel-import" => {
             c.set_i_path("C:/Users/operator/Documents/main-2026-10-23.zip".into());
-            c.set_i_info("Канал «Основной канал» (main), экспортирован 2026-10-23 17:40:12.
-В архиве: настройки, медиатека, плейлисты, сетка, правила, графика; медиафайлов: 42 (3.4 ГБ).".into());
+            c.set_i_info(
+                "Канал «Основной канал» (main), экспортирован 2026-10-23 17:40:12.
+В архиве: настройки, медиатека, плейлисты, сетка, правила, графика; медиафайлов: 42 (3.4 ГБ)."
+                    .into(),
+            );
             c.set_i_valid(true);
             c.set_e_id("main-2".into());
             c.set_e_name("Основной канал".into());
@@ -250,6 +286,7 @@ fn model<T: Clone + 'static>(v: Vec<T>) -> slint::ModelRc<T> {
 
 fn row(start: &str, dur: &str, title: &str, kind: &str, block: &str) -> QueueRow {
     QueueRow {
+        uid: format!("{start}-{title}").into(),
         start: start.into(),
         end: "".into(),
         duration: dur.into(),
@@ -321,7 +358,9 @@ fn demo_air(ui: &AppWindow) {
     ]));
     a.set_graphics(model(vec![
         GfxRow { id: "logo".into(), name: "Логотип".into(), kind: "изображение".into(), layer: "10".into(), on: true },
-        GfxRow { id: "ticker".into(), name: "Бегущая строка".into(), kind: "бегущая строка".into(), layer: "20".into(), on: false },
+        GfxRow {
+            id: "ticker".into(), name: "Бегущая строка".into(), kind: "бегущая строка".into(), layer: "20".into(), on: false
+        },
     ]));
     a.set_recent_events(model(vec![
         LogRow { at: "09:12:40".into(), level: "warning".into(), text: "[main] 'Новости' decoder restarted".into() },

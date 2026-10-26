@@ -26,7 +26,8 @@ use slint::{Color, ComponentHandle, Image, Model, Rgba8Pixel, SharedPixelBuffer,
 
 use lb_core::Dur;
 use lb_core::graphics::{
-    Animation, AnimKind, CountdownTarget, Element, ElementKind, FillDirection, GraphicRule, GraphicsConfig, Placement, ProgressTarget, TextStyle, TimeFormat,
+    AnimKind, Animation, CountdownTarget, Element, ElementKind, FillDirection, GraphicRule, GraphicsConfig, Placement, ProgressTarget,
+    TextStyle, TimeFormat,
 };
 
 use super::{Ctx, vec_model, with};
@@ -524,8 +525,16 @@ fn props_changed(c: &mut Ctx) {
     e.placement.anchor = ANCHORS.get(g.get_p_anchor().max(0) as usize).copied().unwrap_or_default();
     e.placement.x = num("X", g.get_p_x(), e.placement.x);
     e.placement.y = num("Y", g.get_p_y(), e.placement.y);
-    e.placement.width = if g.get_p_w().trim().is_empty() { None } else { Some(num("Ширина", g.get_p_w(), e.placement.width.unwrap_or(0.0)).max(1.0)) };
-    e.placement.height = if g.get_p_h().trim().is_empty() { None } else { Some(num("Высота", g.get_p_h(), e.placement.height.unwrap_or(0.0)).max(1.0)) };
+    e.placement.width = if g.get_p_w().trim().is_empty() {
+        None
+    } else {
+        Some(num("Ширина", g.get_p_w(), e.placement.width.unwrap_or(0.0)).max(1.0))
+    };
+    e.placement.height = if g.get_p_h().trim().is_empty() {
+        None
+    } else {
+        Some(num("Высота", g.get_p_h(), e.placement.height.unwrap_or(0.0)).max(1.0))
+    };
     e.opacity = g.get_p_opacity().clamp(0.0, 1.0);
     if let Some(l) = layers::layer_at(c, g.get_p_layer()) {
         e.layer = l;
@@ -542,7 +551,11 @@ fn props_changed(c: &mut Ctx) {
             None
         }
     };
-    let style_from = |st: &TextStyle, g: &Gfx, color: &mut dyn FnMut(&str, SharedString, bool) -> Option<String>, num: &mut dyn FnMut(&str, SharedString, f32) -> f32| -> TextStyle {
+    let style_from = |st: &TextStyle,
+                      g: &Gfx,
+                      color: &mut dyn FnMut(&str, SharedString, bool) -> Option<String>,
+                      num: &mut dyn FnMut(&str, SharedString, f32) -> f32|
+     -> TextStyle {
         TextStyle {
             font: Some(g.get_s_font().trim().to_string()).filter(|x| !x.is_empty()),
             bold: g.get_s_bold(),
@@ -561,14 +574,22 @@ fn props_changed(c: &mut Ctx) {
         }
     };
     e.kind = match e.kind.clone() {
-        ElementKind::Text { style, .. } => ElementKind::Text { text: g.get_p_text().to_string(), style: style_from(&style, &g, &mut color, &mut num) },
+        ElementKind::Text { style, .. } => {
+            ElementKind::Text { text: g.get_p_text().to_string(), style: style_from(&style, &g, &mut color, &mut num) }
+        }
         ElementKind::Ticker { style, speed, width, .. } => ElementKind::Ticker {
             text: g.get_p_text().to_string(),
             speed: num("Скорость", g.get_p_speed(), speed).clamp(1.0, 2000.0),
-            width: if g.get_p_twidth().trim().is_empty() { None } else { Some(num("Ширина полосы", g.get_p_twidth(), width.unwrap_or(0.0)).max(10.0)) },
+            width: if g.get_p_twidth().trim().is_empty() {
+                None
+            } else {
+                Some(num("Ширина полосы", g.get_p_twidth(), width.unwrap_or(0.0)).max(10.0))
+            },
             style: style_from(&style, &g, &mut color, &mut num),
         },
-        ElementKind::Clock { style, .. } => ElementKind::Clock { format: g.get_p_format().to_string(), style: style_from(&style, &g, &mut color, &mut num) },
+        ElementKind::Clock { style, .. } => {
+            ElementKind::Clock { format: g.get_p_format().to_string(), style: style_from(&style, &g, &mut color, &mut num) }
+        }
         ElementKind::Countdown { style, exclude, .. } => ElementKind::Countdown {
             target: TARGETS.get(g.get_p_target().max(0) as usize).copied().unwrap_or_default(),
             prefix: g.get_p_prefix().to_string(),
@@ -634,7 +655,9 @@ fn props_changed(c: &mut Ctx) {
             errors.borrow_mut().extend(extra);
             k
         }
-        ElementKind::Group { .. } => ElementKind::Group { children: g.get_p_children().split(',').map(|x| x.trim().to_string()).filter(|x| !x.is_empty()).collect() },
+        ElementKind::Group { .. } => {
+            ElementKind::Group { children: g.get_p_children().split(',').map(|x| x.trim().to_string()).filter(|x| !x.is_empty()).collect() }
+        }
     };
     e.animation = Animation {
         anim_in: ANIMS.get(g.get_a_in().max(0) as usize).copied().unwrap_or_default(),
@@ -660,7 +683,9 @@ fn pick_image(c: &mut Ctx) {
     let Some(ui) = c.window() else { return };
     let g = ui.global::<Gfx>();
     let current = PathBuf::from(g.get_p_path().trim());
-    let mut dlg = rfd::FileDialog::new().set_title("Изображение для графики").add_filter("Изображения", &["png", "jpg", "jpeg", "webp"]);
+    let mut dlg = rfd::FileDialog::new()
+        .set_title("Файл графики")
+        .add_filter("Графика и анимации", &["png", "jpg", "jpeg", "webp", "html", "htm", "swf"]);
     if let Some(dir) = current.parent().filter(|d| d.is_absolute() && d.is_dir()) {
         dlg = dlg.set_directory(dir);
     }
@@ -803,6 +828,7 @@ fn add(c: &mut Ctx, kind: &str) {
         ),
         "plate" => (design::new_plate(), "Плашка", lb_core::graphics::Anchor::BottomLeft, 96.0, 110.0),
         "image" => (ElementKind::Image { path: "logo.png".into() }, "Логотип", lb_core::graphics::Anchor::TopRight, 60.0, 50.0),
+        "web" => (ElementKind::Image { path: String::new() }, "HTML / SWF", lb_core::graphics::Anchor::TopLeft, 0.0, 0.0),
         // the file the channel form stores (`channels/<id>/avatar.png`)
         "avatar" => (
             ElementKind::Image { path: format!("channels/{}/avatar.png", c.model.ch()) },
@@ -811,9 +837,17 @@ fn add(c: &mut Ctx, kind: &str) {
             60.0,
             50.0,
         ),
-        "clock" => (ElementKind::Clock { format: "%H:%M".into(), style: style.clone() }, "Часы", lb_core::graphics::Anchor::TopRight, 60.0, 50.0),
+        "clock" => {
+            (ElementKind::Clock { format: "%H:%M".into(), style: style.clone() }, "Часы", lb_core::graphics::Anchor::TopRight, 60.0, 50.0)
+        }
         "countdown" => (
-            ElementKind::Countdown { target: CountdownTarget::NextProgram, style: style.clone(), prefix: "Через ".into(), exclude: vec![], format: TimeFormat::Auto },
+            ElementKind::Countdown {
+                target: CountdownTarget::NextProgram,
+                style: style.clone(),
+                prefix: "Через ".into(),
+                exclude: vec![],
+                format: TimeFormat::Auto,
+            },
             "Таймер",
             lb_core::graphics::Anchor::TopLeft,
             60.0,
@@ -867,7 +901,13 @@ fn add(c: &mut Ctx, kind: &str) {
         id: unique_id(&cfg, kind),
         name: name.into(),
         kind: k,
-        placement: Placement { anchor, x, y, width: (kind == "avatar").then_some(96.0), height: None },
+        placement: Placement {
+            anchor,
+            x,
+            y,
+            width: if kind == "web" { Some(640.0) } else { (kind == "avatar").then_some(96.0) },
+            height: (kind == "web").then_some(360.0),
+        },
         opacity: 1.0,
         layer,
         animation: Animation { anim_in: AnimKind::Fade, anim_out: AnimKind::Fade, duration: Dur(500) },
@@ -937,7 +977,11 @@ fn live(c: &mut Ctx, action: &str) {
         c.toast("Элемент ещё не сохранён — сохраните оформление, чтобы показать его в эфире", true);
         return;
     }
-    let body = if action == "auto" { json!({ "cmd": "graphic_auto", "element": id }) } else { json!({ "cmd": "graphic", "element": id, "action": action }) };
+    let body = if action == "auto" {
+        json!({ "cmd": "graphic_auto", "element": id })
+    } else {
+        json!({ "cmd": "graphic", "element": id, "action": action })
+    };
     c.command(body);
 }
 
@@ -962,7 +1006,8 @@ fn png_image(bytes: &[u8]) -> Option<crate::net::Frame> {
 }
 
 fn to_image(f: &crate::net::Frame) -> Option<Image> {
-    (f.rgba.len() == (f.width * f.height * 4) as usize).then(|| Image::from_rgba8(SharedPixelBuffer::<Rgba8Pixel>::clone_from_slice(&f.rgba, f.width, f.height)))
+    (f.rgba.len() == (f.width * f.height * 4) as usize)
+        .then(|| Image::from_rgba8(SharedPixelBuffer::<Rgba8Pixel>::clone_from_slice(&f.rgba, f.width, f.height)))
 }
 
 /// Background of the canvas according to the mode.
@@ -1064,7 +1109,10 @@ fn preview_animation(c: &mut Ctx) {
         let mut err = None;
         for k in 0..=steps {
             let t = dur * k / steps;
-            match api.post_bytes(&format!("/channels/{ch}/graphics/render"), &json!({ "config": solo, "vars": solo.vars, "t_ms": t, "width": 960 })) {
+            match api.post_bytes(
+                &format!("/channels/{ch}/graphics/render"),
+                &json!({ "config": solo, "vars": solo.vars, "t_ms": t, "width": 960 }),
+            ) {
                 Ok(b) => frames.extend(png_image(&b)),
                 Err(e) => {
                     err = Some(e);
@@ -1120,6 +1168,10 @@ fn rules_rows(c: &mut Ctx) {
             at: s(r.timing.at.iter().map(|t| t.format("%H:%M").to_string()).collect::<Vec<_>>().join(", ")),
             categories: s(r.conditions.categories.join(", ")),
             xcategories: s(r.conditions.exclude_categories.join(", ")),
+            media: s(r.conditions.media.join(", ")),
+            xmedia: s(r.conditions.exclude_media.join(", ")),
+            blocks: s(r.conditions.blocks.join(", ")),
+            playlists: s(r.conditions.playlists.join(", ")),
             from: s(r.conditions.from.map(|t| t.format("%H:%M").to_string()).unwrap_or_default()),
             to: s(r.conditions.to.map(|t| t.format("%H:%M").to_string()).unwrap_or_default()),
             kinds: vec_model(KINDS.iter().map(|k| r.conditions.kinds.contains(k)).collect()),
@@ -1147,7 +1199,11 @@ fn rule_texts(cfg: &GraphicsConfig, r: &GraphicRule) -> Vec<RuleTextRow> {
         .into_iter()
         .zip(labels)
         .enumerate()
-        .map(|(k, (design, label))| RuleTextRow { label: s(label), design: s(design.to_string()), text: s(r.texts.get(k).cloned().unwrap_or_default()) })
+        .map(|(k, (design, label))| RuleTextRow {
+            label: s(label),
+            design: s(design.to_string()),
+            text: s(r.texts.get(k).cloned().unwrap_or_default()),
+        })
         .collect()
 }
 
@@ -1160,12 +1216,8 @@ fn rule_edited(c: &mut Ctx, i: usize, field: &str, v: &str) {
     let key = format!("rule-{i}-{field}");
     let mut bad = false;
     let parsed_dur = dur(&v);
-    let parsed_at: Option<Vec<chrono::NaiveTime>> = v
-        .split(',')
-        .map(|x| x.trim())
-        .filter(|x| !x.is_empty())
-        .map(|x| crate::logic::timeline::parse_time(x).ok().flatten())
-        .collect();
+    let parsed_at: Option<Vec<chrono::NaiveTime>> =
+        v.split(',').map(|x| x.trim()).filter(|x| !x.is_empty()).map(|x| crate::logic::timeline::parse_time(x).ok().flatten()).collect();
     match field.as_str() {
         "after" | "duration" | "before-end" | "last" | "every" => bad = parsed_dur.is_none(),
         "at" => bad = parsed_at.is_none(),
@@ -1193,6 +1245,11 @@ fn rule_edited(c: &mut Ctx, i: usize, field: &str, v: &str) {
             "last" => r.timing.last = parsed_dur.flatten(),
             "every" => r.timing.every = parsed_dur.flatten(),
             "at" => r.timing.at = parsed_at.unwrap_or_default(),
+            "name" => r.name = v.clone(),
+            "media" => r.conditions.media = list(&v),
+            "xmedia" => r.conditions.exclude_media = list(&v),
+            "blocks" => r.conditions.blocks = list(&v),
+            "playlists" => r.conditions.playlists = list(&v),
             "categories" => r.conditions.categories = list(&v),
             "xcategories" => r.conditions.exclude_categories = list(&v),
             "from" => r.conditions.from = crate::logic::timeline::parse_time(&v).ok().flatten(),
@@ -1222,7 +1279,12 @@ fn rule_edited(c: &mut Ctx, i: usize, field: &str, v: &str) {
         }
     });
     // typed text stays as typed (rebuilding the rows would reset the cursor)
-    let typed = |k: &str| ["-categories", "-xcategories", "-at", "-from", "-to"].iter().any(|t| k.ends_with(t)) || k.contains("-text:");
+    let typed = |k: &str| {
+        ["-categories", "-xcategories", "-media", "-xmedia", "-blocks", "-playlists", "-name", "-at", "-from", "-to"]
+            .iter()
+            .any(|t| k.ends_with(t))
+            || k.contains("-text:")
+    };
     if matches!(c.gfx.last_edit.as_ref(), Some((k, _)) if !typed(k)) || field_is_structural(&key) {
         rules_rows(c);
     }
@@ -1263,7 +1325,8 @@ fn rule_add(c: &mut Ctx) {
     while cfg.rules.iter().any(|r| r.id == format!("show-{n}")) {
         n += 1;
     }
-    let rule: GraphicRule = match serde_json::from_value(json!({ "id": format!("show-{n}"), "name": format!("Показ {n}"), "element": el })) {
+    let rule: GraphicRule = match serde_json::from_value(json!({ "id": format!("show-{n}"), "name": format!("Показ {n}"), "element": el }))
+    {
         Ok(r) => r,
         Err(e) => {
             c.toast(format!("Не удалось создать правило: {e}"), true);
@@ -1277,7 +1340,8 @@ fn rule_add(c: &mut Ctx) {
 // ------------------------------------------------------------ variables
 
 fn sorted_vars(c: &Ctx) -> Vec<(String, String)> {
-    let mut v: Vec<(String, String)> = c.gfx.draft.as_ref().map(|d| d.vars.iter().map(|(k, v)| (k.clone(), v.clone())).collect()).unwrap_or_default();
+    let mut v: Vec<(String, String)> =
+        c.gfx.draft.as_ref().map(|d| d.vars.iter().map(|(k, v)| (k.clone(), v.clone())).collect()).unwrap_or_default();
     v.sort();
     v
 }
@@ -1326,13 +1390,21 @@ fn templates_list(c: &mut Ctx) {
         .map(|it| it.filter_map(|e| e.ok().map(|e| e.path())).filter(|p| p.extension().is_some_and(|x| x == "json")).collect())
         .unwrap_or_default();
     files.sort();
-    ui.global::<Gfx>().set_templates(vec_model(files.iter().map(|p| s(p.file_stem().map(|x| x.to_string_lossy().to_string()).unwrap_or_default())).collect()));
+    ui.global::<Gfx>().set_templates(vec_model(
+        files.iter().map(|p| s(p.file_stem().map(|x| x.to_string_lossy().to_string()).unwrap_or_default())).collect(),
+    ));
     c.gfx.templates = files;
 }
 
 fn template_save(c: &mut Ctx) {
     let Some(ui) = c.window() else { return };
-    let name: String = ui.global::<Gfx>().get_template_name().trim().chars().map(|ch| if ch.is_alphanumeric() || ch == '-' || ch == '_' || ch == ' ' { ch } else { '_' }).collect();
+    let name: String = ui
+        .global::<Gfx>()
+        .get_template_name()
+        .trim()
+        .chars()
+        .map(|ch| if ch.is_alphanumeric() || ch == '-' || ch == '_' || ch == ' ' { ch } else { '_' })
+        .collect();
     let (Some(dir), Some(cfg)) = (templates_dir(), c.gfx.draft.clone()) else { return };
     if name.is_empty() {
         return;
@@ -1351,15 +1423,22 @@ fn template_save(c: &mut Ctx) {
 
 fn template_apply(c: &mut Ctx, i: usize) {
     let Some(path) = c.gfx.templates.get(i).cloned() else { return };
-    let parsed = std::fs::read(&path).map_err(|e| e.to_string()).and_then(|b| serde_json::from_slice::<GraphicsConfig>(&b).map_err(|e| e.to_string()));
+    let parsed = std::fs::read(&path)
+        .map_err(|e| e.to_string())
+        .and_then(|b| serde_json::from_slice::<GraphicsConfig>(&b).map_err(|e| e.to_string()));
     match parsed {
         Ok(t) => {
             let name = path.file_stem().map(|x| x.to_string_lossy().to_string()).unwrap_or_default();
-            c.ask("Применить шаблон?", &format!("Текущее оформление будет заменено шаблоном «{name}». Это можно отменить (Ctrl+Z) до сохранения."), "Применить", move |c| {
-                mutate(c, None, |cfg| *cfg = t);
-                c.gfx.selected = None;
-                refresh(c);
-            });
+            c.ask(
+                "Применить шаблон?",
+                &format!("Текущее оформление будет заменено шаблоном «{name}». Это можно отменить (Ctrl+Z) до сохранения."),
+                "Применить",
+                move |c| {
+                    mutate(c, None, |cfg| *cfg = t);
+                    c.gfx.selected = None;
+                    refresh(c);
+                },
+            );
         }
         Err(e) => c.toast(format!("Шаблон повреждён: {e}"), true),
     }
@@ -1368,12 +1447,17 @@ fn template_apply(c: &mut Ctx, i: usize) {
 fn template_delete(c: &mut Ctx, i: usize) {
     let Some(path) = c.gfx.templates.get(i).cloned() else { return };
     let name = path.file_stem().map(|x| x.to_string_lossy().to_string()).unwrap_or_default();
-    c.ask("Удалить шаблон?", &format!("Шаблон «{name}» будет удалён с этого компьютера."), "Удалить", move |c| {
-        if let Err(e) = std::fs::remove_file(&path) {
-            c.toast(format!("Не удалось удалить: {e}"), true);
-        }
-        templates_list(c);
-    });
+    c.ask(
+        "Удалить шаблон?",
+        &format!("Шаблон «{name}» будет удалён с этого компьютера."),
+        "Удалить",
+        move |c| {
+            if let Err(e) = std::fs::remove_file(&path) {
+                c.toast(format!("Не удалось удалить: {e}"), true);
+            }
+            templates_list(c);
+        },
+    );
 }
 
 // ------------------------------------------------------------ undo / save

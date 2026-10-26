@@ -3214,12 +3214,19 @@ name = "lb-gfx"
 version = "0.1.0"
 dependencies = [
  "ab_glyph",
+ "base64 0.22.1",
  "chrono",
  "fontdb",
  "image",
  "lb-core",
+ "percent-encoding",
+ "serde_json",
  "tiny-skia 0.12.0",
  "tracing",
+ "tungstenite 0.30.0",
+ "ureq",
+ "url",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]

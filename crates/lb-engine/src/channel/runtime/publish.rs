@@ -61,7 +61,7 @@ impl Runtime {
             next_program,
             manual_queue: self.sched.queue.len(),
             output: self.output.status(),
-            graphics: self.gfx.lock().map(|g| g.active.clone()).unwrap_or_default(),
+            graphics: self.gfx.lock().map(|g| super::super::gfx::evaluate(&g, t)).unwrap_or_default(),
             plan_warnings: self.sched.rundown.warnings.len(),
             last_error: self.last_error.clone(),
         };
@@ -81,7 +81,7 @@ impl Runtime {
             started_offset_ms: self.on_air.as_ref().map(|o| o.offset_ms).unwrap_or(0),
             plan: self.sched.plan.clone(),
             block_items_done: self.sched.block_items_done,
-            running,
+            running: running && self.closing.is_none(),
             force_schedule: self.sched.force_schedule.clone(),
             manual: self.sched.manual,
             saved_at: Some(now()),

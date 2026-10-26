@@ -16,8 +16,8 @@
 use std::collections::HashMap;
 use std::io::Write;
 use std::net::{TcpListener, TcpStream};
-use std::path::PathBuf;
 use std::panic::{AssertUnwindSafe, catch_unwind};
+use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard};
 use std::thread::JoinHandle;
@@ -82,8 +82,15 @@ pub fn evaluate(st: &GfxState, at: WallTime) -> Vec<ActiveGraphic> {
         }
         None => (None, 0, 0),
     };
-    let ctx =
-        GfxContext { now: at, item, elapsed_ms: elapsed, remaining_ms: remaining, profile: st.profile.as_deref(), manual: &st.manual, vars: Some(&st.vars) };
+    let ctx = GfxContext {
+        now: at,
+        item,
+        elapsed_ms: elapsed,
+        remaining_ms: remaining,
+        profile: st.profile.as_deref(),
+        manual: &st.manual,
+        vars: Some(&st.vars),
+    };
     graphics::evaluate(&st.cfg, &ctx)
 }
 
@@ -208,5 +215,12 @@ fn render_frame(shared: &SharedGfx, comp: &mut Compositor, version: &mut u64, at
         let next_ms = st.next_program_start.map(|t| diff_ms(t, at));
         (active, st.vars.clone(), remaining, next_ms, st.program.clone())
     };
-    comp.render(&FrameContext { now: at, active: &active, vars: &vars, item_remaining_ms: remaining, next_program_ms: next_ms, program: program.as_ref() });
+    comp.render_live(&FrameContext {
+        now: at,
+        active: &active,
+        vars: &vars,
+        item_remaining_ms: remaining,
+        next_program_ms: next_ms,
+        program: program.as_ref(),
+    });
 }

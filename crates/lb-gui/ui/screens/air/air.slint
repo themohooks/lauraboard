@@ -14,6 +14,8 @@ import { NowCard } from "now-card.slint";
 import { TransportBar } from "transport.slint";
 import { QueuePanel } from "queue-panel.slint";
 import { QuickActions } from "quick-actions.slint";
+import { Dialog, DialogActions } from "../../components/dialog.slint";
+import { Button } from "../../components/button.slint";
 
 component ControlColumn inherits VerticalLayout {
     in property <bool> stacked;
@@ -126,6 +128,19 @@ export component AirScreen inherits Page {
             ControlColumn {
                 stacked: true;
             }
+        }
+    }
+    Dialog {
+        open: Air.detail-open;
+        title: Air.detail-title;
+        dialog-width: 620px;
+        dismissed => { Air.detail-open = false; }
+        ScrollView {
+            height: min(340px, root.height * 0.5);
+            Label { text: Air.detail-text; wrap: word-wrap; }
+        }
+        DialogActions {
+            Button { text: "Закрыть"; clicked => { Air.detail-open = false; } }
         }
     }
 }

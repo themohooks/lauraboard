@@ -17,6 +17,9 @@ export struct RuleRow {
 }
 
 export global Rules {
+    in-out property <bool> f-time-cut;
+    in-out property <string> f-hour-minute: "59";
+    in-out property <string> f-hour-second: "0";
     // "jingles", "ads" or "scenes"
     in-out property <string> scope: "jingles";
     // tab inside the screen: 0 rules, 1 ad breaks / transitions, 2 policies

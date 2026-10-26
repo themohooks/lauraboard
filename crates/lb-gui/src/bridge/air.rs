@@ -20,6 +20,7 @@ fn strings(v: impl IntoIterator<Item = String>) -> ModelRc<SharedString> {
 
 pub fn connect(ui: &AppWindow) {
     let a = ui.global::<Air>();
+    a.on_inspect_queue(|uid| with(move |c| inspect_queue(c, uid.as_str())));
     a.on_transport(|action| with(move |c| transport(c, action.as_str())));
     a.on_search_media(|_| with(media_results));
     a.on_play_now(|id| {
@@ -39,9 +40,12 @@ pub fn connect(ui: &AppWindow) {
         with(move |c| {
             let Some(b) = c.model.rules.ad_breaks.get(i as usize).map(|b| b.id.clone()) else { return };
             if now {
-                c.ask("Запустить рекламу сейчас?", "Текущий элемент будет прерван.", "Запустить", move |c| {
-                    c.command(json!({ "cmd": "ad_break", "ad_break": b, "now": true }))
-                });
+                c.ask(
+                    "Запустить рекламу сейчас?",
+                    "Текущий элемент будет прерван.",
+                    "Запустить",
+                    move |c| c.command(json!({ "cmd": "ad_break", "ad_break": b, "now": true })),
+                );
             } else {
                 c.command(json!({ "cmd": "ad_break", "ad_break": b, "now": false }));
             }
@@ -99,9 +103,12 @@ pub fn transport(c: &mut Ctx, action: &str) {
         "restart" => c.command(cmd("restart")),
         "manual-on" => c.command(json!({ "cmd": "manual", "enabled": true })),
         "manual-off" => c.command(json!({ "cmd": "manual", "enabled": false })),
-        "clear-queue" => c.ask("Очистить очередь оператора?", "Все ролики, добавленные вручную, будут убраны из очереди.", "Очистить", |c| {
-            c.command(cmd("clear_queue"))
-        }),
+        "clear-queue" => c.ask(
+            "Очистить очередь оператора?",
+            "Все ролики, добавленные вручную, будут убраны из очереди.",
+            "Очистить",
+            |c| c.command(cmd("clear_queue")),
+        ),
         _ => {}
     }
 }
@@ -210,7 +217,9 @@ pub fn queue_changed(c: &mut Ctx) {
 /// it, a scene covering a gap.
 fn why(m: &crate::model::Model, it: &RundownItem) -> Option<String> {
     let scene = is_scene(m, it);
-    let rule = it.rule.as_ref().map(|id| m.rules.rules.iter().find(|r| &r.id == id).map_or(id.clone(), |r| if r.name.is_empty() { r.id.clone() } else { r.name.clone() }));
+    let rule = it.rule.as_ref().map(|id| {
+        m.rules.rules.iter().find(|r| &r.id == id).map_or(id.clone(), |r| if r.name.is_empty() { r.id.clone() } else { r.name.clone() })
+    });
     match (scene, rule, it.origin) {
         (true, Some(r), _) => Some(format!("сцена по правилу «{r}»")),
         (true, None, Origin::Filler) => Some("сцена: заполнение пустоты".into()),
@@ -222,6 +231,43 @@ fn why(m: &crate::model::Model, it: &RundownItem) -> Option<String> {
 
 fn is_scene(m: &crate::model::Model, it: &RundownItem) -> bool {
     !it.media.is_empty() && m.library.iter().any(|x| x.id == it.media && x.is_scene())
+}
+
+fn inspect_queue(c: &mut Ctx, uid: &str) {
+    let Some(it) = c.model.rundown.items.iter().find(|it| it.uid == uid) else { return };
+    let Some(ui) = c.window() else { return };
+    let mut lines = vec![
+        format!("Начало: {} · Конец: {}", it.start.format("%d.%m %H:%M:%S"), it.end().format("%H:%M:%S")),
+        format!("Длительность в эфире: {}", hms(it.duration_ms)),
+        format!("Блок: {}", it.block_title.as_deref().or(it.block.as_deref()).unwrap_or("—")),
+        format!("Плейлист: {}", it.playlist.as_deref().unwrap_or("—")),
+        format!("Категория: {}", it.category.as_deref().unwrap_or("—")),
+    ];
+    if let Some(why) = why(&c.model, it) {
+        lines.push(format!("Причина вставки: {why}"));
+    }
+    if let Some(m) = c.model.library.iter().find(|m| m.id == it.media) {
+        lines.push(format!("ID: {}", m.id));
+        if !m.path.is_empty() {
+            lines.push(format!("Файл: {}", m.path));
+        }
+        lines.push(format!("Полная длительность: {} · Начальная позиция: {}", hms(m.duration.ms()), hms(it.seek_ms)));
+        if !m.tags.is_empty() {
+            lines.push(format!("Теги: {}", m.tags.join(", ")));
+        }
+        let mut meta: Vec<_> = m.meta.iter().collect();
+        meta.sort_by_key(|(k, _)| *k);
+        for (key, value) in meta {
+            lines.push(format!("{key}: {value}"));
+        }
+    }
+    if it.truncated {
+        lines.push("Ролик будет обрезан по правилу планирования".into());
+    }
+    let air = ui.global::<Air>();
+    air.set_detail_title(it.title.clone().into());
+    air.set_detail_text(lines.join("\n").into());
+    air.set_detail_open(true);
 }
 
 pub fn queue_row(it: &RundownItem, why: Option<String>, block_start: bool, current: bool, next: bool) -> QueueRow {
@@ -239,6 +285,7 @@ pub fn queue_row(it: &RundownItem, why: Option<String>, block_start: bool, curre
         note.push("необязательный".into());
     }
     QueueRow {
+        uid: it.uid.clone().into(),
         start: it.start.format("%H:%M:%S").to_string().into(),
         end: it.end().format("%H:%M:%S").to_string().into(),
         duration: hms(it.duration_ms).into(),
@@ -285,6 +332,8 @@ fn graphics_rows(c: &mut Ctx, active: &[String]) {
 
 pub fn element_kind_name(k: &ElementKind) -> &'static str {
     match k {
+        ElementKind::Image { path } if path.to_ascii_lowercase().ends_with(".swf") => "SWF анимация",
+        ElementKind::Image { path } if [".html", ".htm"].iter().any(|ext| path.to_ascii_lowercase().ends_with(ext)) => "HTML анимация",
         ElementKind::Image { .. } => "изображение",
         ElementKind::Text { .. } => "текст",
         ElementKind::Ticker { .. } => "бегущая строка",
@@ -328,7 +377,9 @@ pub fn config_changed(c: &mut Ctx) {
         c.model.rules.ad_breaks.iter().map(|b| if b.name.is_empty() { b.id.clone() } else { format!("{} — {}", b.id, b.name) }),
     ));
     let mut sched = vec!["авто (по времени активации)".to_string()];
-    sched.extend(c.model.schedules.schedules.iter().map(|s| if s.name.is_empty() { s.id.clone() } else { format!("{} — {}", s.id, s.name) }));
+    sched.extend(
+        c.model.schedules.schedules.iter().map(|s| if s.name.is_empty() { s.id.clone() } else { format!("{} — {}", s.id, s.name) }),
+    );
     a.set_schedules(strings(sched));
     let idx = c
         .model

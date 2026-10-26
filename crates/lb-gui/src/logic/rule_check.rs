@@ -9,6 +9,9 @@ pub fn trigger_text(t: &Trigger) -> String {
     match t {
         Trigger::EveryNItems { n } => format!("каждые {n} ролика"),
         Trigger::EveryMinutes { minutes } => format!("каждые {minutes} мин"),
+        Trigger::Hourly { minute, second } => format!("каждый час в :{minute:02}:{second:02}"),
+        Trigger::BroadcastStart => "в начале эфира".into(),
+        Trigger::BroadcastEnd => "в конце эфира".into(),
         Trigger::BlockStart => "в начале блока".into(),
         Trigger::BlockEnd => "в конце блока".into(),
         Trigger::BetweenBlocks => "между блоками".into(),
@@ -18,7 +21,7 @@ pub fn trigger_text(t: &Trigger) -> String {
         Trigger::AfterMedia { items } => format!("после одного из {} роликов", items.len()),
         Trigger::AfterPlaylist { playlist } => format!("после плейлиста «{playlist}»"),
         Trigger::AtTimes { times } => {
-            let t: Vec<String> = times.iter().map(|t| t.format("%H:%M").to_string()).collect();
+            let t: Vec<String> = times.iter().map(|t| t.format("%H:%M:%S").to_string()).collect();
             format!("в {}", if t.is_empty() { "—".into() } else { t.join(", ") })
         }
     }
@@ -98,7 +101,9 @@ pub fn problems(set: &RuleSet, i: usize, categories: &HashSet<String>) -> Vec<St
         InsertAction::AdBreak { ad_break } if !set.ad_breaks.iter().any(|b| &b.id == ad_break) => {
             out.push(format!("Рекламный блок «{ad_break}» не найден"))
         }
-        InsertAction::Jingle { category: None, items } if items.is_empty() => out.push("Не выбраны заставки: укажите категорию или ролики".into()),
+        InsertAction::Jingle { category: None, items } if items.is_empty() => {
+            out.push("Не выбраны заставки: укажите категорию или ролики".into())
+        }
         InsertAction::Jingle { category: Some(c), .. } if !categories.is_empty() && !categories.contains(c) => {
             out.push(format!("В медиатеке нет категории «{c}»"))
         }
@@ -182,6 +187,7 @@ mod tests {
 
     fn rule(id: &str, trigger: Trigger, priority: i32) -> InsertionRule {
         InsertionRule {
+            time_conflict: Default::default(),
             id: id.into(),
             name: id.into(),
             enabled: true,

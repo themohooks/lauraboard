@@ -87,6 +87,7 @@ export component QueuePanel inherits Rectangle {
             for row in Air.queue: QueueRowView {
                 item: row;
                 show-block: root.show-block;
+                clicked => { Air.inspect-queue(row.uid); }
             }
         }
     }

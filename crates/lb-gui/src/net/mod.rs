@@ -35,6 +35,9 @@ pub struct Frame {
 
 /// Results delivered to the UI thread.
 pub enum Msg {
+    /// Ignore results of requests started before the channel changed.
+    Scoped(u64, Box<Msg>),
+    ForChannel(String, u64, Box<Msg>),
     Channels(Vec<crate::model::ChannelEntry>),
     Status(Box<StatusView>),
     Rundown(Rundown),

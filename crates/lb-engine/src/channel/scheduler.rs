@@ -65,6 +65,10 @@ impl Scheduler {
         data.config.planning.horizon.ms().max(3_600_000)
     }
 
+    pub fn broadcast_bookend(&self, data: &ChannelData, at: WallTime, opening: bool) -> Vec<RundownItem> {
+        planner::broadcast_bookend(&self.input(data), &self.plan, at, opening)
+    }
+
     /// Full replan from `from`, continuing the block of the last started item.
     pub fn replan_hard(&mut self, data: &ChannelData, from: WallTime) {
         let mut req = PlanRequest::new(from, add_ms(from, Self::horizon(data)));
@@ -121,7 +125,7 @@ impl Scheduler {
     /// Item started on air.
     pub fn on_start(&mut self, item: &RundownItem) {
         self.plan.commit(item);
-        if item.origin == Origin::Manual {
+        if item.origin == Origin::Manual || (item.origin == Origin::Rule && item.block_key.is_none()) {
             return;
         }
         if item.block_key != self.block_key {

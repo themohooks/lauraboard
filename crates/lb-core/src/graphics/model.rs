@@ -148,7 +148,7 @@ pub enum CountdownTarget {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum ElementKind {
-    /// PNG/JPEG/WebP image (alpha supported).
+    /// PNG/JPEG/WebP image or local HTML/SWF animation (alpha supported).
     Image { path: String },
     /// Text plate / title. `text` supports `{placeholders}`.
     Text {

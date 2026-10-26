@@ -19,6 +19,34 @@ impl Runtime {
     /// Start the next item from the queue / rundown (or standby).
     pub(super) async fn start_next(&mut self) {
         for _ in 0..50 {
+            if let Some((item, offset)) = self.resume.take() {
+                if self.start_item(item, offset).await { return; }
+                continue;
+            }
+            if let Some(queue) = &mut self.closing {
+                match queue.pop_front() {
+                    Some(mut item) => {
+                        item.start = now();
+                        if self.start_item(item, 0).await {
+                            return;
+                        }
+                        continue;
+                    }
+                    None => {
+                        self.stop().await;
+                        return;
+                    }
+                }
+            }
+            if let Some((mut item, offset)) = self.opening.pop_front() {
+                if offset == 0 {
+                    item.start = now();
+                }
+                if self.start_item(item, offset).await {
+                    return;
+                }
+                continue;
+            }
             let t = now();
             let next = if self.fail_streak >= MAX_FAIL_STREAK {
                 None
@@ -39,12 +67,24 @@ impl Runtime {
             }
         }
         tracing::error!(channel = %self.shared.id, "could not start any item");
+        if self.closing.is_some() { self.stop().await; }
     }
 
     /// Start `item` at `offset_ms`. Returns false when it could not start
     /// (missing file etc.) — an as-run "skipped" record is written then.
-    pub(super) async fn start_item(&mut self, item: RundownItem, offset_ms: i64) -> bool {
+    pub(super) async fn start_item(&mut self, mut item: RundownItem, offset_ms: i64) -> bool {
         self.ensure_probed(&item.media).await;
+        if item.truncated && self.closing.is_none() && self.opening.is_empty() {
+            let data = self.shared.data.read().unwrap_or_else(|e| e.into_inner());
+            if let Some(next) = self.sched.rundown.items.first()
+                && let Some(at) = next.fixed_start
+                && next.rule.as_ref().is_some_and(|id| {
+                    data.rules.rules.iter().any(|r| &r.id == id && r.time_conflict == lb_core::rules::TimeConflict::Truncate)
+                })
+            {
+                item.duration_ms = offset_ms + diff_ms(at, now()).max(1);
+            }
+        }
         let args = {
             let data = self.shared.data.read().unwrap_or_else(|e| e.into_inner());
             job::build(&data, &self.shared.root, &item, offset_ms, &self.shared.app.ffmpeg.loglevel)
@@ -85,7 +125,7 @@ impl Runtime {
 
     /// Keep the rundown aligned with the actual start.
     fn replan_after_start(&mut self, item: &RundownItem, started: lb_core::WallTime, offset_ms: i64) {
-        if self.sched.manual {
+        if self.sched.manual || self.closing.is_some() || (item.origin == Origin::Rule && item.block_key.is_none()) {
             return;
         }
         let expected_end = add_ms(started, item.duration_ms - offset_ms);
@@ -245,7 +285,8 @@ impl Runtime {
             Default::default()
         } else {
             let data = self.shared.data.read().unwrap_or_else(|e| e.into_inner());
-            let scene = self.on_air.as_ref().and_then(|o| data.library.get(&o.item.media)).and_then(|m| Some((m.id.as_str(), m.scene.as_ref()?)));
+            let scene =
+                self.on_air.as_ref().and_then(|o| data.library.get(&o.item.media)).and_then(|m| Some((m.id.as_str(), m.scene.as_ref()?)));
             match scene {
                 Some((id, s)) => data.graphics.with_scene(id, &s.graphics, s.channel_graphics),
                 None => data.graphics.clone(),

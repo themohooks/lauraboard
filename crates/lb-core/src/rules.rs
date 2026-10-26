@@ -11,10 +11,14 @@ use crate::{Dur, WallTime};
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum Trigger {
     /// After every N main items within a block.
-    EveryNItems { n: usize },
+    EveryNItems {
+        n: usize,
+    },
     /// After a main item once at least this much time passed since the rule
     /// last fired (or since the block start).
-    EveryMinutes { minutes: f64 },
+    EveryMinutes {
+        minutes: f64,
+    },
     /// At the start of a block.
     BlockStart,
     /// At the end of a block (before gap filling).
@@ -22,16 +26,65 @@ pub enum Trigger {
     /// Between two blocks (after BlockEnd of the previous block).
     BetweenBlocks,
     /// After a main item of the category.
-    AfterCategory { category: String },
+    AfterCategory {
+        category: String,
+    },
     /// Before a main item of the category.
-    BeforeCategory { category: String },
+    BeforeCategory {
+        category: String,
+    },
     /// After any of these library items (as main content).
-    AfterMedia { items: Vec<String> },
+    AfterMedia {
+        items: Vec<String>,
+    },
     /// After the last entry of a playlist (each time a pass of it ends).
-    AfterPlaylist { playlist: String },
+    AfterPlaylist {
+        playlist: String,
+    },
     /// After the first main item ending at or past each of these daily
     /// times (once per time).
-    AtTimes { times: Vec<NaiveTime> },
+    AtTimes {
+        times: Vec<NaiveTime>,
+    },
+    /// At this minute and second of every hour.
+    Hourly {
+        minute: u32,
+        #[serde(default)]
+        second: u32,
+    },
+    BroadcastStart,
+    BroadcastEnd,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum TimeConflict {
+    #[default]
+    Finish,
+    Truncate,
+}
+
+impl Trigger {
+    /// First scheduled occurrence in the inclusive interval.
+    pub fn occurrence(&self, from: WallTime, until: WallTime) -> Option<WallTime> {
+        let mut day = from.date();
+        let mut first = None;
+        while day <= until.date() {
+            let times = match self {
+                Self::AtTimes { times } => times.clone(),
+                Self::Hourly { minute, second } => (0..24).filter_map(|h| NaiveTime::from_hms_opt(h, *minute, *second)).collect(),
+                _ => return None,
+            };
+            for time in times {
+                let at = day.and_time(time);
+                if at >= from && at <= until {
+                    first = Some(first.map_or(at, |old: WallTime| old.min(at)));
+                }
+            }
+            day = day.succ_opt()?;
+        }
+        first
+    }
 }
 
 /// What gets inserted.
@@ -172,6 +225,9 @@ pub fn time_in_window(t: NaiveTime, from: Option<NaiveTime>, to: Option<NaiveTim
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct InsertionRule {
+    /// Whether a timed insertion may interrupt main content.
+    #[serde(default)]
+    pub time_conflict: TimeConflict,
     pub id: String,
     #[serde(default)]
     pub name: String,

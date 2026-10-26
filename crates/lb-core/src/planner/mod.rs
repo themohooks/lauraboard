@@ -3,8 +3,8 @@
 //! filling gaps and honouring fixed start times.
 //!
 //! Guarantees:
-//! * Content is never cut unless the block sets `allow_truncate` (or the
-//!   media itself defines in/out points).
+//! * Content is never cut unless the block sets `allow_truncate`, a timed
+//!   rule explicitly selects `truncate`, or the media defines in/out points.
 //! * Results are deterministic for the same inputs and seed.
 //! * When the next block has a fixed start, the planner first drops optional
 //!   interstitials, then truncates (if allowed), and only then delays the
@@ -183,4 +183,30 @@ pub fn ad_break_now(input: &PlanInput, state: &PlanState, ad_break: &str, at: Wa
     let items = p.build_ad_break(brk, at, Some(ad_break), false, 0);
     p.push_ad_items(items, at, None, false);
     p.out
+}
+
+/// Opening / closing inserts are built only for an actual broadcast
+/// lifecycle event, never as part of a rolling scheduling horizon.
+pub fn broadcast_bookend(input: &PlanInput, state: &PlanState, at: WallTime, opening: bool) -> Vec<RundownItem> {
+    let mut p = Planner {
+        inp: input,
+        st: state.clone(),
+        hist: Overlay::new(input.history),
+        rng: Rng::derive(input.seed, &[&at.to_string(), "broadcast"]),
+        out: Vec::new(),
+        warnings: Vec::new(),
+        seq: 0,
+        uid_base: format!("bookend-{}-{}", at.format("%Y%m%d%H%M%S"), PLAN_SEQ.fetch_add(1, Ordering::Relaxed)),
+    };
+    let ctx = context::MatchCtxOwned { at, category: None, playlist: None, block: None, media: None, kind: None };
+    let mut t = at;
+    for r in p.firing_rules(
+        |r| matches!((&r.trigger, opening), (crate::rules::Trigger::BroadcastStart, true) | (crate::rules::Trigger::BroadcastEnd, false)),
+        &ctx,
+    ) {
+        p.apply_rule(r, &mut t, None);
+    }
+    let mut result = Rundown { items: p.out, warnings: p.warnings };
+    transitions::apply_transitions(&mut result, input.rules);
+    result.items
 }

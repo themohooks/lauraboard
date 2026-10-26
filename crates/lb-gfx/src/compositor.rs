@@ -42,6 +42,16 @@ pub struct Compositor {
     /// window (that restarts with every item, and is constant for manual
     /// shows), so the text keeps moving across item changes.
     tickers: HashMap<String, (WallTime, bool)>,
+    live: bool,
+    visibility: HashMap<String, Visibility>,
+}
+
+struct Visibility {
+    element: Element,
+    active: ActiveGraphic,
+    appeared: WallTime,
+    last_seen: WallTime,
+    hiding: Option<WallTime>,
 }
 
 impl Compositor {
@@ -53,6 +63,8 @@ impl Compositor {
             empty: true,
             out: vec![0; (width.max(1) * height.max(1) * 4) as usize],
             tickers: HashMap::new(),
+            live: false,
+            visibility: HashMap::new(),
         }
     }
 
@@ -83,6 +95,32 @@ impl Compositor {
         self.canvas.height()
     }
 
+    /// Prepare browser assets for an editor snapshot. Live frames use the
+    /// asynchronous path in SpriteFactory and never wait for a browser.
+    pub fn prepare_web(&self, timeout: std::time::Duration) -> Result<(), String> {
+        let started = std::time::Instant::now();
+        let sources: Vec<_> = self
+            .cfg
+            .elements
+            .iter()
+            .filter_map(|el| {
+                let ElementKind::Image { path } = &el.kind else { return None };
+                if !crate::web::is_web(path) {
+                    return None;
+                }
+                Some(self.sprites.images.web(
+                    path,
+                    el.placement.width.unwrap_or(640.0).clamp(1.0, 4096.0) as u32,
+                    el.placement.height.unwrap_or(360.0).clamp(1.0, 4096.0) as u32,
+                ))
+            })
+            .collect();
+        for source in sources {
+            source.wait(timeout.saturating_sub(started.elapsed()))?;
+        }
+        Ok(())
+    }
+
     /// Render a frame; returns straight (non-premultiplied) RGBA bytes, as
     /// expected by ffmpeg's `overlay` filter on YUV video.
     pub fn render(&mut self, ctx: &FrameContext) -> &[u8] {
@@ -98,25 +136,82 @@ impl Compositor {
         &self.out
     }
 
+    /// Live visibility transitions also animate when conditions change
+    /// unexpectedly (ad starts, manual hide), and keep a logo steady
+    /// across consecutive matching programmes.
+    pub fn render_live(&mut self, ctx: &FrameContext) -> &[u8] {
+        self.live = true;
+        self.render(ctx);
+        self.live = false;
+        &self.out
+    }
+
     /// Render into the internal premultiplied canvas.
     fn render_premultiplied(&mut self, ctx: &FrameContext) {
-        if !self.empty || !ctx.active.is_empty() {
-            self.canvas.fill(tiny_skia::Color::TRANSPARENT);
-        }
-        self.empty = ctx.active.is_empty();
-        let region = Bx::new(0.0, 0.0, self.canvas.width() as f32, self.canvas.height() as f32);
         let cfg = self.cfg.clone();
-        self.tickers.values_mut().for_each(|t| t.1 = false);
+        let mut draws = Vec::new();
         for a in ctx.active {
             if let Some(el) = cfg.element(&a.element) {
                 // the rule that shows it may give it its own text
                 let applied = a.rule.as_deref().and_then(|id| cfg.rules.iter().find(|r| r.id == id)).and_then(|r| r.apply_texts(el));
-                let el = applied.as_ref().unwrap_or(el);
-                // one broken element must not take the whole overlay down
-                let drawn = catch_unwind(AssertUnwindSafe(|| self.draw(&cfg, el, region, ctx, a.shown_ms, a.hide_in_ms, 1.0, 0)));
-                if drawn.is_err() {
-                    tracing::warn!(element = %el.id, "graphics element failed to render");
+                let el = applied.unwrap_or_else(|| el.clone());
+                let mut active = a.clone();
+                if self.live {
+                    let v = self.visibility.entry(el.id.clone()).or_insert_with(|| Visibility {
+                        element: el.clone(),
+                        active: a.clone(),
+                        appeared: ctx.now,
+                        last_seen: ctx.now,
+                        hiding: None,
+                    });
+                    if v.hiding.take().is_some() {
+                        v.appeared = ctx.now;
+                    }
+                    active.shown_ms = lb_core::diff_ms(ctx.now, v.appeared).max(0);
+                    v.element = el.clone();
+                    v.active = active.clone();
+                    v.last_seen = ctx.now;
                 }
+                draws.push((active, el));
+            }
+        }
+        if self.live {
+            self.visibility.retain(|_, v| {
+                if ctx.active.iter().any(|a| a.element == v.element.id) {
+                    return true;
+                }
+                let duration = v.element.animation.duration.ms();
+                if v.element.animation.anim_out == lb_core::graphics::AnimKind::None || duration <= 0 {
+                    return false;
+                }
+                // A scheduled out-animation already finished before this
+                // frame: do not play a second one after the window closes.
+                if v.hiding.is_none() && v.active.hide_in_ms.is_some_and(|left| left <= lb_core::diff_ms(ctx.now, v.last_seen)) {
+                    return false;
+                }
+                let hiding = *v.hiding.get_or_insert(ctx.now);
+                let left = duration - lb_core::diff_ms(ctx.now, hiding);
+                if left <= 0 {
+                    return false;
+                }
+                let mut a = v.active.clone();
+                a.shown_ms = lb_core::diff_ms(ctx.now, v.appeared).max(duration);
+                a.hide_in_ms = Some(left);
+                draws.push((a, v.element.clone()));
+                true
+            });
+        }
+        draws.sort_by_key(|(a, _)| a.layer);
+        if !self.empty || !draws.is_empty() {
+            self.canvas.fill(tiny_skia::Color::TRANSPARENT);
+        }
+        self.empty = draws.is_empty();
+        let region = Bx::new(0.0, 0.0, self.canvas.width() as f32, self.canvas.height() as f32);
+        self.tickers.values_mut().for_each(|t| t.1 = false);
+        for (a, el) in draws {
+            let drawn = catch_unwind(AssertUnwindSafe(|| self.draw(&cfg, &el, region, ctx, a.shown_ms, a.hide_in_ms, 1.0, 0)));
+            if drawn.is_err() {
+                tracing::warn!(element = %el.id, "graphics element failed to render");
             }
         }
         self.tickers.retain(|_, t| t.1);
@@ -288,7 +383,14 @@ mod tests {
         let cfg = GraphicsConfig { layers: vec![], elements: vec![r], rules: vec![], vars: Default::default() };
         let mut c = Compositor::new(20, 20, cfg, Path::new("."));
         let vars = HashMap::new();
-        c.render(&FrameContext { now: now(), active: &[active("a")], vars: &vars, item_remaining_ms: 0, next_program_ms: None, program: None });
+        c.render(&FrameContext {
+            now: now(),
+            active: &[active("a")],
+            vars: &vars,
+            item_remaining_ms: 0,
+            next_program_ms: None,
+            program: None,
+        });
         let p = px(&c, 2, 2);
         assert!(p[0].abs_diff(0xC0) <= 1 && p[1].abs_diff(0x18) <= 1 && p[3] == 0x80, "{p:?}");
     }
@@ -329,9 +431,40 @@ mod tests {
         let cfg = GraphicsConfig { layers: vec![], elements: vec![group, child], rules: vec![], vars: Default::default() };
         let mut c = Compositor::new(100, 50, cfg, Path::new("."));
         let vars = HashMap::new();
-        c.render(&FrameContext { now: now(), active: &[active("g")], vars: &vars, item_remaining_ms: 0, next_program_ms: None, program: None });
+        c.render(&FrameContext {
+            now: now(),
+            active: &[active("g")],
+            vars: &vars,
+            item_remaining_ms: 0,
+            next_program_ms: None,
+            program: None,
+        });
         assert_eq!(px(&c, 26, 12), [0, 255, 0, 255]);
         assert_eq!(px(&c, 22, 12), [0, 0, 0, 0]);
+    }
+
+    #[test]
+    fn live_logo_stays_steady_between_clips_and_fades_on_condition_change() {
+        let mut el = rect("logo", "#FF0000", Anchor::TopLeft);
+        el.animation = Animation {
+            anim_in: lb_core::graphics::AnimKind::Fade,
+            anim_out: lb_core::graphics::AnimKind::Fade,
+            duration: lb_core::Dur(500),
+        };
+        let mut c = Compositor::new(100, 50, GraphicsConfig { elements: vec![el], ..Default::default() }, Path::new("."));
+        let vars = HashMap::new();
+        let start = now();
+        let show = [ActiveGraphic { shown_ms: 0, ..active("logo") }];
+        let frame =
+            |at, active| FrameContext { now: at, active, vars: &vars, item_remaining_ms: 1000, next_program_ms: None, program: None };
+        c.render_live(&frame(start, &show));
+        c.render_live(&frame(lb_core::add_ms(start, 600), &show));
+        assert_eq!(px(&c, 2, 2)[3], 255, "the new clip must not restart the logo animation");
+        c.render_live(&frame(lb_core::add_ms(start, 700), &[]));
+        c.render_live(&frame(lb_core::add_ms(start, 950), &[]));
+        assert!(px(&c, 2, 2)[3] > 0 && px(&c, 2, 2)[3] < 255, "fade out while an ad starts");
+        c.render_live(&frame(lb_core::add_ms(start, 1250), &[]));
+        assert_eq!(px(&c, 2, 2)[3], 0);
     }
 
     #[test]
@@ -391,7 +524,14 @@ mod tests {
         let cfg = GraphicsConfig { layers: vec![], elements: vec![el], rules: vec![], vars: Default::default() };
         let mut c = Compositor::new(300, 100, cfg, Path::new("."));
         let vars = HashMap::new();
-        c.render(&FrameContext { now: now(), active: &[active("t")], vars: &vars, item_remaining_ms: 0, next_program_ms: None, program: None });
+        c.render(&FrameContext {
+            now: now(),
+            active: &[active("t")],
+            vars: &vars,
+            item_remaining_ms: 0,
+            next_program_ms: None,
+            program: None,
+        });
         if c.sprites.fonts.get(None).is_some() {
             let opaque = c.out.chunks_exact(4).filter(|p| p[3] == 255).count();
             assert!(opaque > 100, "clock with background should draw pixels");

@@ -60,6 +60,9 @@ pub struct Runtime {
     gfx: SharedGfx,
     gfx_thread: Option<GfxThread>,
     running: bool,
+    /// Finish the closing queue, then disconnect outputs.
+    closing: Option<std::collections::VecDeque<RundownItem>>,
+    opening: std::collections::VecDeque<(RundownItem, i64)>,
     on_air: Option<OnAir>,
     /// Item to resume once the encoder is back.
     resume: Option<(RundownItem, i64)>,
@@ -114,6 +117,8 @@ impl Runtime {
             gfx,
             gfx_thread: None,
             running: false,
+            closing: None,
+            opening: Default::default(),
             on_air: None,
             resume: None,
             generation: 0,
@@ -165,7 +170,7 @@ impl Runtime {
         let saved = state::load(&dir.join("state"));
         if enabled
             && (autostart || saved.running)
-            && let Err(e) = self.start().await
+            && let Err(e) = self.start(true).await
         {
             tracing::error!(channel = %self.shared.id, "autostart failed: {e}");
             self.last_error = Some(e);

@@ -34,6 +34,7 @@ export struct NextInfo {
 
 // One row of the queue / rundown.
 export struct QueueRow {
+    uid: string,
     start: string,
     end: string,
     duration: string,
@@ -71,6 +72,10 @@ export struct LogRow {
 }
 
 export global Air {
+    in-out property <bool> detail-open;
+    in property <string> detail-title;
+    in property <string> detail-text;
+    callback inspect-queue(string);
     in property <NowInfo> now;
     in property <NextInfo> next;
     in property <image> next-thumb;

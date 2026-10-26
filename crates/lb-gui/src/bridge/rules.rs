@@ -253,8 +253,16 @@ pub fn refresh(c: &mut Ctx) {
     }
     g.set_rules(vec_model(rows));
     g.set_selected(c.rules.selected.map(|i| i as i32).unwrap_or(-1));
-    g.set_playlists(vec_model(c.model.playlists.iter().map(|p| s(if p.name.is_empty() || p.name == p.id { p.id.clone() } else { format!("{} ({})", p.name, p.id) })).collect()));
-    g.set_ad_breaks(vec_model(set.ad_breaks.iter().map(|b| s(if b.name.is_empty() { b.id.clone() } else { format!("{} — {}", b.id, b.name) })).collect()));
+    g.set_playlists(vec_model(
+        c.model
+            .playlists
+            .iter()
+            .map(|p| s(if p.name.is_empty() || p.name == p.id { p.id.clone() } else { format!("{} ({})", p.name, p.id) }))
+            .collect(),
+    ));
+    g.set_ad_breaks(vec_model(
+        set.ad_breaks.iter().map(|b| s(if b.name.is_empty() { b.id.clone() } else { format!("{} — {}", b.id, b.name) })).collect(),
+    ));
     g.set_dirty(c.rules.dirty());
     g.set_can_undo(c.rules.history.can_undo());
     g.set_can_redo(c.rules.history.can_redo());
@@ -297,6 +305,9 @@ fn load_form(c: &Ctx, r: &InsertionRule) {
         Trigger::BeforeCategory { category } => (6, "3".into(), "30".into(), category.clone()),
         Trigger::AfterMedia { .. } => (7, "3".into(), "30".into(), String::new()),
         Trigger::AfterPlaylist { .. } => (8, "3".into(), "30".into(), String::new()),
+        Trigger::Hourly { .. } => (10, "3".into(), "30".into(), String::new()),
+        Trigger::BroadcastStart => (11, "3".into(), "30".into(), String::new()),
+        Trigger::BroadcastEnd => (12, "3".into(), "30".into(), String::new()),
         Trigger::AtTimes { .. } => (9, "3".into(), "30".into(), String::new()),
     };
     g.set_f_trigger(t);
@@ -312,16 +323,29 @@ fn load_form(c: &Ctx, r: &InsertionRule) {
     };
     g.set_f_tpl(tpl);
     let times = match &r.trigger {
-        Trigger::AtTimes { times } => times.iter().map(|t| t.format("%H:%M").to_string()).collect::<Vec<_>>().join(", "),
+        Trigger::AtTimes { times } => times.iter().map(|t| t.format("%H:%M:%S").to_string()).collect::<Vec<_>>().join(", "),
         _ => String::new(),
     };
     g.set_f_times(s(times));
+    g.set_f_time_cut(r.time_conflict == lb_core::rules::TimeConflict::Truncate);
+    let (minute, second) = if let Trigger::Hourly { minute, second } = r.trigger { (minute, second) } else { (59, 0) };
+    g.set_f_hour_minute(s(minute.to_string()));
+    g.set_f_hour_second(s(second.to_string()));
     let (a, jcat, items, ab, pcount, pcat) = match &r.action {
-        InsertAction::Jingle { category, items } => (0, category.clone().unwrap_or_default(), join(items), -1, "1".to_string(), String::new()),
-        InsertAction::AdBreak { ad_break } => {
-            (1, String::new(), String::new(), set.ad_breaks.iter().position(|b| &b.id == ad_break).map(|i| i as i32).unwrap_or(-1), "1".into(), String::new())
+        InsertAction::Jingle { category, items } => {
+            (0, category.clone().unwrap_or_default(), join(items), -1, "1".to_string(), String::new())
         }
-        InsertAction::Promos { count, category } => (2, String::new(), String::new(), -1, count.to_string(), category.clone().unwrap_or_default()),
+        InsertAction::AdBreak { ad_break } => (
+            1,
+            String::new(),
+            String::new(),
+            set.ad_breaks.iter().position(|b| &b.id == ad_break).map(|i| i as i32).unwrap_or(-1),
+            "1".into(),
+            String::new(),
+        ),
+        InsertAction::Promos { count, category } => {
+            (2, String::new(), String::new(), -1, count.to_string(), category.clone().unwrap_or_default())
+        }
         InsertAction::Media { items } => (3, String::new(), join(items), -1, "1".into(), String::new()),
         InsertAction::Scene { items, .. } => (4, String::new(), join(items), -1, "1".into(), String::new()),
     };
@@ -351,7 +375,16 @@ fn load_form(c: &Ctx, r: &InsertionRule) {
     g.set_f_group(s(r.group.clone().unwrap_or_default()));
     g.set_f_optional(r.optional);
     g.set_f_skipmanual(r.skip_on_manual);
-    for f in [Rules::set_e_n, Rules::set_e_minutes, Rules::set_e_from, Rules::set_e_to, Rules::set_e_priority, Rules::set_e_pcount, Rules::set_e_times, Rules::set_e_sdur] {
+    for f in [
+        Rules::set_e_n,
+        Rules::set_e_minutes,
+        Rules::set_e_from,
+        Rules::set_e_to,
+        Rules::set_e_priority,
+        Rules::set_e_pcount,
+        Rules::set_e_times,
+        Rules::set_e_sdur,
+    ] {
         f(&g, SharedString::new());
     }
 }
@@ -372,10 +405,20 @@ fn read_form(c: &Ctx, base: &InsertionRule) -> InsertionRule {
     let old_m = if let Trigger::EveryMinutes { minutes } = r.trigger { minutes } else { 30.0 };
     let tcat = g.get_f_tcat().trim().to_string();
     let times = parse_times(&g.get_f_times());
-    g.set_e_times(s(if g.get_f_trigger() == 9 && times.as_ref().is_none_or(|t| t.is_empty()) { "Время через запятую: 12:00, 18:30" } else { "" }));
+    g.set_e_times(s(if g.get_f_trigger() == 9 && times.as_ref().is_none_or(|t| t.is_empty()) {
+        "Время через запятую: 12:00, 18:30"
+    } else {
+        ""
+    }));
     let old_times = if let Trigger::AtTimes { times } = &r.trigger { times.clone() } else { vec![] };
     let playlist = usize::try_from(g.get_f_tpl()).ok().and_then(|i| c.model.playlists.get(i)).map(|p| p.id.clone());
     let old_pl = if let Trigger::AfterPlaylist { playlist } = &r.trigger { playlist.clone() } else { String::new() };
+    let hour_minute = g.get_f_hour_minute().trim().parse::<u32>().ok().filter(|n| *n < 60);
+    let hour_second = g.get_f_hour_second().trim().parse::<u32>().ok().filter(|n| *n < 60);
+    if g.get_f_trigger() == 10 {
+        g.set_e_times(s(if hour_minute.is_none() || hour_second.is_none() { "Минута и секунда: целые числа от 0 до 59" } else { "" }));
+    }
+    let (old_minute, old_second) = if let Trigger::Hourly { minute, second } = base.trigger { (minute, second) } else { (59, 0) };
     r.trigger = match g.get_f_trigger() {
         0 => Trigger::EveryNItems { n: n.unwrap_or(old_n) },
         1 => Trigger::EveryMinutes { minutes: m.unwrap_or(old_m) },
@@ -386,8 +429,15 @@ fn read_form(c: &Ctx, base: &InsertionRule) -> InsertionRule {
         6 => Trigger::BeforeCategory { category: tcat },
         7 => Trigger::AfterMedia { items: split(&g.get_f_titems()) },
         8 => Trigger::AfterPlaylist { playlist: playlist.unwrap_or(old_pl) },
+        10 => Trigger::Hourly {
+            minute: hour_minute.unwrap_or(old_minute),
+            second: hour_second.unwrap_or(old_second),
+        },
+        11 => Trigger::BroadcastStart,
+        12 => Trigger::BroadcastEnd,
         _ => Trigger::AtTimes { times: times.unwrap_or(old_times) },
     };
+    r.time_conflict = if g.get_f_time_cut() { lb_core::rules::TimeConflict::Truncate } else { lb_core::rules::TimeConflict::Finish };
     let pc: Option<usize> = g.get_f_pcount().trim().parse().ok().filter(|n| (1..=10).contains(n));
     g.set_e_pcount(s(if g.get_f_action() == 2 && pc.is_none() { "От 1 до 10" } else { "" }));
     let opt = |v: SharedString| Some(v.trim().to_string()).filter(|x| !x.is_empty());
@@ -560,10 +610,32 @@ fn blank_rule(c: &Ctx) -> InsertionRule {
     let ads = c.rules.scope == "ads";
     let scenes = c.rules.scope == "scenes";
     InsertionRule {
-        id: rule_check::new_id(&set, if ads { "ads" } else if scenes { "scene" } else { "ident" }),
-        name: if ads { "Реклама".into() } else if scenes { "Сцена".into() } else { "Заставка".into() },
+        time_conflict: Default::default(),
+        id: rule_check::new_id(
+            &set,
+            if ads {
+                "ads"
+            } else if scenes {
+                "scene"
+            } else {
+                "ident"
+            },
+        ),
+        name: if ads {
+            "Реклама".into()
+        } else if scenes {
+            "Сцена".into()
+        } else {
+            "Заставка".into()
+        },
         enabled: true,
-        trigger: if ads { Trigger::EveryMinutes { minutes: 30.0 } } else if scenes { Trigger::BlockEnd } else { Trigger::BlockStart },
+        trigger: if ads {
+            Trigger::EveryMinutes { minutes: 30.0 }
+        } else if scenes {
+            Trigger::BlockEnd
+        } else {
+            Trigger::BlockStart
+        },
         action: if ads {
             InsertAction::AdBreak { ad_break: set.ad_breaks.first().map(|b| b.id.clone()).unwrap_or_default() }
         } else if scenes {
@@ -745,7 +817,9 @@ fn load_journal(c: &mut Ctx) {
                 .iter()
                 .rev()
                 .take(15)
-                .map(|r| s(format!("{} — «{}» · {}", r.started.format("%d.%m %H:%M:%S"), r.title, format!("{:?}", r.status).to_lowercase())))
+                .map(|r| {
+                    s(format!("{} — «{}» · {}", r.started.format("%d.%m %H:%M:%S"), r.title, format!("{:?}", r.status).to_lowercase()))
+                })
                 .collect();
             if lines.is_empty() {
                 lines.push(s("За последние 7 дней срабатываний не было"));
@@ -763,7 +837,9 @@ fn breaks(c: &mut Ctx) {
     let Some(ui) = c.window() else { return };
     let g = ui.global::<Rules>();
     let set = c.rules.draft.clone().unwrap_or_default();
-    g.set_breaks(vec_model(set.ad_breaks.iter().map(|b| s(if b.name.is_empty() { b.id.clone() } else { format!("{} ({})", b.name, b.id) })).collect()));
+    g.set_breaks(vec_model(
+        set.ad_breaks.iter().map(|b| s(if b.name.is_empty() { b.id.clone() } else { format!("{} ({})", b.name, b.id) })).collect(),
+    ));
     if c.rules.brk.is_none() && !set.ad_breaks.is_empty() {
         c.rules.brk = Some(0);
     }
@@ -794,9 +870,12 @@ fn breaks(c: &mut Ctx) {
         .map(|r| s(format!("правило «{}»", if r.name.is_empty() { &r.id } else { &r.name })))
         .chain(c.model.schedules.schedules.iter().flat_map(|sc| {
             sc.templates.iter().flat_map(move |t| {
-                t.blocks.iter().filter(|bl| matches!(&bl.source, lb_core::schedule::BlockSource::AdBreak { ad_break } if ad_break == &b.id)).map(move |bl| {
-                    s(format!("сетка «{}», шаблон «{}», блок «{}»", sc.id, t.id, if bl.title.is_empty() { &bl.id } else { &bl.title }))
-                })
+                t.blocks
+                    .iter()
+                    .filter(|bl| matches!(&bl.source, lb_core::schedule::BlockSource::AdBreak { ad_break } if ad_break == &b.id))
+                    .map(move |bl| {
+                        s(format!("сетка «{}», шаблон «{}», блок «{}»", sc.id, t.id, if bl.title.is_empty() { &bl.id } else { &bl.title }))
+                    })
             })
         }))
         .collect();
@@ -814,7 +893,8 @@ fn break_changed(c: &mut Ctx) {
     let max_txt = g.get_b_max().trim().to_string();
     let max: Option<Option<usize>> = if max_txt.is_empty() { Some(None) } else { max_txt.parse().ok().filter(|n| *n > 0).map(Some) };
     g.set_e_b_max(s(if max.is_none() { "Целое число больше 0" } else { "" }));
-    let (name, items, category, order) = (g.get_b_name().trim().to_string(), split(&g.get_b_items()), opt(g.get_b_category()), g.get_b_order());
+    let (name, items, category, order) =
+        (g.get_b_name().trim().to_string(), split(&g.get_b_items()), opt(g.get_b_category()), g.get_b_order());
     let (intro, outro, fill) = (opt(g.get_b_intro()), opt(g.get_b_outro()), opt(g.get_b_fill()));
     mutate(c, Some("break"), move |set| {
         let Some(b) = set.ad_breaks.get_mut(i) else { return };
@@ -1023,8 +1103,14 @@ fn break_add(c: &mut Ctx) {
     while set.ad_breaks.iter().any(|b| b.id == format!("break-{n}")) {
         n += 1;
     }
-    let b: AdBreak = serde_json::from_value(json!({ "id": format!("break-{n}"), "name": format!("Рекламный блок {n}"), "category": "commercials" }))
-        .unwrap_or_else(|_| set.ad_breaks.first().cloned().unwrap_or_else(|| serde_json::from_value(json!({ "id": format!("break-{n}") })).expect("ad break")));
+    let b: AdBreak =
+        serde_json::from_value(json!({ "id": format!("break-{n}"), "name": format!("Рекламный блок {n}"), "category": "commercials" }))
+            .unwrap_or_else(|_| {
+                set.ad_breaks
+                    .first()
+                    .cloned()
+                    .unwrap_or_else(|| serde_json::from_value(json!({ "id": format!("break-{n}") })).expect("ad break"))
+            });
     mutate(c, None, |set| set.ad_breaks.push(b));
     c.rules.brk = c.rules.draft.as_ref().map(|d| d.ad_breaks.len() - 1);
     refresh(c);
@@ -1033,7 +1119,11 @@ fn break_add(c: &mut Ctx) {
 fn break_remove(c: &mut Ctx) {
     let Some(i) = c.rules.brk else { return };
     let Some(b) = c.rules.draft.as_ref().and_then(|d| d.ad_breaks.get(i)).cloned() else { return };
-    let used = c.rules.draft.as_ref().is_some_and(|d| d.rules.iter().any(|r| matches!(&r.action, InsertAction::AdBreak { ad_break } if ad_break == &b.id)));
+    let used = c
+        .rules
+        .draft
+        .as_ref()
+        .is_some_and(|d| d.rules.iter().any(|r| matches!(&r.action, InsertAction::AdBreak { ad_break } if ad_break == &b.id)));
     let go = move |c: &mut Ctx| {
         mutate(c, None, |set| {
             set.ad_breaks.remove(i);

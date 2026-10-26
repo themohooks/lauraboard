@@ -20,10 +20,10 @@ impl Runtime {
 
     async fn execute(&mut self, cmd: Command) -> Reply {
         match cmd {
-            Command::Start => self.start().await.map(|_| "started".into()),
+            Command::Start => self.start(false).await.map(|_| "started".into()),
             Command::Stop => {
-                self.stop().await;
-                Ok("stopped".into())
+                self.request_stop().await;
+                Ok(if self.closing.is_some() { "closing broadcast" } else { "stopped" }.into())
             }
             Command::Skip => {
                 self.require_running()?;
@@ -42,7 +42,9 @@ impl Runtime {
             Command::Seek { to_ms, by_ms } => {
                 self.require_running()?;
                 let cur = self.on_air.as_ref().ok_or("nothing on air")?;
-                if cur.item.media.is_empty() || matches!(cur.item.kind, lb_core::media::MediaKind::Stream | lb_core::media::MediaKind::Image) {
+                if cur.item.media.is_empty()
+                    || matches!(cur.item.kind, lb_core::media::MediaKind::Stream | lb_core::media::MediaKind::Image)
+                {
                     return Err("this item cannot be rewound".into());
                 }
                 let pos = cur.offset_ms + lb_core::diff_ms(now(), cur.started);
@@ -220,10 +222,11 @@ impl Runtime {
     }
 
     /// Start broadcasting.
-    pub(super) async fn start(&mut self) -> Result<(), String> {
+    pub(super) async fn start(&mut self, recovering: bool) -> Result<(), String> {
         if self.running {
             return Ok(());
         }
+        self.closing = None;
         let (report, dir) = {
             let data = self.shared.data.read().unwrap_or_else(|e| e.into_inner());
             (validate_channel_full(&data, &self.shared.root), data.state_dir())
@@ -266,9 +269,17 @@ impl Runtime {
                 }
             }
         }
+        if !recovering || resume.is_none() {
+            let data = self.shared.data.read().unwrap_or_else(|e| e.into_inner());
+            self.opening = self.sched.broadcast_bookend(&data, t, true).into_iter().map(|item| (item, 0)).collect();
+        }
         if let Some((item, offset)) = resume {
             tracing::info!(channel = %self.shared.id, media = %item.media, offset, "resuming after restart");
-            self.resume = Some((item, offset));
+            if self.opening.is_empty() {
+                self.resume = Some((item, offset));
+            } else {
+                self.opening.push_back((item, offset));
+            }
         }
         if self.output.running() {
             self.play_resume_or_next().await;
@@ -277,17 +288,29 @@ impl Runtime {
     }
 
     pub(super) async fn play_resume_or_next(&mut self) {
-        match self.resume.take() {
-            Some((item, offset)) => {
-                if !self.start_item(item, offset).await {
-                    self.start_next().await;
-                }
-            }
-            None => self.start_next().await,
-        }
+        self.start_next().await;
     }
 
     /// Stop broadcasting gracefully and persist state.
+    async fn request_stop(&mut self) {
+        if !self.running || self.closing.is_some() {
+            return;
+        }
+        let items = {
+            let data = self.shared.data.read().unwrap_or_else(|e| e.into_inner());
+            self.sched.broadcast_bookend(&data, now(), false)
+        };
+        if items.is_empty() {
+            self.stop().await;
+            return;
+        }
+        self.save_state_with(false);
+        self.interrupt_current("broadcast closing");
+        self.resume = None;
+        self.closing = Some(items.into());
+        self.start_next().await;
+    }
+
     pub(super) async fn stop(&mut self) {
         if !self.running {
             return;
@@ -301,6 +324,8 @@ impl Runtime {
             t.shutdown();
         }
         self.running = false;
+        self.closing = None;
+        self.opening.clear();
         self.resume = None;
         self.lock = None;
         self.emit(Level::Info, EventKind::Stopped);
@@ -308,9 +333,5 @@ impl Runtime {
 }
 
 fn encoder_settings_changed(a: &ChannelConfig, b: &ChannelConfig) -> bool {
-    a.video != b.video
-        || a.audio != b.audio
-        || a.encoder != b.encoder
-        || a.outputs != b.outputs
-        || a.preview != b.preview
+    a.video != b.video || a.audio != b.audio || a.encoder != b.encoder || a.outputs != b.outputs || a.preview != b.preview
 }

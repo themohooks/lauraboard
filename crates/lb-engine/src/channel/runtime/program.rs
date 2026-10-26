@@ -17,16 +17,23 @@ pub(crate) struct ProgramLog {
     past: Vec<(String, MediaKind, Ms)>,
 }
 
-/// Block instance of an item as a programme: none for items without a
-/// block and for sequential mode (one endless block there).
-fn program_key(it: &RundownItem) -> Option<&str> {
-    it.block_key.as_deref().filter(|k| !k.starts_with("sequential:"))
+/// A grid block instance, or one complete pass of a sequential playlist.
+fn program_key(it: &RundownItem, previous: Option<&str>) -> Option<String> {
+    let key = it.block_key.as_deref()?;
+    if key.starts_with("sequential:") {
+        match it.cursor_after.as_ref() {
+            Some((playlist, cursor)) => Some(format!("{key}:{playlist}:{}", cursor.cycle)),
+            None => previous.filter(|p| p.starts_with(key)).map(str::to_string),
+        }
+    } else {
+        Some(key.to_string())
+    }
 }
 
 impl ProgramLog {
     /// `item` finished after `played_ms`.
     pub(crate) fn aired(&mut self, item: &RundownItem, played_ms: Ms) {
-        let key = program_key(item).map(str::to_string);
+        let key = program_key(item, self.key.as_deref());
         if key.is_none() || key != self.key {
             self.key = key.clone();
             self.past.clear();
@@ -47,16 +54,23 @@ impl Runtime {
     pub(super) fn program_clock(&self) -> Option<ProgramClock> {
         let o = self.on_air.as_ref()?;
         let it = &o.item;
-        let Some(key) = program_key(it) else {
+        let Some(key) = program_key(it, self.program.key.as_deref()) else {
             return Some(ProgramClock { current: Some((it.kind, it.duration_ms)), ..Default::default() });
         };
-        let past = if self.program.key.as_deref() == Some(key) {
+        let past = if self.program.key.as_ref() == Some(&key) {
             // the item on air may have aired in part before a restart
             self.program.past.iter().filter(|(uid, ..)| *uid != it.uid).map(|(_, k, ms)| (*k, *ms)).collect()
         } else {
             Vec::new()
         };
-        let future = self.sched.rundown.items.iter().take_while(|i| program_key(i) == Some(key)).map(|i| (i.kind, i.duration_ms)).collect();
+        let future = self
+            .sched
+            .rundown
+            .items
+            .iter()
+            .take_while(|i| program_key(i, Some(&key)).as_ref() == Some(&key))
+            .map(|i| (i.kind, i.duration_ms))
+            .collect();
         Some(ProgramClock { past, current: Some((it.kind, it.duration_ms)), future })
     }
 }

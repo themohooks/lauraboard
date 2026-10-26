@@ -178,6 +178,95 @@ fn scene_at_daily_times() {
 }
 
 #[test]
+fn hourly_scene_interrupts_at_exact_second_and_continues_playlist() {
+    let mut fx = with_jingles();
+    fx.add(vec![scene("hour", 10)]);
+    let mut rule = scene_rule("hourly", Trigger::Hourly { minute: 59, second: 0 }, &["hour"], None);
+    rule.time_conflict = crate::rules::TimeConflict::Truncate;
+    fx.rules.rules.push(rule);
+    let r = fx.plan(at(10, 50), at(12, 5));
+    let insertion = r.items.iter().position(|i| i.media == "hour").unwrap();
+    assert_eq!(r.items[insertion].start, at(10, 59));
+    assert_eq!(r.items[insertion - 1].duration_ms, 9 * 60_000);
+    assert!(r.items[insertion - 1].truncated);
+    assert_eq!(r.items[insertion + 1].media, "b");
+    assert!(r.items.iter().any(|i| i.media == "hour" && i.start == at(11, 59)));
+    assert_contiguous(&r);
+}
+
+#[test]
+fn hourly_scene_can_wait_for_the_clip_to_finish() {
+    let mut fx = with_jingles();
+    fx.add(vec![scene("hour", 10)]);
+    fx.rules.rules.push(scene_rule("hourly", Trigger::Hourly { minute: 59, second: 0 }, &["hour"], None));
+    let r = fx.plan(at(10, 50), at(11, 5));
+    let insertion = r.items.iter().position(|i| i.media == "hour").unwrap();
+    assert_eq!(r.items[insertion].start, at(11, 0));
+    assert!(!r.items[insertion - 1].truncated);
+    assert_contiguous(&r);
+}
+
+#[test]
+fn hourly_cut_makes_a_long_clip_fit_before_the_next_fixed_block() {
+    let mut fx = Fx::new();
+    fx.add(vec![prog("long", 20), prog("news", 10), scene("hour", 60)]).playlist("long", &["long"]).playlist("news", &["news"]);
+    fx.blocks.push(fixed("long", 10, 50, pl_src("long")));
+    fx.blocks.push(fixed("news", 11, 0, pl_src("news")));
+    let mut rule = scene_rule("hourly", Trigger::Hourly { minute: 59, second: 0 }, &["hour"], None);
+    rule.time_conflict = crate::rules::TimeConflict::Truncate;
+    fx.rules.rules.push(rule);
+    let r = fx.plan(at(10, 50), at(11, 10));
+    assert_eq!(r.items[0].media, "long");
+    assert_eq!(r.items[0].duration_ms, 9 * 60_000);
+    assert_eq!(r.items[1].media, "hour");
+    assert_eq!(r.items[1].start, at(10, 59));
+    assert_eq!(first_of_block(&r, "news").start, at(11, 0));
+    assert_contiguous(&r);
+}
+
+#[test]
+fn empty_or_improbable_timed_insert_never_cuts_content() {
+    let mut fx = with_jingles();
+    let mut rule = scene_rule("hourly", Trigger::Hourly { minute: 59, second: 0 }, &["missing"], None);
+    rule.time_conflict = crate::rules::TimeConflict::Truncate;
+    fx.rules.rules.push(rule);
+    let r = fx.plan(at(10, 50), at(11, 5));
+    assert!(!r.items[0].truncated);
+    fx.add(vec![scene("hour", 10)]);
+    fx.rules.rules[0].action = InsertAction::Scene { items: vec!["hour".into()], duration: None };
+    fx.rules.rules[0].probability = 0.0;
+    let r = fx.plan(at(10, 50), at(11, 5));
+    assert!(!r.items[0].truncated);
+    assert!(!ids(&r).contains(&"hour"));
+}
+
+#[test]
+fn broadcast_bookends_are_not_part_of_rolling_plans() {
+    let mut fx = with_jingles();
+    fx.rules.rules.push(jingle_rule("open", Trigger::BroadcastStart, &["j1"]));
+    fx.rules.rules.push(jingle_rule("close", Trigger::BroadcastEnd, &["j2"]));
+    let r = fx.plan(at(10, 0), at(11, 0));
+    assert!(r.items.iter().all(|i| i.rule.is_none()));
+    let sched = fx.schedules();
+    let input = PlanInput {
+        library: &fx.lib,
+        playlists: &fx.playlists,
+        schedules: &sched,
+        rules: &fx.rules,
+        history: &fx.history,
+        mode: &fx.mode,
+        seed: 7,
+        force_schedule: None,
+    };
+    let opening = super::super::broadcast_bookend(&input, &fx.state, at(10, 0), true);
+    let closing = super::super::broadcast_bookend(&input, &fx.state, at(11, 0), false);
+    assert_eq!(opening.len(), 1);
+    assert_eq!(opening[0].rule.as_deref(), Some("open"));
+    assert_eq!(closing.len(), 1);
+    assert_eq!(closing[0].rule.as_deref(), Some("close"));
+}
+
+#[test]
 fn gap_is_covered_by_a_scene() {
     let mut fx = Fx::new();
     fx.add(vec![prog("p", 25), prog("news", 10), media("f", MediaKind::Filler, 120), scene("wait", 30)])

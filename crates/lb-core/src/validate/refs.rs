@@ -154,6 +154,9 @@ fn rules(ch: &ChannelData, r: &mut Report) {
                 r.warn(&loc, format!("trigger: unknown playlist '{playlist}'"))
             }
             Trigger::AtTimes { times } if times.is_empty() => r.warn(&loc, "trigger: no times"),
+            Trigger::Hourly { minute, second } if *minute > 59 || *second > 59 => {
+                r.error(&loc, "hourly trigger: minute and second must be 0..59")
+            }
             _ => {}
         }
     }

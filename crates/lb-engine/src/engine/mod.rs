@@ -126,9 +126,10 @@ impl Engine {
     /// Stop every channel gracefully.
     pub async fn shutdown(&self) {
         for ch in self.channels() {
-            if let Err(e) = ch.send(crate::channel::Command::Stop).await {
+            if let Err(e) = ch.send(crate::channel::Command::Shutdown).await {
                 tracing::warn!(channel = %ch.id(), "stop failed: {e}");
             }
         }
+        let _ = tokio::task::spawn_blocking(lb_gfx::web::shutdown_all).await;
     }
 }

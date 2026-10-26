@@ -13,6 +13,9 @@ pub struct ImageCache {
 }
 
 impl ImageCache {
+    pub fn web(&self, path: &str, w: u32, h: u32) -> Arc<crate::web::WebSource> {
+        crate::web::WebSource::get(&lb_core::project::paths::resolve(&self.root, path), w, h)
+    }
     pub fn new(root: &Path) -> Self {
         ImageCache { root: root.to_path_buf(), originals: HashMap::new(), scaled: HashMap::new() }
     }

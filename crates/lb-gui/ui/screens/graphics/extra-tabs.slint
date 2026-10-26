@@ -23,6 +23,7 @@ component RuleCard inherits FormSection {
     property <int> var-line;
     title: r.name;
     hint: "id: " + r.id;
+    TextField { label: "Название правила"; text: root.r.name; edited(t) => { Gfx.rule-edited(root.r.index, "name", t); } }
     icon: Icons.rule;
     HorizontalLayout {
         spacing: Theme.sp3;
@@ -124,6 +125,17 @@ component RuleCard inherits FormSection {
             }
         }
     }
+    HorizontalLayout {
+        spacing: Theme.sp2;
+        TextField { horizontal-stretch: 1; label: "Только ролики (ID через запятую)"; text: root.r.media; edited(t) => { Gfx.rule-edited(root.r.index, "media", t); } }
+        TextField { horizontal-stretch: 1; label: "Кроме роликов (ID)"; text: root.r.xmedia; edited(t) => { Gfx.rule-edited(root.r.index, "xmedia", t); } }
+    }
+    HorizontalLayout {
+        spacing: Theme.sp2;
+        TextField { horizontal-stretch: 1; label: "Только блоки (ID)"; text: root.r.blocks; edited(t) => { Gfx.rule-edited(root.r.index, "blocks", t); } }
+        TextField { horizontal-stretch: 1; label: "Только плейлисты (ID)"; text: root.r.playlists; edited(t) => { Gfx.rule-edited(root.r.index, "playlists", t); } }
+    }
+    Label { text: "Пустые фильтры — весь эфир. Заполненные фильтры действуют одновременно. ID ролика можно посмотреть нажатием на него в очереди эфира."; wrap: word-wrap; color: Theme.color.on-surface-variant; }
     Label {
         text: "Типы контента (ничего не выбрано — любые)";
         type-style: Theme.label-medium;
@@ -209,7 +221,8 @@ export component GfxRulesTab inherits VerticalLayout {
     HorizontalLayout {
         Label {
             horizontal-stretch: 1;
-            text: "Когда элементы появляются в эфире автоматически. Время — ЧЧ:ММ:СС.";
+            text: "Выберите элемент и условия показа, затем сохраните. Для логотипа на передачах выберите тип «Передачи». Для плашки через 10 секунд на 8 секунд: «Через» = 00:00:10, «Показывать» = 00:00:08. Плавность задаётся в анимации элемента. Ручной показ в эфире действует до нажатия «По правилам».";
+            wrap: word-wrap;
             color: Theme.color.on-surface-variant;
             vertical-alignment: center;
         }

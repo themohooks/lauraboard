@@ -24,5 +24,6 @@ pub mod layout;
 pub mod plate;
 pub mod shape;
 pub mod text;
+pub mod web;
 
 pub use compositor::{Compositor, FrameContext};

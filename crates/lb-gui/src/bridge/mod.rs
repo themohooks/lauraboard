@@ -280,6 +280,16 @@ impl Ctx {
 
     fn apply(&mut self, m: Msg) {
         match m {
+            Msg::Scoped(epoch, msg) => {
+                if epoch == self.worker.epoch() {
+                    self.apply(*msg);
+                }
+            }
+            Msg::ForChannel(ch, revision, msg) => {
+                if self.model.channel.as_deref() == Some(ch.as_str()) && self.poller.revision() == revision {
+                    self.apply(*msg);
+                }
+            }
             Msg::Channels(info) => {
                 let list: Vec<String> = info.iter().map(|c| c.id.clone()).collect();
                 self.model.channel_info = info;
@@ -379,7 +389,11 @@ impl Ctx {
             }
             Msg::Done(text) => self.toast(text, false),
             Msg::Error(e) => {
-                self.model.push_log(LogLine { at: chrono::Local::now().format("%H:%M:%S").to_string(), level: "warning".into(), text: e.clone() });
+                self.model.push_log(LogLine {
+                    at: chrono::Local::now().format("%H:%M:%S").to_string(),
+                    level: "warning".into(),
+                    text: e.clone(),
+                });
                 air::log_changed(self);
                 log::changed(self);
                 self.toast(e, true);
@@ -404,10 +418,20 @@ impl Ctx {
     /// channel must not stay open).
     pub fn channel_selected(&mut self, ch: &str) {
         if self.poller.channel().as_deref() != Some(ch) {
+            self.worker.invalidate();
             self.pl = Default::default();
             self.gfx = Default::default();
             self.lib.checked.clear();
             self.thumbs.clear();
+            self.lib.loaded = false;
+            self.rules = Default::default();
+            self.model.status = Default::default();
+            self.model.rundown = Default::default();
+            self.model.graphics = Default::default();
+            self.air_marks = (None, None);
+            self.clear_preview();
+            air::status_changed(self);
+            air::queue_changed(self);
         }
         self.poller.set_channel(ch);
     }
@@ -415,6 +439,8 @@ impl Ctx {
     /// The project has no channels (first start, or the last one was
     /// deleted): stop polling and forget the data of the old channel.
     fn channel_cleared(&mut self) {
+        self.worker.invalidate();
+        self.clear_preview();
         self.poller.clear_channel();
         self.pl = Default::default();
         self.gfx = Default::default();
@@ -427,6 +453,18 @@ impl Ctx {
         air::queue_changed(self);
         if let Some(ui) = self.window() {
             ui.global::<crate::shell::Chan>().set_open(false);
+        }
+    }
+
+    fn clear_preview(&self) {
+        if let Some(ui) = self.window() {
+            let app = ui.global::<App>();
+            app.set_has_preview(false);
+            app.set_preview(slint::Image::default());
+            let air = ui.global::<crate::shell::Air>();
+            air.set_has_next_thumb(false);
+            air.set_next_thumb(slint::Image::default());
+            air.set_detail_open(false);
         }
     }
 
@@ -487,7 +525,11 @@ impl Ctx {
         let ch = self.model.ch();
         self.worker.spawn(move |api| {
             let r = api.post(&format!("/channels/{ch}/command"), &cmd)?;
-            Ok(Msg::Done(r["message"].as_str().map(crate::ru::server).unwrap_or_else(|| "Выполнено".into())))
+            let status = api.get(&format!("/channels/{ch}/status"))?;
+            Ok(Msg::Apply(Box::new(move |c| {
+                c.apply(Msg::Status(Box::new(status)));
+                c.toast(r["message"].as_str().map(crate::ru::server).unwrap_or_else(|| "Выполнено".into()), false);
+            })))
         });
     }
 
@@ -605,4 +647,48 @@ pub fn vec_model<T: Clone + 'static>(v: Vec<T>) -> slint::ModelRc<T> {
 /// JSON command helper.
 pub fn cmd(name: &str) -> Value {
     json!({ "cmd": name })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::net::Frame;
+    use crate::shell::Air;
+    use slint::Model as _;
+
+    #[test]
+    fn channel_switch_discards_old_frames_and_graphic_rows_update_live() {
+        struct Headless;
+        impl slint::platform::Platform for Headless {
+            fn create_window_adapter(&self) -> Result<std::rc::Rc<dyn slint::platform::WindowAdapter>, slint::PlatformError> {
+                Ok(slint::platform::software_renderer::MinimalSoftwareWindow::new(slint::platform::software_renderer::RepaintBufferType::NewBuffer))
+            }
+        }
+        slint::platform::set_platform(Box::new(Headless)).unwrap();
+        let ui = AppWindow::new().unwrap();
+        start(&ui, &GuiOptions { base_url: "http://127.0.0.1:1".into(), token: None, channel: None, embedded_engine: false }, UiPrefs { persist: false, ..Default::default() });
+        with(|c| {
+            c.model.channel = Some("old".into());
+            c.channel_selected("old");
+            let old_epoch = c.worker.epoch();
+            let old_revision = c.poller.revision();
+            let frame = || Frame { width: 1, height: 1, rgba: vec![255, 0, 0, 255] };
+            c.apply(Msg::Preview(frame()));
+            assert!(c.window().unwrap().global::<App>().get_has_preview());
+            c.model.channel = Some("new".into());
+            c.channel_selected("new");
+            assert!(!c.window().unwrap().global::<App>().get_has_preview());
+            c.apply(Msg::ForChannel("old".into(), old_revision, Box::new(Msg::Preview(frame()))));
+            c.apply(Msg::Scoped(old_epoch, Box::new(Msg::Preview(frame()))));
+            assert!(!c.window().unwrap().global::<App>().get_has_preview());
+            c.apply(Msg::Graphics(serde_json::from_value(json!({"elements":[{"id":"logo","type":"rect","width":20,"height":20,"color":"#ffffff"}]})).unwrap()));
+            let mut status = crate::model::StatusView::default();
+            status.graphics.push(lb_core::graphics::ActiveGraphic { element: "logo".into(), layer: 0, rule: None, priority: 0, shown_ms: 0, hide_in_ms: None });
+            c.apply(Msg::Status(Box::new(status)));
+            assert!(c.window().unwrap().global::<Air>().get_graphics().row_data(0).unwrap().on);
+            c.apply(Msg::Status(Box::default()));
+            assert!(!c.window().unwrap().global::<Air>().get_graphics().row_data(0).unwrap().on);
+        });
+        stop();
+    }
 }

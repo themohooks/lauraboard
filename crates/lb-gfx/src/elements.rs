@@ -67,6 +67,11 @@ impl SpriteFactory {
     pub fn sprite(&mut self, el: &Element, ctx: &FrameContext) -> Option<Sprite> {
         match &el.kind {
             ElementKind::Image { path } => {
+                if crate::web::is_web(path) {
+                    let w = el.placement.width.unwrap_or(640.0).clamp(1.0, 4096.0) as u32;
+                    let h = el.placement.height.unwrap_or(360.0).clamp(1.0, 4096.0) as u32;
+                    return self.images.web(path, w, h).frame().map(Sprite::plain);
+                }
                 let orig = self.images.original(path)?;
                 let (w, h) = fit_size(&el.placement, orig.width() as f32, orig.height() as f32);
                 self.images.scaled(path, w.round().max(1.0) as u32, h.round().max(1.0) as u32).map(Sprite::plain)
@@ -95,7 +100,9 @@ impl SpriteFactory {
                 let h = el.placement.height.unwrap_or(*height).max(1.0);
                 let p = match (target, ctx.program) {
                     (ProgressTarget::Program, Some(clock)) => clock.progress(exclude, ctx.item_remaining_ms),
-                    (_, Some(clock)) => clock.current.map_or(0.0, |(_, d)| if d > 0 { 1.0 - ctx.item_remaining_ms as f32 / d as f32 } else { 0.0 }),
+                    (_, Some(clock)) => {
+                        clock.current.map_or(0.0, |(_, d)| if d > 0 { 1.0 - ctx.item_remaining_ms as f32 / d as f32 } else { 0.0 })
+                    }
                     (_, None) => 0.0,
                 }
                 .clamp(0.0, 1.0);
@@ -106,7 +113,17 @@ impl SpriteFactory {
                 if let Some(s) = self.cache.get(&key) {
                     return Some(s.clone());
                 }
-                let look = ProgressLook { w, h, filled, color, gradient: gradient.as_deref(), track, radius: *radius, direction: *direction, shape };
+                let look = ProgressLook {
+                    w,
+                    h,
+                    filled,
+                    color,
+                    gradient: gradient.as_deref(),
+                    track,
+                    radius: *radius,
+                    direction: *direction,
+                    shape,
+                };
                 let s = render_progress(&look, &mut self.images)?;
                 self.store(key, s)
             }
@@ -122,7 +139,22 @@ impl SpriteFactory {
                 let sprite = Sprite { pixmap: Arc::new(s.pixmap), ox: s.ox, oy: s.oy, w: w.max(1.0), h: h.max(1.0) };
                 self.store(key, sprite)
             }
-            ElementKind::Plate { fields, color, radius, shape, width, min_width, padding_x, padding_y, spacing, align, layout, valign, fit, icon } => {
+            ElementKind::Plate {
+                fields,
+                color,
+                radius,
+                shape,
+                width,
+                min_width,
+                padding_x,
+                padding_y,
+                spacing,
+                align,
+                layout,
+                valign,
+                fit,
+                icon,
+            } => {
                 let texts: Vec<String> = fields.iter().map(|f| render_template(&f.text, ctx.vars)).collect();
                 let key = format!("plate|{}|{}", el.id, texts.join("\u{1f}"));
                 if let Some(s) = self.cache.get(&key) {
@@ -150,7 +182,6 @@ impl SpriteFactory {
             ElementKind::Ticker { .. } | ElementKind::Group { .. } => None,
         }
     }
-
 
     /// Rendered text (cached by element, style size and content).
     pub fn text(&mut self, id: &str, style: &TextStyle, s: &str) -> Option<Arc<Pixmap>> {
@@ -206,7 +237,13 @@ fn render_progress(l: &ProgressLook, images: &mut crate::images::ImageCache) -> 
             FillDirection::BottomToTop => 270.0,
             FillDirection::TopToBottom => 90.0,
         };
-        let fill_shape = ShapeStyle { gradient: l.gradient.map(str::to_string), gradient_angle: angle, corners: l.shape.corners, skew: l.shape.skew, ..Default::default() };
+        let fill_shape = ShapeStyle {
+            gradient: l.gradient.map(str::to_string),
+            gradient_angle: angle,
+            corners: l.shape.corners,
+            skew: l.shape.skew,
+            ..Default::default()
+        };
         let r = (l.radius - inset).max(0.0);
         let fill = render_shape(l.color, fw, fh, r, &fill_shape, images)?;
         let (dx, dy) = match l.direction {
@@ -216,7 +253,14 @@ fn render_progress(l: &ProgressLook, images: &mut crate::images::ImageCache) -> 
         };
         let x = track.ox + inset + dx - fill.ox;
         let y = track.oy + inset + dy - fill.oy;
-        pm.draw_pixmap(x.round() as i32, y.round() as i32, fill.pixmap.as_ref(), &tiny_skia::PixmapPaint::default(), tiny_skia::Transform::identity(), None);
+        pm.draw_pixmap(
+            x.round() as i32,
+            y.round() as i32,
+            fill.pixmap.as_ref(),
+            &tiny_skia::PixmapPaint::default(),
+            tiny_skia::Transform::identity(),
+            None,
+        );
     }
     Some(Sprite { pixmap: Arc::new(pm), ox: track.ox, oy: track.oy, w: l.w, h: l.h })
 }

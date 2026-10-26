@@ -112,6 +112,7 @@ fn schedule(ch: &mut ChannelData) {
 
 fn rule(id: &str, name: &str, trigger: Trigger, action: InsertAction) -> InsertionRule {
     InsertionRule {
+        time_conflict: Default::default(),
         id: id.into(),
         name: name.into(),
         enabled: true,

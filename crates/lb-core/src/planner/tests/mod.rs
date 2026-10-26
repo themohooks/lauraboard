@@ -48,6 +48,7 @@ pub fn fixed(id: &str, h: u32, m: u32, src: BlockSource) -> Block {
 
 pub fn rule(id: &str, trigger: Trigger, action: InsertAction) -> InsertionRule {
     InsertionRule {
+        time_conflict: Default::default(),
         id: id.into(),
         name: id.into(),
         enabled: true,
