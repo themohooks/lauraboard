@@ -1,7 +1,7 @@
-//! Project on disk: `laurabrod.toml` + `channels/<id>/…`.
+//! Project on disk: `lauraboard.toml` + `channels/<id>/…`.
 //!
 //! ```text
-//! <root>/laurabrod.toml
+//! <root>/lauraboard.toml
 //! <root>/channels/<id>/channel.toml
 //!                      library.json
 //!                      playlists/<playlist>.json
@@ -28,7 +28,7 @@ use crate::playlist::Playlist;
 use crate::rules::RuleSet;
 use crate::schedule::ScheduleSet;
 
-pub const APP_FILE: &str = "laurabrod.toml";
+pub const APP_FILE: &str = "lauraboard.toml";
 pub const CHANNELS_DIR: &str = "channels";
 
 /// Everything a channel needs for planning and playout.
@@ -150,7 +150,7 @@ impl Project {
     pub fn load(root: &Path) -> Result<Self> {
         let app_path = root.join(APP_FILE);
         if !app_path.exists() {
-            return Err(CoreError::NotFound(format!("{} (run `laurabrod init`)", app_path.display())));
+            return Err(CoreError::NotFound(format!("{} (run `lauraboard init`)", app_path.display())));
         }
         let app: AppConfig = files::read_toml(&app_path)?;
         let ch_root = root.join(CHANNELS_DIR);

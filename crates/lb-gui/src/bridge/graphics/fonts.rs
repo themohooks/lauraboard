@@ -89,7 +89,10 @@ fn upload(c: &mut Ctx) {
         c.toast("Файл шрифта можно добавить только на компьютере с сервером вещания", true);
         return;
     }
-    let Some(path) = rfd::FileDialog::new().set_title("Файл шрифта").add_filter("Шрифты", &["ttf", "otf", "ttc"]).pick_file() else { return };
+    let Some(path) = rfd::FileDialog::new().set_title("Файл шрифта").add_filter("Шрифты", &["ttf", "otf", "ttc"]).pick_file()
+    else {
+        return;
+    };
     let ch = c.model.ch();
     let body = json!({ "path": path.to_string_lossy() });
     c.worker.spawn(move |api| {
@@ -150,10 +153,11 @@ fn gf_search(c: &mut Ctx) {
                                     if f["cyrillic"].as_bool() == Some(true) {
                                         info.push("кириллица".into());
                                     }
-                                    let styles: Vec<&str> = [(f["bold"].as_bool() == Some(true), "жирный"), (f["italic"].as_bool() == Some(true), "курсив")]
-                                        .into_iter()
-                                        .filter_map(|(on, n)| on.then_some(n))
-                                        .collect();
+                                    let styles: Vec<&str> =
+                                        [(f["bold"].as_bool() == Some(true), "жирный"), (f["italic"].as_bool() == Some(true), "курсив")]
+                                            .into_iter()
+                                            .filter_map(|(on, n)| on.then_some(n))
+                                            .collect();
                                     if !styles.is_empty() {
                                         info.push(styles.join(", "));
                                     }

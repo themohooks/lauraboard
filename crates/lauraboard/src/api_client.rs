@@ -33,7 +33,7 @@ impl Client {
 
     fn handle(&self, res: Result<ureq::http::Response<ureq::Body>, ureq::Error>) -> Result<String> {
         let mut res =
-            res.map_err(|e| bail(Code::Connection, format!("cannot reach the API at {}: {e} (is `laurabrod run` running?)", self.base)))?;
+            res.map_err(|e| bail(Code::Connection, format!("cannot reach the API at {}: {e} (is `lauraboard run` running?)", self.base)))?;
         let status = res.status().as_u16();
         let body = res.body_mut().read_to_string().unwrap_or_default();
         if status >= 400 {

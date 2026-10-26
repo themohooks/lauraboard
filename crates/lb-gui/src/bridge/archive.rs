@@ -102,11 +102,8 @@ fn open_import(c: &mut Ctx) {
 
 fn browse_import(c: &mut Ctx) {
     let Some(ui) = c.window() else { return };
-    let picked = rfd::FileDialog::new()
-        .set_title("Архив канала")
-        .add_filter("Архив ZIP", &["zip"])
-        .set_directory(default_dir())
-        .pick_file();
+    let picked =
+        rfd::FileDialog::new().set_title("Архив канала").add_filter("Архив ZIP", &["zip"]).set_directory(default_dir()).pick_file();
     if let Some(p) = picked {
         ui.global::<Chan>().set_i_path(p.to_string_lossy().replace('\\', "/").into());
         inspect(c);

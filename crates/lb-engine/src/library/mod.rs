@@ -154,8 +154,12 @@ pub async fn probe_item(item: &mut MediaItem, root: &Path, ffprobe: &str) -> Res
 /// Re-probe all library items (detects deleted / damaged files).
 pub async fn reprobe_all(data: &mut ChannelData, root: &Path, ffprobe: &str) -> Vec<String> {
     let mut problems = Vec::new();
-    let ids: Vec<(String, String, bool)> =
-        data.library.items.iter().map(|m| (m.id.clone(), m.path.clone(), m.kind == MediaKind::Image || m.is_url() || m.is_scene())).collect();
+    let ids: Vec<(String, String, bool)> = data
+        .library
+        .items
+        .iter()
+        .map(|m| (m.id.clone(), m.path.clone(), m.kind == MediaKind::Image || m.is_url() || m.is_scene()))
+        .collect();
     for (id, path, skip) in ids {
         if skip {
             continue;

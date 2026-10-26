@@ -20,7 +20,9 @@ impl Runtime {
     pub(super) async fn start_next(&mut self) {
         for _ in 0..50 {
             if let Some((item, offset)) = self.resume.take() {
-                if self.start_item(item, offset).await { return; }
+                if self.start_item(item, offset).await {
+                    return;
+                }
                 continue;
             }
             if let Some(queue) = &mut self.closing {
@@ -67,7 +69,9 @@ impl Runtime {
             }
         }
         tracing::error!(channel = %self.shared.id, "could not start any item");
-        if self.closing.is_some() { self.stop().await; }
+        if self.closing.is_some() {
+            self.stop().await;
+        }
     }
 
     /// Start `item` at `offset_ms`. Returns false when it could not start

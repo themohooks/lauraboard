@@ -149,11 +149,16 @@ fn show(c: &mut Ctx, s: &SystemInfo) {
     let mem = share(s.memory_used, s.memory_total);
     push(&mut c.system.cpu, cpu);
     push(&mut c.system.mem, mem);
-    let card = |label: &str, value: String, detail: String, share: f32| SysCard { label: label.into(), value: value.into(), detail: detail.into(), share };
+    let card = |label: &str, value: String, detail: String, share: f32| SysCard {
+        label: label.into(),
+        value: value.into(),
+        detail: detail.into(),
+        share,
+    };
     let threads = s.cpu_threads.max(1) as f32;
     let ours = s.app.cpu + s.ffmpeg.iter().map(|p| p.cpu).sum::<f32>();
     let mut cards = vec![
-        card("Процессор", format!("{:.0} %", s.cpu_percent), format!("Laurabrod с FFmpeg: {:.0} %", ours / threads), cpu),
+        card("Процессор", format!("{:.0} %", s.cpu_percent), format!("LauraBoard с FFmpeg: {:.0} %", ours / threads), cpu),
         card("Память", format!("{:.0} %", mem * 100.0), format!("{} из {}", bytes(s.memory_used), bytes(s.memory_total)), mem),
     ];
     if s.swap_total > 0 {
@@ -202,7 +207,7 @@ fn show(c: &mut Ctx, s: &SystemInfo) {
         memory: bytes(p.memory_bytes).into(),
         share: (p.cpu / 100.0 / threads).clamp(0.0, 1.0),
     };
-    let mut procs = vec![proc_row(&s.app, format!("Laurabrod (pid {})", s.app.pid))];
+    let mut procs = vec![proc_row(&s.app, format!("LauraBoard (pid {})", s.app.pid))];
     procs.extend(s.ffmpeg.iter().map(|p| proc_row(p, format!("ffmpeg (pid {})", p.pid))));
     g.set_sys_procs(vec_model(procs));
 

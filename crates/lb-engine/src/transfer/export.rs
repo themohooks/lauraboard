@@ -114,7 +114,7 @@ pub fn run(data: ChannelData, root: &Path, out: &Path, parts: Parts, ctl: &JobCt
     let name = data.config.name.clone();
     let (data, media) = prepare(data, root, &parts);
     // documents: let the regular save write them into a scratch folder
-    let scratch = std::env::temp_dir().join(format!("laurabrod-export-{}", uuid::Uuid::new_v4().simple()));
+    let scratch = std::env::temp_dir().join(format!("lauraboard-export-{}", uuid::Uuid::new_v4().simple()));
     let mut docs = data;
     docs.dir = scratch.clone();
     let result = (|| {

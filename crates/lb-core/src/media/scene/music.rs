@@ -138,7 +138,9 @@ const MAX_CUES: usize = 40;
 impl MusicRule {
     /// Tracks of the rule that can play (enabled, with a length).
     pub fn pool<'a>(&self, lib: &'a Library) -> Vec<&'a MediaItem> {
-        let audible = |m: &&MediaItem| m.enabled && m.scene.is_none() && m.play_duration() > 0 && m.kind != MediaKind::Image && m.kind != MediaKind::Stream;
+        let audible = |m: &&MediaItem| {
+            m.enabled && m.scene.is_none() && m.play_duration() > 0 && m.kind != MediaKind::Image && m.kind != MediaKind::Stream
+        };
         let mut v: Vec<&MediaItem> = self.tracks.iter().filter_map(|t| lib.get(t)).filter(audible).collect();
         let folder = self.folder.as_deref().map(super::super::folders::normalize).filter(|f| !f.is_empty());
         let category = self.category.as_deref().map(str::trim).filter(|c| !c.is_empty());
@@ -346,7 +348,11 @@ mod tests {
     fn rules_by_hour_and_folder_pool() {
         let night = MusicRule {
             folder: Some("Музыка".into()),
-            conditions: Conditions { from: chrono::NaiveTime::from_hms_opt(22, 0, 0), to: chrono::NaiveTime::from_hms_opt(6, 0, 0), ..Default::default() },
+            conditions: Conditions {
+                from: chrono::NaiveTime::from_hms_opt(22, 0, 0),
+                to: chrono::NaiveTime::from_hms_opt(6, 0, 0),
+                ..Default::default()
+            },
             ..Default::default()
         };
         let day = MusicRule { tracks: vec!["b".into()], ..Default::default() };

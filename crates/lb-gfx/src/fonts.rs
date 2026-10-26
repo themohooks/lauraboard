@@ -29,7 +29,14 @@ impl FontStore {
     pub fn new(root: &Path) -> Self {
         let mut db = fontdb::Database::new();
         db.load_system_fonts();
-        let mut s = FontStore { db, cache: HashMap::new(), root: root.to_path_buf(), default: None, local: HashSet::new(), last_scan: Instant::now() };
+        let mut s = FontStore {
+            db,
+            cache: HashMap::new(),
+            root: root.to_path_buf(),
+            default: None,
+            local: HashSet::new(),
+            last_scan: Instant::now(),
+        };
         s.scan_local();
         s.default = FALLBACK_FAMILIES.iter().find_map(|f| s.load_family(f)).or_else(|| s.first_any());
         if s.default.is_none() {
@@ -70,7 +77,9 @@ impl FontStore {
                 font = self.load_styled(s, bold, italic);
             }
         }
-        if font.is_none() && let Some(s) = spec {
+        if font.is_none()
+            && let Some(s) = spec
+        {
             tracing::warn!(font = s, "font not found, using default");
         }
         self.cache.insert(key, font.clone());

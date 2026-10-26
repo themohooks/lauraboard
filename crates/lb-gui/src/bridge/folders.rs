@@ -133,7 +133,8 @@ fn delete(c: &mut Ctx) {
             let parent = cur.rsplit_once('/').map(|(a, _)| a.to_string()).unwrap_or_default();
             c.worker.spawn(move |api| {
                 let body = json!({ "op": "delete", "path": cur });
-                let list: Vec<String> = serde_json::from_value(api.post(&format!("/channels/{ch}/media/folders"), &body)?).unwrap_or_default();
+                let list: Vec<String> =
+                    serde_json::from_value(api.post(&format!("/channels/{ch}/media/folders"), &body)?).unwrap_or_default();
                 Ok(Msg::Apply(Box::new(move |c: &mut Ctx| {
                     c.lib.folders = list;
                     if let Some(ui) = c.window() {

@@ -3,7 +3,9 @@
 use serde::{Deserialize, Serialize};
 
 use super::program::{FillDirection, ProgressTarget, TimeFormat};
-use super::shape::{PlateField, PlateIcon, PlateLayout, ShapeStyle, TextAlign, VAlign, plate_color, plate_pad_x, plate_pad_y, plate_spacing};
+use super::shape::{
+    PlateField, PlateIcon, PlateLayout, ShapeStyle, TextAlign, VAlign, plate_color, plate_pad_x, plate_pad_y, plate_spacing,
+};
 use crate::Dur;
 use crate::media::MediaKind;
 

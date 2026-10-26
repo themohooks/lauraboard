@@ -213,7 +213,10 @@ pub fn refresh(c: &mut Ctx) {
     c.grid.sched = c.grid.sched.min(set.schedules.len().saturating_sub(1));
     g.set_has_schedule(has);
     g.set_schedules(vec_model(
-        set.schedules.iter().map(|s| SharedString::from(if s.name.is_empty() { s.id.clone() } else { format!("{} ({})", s.name, s.id) })).collect(),
+        set.schedules
+            .iter()
+            .map(|s| SharedString::from(if s.name.is_empty() { s.id.clone() } else { format!("{} ({})", s.name, s.id) }))
+            .collect(),
     ));
     g.set_schedule_index(if has { c.grid.sched as i32 } else { -1 });
     g.set_playlists(vec_model(c.model.playlists.iter().map(|p| SharedString::from(p.id.clone())).collect()));
@@ -238,7 +241,10 @@ pub fn refresh(c: &mut Ctx) {
     );
     c.grid.tpl = c.grid.tpl.min(s.templates.len().saturating_sub(1));
     g.set_templates(vec_model(
-        s.templates.iter().map(|t| SharedString::from(if t.name.is_empty() { t.id.clone() } else { format!("{} ({})", t.name, t.id) })).collect(),
+        s.templates
+            .iter()
+            .map(|t| SharedString::from(if t.name.is_empty() { t.id.clone() } else { format!("{} ({})", t.name, t.id) }))
+            .collect(),
     ));
     g.set_template_index(if s.templates.is_empty() { -1 } else { c.grid.tpl as i32 });
     let tpl_id = s.templates.get(c.grid.tpl).map(|t| t.id.clone()).unwrap_or_default();
@@ -259,10 +265,14 @@ pub fn refresh(c: &mut Ctx) {
 
 fn source_parts(c: &Ctx, src: &BlockSource) -> (i32, i32, String) {
     match src {
-        BlockSource::Playlist { playlist, .. } => (0, c.model.playlists.iter().position(|p| &p.id == playlist).map(|i| i as i32).unwrap_or(-1), String::new()),
+        BlockSource::Playlist { playlist, .. } => {
+            (0, c.model.playlists.iter().position(|p| &p.id == playlist).map(|i| i as i32).unwrap_or(-1), String::new())
+        }
         BlockSource::Media { items } => (1, -1, items.join(", ")),
         BlockSource::Category { category, .. } => (2, -1, category.clone()),
-        BlockSource::AdBreak { ad_break } => (3, c.model.rules.ad_breaks.iter().position(|b| &b.id == ad_break).map(|i| i as i32).unwrap_or(-1), String::new()),
+        BlockSource::AdBreak { ad_break } => {
+            (3, c.model.rules.ad_breaks.iter().position(|b| &b.id == ad_break).map(|i| i as i32).unwrap_or(-1), String::new())
+        }
     }
 }
 
@@ -297,8 +307,9 @@ fn block_row(c: &Ctx, i: usize, b: &Block) -> BlockRow {
 fn rows(c: &mut Ctx) {
     let Some(ui) = c.window() else { return };
     let set = c.grid.draft.clone().unwrap_or_default();
-    let rows: Vec<BlockRow> =
-        template(&set, c.grid.sched, c.grid.tpl).map(|t| t.blocks.iter().enumerate().map(|(i, b)| block_row(c, i, b)).collect()).unwrap_or_default();
+    let rows: Vec<BlockRow> = template(&set, c.grid.sched, c.grid.tpl)
+        .map(|t| t.blocks.iter().enumerate().map(|(i, b)| block_row(c, i, b)).collect())
+        .unwrap_or_default();
     c.grid.rows = std::rc::Rc::new(VecModel::from(rows));
     ui.global::<Grid>().set_blocks(c.grid.rows.clone().into());
     mark_rows(c);
@@ -685,11 +696,8 @@ pub fn replan(c: &mut Ctx) {
     let g = ui.global::<Grid>();
     let many = g.get_mode() == 1;
     let today = Local::now().date_naive();
-    let (from, hours) = if many {
-        (day_start(today), 24 * DAYS[(g.get_days_count_index().clamp(0, 2)) as usize])
-    } else {
-        (day_start(c.grid.date), 24)
-    };
+    let (from, hours) =
+        if many { (day_start(today), 24 * DAYS[(g.get_days_count_index().clamp(0, 2)) as usize]) } else { (day_start(c.grid.date), 24) };
     g.set_planning(true);
     c.grid.plan_seq += 1;
     let seq = c.grid.plan_seq;
@@ -761,7 +769,13 @@ fn timeline_changed(c: &mut Ctx) {
     g.set_warnings(vec_model(
         p.warnings
             .iter()
-            .map(|w| SharedString::from(format!("{} {}", w.at.map(|t| t.format("%d.%m %H:%M").to_string()).unwrap_or_default(), crate::ru::server(&w.message))))
+            .map(|w| {
+                SharedString::from(format!(
+                    "{} {}",
+                    w.at.map(|t| t.format("%d.%m %H:%M").to_string()).unwrap_or_default(),
+                    crate::ru::server(&w.message)
+                ))
+            })
             .collect(),
     ));
     if g.get_mode() == 1 {
@@ -771,7 +785,11 @@ fn timeline_changed(c: &mut Ctx) {
                 let day = today + chrono::Duration::days(d);
                 let segs = timeline::segments(p, day, Some(now));
                 DayRow {
-                    label: if d == 0 { "Сегодня".into() } else { format!("{} {}", WEEK[day.weekday().num_days_from_monday() as usize].1, day.format("%d")).into() },
+                    label: if d == 0 {
+                        "Сегодня".into()
+                    } else {
+                        format!("{} {}", WEEK[day.weekday().num_days_from_monday() as usize].1, day.format("%d")).into()
+                    },
                     segments: vec_model(segs.iter().map(|s| to_ui(s, 0, false, false)).collect()),
                 }
             })
@@ -789,7 +807,8 @@ fn timeline_changed(c: &mut Ctx) {
     let mut ui_segs: Vec<TimelineSegment> = segs
         .iter()
         .map(|s| {
-            let fixed = s.block_id.as_ref().is_some_and(|id| tpl.is_some_and(|t| t.blocks.iter().any(|b| &b.id == id && b.start.is_some())));
+            let fixed =
+                s.block_id.as_ref().is_some_and(|id| tpl.is_some_and(|t| t.blocks.iter().any(|b| &b.id == id && b.start.is_some())));
             let selected = s.block_id.is_some() && s.block_id == sel_id && !s.gap;
             to_ui(s, 0, selected, fixed && !s.gap)
         })

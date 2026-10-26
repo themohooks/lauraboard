@@ -18,7 +18,9 @@ pub fn connect(g: &Scenes) {
         with(|c| {
             edit(c, |rules| {
                 let n = rules.len() + 1;
-                rules.push(MusicRule { name: if n == 1 { "Музыка".into() } else { format!("Правило {n}") }, ..Default::default() });
+                rules.push(MusicRule {
+                    name: if n == 1 { "Музыка".into() } else { format!("Правило {n}") }, ..Default::default()
+                });
             });
             show(c);
         })
@@ -96,7 +98,12 @@ pub fn show(c: &mut Ctx) {
             let length = r.length(&lib);
             let scene_ms = m.play_duration();
             let length_text = match (length, r.repeat) {
-                (Some(l), _) => format!("Музыка длится {}, сцена — {}{}", hms(l), hms(scene_ms), if l < scene_ms { ": остаток сцены пройдёт в тишине" } else { "" }),
+                (Some(l), _) => format!(
+                    "Музыка длится {}, сцена — {}{}",
+                    hms(l),
+                    hms(scene_ms),
+                    if l < scene_ms { ": остаток сцены пройдёт в тишине" } else { "" }
+                ),
                 (None, 0) => String::new(),
                 (None, _) => "Длина музыки заранее неизвестна (случайный трек или случайное начало)".into(),
             };

@@ -416,7 +416,11 @@ fn read_form(c: &Ctx, base: &InsertionRule) -> InsertionRule {
     let hour_minute = g.get_f_hour_minute().trim().parse::<u32>().ok().filter(|n| *n < 60);
     let hour_second = g.get_f_hour_second().trim().parse::<u32>().ok().filter(|n| *n < 60);
     if g.get_f_trigger() == 10 {
-        g.set_e_times(s(if hour_minute.is_none() || hour_second.is_none() { "Минута и секунда: целые числа от 0 до 59" } else { "" }));
+        g.set_e_times(s(if hour_minute.is_none() || hour_second.is_none() {
+            "Минута и секунда: целые числа от 0 до 59"
+        } else {
+            ""
+        }));
     }
     let (old_minute, old_second) = if let Trigger::Hourly { minute, second } = base.trigger { (minute, second) } else { (59, 0) };
     r.trigger = match g.get_f_trigger() {
@@ -429,10 +433,7 @@ fn read_form(c: &Ctx, base: &InsertionRule) -> InsertionRule {
         6 => Trigger::BeforeCategory { category: tcat },
         7 => Trigger::AfterMedia { items: split(&g.get_f_titems()) },
         8 => Trigger::AfterPlaylist { playlist: playlist.unwrap_or(old_pl) },
-        10 => Trigger::Hourly {
-            minute: hour_minute.unwrap_or(old_minute),
-            second: hour_second.unwrap_or(old_second),
-        },
+        10 => Trigger::Hourly { minute: hour_minute.unwrap_or(old_minute), second: hour_second.unwrap_or(old_second) },
         11 => Trigger::BroadcastStart,
         12 => Trigger::BroadcastEnd,
         _ => Trigger::AtTimes { times: times.unwrap_or(old_times) },

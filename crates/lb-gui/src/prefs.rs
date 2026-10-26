@@ -1,5 +1,5 @@
 //! Interface preferences persisted between runs
-//! (`<config dir>/laurabrod/gui.json`).
+//! (`<config dir>/lauraboard/gui.json`).
 
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -48,7 +48,16 @@ pub struct NotifyPrefs {
 
 impl Default for NotifyPrefs {
     fn default() -> Self {
-        NotifyPrefs { enabled: true, errors: true, skipped: true, outputs: true, disk: true, air: true, programs: false, only_hidden: false }
+        NotifyPrefs {
+            enabled: true,
+            errors: true,
+            skipped: true,
+            outputs: true,
+            disk: true,
+            air: true,
+            programs: false,
+            only_hidden: false,
+        }
     }
 }
 
@@ -99,12 +108,16 @@ impl Default for UiPrefs {
 
 impl UiPrefs {
     pub fn path() -> Option<PathBuf> {
-        Some(dirs::config_dir()?.join("laurabrod").join("gui.json"))
+        Some(dirs::config_dir()?.join("lauraboard").join("gui.json"))
     }
 
     /// Load saved preferences; anything missing or unreadable falls back to defaults.
     pub fn load() -> Self {
-        Self::path().and_then(|p| std::fs::read(p).ok()).and_then(|b| serde_json::from_slice::<UiPrefs>(&b).ok()).unwrap_or_default().sanitized()
+        Self::path()
+            .and_then(|p| std::fs::read(p).ok())
+            .and_then(|b| serde_json::from_slice::<UiPrefs>(&b).ok())
+            .unwrap_or_default()
+            .sanitized()
     }
 
     /// Save atomically (temp file + rename). Errors are ignored: preferences are not critical.

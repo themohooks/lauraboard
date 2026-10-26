@@ -67,8 +67,22 @@ pub fn create(c: &mut Ctx, template: &str) {
             if let Some(bg) = first_in(&lib, "Фоны", |m| m.kind == MediaKind::Image) {
                 scene.background = Background::Media { media: bg.id.clone() };
             }
-            els.extend(centred("time", "Часы сцены", json!({ "type": "clock", "format": "%H:%M:%S" }), Look(220.0, true, "#FFFFFF"), -40.0, k));
-            els.extend(centred("date", "Дата сцены", json!({ "type": "clock", "format": "%d.%m.%Y" }), Look(56.0, false, "#C7D2FE"), 120.0, k));
+            els.extend(centred(
+                "time",
+                "Часы сцены",
+                json!({ "type": "clock", "format": "%H:%M:%S" }),
+                Look(220.0, true, "#FFFFFF"),
+                -40.0,
+                k,
+            ));
+            els.extend(centred(
+                "date",
+                "Дата сцены",
+                json!({ "type": "clock", "format": "%d.%m.%Y" }),
+                Look(56.0, false, "#C7D2FE"),
+                120.0,
+                k,
+            ));
         }
         "music" => {
             scene.background = match first_in(&lib, "Фоны", |m| m.kind != MediaKind::Image && m.probe.video.is_some()) {
@@ -83,13 +97,41 @@ pub fn create(c: &mut Ctx, template: &str) {
                 order: MusicOrder::Shuffle,
                 ..Default::default()
             });
-            els.extend(centred("title", "Подпись сцены", json!({ "type": "text", "text": "{channel}" }), Look(72.0, true, "#FFFFFF"), 0.0, k));
+            els.extend(centred(
+                "title",
+                "Подпись сцены",
+                json!({ "type": "text", "text": "{channel}" }),
+                Look(72.0, true, "#FFFFFF"),
+                0.0,
+                k,
+            ));
         }
         "next" => {
             scene.background = Background::Color { color: "#111827".into() };
-            els.extend(centred("label", "Далее в эфире", json!({ "type": "text", "text": "Далее в эфире" }), Look(48.0, false, "#FBBF24"), -130.0, k));
-            els.extend(centred("program", "Следующая передача", json!({ "type": "text", "text": "{next_program}" }), Look(96.0, true, "#FFFFFF"), 0.0, k));
-            els.extend(centred("time", "Время передачи", json!({ "type": "text", "text": "в {next_program_start}" }), Look(56.0, false, "#E5E7EB"), 120.0, k));
+            els.extend(centred(
+                "label",
+                "Далее в эфире",
+                json!({ "type": "text", "text": "Далее в эфире" }),
+                Look(48.0, false, "#FBBF24"),
+                -130.0,
+                k,
+            ));
+            els.extend(centred(
+                "program",
+                "Следующая передача",
+                json!({ "type": "text", "text": "{next_program}" }),
+                Look(96.0, true, "#FFFFFF"),
+                0.0,
+                k,
+            ));
+            els.extend(centred(
+                "time",
+                "Время передачи",
+                json!({ "type": "text", "text": "в {next_program_start}" }),
+                Look(56.0, false, "#E5E7EB"),
+                120.0,
+                k,
+            ));
         }
         _ => {}
     }

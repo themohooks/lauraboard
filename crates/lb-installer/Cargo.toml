@@ -3,10 +3,10 @@ name = "lb-installer"
 version = "0.1.0"
 edition.workspace = true
 rust-version.workspace = true
-description = "Laurabrod installer / uninstaller (Slint, Material 3)"
+description = "LauraBoard installer / uninstaller (Slint, Material 3)"
 
 [[bin]]
-name = "laurabrod-setup"
+name = "lauraboard-setup"
 path = "src/main.rs"
 
 [dependencies]

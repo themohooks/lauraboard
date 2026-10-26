@@ -105,7 +105,25 @@ pub fn read_shape(g: &Gfx, old: &ShapeStyle, num: &mut Num, color: &mut Col, err
 /// Plate layout fields and its lines; returns the selected line's style
 /// (shown in the text section).
 pub fn show_plate(c: &Ctx, g: &Gfx, kind: &ElementKind) -> Option<TextStyle> {
-    let ElementKind::Plate { fields, color, radius, shape, width, min_width, padding_x, padding_y, spacing, align, layout, valign, fit, icon } = kind else { return None };
+    let ElementKind::Plate {
+        fields,
+        color,
+        radius,
+        shape,
+        width,
+        min_width,
+        padding_x,
+        padding_y,
+        spacing,
+        align,
+        layout,
+        valign,
+        fit,
+        icon,
+    } = kind
+    else {
+        return None;
+    };
     g.set_p_color(s(color.clone()));
     g.set_sw_p_color(color_of(color));
     g.set_p_radius(s(fmt_num(*radius)));
@@ -138,8 +156,30 @@ pub fn show_plate(c: &Ctx, g: &Gfx, kind: &ElementKind) -> Option<TextStyle> {
 }
 
 /// Plate with its layout and the selected line read from the panel.
-pub fn read_plate(c: &Ctx, g: &Gfx, old: ElementKind, style: impl FnOnce(&TextStyle) -> TextStyle, num: &mut Num, color: &mut Col, errors: &mut Vec<String>) -> ElementKind {
-    let ElementKind::Plate { mut fields, color: old_color, radius, shape, width, min_width, padding_x, padding_y, spacing, align: _, icon, .. } = old else {
+pub fn read_plate(
+    c: &Ctx,
+    g: &Gfx,
+    old: ElementKind,
+    style: impl FnOnce(&TextStyle) -> TextStyle,
+    num: &mut Num,
+    color: &mut Col,
+    errors: &mut Vec<String>,
+) -> ElementKind {
+    let ElementKind::Plate {
+        mut fields,
+        color: old_color,
+        radius,
+        shape,
+        width,
+        min_width,
+        padding_x,
+        padding_y,
+        spacing,
+        align: _,
+        icon,
+        ..
+    } = old
+    else {
         return old;
     };
     if let Some(f) = fields.get_mut(c.gfx.field) {
@@ -222,8 +262,11 @@ fn edit_fields(c: &mut Ctx, f: impl FnOnce(&mut Vec<PlateField>, &mut usize)) {
 
 fn add_field(c: &mut Ctx) {
     edit_fields(c, |fields, sel| {
-        let style = fields.last().map(|f| TextStyle { size: (f.style.size * 0.8).round().max(12.0), ..f.style.clone() }).unwrap_or_default();
-        fields.push(PlateField { label: format!("Строка {}", fields.len() + 1), text: String::new(), style, align: None, gap_before: 0.0 });
+        let style =
+            fields.last().map(|f| TextStyle { size: (f.style.size * 0.8).round().max(12.0), ..f.style.clone() }).unwrap_or_default();
+        fields.push(PlateField {
+            label: format!("Строка {}", fields.len() + 1), text: String::new(), style, align: None, gap_before: 0.0
+        });
         *sel = fields.len() - 1;
     });
 }
@@ -251,7 +294,11 @@ fn move_field(c: &mut Ctx, i: usize, d: i32) {
 fn pick_image(c: &mut Ctx) {
     let Some(ui) = c.window() else { return };
     let g = ui.global::<Gfx>();
-    let Some(path) = rfd::FileDialog::new().set_title("Картинка-фон").add_filter("Изображения", &["png", "jpg", "jpeg", "webp"]).pick_file() else { return };
+    let Some(path) =
+        rfd::FileDialog::new().set_title("Картинка-фон").add_filter("Изображения", &["png", "jpg", "jpeg", "webp"]).pick_file()
+    else {
+        return;
+    };
     g.set_sh_image(s(path.to_string_lossy().to_string()));
     super::props_changed(c);
 }

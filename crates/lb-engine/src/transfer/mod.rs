@@ -20,7 +20,7 @@ pub mod import;
 use serde::{Deserialize, Serialize};
 
 /// Archive format marker.
-pub const FORMAT: &str = "laurabrod-channel";
+pub const FORMAT: &str = "lauraboard-channel";
 pub const VERSION: u32 = 1;
 pub const MANIFEST: &str = "manifest.json";
 /// Folder of the channel inside the archive.
@@ -102,10 +102,10 @@ pub fn inspect(path: &std::path::Path) -> Result<Manifest, String> {
 }
 
 fn read_manifest<R: std::io::Read + std::io::Seek>(zip: &mut zip::ZipArchive<R>) -> Result<Manifest, String> {
-    let entry = zip.by_name(MANIFEST).map_err(|_| "not a Laurabrod channel archive (no manifest.json)".to_string())?;
+    let entry = zip.by_name(MANIFEST).map_err(|_| "not a LauraBoard channel archive (no manifest.json)".to_string())?;
     let m: Manifest = serde_json::from_reader(entry).map_err(|e| format!("manifest.json: {e}"))?;
     if m.format != FORMAT {
-        return Err("not a Laurabrod channel archive".into());
+        return Err("not a LauraBoard channel archive".into());
     }
     if m.version > VERSION {
         return Err(format!("archive format {} is newer than this program supports ({VERSION})", m.version));

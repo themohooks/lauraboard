@@ -46,7 +46,8 @@ pub struct PlateStyle {
 impl PlateStyle {
     /// The design of plate `k` (`None`: not a plate).
     pub fn capture(name: &str, k: &ElementKind) -> Option<PlateStyle> {
-        let ElementKind::Plate { fields, color, radius, shape, min_width, padding_x, padding_y, spacing, align, layout, valign, .. } = k else {
+        let ElementKind::Plate { fields, color, radius, shape, min_width, padding_x, padding_y, spacing, align, layout, valign, .. } = k
+        else {
             return None;
         };
         Some(PlateStyle {
@@ -67,7 +68,8 @@ impl PlateStyle {
 
     /// Redesign plate `k`; its lines keep their text. False: not a plate.
     pub fn apply(&self, k: &mut ElementKind) -> bool {
-        let ElementKind::Plate { fields, color, radius, shape, min_width, padding_x, padding_y, spacing, align, layout, valign, .. } = k else {
+        let ElementKind::Plate { fields, color, radius, shape, min_width, padding_x, padding_y, spacing, align, layout, valign, .. } = k
+        else {
             return false;
         };
         *color = self.color.clone();

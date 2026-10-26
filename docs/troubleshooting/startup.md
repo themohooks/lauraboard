@@ -9,7 +9,7 @@
 
 ```powershell
 $env:SLINT_BACKEND = "winit-software"
-laurabrod -p "D:/TV/MyChannel" gui
+lauraboard -p "D:/TV/MyChannel" gui
 Remove-Item Env:SLINT_BACKEND
 ```
 
@@ -23,9 +23,9 @@ Remove-Item Env:SLINT_BACKEND
 **Подтверждённый фрагмент журнала:** `ffmpeg not found`. Параметры команды и путь добавляются программой.
 
 1. Выполните `ffmpeg -version`, затем `ffprobe -version` в среде, из которой запускается движок.
-2. Если команды не найдены, установите компоненты либо задайте полные пути в `[ffmpeg]` файла `laurabrod.toml`.
+2. Если команды не найдены, установите компоненты либо задайте полные пути в `[ffmpeg]` файла `lauraboard.toml`.
 3. Перезапустите процесс после изменения PATH. Служба и интерактивный пользователь могут иметь разные переменные и права.
-4. Повторите `laurabrod -p "D:/TV/MyChannel" validate`, затем тестовый запуск.
+4. Повторите `lauraboard -p "D:/TV/MyChannel" validate`, затем тестовый запуск.
 
 ## Как восстановить связь и доступ
 

@@ -30,9 +30,9 @@ component Feature inherits HorizontalLayout {
 }
 
 export component WelcomePage inherits WizardPage {
-    title: Setup.installed-version == "" ? "Добро пожаловать" : "Обновление Laurabrod";
+    title: Setup.installed-version == "" ? "Добро пожаловать" : "Обновление LauraBoard";
     text: Setup.installed-version == ""
-        ? "Мастер установит Laurabrod — программу круглосуточного вещания интернет-телеканала."
+        ? "Мастер установит LauraBoard — программу круглосуточного вещания интернет-телеканала."
         : "Установлена версия \{Setup.installed-version}. Мастер заменит её версией \{Setup.version}; проекты и настройки сохранятся.";
 
     Card {
@@ -71,7 +71,7 @@ export component WelcomePage inherits WizardPage {
             }
         }
         if !Setup.ffmpeg-found: Label {
-            text: "Laurabrod использует FFmpeg для декодирования и выхода в эфир. Установить можно и позже — например, командой:";
+            text: "LauraBoard использует FFmpeg для декодирования и выхода в эфир. Установить можно и позже — например, командой:";
             type-style: Theme.body-medium;
             color: Theme.color.on-surface-variant;
             wrap: word-wrap;

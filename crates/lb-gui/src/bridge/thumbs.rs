@@ -61,8 +61,8 @@ pub fn request(c: &mut Ctx, id: &str) {
 
 /// A thumbnail arrived from the worker.
 pub fn arrived(c: &mut Ctx, id: String, frame: Option<Frame>) {
-    let img = frame.filter(|f| f.rgba.len() == (f.width * f.height * 4) as usize).map(|f| {
-        Image::from_rgba8(SharedPixelBuffer::<Rgba8Pixel>::clone_from_slice(&f.rgba, f.width, f.height))
-    });
+    let img = frame
+        .filter(|f| f.rgba.len() == (f.width * f.height * 4) as usize)
+        .map(|f| Image::from_rgba8(SharedPixelBuffer::<Rgba8Pixel>::clone_from_slice(&f.rgba, f.width, f.height)));
     c.thumbs.insert(id, img);
 }

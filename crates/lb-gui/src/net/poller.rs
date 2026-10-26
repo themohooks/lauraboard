@@ -151,7 +151,9 @@ impl Poller {
 
     pub fn set_channel(&self, ch: &str) {
         if let Ok(mut g) = self.target.lock() {
-            if g.channel.as_deref() != Some(ch) { g.revision += 1; }
+            if g.channel.as_deref() != Some(ch) {
+                g.revision += 1;
+            }
             g.channel = Some(ch.to_string());
         }
     }

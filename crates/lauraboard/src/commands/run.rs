@@ -16,7 +16,7 @@ pub async fn serve(ctx: &Ctx, api: bool, mut stop: watch::Receiver<bool>) -> Res
     match &version {
         Some(v) => tracing::info!("{v}"),
         None => {
-            tracing::error!("ffmpeg not found ('{}'); install FFmpeg or set [ffmpeg] ffmpeg in laurabrod.toml", engine.app.ffmpeg.ffmpeg)
+            tracing::error!("ffmpeg not found ('{}'); install FFmpeg or set [ffmpeg] ffmpeg in lauraboard.toml", engine.app.ffmpeg.ffmpeg)
         }
     }
     for ch in engine.channels() {
@@ -81,5 +81,6 @@ pub fn gui(ctx: &Ctx, connect: Option<String>) -> Result<()> {
             (base, token)
         }
     };
-    lb_gui::run(lb_gui::GuiOptions { base_url: base, token, channel: ctx.channel.clone(), embedded_engine }).map_err(|e| anyhow::anyhow!("GUI error: {e}"))
+    lb_gui::run(lb_gui::GuiOptions { base_url: base, token, channel: ctx.channel.clone(), embedded_engine })
+        .map_err(|e| anyhow::anyhow!("GUI error: {e}"))
 }

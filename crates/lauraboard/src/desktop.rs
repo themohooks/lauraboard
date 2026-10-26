@@ -1,10 +1,10 @@
 //! Start from a file manager or a shortcut (no terminal): open the GUI.
 //!
 //! Started without arguments outside a terminal (double click on the
-//! executable, Start menu / desktop shortcut), `laurabrod` behaves like
-//! `laurabrod gui` on the remembered project. In a terminal nothing changes.
+//! executable, Start menu / desktop shortcut), `lauraboard` behaves like
+//! `lauraboard gui` on the remembered project. In a terminal nothing changes.
 //!
-//! The remembered project lives in `<config dir>/laurabrod/desktop.json`
+//! The remembered project lives in `<config dir>/lauraboard/desktop.json`
 //! (`{"project": "<dir>"}`); the installer writes the same file.
 
 use std::path::{Path, PathBuf};
@@ -49,7 +49,7 @@ struct DesktopState {
 }
 
 fn state_path() -> Option<PathBuf> {
-    Some(dirs::config_dir()?.join("laurabrod").join("desktop.json"))
+    Some(dirs::config_dir()?.join("lauraboard").join("desktop.json"))
 }
 
 fn load_state() -> DesktopState {
@@ -70,7 +70,7 @@ pub fn remember(project: &Path) {
 }
 
 /// Project for a desktop start: the current directory if it is a project,
-/// else the remembered one, else `<Documents>/Laurabrod`.
+/// else the remembered one, else `<Documents>/LauraBoard`.
 pub fn project() -> PathBuf {
     if Path::new(lb_core::project::APP_FILE).exists() {
         return PathBuf::from(".");
@@ -78,9 +78,9 @@ pub fn project() -> PathBuf {
     load_state().project.unwrap_or_else(default_project)
 }
 
-/// `<Documents>/Laurabrod` (home directory when there is no Documents folder).
+/// `<Documents>/LauraBoard` (home directory when there is no Documents folder).
 pub fn default_project() -> PathBuf {
-    dirs::document_dir().or_else(dirs::home_dir).unwrap_or_else(|| PathBuf::from(".")).join("Laurabrod")
+    dirs::document_dir().or_else(dirs::home_dir).unwrap_or_else(|| PathBuf::from(".")).join("LauraBoard")
 }
 
 /// Show an error where the user can see it: there is no console.
@@ -88,7 +88,7 @@ pub fn show_error(message: &str) {
     tracing::error!("{message}");
     rfd::MessageDialog::new()
         .set_level(rfd::MessageLevel::Error)
-        .set_title("Laurabrod")
+        .set_title("LauraBoard")
         .set_description(message)
         .set_buttons(rfd::MessageButtons::Ok)
         .show();

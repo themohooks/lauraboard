@@ -14,10 +14,10 @@
 //! | background jobs | [`jobs`] |
 //! | channel export / import | [`transfer`] |
 
-pub mod config;
-pub mod control;
 pub mod avatar;
 pub mod backgrounds;
+pub mod config;
+pub mod control;
 pub mod fonts;
 pub mod jobs;
 pub mod library;
@@ -48,7 +48,10 @@ pub fn router(state: AppState) -> Router {
         .route("/export", post(transfer::export))
         .route("/status", get(status::status))
         .route("/avatar.png", get(avatar::get))
-        .route("/avatar", put(avatar::put).delete(avatar::delete).layer(axum::extract::DefaultBodyLimit::max(lb_engine::channel::avatar::MAX_BYTES)))
+        .route(
+            "/avatar",
+            put(avatar::put).delete(avatar::delete).layer(axum::extract::DefaultBodyLimit::max(lb_engine::channel::avatar::MAX_BYTES)),
+        )
         .route("/rundown", get(status::rundown))
         .route("/preview.jpg", get(status::preview))
         .route("/plan", get(status::plan_preview).post(status::plan_draft))

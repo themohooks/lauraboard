@@ -69,7 +69,13 @@ fn icon_pixmap(icon: &PlateIcon, images: &mut ImageCache) -> Option<Pixmap> {
 
 /// Render the plate with field texts already filled in (`texts[i]` is the
 /// text of `fields[i]`).
-pub fn render_plate(look: &PlateLook, fields: &[PlateField], texts: &[String], fonts: &mut FontStore, images: &mut ImageCache) -> Option<PlateSprite> {
+pub fn render_plate(
+    look: &PlateLook,
+    fields: &[PlateField],
+    texts: &[String],
+    fonts: &mut FontStore,
+    images: &mut ImageCache,
+) -> Option<PlateSprite> {
     let icon = look.icon.and_then(|i| icon_pixmap(i, images).map(|pm| (i, pm)));
     let icon_room = icon.as_ref().map_or(0.0, |(i, pm)| pm.width() as f32 + i.gap.max(0.0));
     // the accent bar takes room from the text on its side
@@ -107,10 +113,12 @@ pub fn render_plate(look: &PlateLook, fields: &[PlateField], texts: &[String], f
     let (content_w, content_h) = match look.layout {
         PlateLayout::Column => (
             lines.iter().map(|l| l.pm.width() as f32).fold(0.0, f32::max),
-            lines.iter().enumerate().map(|(i, l)| l.pm.height() as f32 + if i > 0 { l.gap } else { 0.0 }).sum::<f32>() + look.spacing * n.saturating_sub(1) as f32,
+            lines.iter().enumerate().map(|(i, l)| l.pm.height() as f32 + if i > 0 { l.gap } else { 0.0 }).sum::<f32>()
+                + look.spacing * n.saturating_sub(1) as f32,
         ),
         PlateLayout::Row => (
-            lines.iter().enumerate().map(|(i, l)| l.pm.width() as f32 + if i > 0 { l.gap } else { 0.0 }).sum::<f32>() + look.spacing * n.saturating_sub(1) as f32,
+            lines.iter().enumerate().map(|(i, l)| l.pm.width() as f32 + if i > 0 { l.gap } else { 0.0 }).sum::<f32>()
+                + look.spacing * n.saturating_sub(1) as f32,
             lines.iter().map(|l| l.pm.height() as f32).fold(0.0, f32::max),
         ),
     };
@@ -208,7 +216,8 @@ mod tests {
         let one = render_plate(&look(&shape), &fields, &["Иван Петров".into(), "".into()], &mut fonts, &mut images).unwrap();
         let two = render_plate(&look(&shape), &fields, &["Иван Петров".into(), "ведущий".into()], &mut fonts, &mut images).unwrap();
         assert!(two.h > one.h, "second line adds height");
-        let long = render_plate(&look(&shape), &fields, &["Иван Петрович Сидоров-Петров".into(), "".into()], &mut fonts, &mut images).unwrap();
+        let long =
+            render_plate(&look(&shape), &fields, &["Иван Петрович Сидоров-Петров".into(), "".into()], &mut fonts, &mut images).unwrap();
         assert!(long.w > one.w, "width follows the text");
         let mut fixed = look(&shape);
         fixed.width = Some(800.0);

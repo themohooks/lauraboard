@@ -80,7 +80,7 @@ pub fn run(ctx: &Ctx, cmd: ScheduleCmd) -> Result<()> {
             ch.schedules = set;
             let r = lb_core::validate::validate_channel(&ch);
             if r.has_errors() {
-                return Err(bail(Code::Invalid, "imported schedule has errors (run `laurabrod validate` after fixing)"));
+                return Err(bail(Code::Invalid, "imported schedule has errors (run `lauraboard validate` after fixing)"));
             }
             println!("imported {} schedule(s)", ch.schedules.schedules.len());
         }

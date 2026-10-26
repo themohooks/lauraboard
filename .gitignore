@@ -5,3 +5,5 @@
 /examples/demo/channels/*/logs/
 /examples/demo/media/generated/
 *.lock.pid
+
+**/__pycache__/

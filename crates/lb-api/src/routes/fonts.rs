@@ -120,7 +120,12 @@ pub struct GoogleFont {
 
 /// `POST /channels/{id}/fonts/google {"family": "Roboto"}`: download the
 /// family into the channel's font folder; text styles then use it by name.
-pub async fn google_download(State(s): State<AppState>, c: Caller, Path(id): Path<String>, Json(b): Json<GoogleFont>) -> ApiResult<Json<Value>> {
+pub async fn google_download(
+    State(s): State<AppState>,
+    c: Caller,
+    Path(id): Path<String>,
+    Json(b): Json<GoogleFont>,
+) -> ApiResult<Json<Value>> {
     c.require(Role::Operator)?;
     let h = channel(&s, &id)?;
     let dir = h.read(|d| d.dir.join(FONTS_DIR));

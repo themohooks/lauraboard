@@ -87,7 +87,8 @@ pub fn rows(c: &mut Ctx) {
     for &lid in &ids {
         let layer = cfg.layer(lid).cloned().unwrap_or_else(|| Layer::new(lid, ""));
         // top of the layer first, like the canvas draws it
-        let members: Vec<usize> = (0..cfg.elements.len()).rev().filter(|&i| cfg.elements[i].layer == lid && shown(&cfg.elements[i].id)).collect();
+        let members: Vec<usize> =
+            (0..cfg.elements.len()).rev().filter(|&i| cfg.elements[i].layer == lid && shown(&cfg.elements[i].id)).collect();
         if filter != ALL && members.is_empty() {
             continue;
         }
@@ -162,7 +163,15 @@ fn edit_layer(c: &mut Ctx, id: i32, f: impl FnOnce(&mut Layer)) {
 
 /// Give layers `a` and `b` each other's height.
 fn swap_layers(cfg: &mut GraphicsConfig, a: i32, b: i32) {
-    let other = |v: i32| if v == a { b } else if v == b { a } else { v };
+    let other = |v: i32| {
+        if v == a {
+            b
+        } else if v == b {
+            a
+        } else {
+            v
+        }
+    };
     for e in &mut cfg.elements {
         e.layer = other(e.layer);
     }
@@ -251,7 +260,8 @@ pub fn organize_config(cfg: &mut GraphicsConfig, scene_only: &HashSet<String>) {
         }
     }
     let used: HashSet<i32> = cfg.elements.iter().map(|e| e.layer).collect();
-    cfg.layers.retain(|l| used.contains(&l.id) || !l.name.trim().is_empty() && !lb_core::graphics::LAYER_PRESETS.iter().any(|p| p.0 == l.id));
+    cfg.layers
+        .retain(|l| used.contains(&l.id) || !l.name.trim().is_empty() && !lb_core::graphics::LAYER_PRESETS.iter().any(|p| p.0 == l.id));
     cfg.layers.sort_by_key(|l| l.id);
 }
 
@@ -301,7 +311,11 @@ mod tests {
 
     #[test]
     fn swapping_layers_moves_elements_rules_and_entries() {
-        let mut cfg = GraphicsConfig { layers: vec![Layer::new(1, "низ"), Layer::new(2, "верх")], elements: vec![el("a", 1), el("b", 2)], ..Default::default() };
+        let mut cfg = GraphicsConfig {
+            layers: vec![Layer::new(1, "низ"), Layer::new(2, "верх")],
+            elements: vec![el("a", 1), el("b", 2)],
+            ..Default::default()
+        };
         cfg.rules.push(rule("r", "a", &[]));
         swap_layers(&mut cfg, 1, 2);
         assert_eq!((cfg.elements[0].layer, cfg.elements[1].layer), (2, 1));
@@ -328,7 +342,12 @@ mod tests {
         let scenes: HashSet<String> = ["clock".to_string()].into();
         let cfg = GraphicsConfig {
             elements: vec![el("big-clock", 1), el("logo", 1), el("mixed", 1)],
-            rules: vec![rule("1", "big-clock", &["clock"]), rule("2", "logo", &[]), rule("3", "mixed", &["clock"]), rule("4", "mixed", &["film"])],
+            rules: vec![
+                rule("1", "big-clock", &["clock"]),
+                rule("2", "logo", &[]),
+                rule("3", "mixed", &["clock"]),
+                rule("4", "mixed", &["film"]),
+            ],
             ..Default::default()
         };
         let s = scene_elements(&cfg, &scenes);

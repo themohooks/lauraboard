@@ -13,11 +13,11 @@ export component DonePage inherits WizardPage {
     property <bool> removing: Setup.mode == SetupMode.uninstall;
 
     title: !Setup.success ? (removing ? "Не удалось удалить" : "Не удалось установить")
-        : removing ? "Laurabrod удалён"
-        : Setup.installed-version != "" ? "Laurabrod обновлён" : "Laurabrod установлен";
+        : removing ? "LauraBoard удалён"
+        : Setup.installed-version != "" ? "LauraBoard обновлён" : "LauraBoard установлен";
     text: !Setup.success ? Setup.error
         : removing ? "Проекты каналов и медиафайлы остались на месте."
-        : "Программа открывается с ярлыка или командой laurabrod gui.";
+        : "Программа открывается с ярлыка или командой lauraboard gui.";
 
     HorizontalLayout {
         alignment: start;
@@ -61,7 +61,7 @@ export component DonePage inherits WizardPage {
         inset: Theme.sp2;
         OptionRow {
             icon: Icons.play-arrow;
-            title: "Запустить Laurabrod";
+            title: "Запустить LauraBoard";
             checked <=> Setup.launch;
         }
     }

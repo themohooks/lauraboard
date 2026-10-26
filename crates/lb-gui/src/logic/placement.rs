@@ -89,7 +89,9 @@ pub fn rect_in(e: &Element, region: Rect) -> Rect {
         (ElementKind::Group { .. }, w, h) => (w.unwrap_or(nw), h.unwrap_or(nh)),
         (ElementKind::Ticker { .. }, _, _) => (nw, nh),
         // shapes take a set size as it is (no aspect ratio to keep)
-        (ElementKind::Rect { .. } | ElementKind::Plate { .. } | ElementKind::Progress { .. }, w, h) => (w.unwrap_or(nw), h.unwrap_or(nh).max(if matches!(e.kind, ElementKind::Plate { .. }) { nh } else { 0.0 })),
+        (ElementKind::Rect { .. } | ElementKind::Plate { .. } | ElementKind::Progress { .. }, w, h) => {
+            (w.unwrap_or(nw), h.unwrap_or(nh).max(if matches!(e.kind, ElementKind::Plate { .. }) { nh } else { 0.0 }))
+        }
         (_, Some(w), Some(h)) => (w, h),
         (_, Some(w), None) if nw > 0.0 => (w, nh * w / nw),
         (_, None, Some(h)) if nh > 0.0 => (nw * h / nh, h),

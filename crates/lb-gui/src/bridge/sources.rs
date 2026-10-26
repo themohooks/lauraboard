@@ -88,7 +88,10 @@ fn output_remove(c: &mut Ctx, i: usize) {
     let running = c.model.status.output.running;
     c.ask(
         "Удалить точку вещания?",
-        &format!("«{name}» будет удалена из настроек канала.{}", if running { " Кодировщик перезапустится — короткий обрыв эфира." } else { "" }),
+        &format!(
+            "«{name}» будет удалена из настроек канала.{}",
+            if running { " Кодировщик перезапустится — короткий обрыв эфира." } else { "" }
+        ),
         "Удалить",
         move |c| {
             change_outputs(c, "Точка вещания удалена", move |o| {
@@ -133,22 +136,30 @@ fn stream_edit(c: &mut Ctx, i: Option<usize>) {
 fn stream_remove(c: &mut Ctx, i: usize) {
     let Some(m) = stream(c, i) else { return };
     let title = if m.title.is_empty() { m.id.clone() } else { m.title.clone() };
-    c.ask("Удалить поток?", &format!("«{title}» будет удалён из медиатеки."), "Удалить", move |c| {
-        let ch = c.model.ch();
-        c.change(move |api| {
-            api.delete(&format!("/channels/{ch}/media/{}", m.id))?;
-            Ok("Поток удалён".into())
-        });
-    });
+    c.ask(
+        "Удалить поток?",
+        &format!("«{title}» будет удалён из медиатеки."),
+        "Удалить",
+        move |c| {
+            let ch = c.model.ch();
+            c.change(move |api| {
+                api.delete(&format!("/channels/{ch}/media/{}", m.id))?;
+                Ok("Поток удалён".into())
+            });
+        },
+    );
 }
 
 fn stream_air(c: &mut Ctx, i: usize, how: &str) {
     let Some(m) = stream(c, i) else { return };
     let title = if m.title.is_empty() { m.id.clone() } else { m.title.clone() };
     if how == "now" {
-        c.ask("Показать поток сейчас?", &format!("Текущий элемент будет прерван, в эфир пойдёт «{title}»."), "В эфир", move |c| {
-            c.command(json!({ "cmd": "play_now", "media": m.id }))
-        });
+        c.ask(
+            "Показать поток сейчас?",
+            &format!("Текущий элемент будет прерван, в эфир пойдёт «{title}»."),
+            "В эфир",
+            move |c| c.command(json!({ "cmd": "play_now", "media": m.id })),
+        );
     } else {
         c.command(json!({ "cmd": "queue", "media": m.id }));
     }
@@ -156,12 +167,8 @@ fn stream_air(c: &mut Ctx, i: usize, how: &str) {
 
 /// New media id from a title (latin letters, digits, '-').
 fn stream_id(c: &Ctx, title: &str) -> String {
-    let slug: Vec<String> = title
-        .to_lowercase()
-        .split(|ch: char| !ch.is_ascii_alphanumeric())
-        .filter(|x| !x.is_empty())
-        .map(str::to_string)
-        .collect();
+    let slug: Vec<String> =
+        title.to_lowercase().split(|ch: char| !ch.is_ascii_alphanumeric()).filter(|x| !x.is_empty()).map(str::to_string).collect();
     let base = if slug.is_empty() { "stream".to_string() } else { format!("stream-{}", slug.join("-")) };
     let mut id = base.clone();
     let mut n = 2;
@@ -316,11 +323,18 @@ pub fn refresh(c: &mut Ctx) {
                 "Режим битрейта",
                 match e.rate_control {
                     lb_core::config::RateControl::Cbr => format!("постоянный {}", e.video_bitrate),
-                    lb_core::config::RateControl::Vbr => format!("переменный {}, до {}", e.video_bitrate, e.maxrate.as_deref().unwrap_or("1,5×")),
-                    lb_core::config::RateControl::Quality => format!("качество CRF {}{}", e.crf, e.maxrate.as_deref().map(|m| format!(", до {m}")).unwrap_or_default()),
+                    lb_core::config::RateControl::Vbr => {
+                        format!("переменный {}, до {}", e.video_bitrate, e.maxrate.as_deref().unwrap_or("1,5×"))
+                    }
+                    lb_core::config::RateControl::Quality => {
+                        format!("качество CRF {}{}", e.crf, e.maxrate.as_deref().map(|m| format!(", до {m}")).unwrap_or_default())
+                    }
                 },
             ),
-            fact("Ключевые кадры", format!("каждые {} с{}", e.gop_seconds, e.bframes.map(|b| format!(" · B-кадров: {b}")).unwrap_or_default())),
+            fact(
+                "Ключевые кадры",
+                format!("каждые {} с{}", e.gop_seconds, e.bframes.map(|b| format!(" · B-кадров: {b}")).unwrap_or_default()),
+            ),
         ]));
         g.set_outputs(vec_model(
             cfg.outputs
@@ -335,8 +349,7 @@ pub fn refresh(c: &mut Ctx) {
                 })
                 .collect(),
         ));
-        let mut rec: Vec<Fact> =
-            super::record::facts(&cfg, st.output.recording.as_ref()).into_iter().map(|(l, v)| fact(&l, v)).collect();
+        let mut rec: Vec<Fact> = super::record::facts(&cfg, st.output.recording.as_ref()).into_iter().map(|(l, v)| fact(&l, v)).collect();
         let fb = &cfg.fallback;
         rec.push(fact("Резервная картинка", fb.image.clone().unwrap_or_else(|| "—".into())));
         rec.push(fact("Резервный ролик", fb.media.clone().unwrap_or_else(|| "—".into())));

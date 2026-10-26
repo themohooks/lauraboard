@@ -1,6 +1,6 @@
 // Statistics → "Система": load of the computer the server runs on (CPU
 // with per-core bars and history, memory, network, uptime), disks,
-// Laurabrod and FFmpeg processes, host details. Refreshed every 2 s.
+// LauraBoard and FFmpeg processes, host details. Refreshed every 2 s.
 
 import { ScrollView } from "std-widgets.slint";
 import { Theme } from "../../theme/tokens.slint";
@@ -178,7 +178,7 @@ export component SystemPanel inherits ScrollView {
                 horizontal-stretch: 1;
                 card-style: CardStyle.low;
                 CardHeader {
-                    title: "Процессы Laurabrod";
+                    title: "Процессы LauraBoard";
                     subtitle: "Программа и её FFmpeg (кодировщик, декодеры)";
                 }
                 for p in Stats.sys-procs: HorizontalLayout {

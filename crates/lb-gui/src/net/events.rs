@@ -4,8 +4,8 @@ use std::time::Duration;
 
 use serde_json::Value;
 
-use super::{Msg, Wake};
 use super::api::Api;
+use super::{Msg, Wake};
 
 pub fn start(api: &Api, tx: std::sync::mpsc::Sender<Msg>, wake: Wake) {
     let url = api.ws_url("/events");

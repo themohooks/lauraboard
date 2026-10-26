@@ -11,7 +11,7 @@ use lb_core::media::is_url;
 use lb_core::project::paths;
 use lb_core::project::rebase::channel_prefix;
 
-use super::{ImportOptions, IMAGE_EXT, expand_inputs, ext, new_item, probe_item};
+use super::{IMAGE_EXT, ImportOptions, expand_inputs, ext, new_item, probe_item};
 use crate::channel::ChannelHandle;
 use crate::jobs::{JobCtl, copy_with_progress};
 
@@ -42,7 +42,13 @@ fn storage_name(src: &Path) -> String {
 /// Job body: copy files (URLs are added as they are) into the channel's
 /// storage, probe each copy and add it to the library one by one, so a
 /// cancelled import keeps what was finished.
-pub async fn import_copies(h: ChannelHandle, ffprobe: String, inputs: Vec<String>, opt: ImportOptions, ctl: JobCtl) -> Result<Value, String> {
+pub async fn import_copies(
+    h: ChannelHandle,
+    ffprobe: String,
+    inputs: Vec<String>,
+    opt: ImportOptions,
+    ctl: JobCtl,
+) -> Result<Value, String> {
     let root = h.shared.root.clone();
     let channel = h.id().to_string();
     let dir = h.read(|d| d.dir.join(MEDIA_DIR));

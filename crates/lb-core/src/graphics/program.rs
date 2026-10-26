@@ -73,7 +73,8 @@ pub enum FillDirection {
 }
 
 impl FillDirection {
-    pub const ALL: [FillDirection; 4] = [FillDirection::LeftToRight, FillDirection::RightToLeft, FillDirection::BottomToTop, FillDirection::TopToBottom];
+    pub const ALL: [FillDirection; 4] =
+        [FillDirection::LeftToRight, FillDirection::RightToLeft, FillDirection::BottomToTop, FillDirection::TopToBottom];
 }
 
 /// How a countdown shows the time.

@@ -1,4 +1,4 @@
-//! `laurabrod` — command line entry point.
+//! `lauraboard` — command line entry point.
 //!
 //! Exit codes: 0 ok, 1 error, 2 invalid configuration, 3 not found,
 //! 4 API unreachable / unauthorised, 5 already running, 6 cancelled.
@@ -46,8 +46,8 @@ fn main() {
 fn parse() -> (Cli, bool) {
     let outside = desktop::outside_terminal();
     if outside && std::env::args_os().len() == 1 {
-        let mut cli = Cli::parse_from(["laurabrod", "gui"]);
-        // `LAURABROD_PROJECT` still wins; otherwise the remembered project
+        let mut cli = Cli::parse_from(["lauraboard", "gui"]);
+        // `LAURABOARD_PROJECT` still wins; otherwise the remembered project
         if cli.project == std::path::Path::new(".") {
             cli.project = desktop::project();
         }

@@ -1,6 +1,6 @@
 //! Pre-flight validation of a channel: configuration sanity, cross
 //! references and media availability. Run before broadcasting starts and by
-//! `laurabrod validate`.
+//! `lauraboard validate`.
 //!
 //! * [`settings`] — channel.toml checks
 //! * [`refs`] — playlist / schedule / rule / graphics references

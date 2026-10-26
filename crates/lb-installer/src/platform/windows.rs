@@ -11,14 +11,14 @@ use winreg::enums::{HKEY_CURRENT_USER, KEY_READ, KEY_WRITE, RegType};
 use super::{APP_COMMENT, APP_NAME, PathChange, Registration};
 
 const CREATE_NO_WINDOW: u32 = 0x0800_0000;
-const UNINSTALL_KEY: &str = r"Software\Microsoft\Windows\CurrentVersion\Uninstall\Laurabrod";
+const UNINSTALL_KEY: &str = r"Software\Microsoft\Windows\CurrentVersion\Uninstall\LauraBoard";
 
 /// Child console programs run without a console window.
 pub fn no_window(cmd: &mut Command) {
     cmd.creation_flags(CREATE_NO_WINDOW);
 }
 
-/// Start menu entry (`…\Start Menu\Programs\Laurabrod.lnk`).
+/// Start menu entry (`…\Start Menu\Programs\LauraBoard.lnk`).
 pub fn menu_shortcut(binary: &Path, _icon: &Path) -> Result<Vec<PathBuf>, String> {
     let dir = dirs::data_dir().ok_or("нет каталога AppData")?.join(r"Microsoft\Windows\Start Menu\Programs");
     Ok(vec![shortcut(binary, &dir)?])
@@ -102,7 +102,7 @@ pub fn register(r: &Registration) -> Result<bool, String> {
     let set = |name: &str, value: &str| key.set_value(name, &value).map_err(|e| format!("реестр {name}: {e}"));
     set("DisplayName", APP_NAME)?;
     set("DisplayVersion", r.version)?;
-    set("Publisher", "Laurabrod contributors")?;
+    set("Publisher", "LauraBoard contributors")?;
     set("Comments", APP_COMMENT)?;
     set("InstallLocation", &r.dir.display().to_string())?;
     set("DisplayIcon", &r.binary.display().to_string())?;

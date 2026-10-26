@@ -2,7 +2,7 @@
 //! sits in the tray) asks the running GUI to show itself and exits.
 //!
 //! The running GUI listens on a loopback port written to
-//! `<config dir>/laurabrod/gui.port`; the request names the API it would
+//! `<config dir>/lauraboard/gui.port`; the request names the API it would
 //! connect to, so a GUI for another server or project still opens.
 
 use std::io::{BufRead, BufReader, Write};
@@ -11,7 +11,7 @@ use std::path::PathBuf;
 use std::time::Duration;
 
 fn port_file() -> Option<PathBuf> {
-    Some(dirs::config_dir()?.join("laurabrod").join("gui.port"))
+    Some(dirs::config_dir()?.join("lauraboard").join("gui.port"))
 }
 
 /// Ask a running GUI for `base_url` to show its window. `true`: it did.
@@ -62,4 +62,3 @@ pub fn release(port: Option<u16>) {
         let _ = std::fs::remove_file(f);
     }
 }
-

@@ -5,8 +5,8 @@
 //! need; [`Shape::ox`] / [`Shape::oy`] give where the shape box starts.
 
 use tiny_skia::{
-    Color, FillRule, GradientStop, LinearGradient, Mask, Paint, Path, PathBuilder, Pixmap, PixmapPaint, Point, Rect, Shader,
-    SpreadMode, Stroke, Transform,
+    Color, FillRule, GradientStop, LinearGradient, Mask, Paint, Path, PathBuilder, Pixmap, PixmapPaint, Point, Rect, Shader, SpreadMode,
+    Stroke, Transform,
 };
 
 use lb_core::graphics::{ShapeStyle, Side};
@@ -226,7 +226,13 @@ mod tests {
     #[test]
     fn shadow_and_slant_grow_the_pixmap() {
         let mut images = ImageCache::new(std::path::Path::new("."));
-        let shape = ShapeStyle { skew: 20.0, shadow_color: Some("#000000".into()), shadow_blur: 8.0, shadow_offset: (4.0, 4.0), ..Default::default() };
+        let shape = ShapeStyle {
+            skew: 20.0,
+            shadow_color: Some("#000000".into()),
+            shadow_blur: 8.0,
+            shadow_offset: (4.0, 4.0),
+            ..Default::default()
+        };
         let s = render_shape("#FFFFFF", 100.0, 40.0, 0.0, &shape, &mut images).unwrap();
         assert!(s.pixmap.width() > 100 && s.pixmap.height() > 40);
         assert!(s.ox > 0.0 && s.oy > 0.0);

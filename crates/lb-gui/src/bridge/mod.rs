@@ -661,12 +661,18 @@ mod tests {
         struct Headless;
         impl slint::platform::Platform for Headless {
             fn create_window_adapter(&self) -> Result<std::rc::Rc<dyn slint::platform::WindowAdapter>, slint::PlatformError> {
-                Ok(slint::platform::software_renderer::MinimalSoftwareWindow::new(slint::platform::software_renderer::RepaintBufferType::NewBuffer))
+                Ok(slint::platform::software_renderer::MinimalSoftwareWindow::new(
+                    slint::platform::software_renderer::RepaintBufferType::NewBuffer,
+                ))
             }
         }
         slint::platform::set_platform(Box::new(Headless)).unwrap();
         let ui = AppWindow::new().unwrap();
-        start(&ui, &GuiOptions { base_url: "http://127.0.0.1:1".into(), token: None, channel: None, embedded_engine: false }, UiPrefs { persist: false, ..Default::default() });
+        start(
+            &ui,
+            &GuiOptions { base_url: "http://127.0.0.1:1".into(), token: None, channel: None, embedded_engine: false },
+            UiPrefs { persist: false, ..Default::default() },
+        );
         with(|c| {
             c.model.channel = Some("old".into());
             c.channel_selected("old");
@@ -681,9 +687,18 @@ mod tests {
             c.apply(Msg::ForChannel("old".into(), old_revision, Box::new(Msg::Preview(frame()))));
             c.apply(Msg::Scoped(old_epoch, Box::new(Msg::Preview(frame()))));
             assert!(!c.window().unwrap().global::<App>().get_has_preview());
-            c.apply(Msg::Graphics(serde_json::from_value(json!({"elements":[{"id":"logo","type":"rect","width":20,"height":20,"color":"#ffffff"}]})).unwrap()));
+            c.apply(Msg::Graphics(
+                serde_json::from_value(json!({"elements":[{"id":"logo","type":"rect","width":20,"height":20,"color":"#ffffff"}]})).unwrap(),
+            ));
             let mut status = crate::model::StatusView::default();
-            status.graphics.push(lb_core::graphics::ActiveGraphic { element: "logo".into(), layer: 0, rule: None, priority: 0, shown_ms: 0, hide_in_ms: None });
+            status.graphics.push(lb_core::graphics::ActiveGraphic {
+                element: "logo".into(),
+                layer: 0,
+                rule: None,
+                priority: 0,
+                shown_ms: 0,
+                hide_in_ms: None,
+            });
             c.apply(Msg::Status(Box::new(status)));
             assert!(c.window().unwrap().global::<Air>().get_graphics().row_data(0).unwrap().on);
             c.apply(Msg::Status(Box::default()));

@@ -39,7 +39,8 @@ pub fn recorder_args(j: &RecordJob) -> Vec<String> {
     }
     audio_args(rec, &mut a);
     let seg = rec.segment_secs(j.bitrate);
-    let pattern = format!("{}/{}-%Y%m%d-%H%M%S.{}", j.dir.trim_end_matches(['/', '\\']), rec.file_prefix(j.channel), rec.format.extension());
+    let pattern =
+        format!("{}/{}-%Y%m%d-%H%M%S.{}", j.dir.trim_end_matches(['/', '\\']), rec.file_prefix(j.channel), rec.format.extension());
     a.extend(sv(&["-f", "segment", "-segment_time", &seg.to_string(), "-segment_format", muxer(rec.format)]));
     if let Some(o) = muxer_options(rec.format) {
         a.extend(sv(&["-segment_format_options", o]));
@@ -151,7 +152,14 @@ mod tests {
     use lb_core::Dur;
 
     fn job(rec: &RecordConfig) -> Vec<String> {
-        recorder_args(&RecordJob { rec, dir: "D:\\tv\\rec\\", channel: "main", port: 41000, bitrate: Some(4_000_000.0), loglevel: "warning" })
+        recorder_args(&RecordJob {
+            rec,
+            dir: "D:\\tv\\rec\\",
+            channel: "main",
+            port: 41000,
+            bitrate: Some(4_000_000.0),
+            loglevel: "warning",
+        })
     }
 
     fn has(a: &[String], pair: &[&str]) -> bool {

@@ -118,7 +118,11 @@ pub fn refresh(c: &mut Ctx) {
         .log
         .shown
         .iter()
-        .map(|l| LogRow { at: SharedString::from(l.at.as_str()), level: SharedString::from(l.level.as_str()), text: SharedString::from(l.text.as_str()) })
+        .map(|l| LogRow {
+            at: SharedString::from(l.at.as_str()),
+            level: SharedString::from(l.level.as_str()),
+            text: SharedString::from(l.text.as_str()),
+        })
         .collect();
     g.set_rows(vec_model(rows));
     g.set_total(total as i32);

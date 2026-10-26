@@ -24,7 +24,7 @@ pub fn run(ctx: &Ctx, cmd: ServiceCmd) -> Result<()> {
 #[cfg_attr(windows, allow(dead_code))]
 pub fn systemd_unit(exe: &std::path::Path, root: &std::path::Path) -> String {
     format!(
-        "[Unit]\nDescription=Laurabrod TV playout\nAfter=network-online.target\nWants=network-online.target\n\n\
+        "[Unit]\nDescription=LauraBoard TV playout\nAfter=network-online.target\nWants=network-online.target\n\n\
          [Service]\nType=simple\nExecStart={} --project {} run\nWorkingDirectory={}\nRestart=always\nRestartSec=3\nKillSignal=SIGINT\nTimeoutStopSec=20\n\n\
          [Install]\nWantedBy=multi-user.target\n",
         exe.display(),
@@ -73,7 +73,7 @@ mod platform {
     }
 
     pub fn service_main(_name: &str, ctx: &Ctx) -> Result<()> {
-        // systemd runs `laurabrod run` directly; keep this for symmetry
+        // systemd runs `lauraboard run` directly; keep this for symmetry
         super::super::run::run(ctx, true)
     }
 }
@@ -104,7 +104,7 @@ mod platform {
 
     pub fn install(name: &str, exe: &Path, root: &Path) -> Result<()> {
         let bin = format!("\"{}\" --project \"{}\" service run --name {name}", exe.display(), root.display());
-        sc(&["create", name, "binPath=", &bin, "start=", "auto", "DisplayName=", "Laurabrod TV playout"])?;
+        sc(&["create", name, "binPath=", &bin, "start=", "auto", "DisplayName=", "LauraBoard TV playout"])?;
         let _ = sc(&["failure", name, "reset=", "86400", "actions=", "restart/5000/restart/5000/restart/30000"]);
         sc(&["start", name])?;
         println!("service '{name}' installed and started (requires an elevated prompt)");
@@ -166,8 +166,8 @@ mod platform {
 mod tests {
     #[test]
     fn unit_contains_run_command() {
-        let u = super::systemd_unit(std::path::Path::new("/usr/bin/laurabrod"), std::path::Path::new("/srv/tv"));
-        assert!(u.contains("ExecStart=/usr/bin/laurabrod --project /srv/tv run"));
+        let u = super::systemd_unit(std::path::Path::new("/usr/bin/lauraboard"), std::path::Path::new("/srv/tv"));
+        assert!(u.contains("ExecStart=/usr/bin/lauraboard --project /srv/tv run"));
         assert!(u.contains("Restart=always"));
     }
 }

@@ -79,11 +79,7 @@ fn source_filters(d: &MediaDisplay) -> Vec<String> {
     let c = d.crop.clamped();
     if !c.is_empty() {
         let (l, t, r, b) = (c.left / 100.0, c.top / 100.0, c.right / 100.0, c.bottom / 100.0);
-        f.push(format!(
-            "crop=trunc(iw*{:.4}/2)*2:trunc(ih*{:.4}/2)*2:trunc(iw*{l:.4}):trunc(ih*{t:.4})",
-            1.0 - l - r,
-            1.0 - t - b
-        ));
+        f.push(format!("crop=trunc(iw*{:.4}/2)*2:trunc(ih*{:.4}/2)*2:trunc(iw*{l:.4}):trunc(ih*{t:.4})", 1.0 - l - r, 1.0 - t - b));
     }
     match d.rotate {
         Rotate::None => {}

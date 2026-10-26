@@ -65,7 +65,11 @@ pub fn show(c: &mut Ctx) {
             .map(|(i, r)| SceneGfxRow {
                 index: i as i32,
                 name: if r.name.is_empty() { r.id.clone() } else { r.name.clone() }.into(),
-                element: cfg.element(&r.element).map(|e| if e.name.is_empty() { e.id.clone() } else { e.name.clone() }).unwrap_or_else(|| r.element.clone()).into(),
+                element: cfg
+                    .element(&r.element)
+                    .map(|e| if e.name.is_empty() { e.id.clone() } else { e.name.clone() })
+                    .unwrap_or_else(|| r.element.clone())
+                    .into(),
                 enabled: r.enabled,
             })
             .collect(),
@@ -75,7 +79,13 @@ pub fn show(c: &mut Ctx) {
     let scene = c.scenes.draft.as_ref().and_then(|m| m.scene.as_ref());
     g.set_gfx_channel(scene.is_none_or(|s| s.channel_graphics));
     // the saved graphics (edited elsewhere, not part of the form)
-    let own = c.scenes.selected.as_ref().and_then(|id| c.model.library.iter().find(|m| &m.id == id)).and_then(|m| m.scene.as_ref()).map(|s| &s.graphics);
+    let own = c
+        .scenes
+        .selected
+        .as_ref()
+        .and_then(|id| c.model.library.iter().find(|m| &m.id == id))
+        .and_then(|m| m.scene.as_ref())
+        .map(|s| &s.graphics);
     g.set_gfx_summary(summary(own).into());
 }
 

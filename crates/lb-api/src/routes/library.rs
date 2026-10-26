@@ -57,9 +57,8 @@ pub async fn remove(State(s): State<AppState>, c: Caller, Path((id, media)): Pat
     }
     let m = media.clone();
     let h = channel(&s, &id)?;
-    let removed = h
-        .modify(move |d| d.library.remove(&m).ok_or_else(|| lb_core::CoreError::NotFound(format!("media '{m}'")).into()))
-        .await?;
+    let removed =
+        h.modify(move |d| d.library.remove(&m).ok_or_else(|| lb_core::CoreError::NotFound(format!("media '{m}'")).into())).await?;
     // a copy in the channel's storage belongs to the item
     storage::remove_own_file(&h.shared.root, &id, &removed.path);
     Ok(Json(serde_json::json!({ "ok": true, "removed": media })))
@@ -100,7 +99,11 @@ pub async fn import(
     if b.copy {
         let ffprobe = s.engine.app.ffmpeg.ffprobe.clone();
         let n = b.paths.len();
-        let title = if n == 1 { "Копирование файла в медиатеку".to_string() } else { format!("Копирование файлов в медиатеку ({n})") };
+        let title = if n == 1 {
+            "Копирование файла в медиатеку".to_string()
+        } else {
+            format!("Копирование файлов в медиатеку ({n})")
+        };
         let job = s.engine.jobs.spawn("import_media", &title, Some(&id), move |ctl| storage::import_copies(h, ffprobe, b.paths, opt, ctl));
         return Ok(Json(serde_json::json!({ "job": job })));
     }

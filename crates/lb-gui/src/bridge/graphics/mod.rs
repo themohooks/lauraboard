@@ -1380,7 +1380,7 @@ fn var_add(c: &mut Ctx) {
 // ------------------------------------------------------------ templates
 
 fn templates_dir() -> Option<PathBuf> {
-    Some(dirs::config_dir()?.join("laurabrod").join("gfx-templates"))
+    Some(dirs::config_dir()?.join("lauraboard").join("gfx-templates"))
 }
 
 fn templates_list(c: &mut Ctx) {

@@ -1,5 +1,5 @@
 //! Host metrics for the statistics screen: CPU, memory, disks, network,
-//! uptime, and the program's own processes (Laurabrod and its FFmpeg
+//! uptime, and the program's own processes (LauraBoard and its FFmpeg
 //! children). Rates (CPU %, disk and network throughput) are measured
 //! between two snapshots, so the monitor is kept and asked repeatedly.
 
@@ -62,9 +62,9 @@ pub struct SystemInfo {
     /// All network interfaces together (bytes/s).
     pub net_rx_per_s: u64,
     pub net_tx_per_s: u64,
-    /// Laurabrod itself.
+    /// LauraBoard itself.
     pub app: ProcessInfo,
-    /// FFmpeg processes started by Laurabrod (decoders, encoders).
+    /// FFmpeg processes started by LauraBoard (decoders, encoders).
     pub ffmpeg: Vec<ProcessInfo>,
 }
 

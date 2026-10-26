@@ -143,7 +143,7 @@ pub fn run(ctx: &Ctx, cmd: PlaylistCmd) -> Result<()> {
             }
             println!("imported {n} entries into '{id}'");
             for m in missing {
-                eprintln!("not in library (add with `laurabrod media add`): {m}");
+                eprintln!("not in library (add with `lauraboard media add`): {m}");
             }
         }
     }

@@ -11,8 +11,8 @@ use lb_core::planner::{self, PlanInput};
 use lb_core::rules::RuleSet;
 use lb_core::rundown::Rundown;
 use lb_core::schedule::ScheduleSet;
-use lb_engine::{ChannelHandle, ChannelStatus};
 use lb_engine::persist::{asrun, state as rstate};
+use lb_engine::{ChannelHandle, ChannelStatus};
 
 use super::channel;
 use crate::AppState;
@@ -20,10 +20,10 @@ use crate::auth::Caller;
 use crate::error::{ApiError, ApiResult};
 
 pub async fn version() -> Json<serde_json::Value> {
-    Json(serde_json::json!({ "name": "laurabrod", "version": env!("CARGO_PKG_VERSION"), "api": 1 }))
+    Json(serde_json::json!({ "name": "lauraboard", "version": env!("CARGO_PKG_VERSION"), "api": 1 }))
 }
 
-/// Host metrics: CPU, memory, disks, network, Laurabrod and FFmpeg processes.
+/// Host metrics: CPU, memory, disks, network, LauraBoard and FFmpeg processes.
 pub async fn system(c: Caller) -> ApiResult<Json<lb_engine::system::SystemInfo>> {
     c.require(Role::Viewer)?;
     let info = tokio::task::spawn_blocking(lb_engine::system::snapshot)
@@ -197,12 +197,7 @@ pub struct PlanBody {
 
 /// Plan preview with draft rules and/or schedules (nothing is stored), so
 /// editors can check their changes before saving.
-pub async fn plan_draft(
-    State(s): State<AppState>,
-    c: Caller,
-    Path(id): Path<String>,
-    Json(b): Json<PlanBody>,
-) -> ApiResult<Json<Rundown>> {
+pub async fn plan_draft(State(s): State<AppState>, c: Caller, Path(id): Path<String>, Json(b): Json<PlanBody>) -> ApiResult<Json<Rundown>> {
     c.require(Role::Viewer)?;
     let h = channel(&s, &id)?;
     Ok(Json(plan_with(&h, b.from, b.hours, b.draft).await))

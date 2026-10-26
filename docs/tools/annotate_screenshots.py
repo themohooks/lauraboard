@@ -1,4 +1,4 @@
-"""Add tutorial callouts to original Laurabrod captures (Pillow required).
+"""Add tutorial callouts to original LauraBoard captures (Pillow required).
 
 Run from anywhere: python docs/tools/annotate_screenshots.py
 Original PNGs are never modified. Coordinates target the reviewed 1440x960

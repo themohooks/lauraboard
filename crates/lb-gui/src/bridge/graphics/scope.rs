@@ -18,8 +18,13 @@ pub fn connect(g: &Gfx) {
 
 /// Scenes of the library in title order: (id, title).
 fn scenes(c: &Ctx) -> Vec<(String, String)> {
-    let mut v: Vec<(String, String)> =
-        c.model.library.iter().filter(|m| m.is_scene()).map(|m| (m.id.clone(), if m.title.is_empty() { m.id.clone() } else { m.title.clone() })).collect();
+    let mut v: Vec<(String, String)> = c
+        .model
+        .library
+        .iter()
+        .filter(|m| m.is_scene())
+        .map(|m| (m.id.clone(), if m.title.is_empty() { m.id.clone() } else { m.title.clone() }))
+        .collect();
     v.sort_by_key(|(_, t)| t.to_lowercase());
     v
 }
@@ -47,7 +52,8 @@ pub fn show(c: &mut Ctx) {
     let Some(ui) = c.window() else { return };
     let g = ui.global::<Gfx>();
     let list = scenes(c);
-    let names: Vec<slint::SharedString> = std::iter::once("Весь эфир".to_string()).chain(list.iter().map(|(_, t)| format!("Сцена: {t}"))).map(Into::into).collect();
+    let names: Vec<slint::SharedString> =
+        std::iter::once("Весь эфир".to_string()).chain(list.iter().map(|(_, t)| format!("Сцена: {t}"))).map(Into::into).collect();
     g.set_scopes(vec_model(names));
     let i = c.gfx.scope.as_ref().and_then(|id| list.iter().position(|(x, _)| x == id)).map_or(0, |i| i as i32 + 1);
     g.set_scope(i);
@@ -79,7 +85,12 @@ fn pick(c: &mut Ctx, i: i32) {
     if c.gfx.dirty() {
         let back = c.gfx.scope.clone();
         let id2 = id.clone();
-        c.ask("Сохранить изменения графики?", "Изменения графики ещё не сохранены и пропадут при переключении.", "Не сохранять", move |c| set(c, id2));
+        c.ask(
+            "Сохранить изменения графики?",
+            "Изменения графики ещё не сохранены и пропадут при переключении.",
+            "Не сохранять",
+            move |c| set(c, id2),
+        );
         // the select shows the old scope until the answer
         c.gfx.scope = back;
         show(c);
@@ -91,10 +102,15 @@ fn pick(c: &mut Ctx, i: i32) {
 /// Open the editor on scene `id` (from the scenes screen).
 pub fn open_scene(c: &mut Ctx, id: String) {
     if c.gfx.dirty() && c.gfx.scope.as_ref() != Some(&id) {
-        c.ask("Сохранить изменения графики?", "В редакторе графики есть несохранённые изменения, они пропадут.", "Не сохранять", move |c| {
-            set(c, Some(id.clone()));
-            super::super::shell::navigate(c, "graphics");
-        });
+        c.ask(
+            "Сохранить изменения графики?",
+            "В редакторе графики есть несохранённые изменения, они пропадут.",
+            "Не сохранять",
+            move |c| {
+                set(c, Some(id.clone()));
+                super::super::shell::navigate(c, "graphics");
+            },
+        );
         return;
     }
     set(c, Some(id));

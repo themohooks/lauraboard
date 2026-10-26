@@ -185,14 +185,25 @@ fn set_autostart(c: &mut Ctx, id: String, on: bool) {
     c.worker.spawn(move |api| {
         api.put(&format!("/channels/{id}"), &json!({ "autostart": on }))?;
         Ok(Msg::Apply(Box::new(move |c: &mut Ctx| {
-            c.toast(if on { "Канал будет выходить в эфир при запуске программы" } else { "Автозапуск выключен" }, false);
+            c.toast(
+                if on {
+                    "Канал будет выходить в эфир при запуске программы"
+                } else {
+                    "Автозапуск выключен"
+                },
+                false,
+            );
         })))
     });
 }
 
 fn remove(c: &mut Ctx, id: String) {
     let Some(e) = entry(c, &id) else { return };
-    let warn_air = if e.state != "stopped" { " Канал сейчас в эфире — вещание будет остановлено." } else { "" };
+    let warn_air = if e.state != "stopped" {
+        " Канал сейчас в эфире — вещание будет остановлено."
+    } else {
+        ""
+    };
     let text = format!(
         "Канал исчезнет из программы.{warn_air} Его папка со всеми настройками и собственными файлами будет перенесена в папку «deleted» проекта — оттуда её можно вернуть вручную."
     );

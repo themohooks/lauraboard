@@ -33,5 +33,5 @@ pub struct Registration<'a> {
     pub size: u64,
 }
 
-pub const APP_NAME: &str = "Laurabrod";
+pub const APP_NAME: &str = "LauraBoard";
 pub const APP_COMMENT: &str = "Автоматизация вещания интернет-телеканала";

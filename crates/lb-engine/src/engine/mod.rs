@@ -110,7 +110,7 @@ impl Engine {
         handle
     }
 
-    /// An explicit channel list in laurabrod.toml must follow channels
+    /// An explicit channel list in lauraboard.toml must follow channels
     /// being added, renamed or removed (an empty list means "all folders").
     pub(crate) fn edit_channel_list(&self, f: impl FnOnce(&mut Vec<String>)) -> Result<()> {
         let path = self.project_root.join(APP_FILE);

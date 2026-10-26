@@ -94,7 +94,11 @@ fn scene_job(
         Background::Color { color } => (SceneVideo::Color(color.clone()), m.display.clone()),
         Background::Media { media } => {
             let (bg, p) = file(media)?;
-            let v = if input_kind(bg, &p) == InputKind::Image { SceneVideo::Image(p) } else { SceneVideo::Video { input: p, length_ms: bg.duration.ms() } };
+            let v = if input_kind(bg, &p) == InputKind::Image {
+                SceneVideo::Image(p)
+            } else {
+                SceneVideo::Video { input: p, length_ms: bg.duration.ms() }
+            };
             (v, bg.display.clone())
         }
     };

@@ -12,8 +12,8 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::graphics::GraphicsConfig;
 use crate::WallTime;
+use crate::graphics::GraphicsConfig;
 use crate::rules::MatchCtx;
 
 mod music;

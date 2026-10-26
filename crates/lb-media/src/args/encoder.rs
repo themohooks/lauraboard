@@ -312,6 +312,9 @@ mod tests {
 
         let e = EncoderConfig { video_codec: "h264_nvenc".into(), rate_control: RateControl::Vbr, ..Default::default() };
         let s = encoder_args(&job(&e, &v, &a, &[])).join(" ");
-        assert!(s.contains("-c:v h264_nvenc -preset p4 -rc vbr -b:v 3000k -maxrate 4500k -bufsize 9000k -g 50 -keyint_min 50 -no-scenecut 1"), "{s}");
+        assert!(
+            s.contains("-c:v h264_nvenc -preset p4 -rc vbr -b:v 3000k -maxrate 4500k -bufsize 9000k -g 50 -keyint_min 50 -no-scenecut 1"),
+            "{s}"
+        );
     }
 }

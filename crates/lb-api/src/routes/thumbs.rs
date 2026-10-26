@@ -39,7 +39,9 @@ pub async fn thumb(
 ) -> ApiResult<Response> {
     c.require(Role::Viewer)?;
     let h = channel(&s, &id)?;
-    let item = h.read(|d| d.library.get(&media).cloned().map(|m| scene_picture(d, m))).ok_or_else(|| ApiError::not_found(format!("media '{media}'")))?;
+    let item = h
+        .read(|d| d.library.get(&media).cloned().map(|m| scene_picture(d, m)))
+        .ok_or_else(|| ApiError::not_found(format!("media '{media}'")))?;
     if item.kind == MediaKind::Stream || item.is_url() {
         return Err(ApiError::not_found("no thumbnails for streams"));
     }

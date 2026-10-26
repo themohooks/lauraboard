@@ -54,7 +54,13 @@ fn unpack(zip_path: &Path, dest: &Path, ctl: &JobCtl) -> Result<super::Manifest,
 
 impl Engine {
     /// Job body: create channel `id` (or the archive's id) from an archive.
-    pub async fn import_channel(self: Arc<Self>, zip_path: PathBuf, id: Option<String>, name: Option<String>, ctl: JobCtl) -> Result<Value, String> {
+    pub async fn import_channel(
+        self: Arc<Self>,
+        zip_path: PathBuf,
+        id: Option<String>,
+        name: Option<String>,
+        ctl: JobCtl,
+    ) -> Result<Value, String> {
         let manifest = super::inspect(&zip_path)?;
         let id = id.map(|s| s.trim().to_string()).filter(|s| !s.is_empty()).unwrap_or_else(|| manifest.channel.clone());
         let final_dir = self.check_new_id(&id).map_err(|e| e.to_string())?;

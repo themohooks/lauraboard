@@ -123,7 +123,15 @@ pub fn paint(stem: &str, w: u32, h: u32) -> Option<Pixmap> {
             rect(&mut p, fw * 0.55, -fh, fw * 0.9, fh * 3.0, with_alpha("#B91C1C", 0.85), t);
             rect(&mut p, fw * 0.52, -fh, fw * 0.012, fh * 3.0, with_alpha("#FFFFFF", 0.7), t);
             for i in 0..14 {
-                rect(&mut p, 0.0, fh * (0.08 + i as f32 * 0.065), fw, 1.0_f32.max(fh / 900.0), with_alpha("#FFFFFF", 0.05), Transform::identity());
+                rect(
+                    &mut p,
+                    0.0,
+                    fh * (0.08 + i as f32 * 0.065),
+                    fw,
+                    1.0_f32.max(fh / 900.0),
+                    with_alpha("#FFFFFF", 0.05),
+                    Transform::identity(),
+                );
             }
             vignette(&mut p, 0.45);
         }

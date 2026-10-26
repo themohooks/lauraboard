@@ -35,10 +35,10 @@ pub fn run(out: &Path) -> Result<(), String> {
     s.set_version("0.1.0".into());
     s.set_size_text("≈ 41 МБ".into());
     s.set_ffmpeg_hint(crate::ffmpeg::install_hint().into());
-    s.set_install_dir(r"C:\Users\operator\AppData\Local\Programs\Laurabrod".into());
+    s.set_install_dir(r"C:\Users\operator\AppData\Local\Programs\LauraBoard".into());
     s.set_dir_note("Папка будет создана".into());
-    s.set_project_dir(r"C:\Users\operator\Documents\Laurabrod".into());
-    s.set_installed_dir(r"C:\Users\operator\AppData\Local\Programs\Laurabrod".into());
+    s.set_project_dir(r"C:\Users\operator\Documents\LauraBoard".into());
+    s.set_installed_dir(r"C:\Users\operator\AppData\Local\Programs\LauraBoard".into());
 
     type Prep = fn(&Setup);
     let shots: [(&str, Prep); 10] = [
@@ -56,7 +56,7 @@ pub fn run(out: &Path) -> Result<(), String> {
             s.set_page(SetupPage::Location);
         }),
         ("location-error", |s| {
-            s.set_install_dir("Laurabrod".into());
+            s.set_install_dir("LauraBoard".into());
             s.set_dir_error("Нужен полный путь".into());
         }),
         ("options", |s| {
@@ -76,7 +76,7 @@ pub fn run(out: &Path) -> Result<(), String> {
         ("failed", |s| {
             s.set_success(false);
             s.set_warnings(ModelRc::default());
-            s.set_error(r"C:\Program Files\Laurabrod: Отказано в доступе. (os error 5)".into());
+            s.set_error(r"C:\Program Files\LauraBoard: Отказано в доступе. (os error 5)".into());
         }),
         ("uninstall", |s| {
             s.set_mode(SetupMode::Uninstall);

@@ -121,7 +121,7 @@ pub fn shutdown_all() {
 }
 
 pub fn browser_path() -> Option<PathBuf> {
-    if let Some(p) = std::env::var_os("LAURABROD_BROWSER") {
+    if let Some(p) = std::env::var_os("LAURABOARD_BROWSER") {
         return Some(p.into());
     }
     let mut paths = Vec::new();
@@ -230,10 +230,11 @@ impl Cdp {
 }
 
 fn capture(path: &Path, w: u32, h: u32, frame: &Frame, used: &Mutex<Instant>, stop: &AtomicBool) -> Result<()> {
-    let executable = browser_path().ok_or("Install Edge / Chrome / Chromium or set LAURABROD_BROWSER")?;
+    let executable = browser_path().ok_or("Install Edge / Chrome / Chromium or set LAURABOARD_BROWSER")?;
     let server = FileServer::start(path)?;
     static SERIAL: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
-    let profile = std::env::temp_dir().join(format!("laurabrod-browser-{}-{}", std::process::id(), SERIAL.fetch_add(1, Ordering::Relaxed)));
+    let profile =
+        std::env::temp_dir().join(format!("lauraboard-browser-{}-{}", std::process::id(), SERIAL.fetch_add(1, Ordering::Relaxed)));
     std::fs::create_dir(&profile).map_err(|e| e.to_string())?;
     let mut command = Command::new(executable);
     command
@@ -372,7 +373,7 @@ impl FileServer {
         let swf = file.extension().is_some_and(|x| x.eq_ignore_ascii_case("swf"));
         let mut movie = url::Url::parse(&base).map_err(|e| e.to_string())?;
         movie.set_path(file.file_name().ok_or("source has no filename")?.to_str().ok_or("source filename is not UTF-8")?);
-        let ruffle = std::env::var_os("LAURABROD_RUFFLE")
+        let ruffle = std::env::var_os("LAURABOARD_RUFFLE")
             .map(PathBuf::from)
             .or_else(|| std::env::current_exe().ok().and_then(|p| p.parent().map(|p| p.join("assets/ruffle"))))
             .filter(|p| p.join("ruffle.js").is_file());

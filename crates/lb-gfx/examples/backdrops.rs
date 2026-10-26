@@ -15,7 +15,14 @@ fn main() {
     sheet.fill(tiny_skia::Color::from_rgba8(128, 128, 128, 255));
     for (i, b) in stills::STILLS.iter().enumerate() {
         let p = stills::paint(b.stem, tw, th).unwrap();
-        sheet.draw_pixmap((i % cols) as i32 * tw as i32, (i / cols) as i32 * th as i32, p.as_ref(), &PixmapPaint::default(), Transform::identity(), None);
+        sheet.draw_pixmap(
+            (i % cols) as i32 * tw as i32,
+            (i / cols) as i32 * th as i32,
+            p.as_ref(),
+            &PixmapPaint::default(),
+            Transform::identity(),
+            None,
+        );
     }
     for (i, b) in plates::PLATES.iter().enumerate() {
         let p = plates::paint(b.stem).unwrap();

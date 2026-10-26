@@ -25,7 +25,7 @@ fn doc() -> String {
 
 #[test]
 fn app_config_example() {
-    for b in toml_blocks_under(&doc(), "laurabrod.toml") {
+    for b in toml_blocks_under(&doc(), "lauraboard.toml") {
         toml::from_str::<AppConfig>(&b).unwrap();
     }
 }

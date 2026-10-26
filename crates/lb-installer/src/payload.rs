@@ -84,7 +84,7 @@ fn replace_file(target: &Path, data: &mut dyn Read) -> Result<(), String> {
     if target.exists() && std::fs::remove_file(target).is_err() {
         let old = old_name(target);
         let _ = std::fs::remove_file(&old);
-        std::fs::rename(target, &old).map_err(|e| format!("{} занят ({e}). Закройте Laurabrod и повторите.", target.display()))?;
+        std::fs::rename(target, &old).map_err(|e| format!("{} занят ({e}). Закройте LauraBoard и повторите.", target.display()))?;
     }
     let mut out = std::fs::File::create(target).map_err(|e| format!("{}: {e}", target.display()))?;
     std::io::copy(data, &mut out).map_err(|e| format!("{}: {e}", target.display()))?;

@@ -1,11 +1,11 @@
-//! `laurabrod.svg` → `laurabrod.ico` (PNG-compressed images, 16…256 px).
+//! `lauraboard.svg` → `lauraboard.ico` (PNG-compressed images, 16…256 px).
 
 use resvg::{tiny_skia, usvg};
 
 const SIZES: [u32; 8] = [16, 20, 24, 32, 40, 48, 64, 256];
 
 pub fn run() -> Result<(), String> {
-    let svg_path = crate::app_assets().join("laurabrod.svg");
+    let svg_path = crate::app_assets().join("lauraboard.svg");
     let svg = std::fs::read(&svg_path).map_err(|e| format!("{}: {e}", svg_path.display()))?;
     let tree = usvg::Tree::from_data(&svg, &usvg::Options::default()).map_err(|e| e.to_string())?;
 
@@ -18,7 +18,7 @@ pub fn run() -> Result<(), String> {
     }
 
     let ico = encode_ico(&images);
-    let out = crate::app_assets().join("laurabrod.ico");
+    let out = crate::app_assets().join("lauraboard.ico");
     std::fs::write(&out, &ico).map_err(|e| format!("{}: {e}", out.display()))?;
     println!("{} ({} KB, {} sizes)", out.display(), ico.len() / 1024, SIZES.len());
     Ok(())

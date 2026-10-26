@@ -50,7 +50,7 @@ component StepRow inherits HorizontalLayout {
 }
 
 export component StepRail inherits Rectangle {
-    in property <string> title: "Laurabrod";
+    in property <string> title: "LauraBoard";
     in property <string> subtitle;
     in property <[StepItem]> steps;
     in property <string> footnote;
@@ -63,11 +63,11 @@ export component StepRail inherits Rectangle {
         spacing: Theme.sp2;
 
         Image {
-            source: @image-url("../../../lb-gui/assets/app/laurabrod.svg");
+            source: @image-url("../../../lb-gui/assets/app/lauraboard.svg");
             width: 56px;
             height: 56px;
             accessible-role: image;
-            accessible-label: "Laurabrod";
+            accessible-label: "LauraBoard";
         }
         Rectangle { height: Theme.sp2; }
         Label {

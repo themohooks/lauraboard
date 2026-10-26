@@ -1,6 +1,6 @@
 //! First project: created by the installed application itself
-//! (`laurabrod -p <dir> init [--demo]`) and remembered as the project its
-//! shortcuts open (`<config dir>/laurabrod/desktop.json`, same format the
+//! (`lauraboard -p <dir> init [--demo]`) and remembered as the project its
+//! shortcuts open (`<config dir>/lauraboard/desktop.json`, same format the
 //! application writes).
 
 use std::path::{Path, PathBuf};
@@ -10,7 +10,7 @@ use crate::receipt::{config_dir, write_json};
 
 /// Create the project if it does not exist yet, then make it the default.
 pub fn prepare(binary: &Path, project: &Path, demo: bool) -> Result<(), String> {
-    if !project.join("laurabrod.toml").exists() {
+    if !project.join("lauraboard.toml").exists() {
         std::fs::create_dir_all(project).map_err(|e| format!("{}: {e}", project.display()))?;
         let mut cmd = Command::new(binary);
         cmd.arg("-p").arg(project).arg("init").stdin(Stdio::null());
@@ -32,7 +32,7 @@ pub fn remembered() -> Option<PathBuf> {
     let bytes = std::fs::read(config_dir()?.join("desktop.json")).ok()?;
     let v: serde_json::Value = serde_json::from_slice(&bytes).ok()?;
     let p = PathBuf::from(v["project"].as_str()?);
-    p.join("laurabrod.toml").is_file().then_some(p)
+    p.join("lauraboard.toml").is_file().then_some(p)
 }
 
 fn remember(project: &Path) -> Result<(), String> {

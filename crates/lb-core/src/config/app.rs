@@ -1,4 +1,4 @@
-//! System-level settings shared by all channels (`laurabrod.toml`).
+//! System-level settings shared by all channels (`lauraboard.toml`).
 
 use serde::{Deserialize, Serialize};
 

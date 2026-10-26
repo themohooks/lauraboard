@@ -60,7 +60,14 @@ fn save_style(c: &mut Ctx) {
     c.prefs.save();
     g.set_pe_mine_name("".into());
     show_styles(c);
-    c.toast(if replaced { format!("Стиль «{name}» обновлён") } else { format!("Стиль «{name}» сохранён — он доступен для любой плашки") }, false);
+    c.toast(
+        if replaced {
+            format!("Стиль «{name}» обновлён")
+        } else {
+            format!("Стиль «{name}» сохранён — он доступен для любой плашки")
+        },
+        false,
+    );
 }
 
 fn apply_style(c: &mut Ctx, i: usize) {
@@ -78,13 +85,18 @@ fn apply_style(c: &mut Ctx, i: usize) {
 
 fn remove_style(c: &mut Ctx, i: usize) {
     let Some(name) = c.prefs.plate_styles.get(i).map(|st| st.name.clone()) else { return };
-    c.ask("Удалить стиль?", &format!("Стиль «{name}» пропадёт из списка. Плашки, к которым он применён, не изменятся."), "Удалить", move |c| {
-        if let Some(j) = c.prefs.plate_styles.iter().position(|st| st.name == name) {
-            c.prefs.plate_styles.remove(j);
-            c.prefs.save();
-        }
-        show_styles(c);
-    });
+    c.ask(
+        "Удалить стиль?",
+        &format!("Стиль «{name}» пропадёт из списка. Плашки, к которым он применён, не изменятся."),
+        "Удалить",
+        move |c| {
+            if let Some(j) = c.prefs.plate_styles.iter().position(|st| st.name == name) {
+                c.prefs.plate_styles.remove(j);
+                c.prefs.save();
+            }
+            show_styles(c);
+        },
+    );
 }
 
 pub fn open(c: &mut Ctx) {
@@ -171,7 +183,11 @@ fn crop_to_content(png: &[u8]) -> Option<(u32, u32, Vec<u8>)> {
 fn pick_icon(c: &mut Ctx) {
     let Some(ui) = c.window() else { return };
     let g = ui.global::<Gfx>();
-    let Some(path) = rfd::FileDialog::new().set_title("Картинка в плашке").add_filter("Изображения", &["png", "jpg", "jpeg", "webp"]).pick_file() else { return };
+    let Some(path) =
+        rfd::FileDialog::new().set_title("Картинка в плашке").add_filter("Изображения", &["png", "jpg", "jpeg", "webp"]).pick_file()
+    else {
+        return;
+    };
     g.set_pl_icon(s(path.to_string_lossy().to_string()));
     super::props_changed(c);
     props(c);
@@ -237,7 +253,15 @@ fn shadow(hex: &str, blur: f32, dy: f32) -> ShapeStyle {
 
 const PRESETS: [(&str, Preset); 8] = [
     ("Новости", |d| {
-        d.base("#101828E6", 6.0, ShapeStyle { gradient: Some("#1E3A8AE6".into()), accent: Some(Accent { side: Side::Left, size: 10.0, color: "#E11D48".into() }), ..shadow("#00000080", 12.0, 4.0) });
+        d.base(
+            "#101828E6",
+            6.0,
+            ShapeStyle {
+                gradient: Some("#1E3A8AE6".into()),
+                accent: Some(Accent { side: Side::Left, size: 10.0, color: "#E11D48".into() }),
+                ..shadow("#00000080", 12.0, 4.0)
+            },
+        );
         d.lines(bold(40.0, "#FFFFFF"), text(26.0, "#FFD166"));
     }),
     ("Срочно", |d| {
@@ -245,7 +269,16 @@ const PRESETS: [(&str, Preset); 8] = [
         d.lines(TextStyle { uppercase: true, letter_spacing: 2.0, ..bold(42.0, "#FFFFFF") }, text(26.0, "#FFE4E6"));
     }),
     ("Спорт", |d| {
-        d.base("#0F7B3F", 4.0, ShapeStyle { gradient: Some("#064E2B".into()), skew: -12.0, accent: Some(Accent { side: Side::Bottom, size: 6.0, color: "#FACC15".into() }), ..shadow("#00000080", 10.0, 4.0) });
+        d.base(
+            "#0F7B3F",
+            4.0,
+            ShapeStyle {
+                gradient: Some("#064E2B".into()),
+                skew: -12.0,
+                accent: Some(Accent { side: Side::Bottom, size: 6.0, color: "#FACC15".into() }),
+                ..shadow("#00000080", 10.0, 4.0)
+            },
+        );
         d.lines(TextStyle { uppercase: true, italic: true, ..bold(40.0, "#FFFFFF") }, TextStyle { italic: true, ..text(26.0, "#FACC15") });
     }),
     ("Минимал", |d| {
@@ -257,7 +290,11 @@ const PRESETS: [(&str, Preset); 8] = [
         d.lines(sh(bold(44.0, "#FFFFFF")), sh(text(28.0, "#E5E7EB")));
     }),
     ("Стекло", |d| {
-        d.base("#FFFFFF26", 18.0, ShapeStyle { border_color: Some("#FFFFFF66".into()), border_width: 1.5, ..shadow("#00000060", 18.0, 6.0) });
+        d.base(
+            "#FFFFFF26",
+            18.0,
+            ShapeStyle { border_color: Some("#FFFFFF66".into()), border_width: 1.5, ..shadow("#00000060", 18.0, 6.0) },
+        );
         d.lines(bold(40.0, "#FFFFFF"), text(26.0, "#F1F5F9"));
     }),
     ("Две ленты", |d| {
@@ -277,7 +314,14 @@ const PRESETS: [(&str, Preset); 8] = [
         *d.padding_y = 10.0;
         *d.min_width = 0.0;
         d.lines(
-            TextStyle { uppercase: true, letter_spacing: 1.5, background: Some("#E11D48".into()), padding: 8.0, corner_radius: 4.0, ..bold(26.0, "#FFFFFF") },
+            TextStyle {
+                uppercase: true,
+                letter_spacing: 1.5,
+                background: Some("#E11D48".into()),
+                padding: 8.0,
+                corner_radius: 4.0,
+                ..bold(26.0, "#FFFFFF")
+            },
             text(30.0, "#FFFFFF"),
         );
     }),
@@ -294,7 +338,10 @@ fn apply_preset(c: &mut Ctx, i: usize) {
     let Some((name, f)) = PRESETS.get(i) else { return };
     mutate(c, None, |cfg| {
         let Some(e) = cfg.elements.get_mut(sel) else { return };
-        if let ElementKind::Plate { fields, color, radius, shape, min_width, padding_x, padding_y, spacing, align, layout, valign, .. } = &mut e.kind {
+        if let ElementKind::Plate {
+            fields, color, radius, shape, min_width, padding_x, padding_y, spacing, align, layout, valign, ..
+        } = &mut e.kind
+        {
             f(&mut PlateDesign { fields, color, radius, shape, min_width, padding_x, padding_y, spacing, align, layout, valign });
         }
     });
@@ -311,7 +358,12 @@ mod tests {
     fn presets_keep_the_text() {
         for (name, f) in PRESETS {
             let mut k = super::super::design::new_plate();
-            let ElementKind::Plate { fields, color, radius, shape, min_width, padding_x, padding_y, spacing, align, layout, valign, .. } = &mut k else { unreachable!() };
+            let ElementKind::Plate {
+                fields, color, radius, shape, min_width, padding_x, padding_y, spacing, align, layout, valign, ..
+            } = &mut k
+            else {
+                unreachable!()
+            };
             fields[0].text = "Иван".into();
             f(&mut PlateDesign { fields, color, radius, shape, min_width, padding_x, padding_y, spacing, align, layout, valign });
             assert_eq!(fields[0].text, "Иван", "{name}");

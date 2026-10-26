@@ -56,4 +56,4 @@
 
 `Gap` (пустота), `Overlap` (ролик не помещается в окно), `LateStart` (опоздание блока), `Dropped` (убрана вставка), `Truncated` (обрезка), `MissingMedia`, `EmptySource`, `Config`.
 
-Их показывают `laurabrod plan`, API `/plan`, вкладки «Рундаун» и «Сетка вещания» в GUI.
+Их показывают `lauraboard plan`, API `/plan`, вкладки «Рундаун» и «Сетка вещания» в GUI.

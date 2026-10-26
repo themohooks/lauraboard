@@ -105,7 +105,8 @@ pub fn refresh(c: &mut Ctx) {
     g.set_rows(vec_model(rows));
     g.set_selected(c.scenes.selected.as_ref().and_then(|id| list.iter().position(|m| &m.id == id)).map_or(-1, |i| i as i32));
     g.set_dirty(c.scenes.dirty);
-    let folders: Vec<String> = std::iter::once("нет".to_string()).chain(lb_core::media::Library::new(c.model.library.clone()).all_folders()).collect();
+    let folders: Vec<String> =
+        std::iter::once("нет".to_string()).chain(lb_core::media::Library::new(c.model.library.clone()).all_folders()).collect();
     g.set_folder_options(vec_model(folders.into_iter().map(Into::into).collect()));
     form::show(c);
     music::show(c);
@@ -117,7 +118,9 @@ fn row(c: &Ctx, m: &MediaItem) -> SceneItemRow {
     let Some(s) = &m.scene else { return SceneItemRow::default() };
     let bg = match &s.background {
         Background::Color { .. } => "фон: цвет".to_string(),
-        Background::Media { media } => format!("фон: {}", c.model.library.iter().find(|x| &x.id == media).map(title).unwrap_or_else(|| media.clone())),
+        Background::Media { media } => {
+            format!("фон: {}", c.model.library.iter().find(|x| &x.id == media).map(title).unwrap_or_else(|| media.clone()))
+        }
     };
     let music = match s.music.iter().filter(|r| r.enabled).count() {
         0 => "без музыки".to_string(),
@@ -128,16 +131,26 @@ fn row(c: &Ctx, m: &MediaItem) -> SceneItemRow {
         Background::Media { media } if !c.model.library.iter().any(|x| &x.id == media) => format!("фон «{media}» не найден в медиатеке"),
         _ => String::new(),
     };
-    SceneItemRow { id: m.id.clone().into(), title: title(m).into(), detail: format!("{} · {bg} · {music}", hms(m.play_duration())).into(), problem: problem.into() }
+    SceneItemRow {
+        id: m.id.clone().into(),
+        title: title(m).into(),
+        detail: format!("{} · {bg} · {music}", hms(m.play_duration())).into(),
+        problem: problem.into(),
+    }
 }
 
 pub fn select(c: &mut Ctx, i: i32) {
     if c.scenes.dirty {
         let i2 = i;
-        c.ask("Сохранить изменения сцены?", "Изменения выбранной сцены ещё не сохранены.", "Не сохранять", move |c| {
-            c.scenes.dirty = false;
-            select(c, i2);
-        });
+        c.ask(
+            "Сохранить изменения сцены?",
+            "Изменения выбранной сцены ещё не сохранены.",
+            "Не сохранять",
+            move |c| {
+                c.scenes.dirty = false;
+                select(c, i2);
+            },
+        );
         return;
     }
     let list: Vec<String> = scenes(c).iter().map(|m| m.id.clone()).collect();
@@ -209,17 +222,22 @@ fn duplicate(c: &mut Ctx) {
 fn remove(c: &mut Ctx) {
     let Some(item) = c.scenes.draft.clone() else { return };
     let name = title(&item);
-    c.ask(&format!("Удалить сцену «{name}»?"), "Сцена будет удалена из медиатеки вместе со своей графикой.", "Удалить", move |c| {
-        c.scenes.dirty = false;
-        c.scenes.selected = None;
-        c.scenes.draft = None;
-        let ch = c.model.ch();
-        let id = item.id.clone();
-        c.change(move |api| {
-            api.delete(&format!("/channels/{ch}/media/{id}"))?;
-            Ok(format!("Сцена «{name}» удалена"))
-        });
-    });
+    c.ask(
+        &format!("Удалить сцену «{name}»?"),
+        "Сцена будет удалена из медиатеки вместе со своей графикой.",
+        "Удалить",
+        move |c| {
+            c.scenes.dirty = false;
+            c.scenes.selected = None;
+            c.scenes.draft = None;
+            let ch = c.model.ch();
+            let id = item.id.clone();
+            c.change(move |api| {
+                api.delete(&format!("/channels/{ch}/media/{id}"))?;
+                Ok(format!("Сцена «{name}» удалена"))
+            });
+        },
+    );
 }
 
 /// Ids chosen in the library picker for this screen.

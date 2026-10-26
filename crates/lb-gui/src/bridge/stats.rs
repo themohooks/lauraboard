@@ -64,9 +64,11 @@ pub fn connect(ui: &AppWindow) {
             load(c);
         })
     });
-    g.on_edited(|| with(|c| {
-        validate(c);
-    }));
+    g.on_edited(|| {
+        with(|c| {
+            validate(c);
+        })
+    });
     g.on_load(|| with(load));
     g.on_sort(|k| {
         with(move |c| {
@@ -166,9 +168,21 @@ fn show(c: &mut Ctx) {
         return;
     };
     let (f, t) = c.stats.period.unwrap_or_default();
-    g.set_period_text(if f == t { format!("за {}", f.format("%d.%m.%Y")) } else { format!("с {} по {}", f.format("%d.%m.%Y"), t.format("%d.%m.%Y")) }.into());
+    g.set_period_text(
+        if f == t {
+            format!("за {}", f.format("%d.%m.%Y"))
+        } else {
+            format!("с {} по {}", f.format("%d.%m.%Y"), t.format("%d.%m.%Y"))
+        }
+        .into(),
+    );
     g.set_has_data(r.items > 0);
-    let kpi = |label: &str, value: String, detail: String, tone: &str| Kpi { label: label.into(), value: value.into(), detail: detail.into(), tone: tone.into() };
+    let kpi = |label: &str, value: String, detail: String, tone: &str| Kpi {
+        label: label.into(),
+        value: value.into(),
+        detail: detail.into(),
+        tone: tone.into(),
+    };
     let ad_plays: u32 = r.ads.iter().map(|m| m.plays).sum();
     let promo_plays: u32 = r.promos.iter().map(|m| m.plays).sum();
     g.set_kpis(vec_model(vec![

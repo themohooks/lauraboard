@@ -235,7 +235,7 @@ fn check_dir(s: &Setup, binary: &str) {
 }
 
 fn check_project(s: &Setup) {
-    let exists = Path::new(s.get_project_dir().trim()).join("laurabrod.toml").exists();
+    let exists = Path::new(s.get_project_dir().trim()).join("lauraboard.toml").exists();
     s.set_project_exists(exists);
     if exists {
         s.set_demo(false);

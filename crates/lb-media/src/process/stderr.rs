@@ -115,7 +115,9 @@ mod tests {
     fn benign_patterns() {
         assert!(super::is_benign("[in#0/mpegts] timestamp discontinuity (stream id=257)"));
         assert!(!super::is_benign("Connection refused"));
-        assert!(super::is_trailer("[out#1/image2pipe @ 0000] Nothing was written into output file, because at least one of its streams received no packets."));
+        assert!(super::is_trailer(
+            "[out#1/image2pipe @ 0000] Nothing was written into output file, because at least one of its streams received no packets."
+        ));
         assert!(!super::is_trailer("tcp://127.0.0.1:5000: Connection refused"));
         assert!(super::is_trailer("[vost#1:0/mjpeg @ 0000] Task finished with error code: -22 (Invalid argument)"));
         assert!(!super::is_trailer("[tee @ 0000] Slave '[f=flv]rtmps://h/s/k': error opening: I/O error"));

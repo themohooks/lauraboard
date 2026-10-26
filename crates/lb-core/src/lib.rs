@@ -1,4 +1,4 @@
-//! Laurabrod core: data model, configuration and the broadcast planner.
+//! LauraBoard core: data model, configuration and the broadcast planner.
 //!
 //! This crate is intentionally free of media / network IO so that the
 //! scheduling logic can be tested deterministically. File loading lives in

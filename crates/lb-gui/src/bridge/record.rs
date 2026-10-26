@@ -199,7 +199,11 @@ fn apply_codecs(g: &Src, r: &mut RecordConfig) -> Result<(), String> {
         } else {
             r.video.bitrate.clear();
             let crf = g.get_r_crf().trim().to_string();
-            r.video.crf = if crf.is_empty() { 23 } else { crf.parse::<u32>().ok().filter(|v| *v <= 51).ok_or("Качество: число от 0 до 51")? };
+            r.video.crf = if crf.is_empty() {
+                23
+            } else {
+                crf.parse::<u32>().ok().filter(|v| *v <= 51).ok_or("Качество: число от 0 до 51")?
+            };
         }
     }
     r.audio.codec = picked_audio(g);

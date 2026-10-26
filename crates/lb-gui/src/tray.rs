@@ -37,10 +37,14 @@ pub struct TrayState {
 
 impl TrayState {
     fn tooltip(&self) -> String {
-        if self.status.is_empty() { TOOLTIP.into() } else { format!("Laurabrod — {}", self.status) }
+        if self.status.is_empty() { TOOLTIP.into() } else { format!("LauraBoard — {}", self.status) }
     }
     fn start_stop(&self) -> (&'static str, TrayAction) {
-        if self.on_air { ("Остановить вещание…", TrayAction::Transport("stop")) } else { ("Начать вещание", TrayAction::Transport("start")) }
+        if self.on_air {
+            ("Остановить вещание…", TrayAction::Transport("stop"))
+        } else {
+            ("Начать вещание", TrayAction::Transport("start"))
+        }
     }
     fn manual_entry(&self) -> (&'static str, TrayAction) {
         if self.manual {
@@ -55,7 +59,7 @@ impl TrayState {
 type OnAction = std::rc::Rc<dyn Fn(TrayAction)>;
 type Post = std::sync::Arc<dyn Fn(TrayAction) + Send + Sync>;
 
-const TOOLTIP: &str = "Laurabrod — управление эфиром";
+const TOOLTIP: &str = "LauraBoard — управление эфиром";
 
 thread_local! {
     static HANDLER: RefCell<Option<OnAction>> = const { RefCell::new(None) };
@@ -65,7 +69,7 @@ thread_local! {
 
 /// RGBA pixels of the application icon (largest image of the .ico).
 fn icon_rgba() -> Option<(Vec<u8>, u32, u32)> {
-    let img = image::load_from_memory_with_format(include_bytes!("../assets/app/laurabrod.ico"), image::ImageFormat::Ico).ok()?;
+    let img = image::load_from_memory_with_format(include_bytes!("../assets/app/lauraboard.ico"), image::ImageFormat::Ico).ok()?;
     let img = img.resize(64, 64, image::imageops::FilterType::Lanczos3).to_rgba8();
     let (w, h) = img.dimensions();
     Some((img.into_raw(), w, h))
@@ -147,7 +151,7 @@ mod platform {
             let (rgba, w, h) = super::icon_rgba()?;
             let icon = Icon::from_rgba(rgba, w, h).ok()?;
             let status = MenuItem::new("", false, None);
-            let open = MenuItem::new("Открыть Laurabrod", true, None);
+            let open = MenuItem::new("Открыть LauraBoard", true, None);
             let air = MenuItem::new("Экран «Эфир»", true, None);
             let start_stop = MenuItem::new("", true, None);
             let skip = MenuItem::new("Следующий элемент", true, None);
@@ -158,22 +162,8 @@ mod platform {
             let quit = MenuItem::new("Выход", true, None);
             let sep = PredefinedMenuItem::separator;
             let menu = Menu::new();
-            menu.append_items(&[
-                &status,
-                &sep(),
-                &open,
-                &air,
-                &sep(),
-                &start_stop,
-                &skip,
-                &manual,
-                &ad,
-                &ticker,
-                &sep(),
-                &close,
-                &quit,
-            ])
-            .ok()?;
+            menu.append_items(&[&status, &sep(), &open, &air, &sep(), &start_stop, &skip, &manual, &ad, &ticker, &sep(), &close, &quit])
+                .ok()?;
             let icon = TrayIconBuilder::new()
                 .with_tooltip(super::TOOLTIP)
                 .with_icon(icon)
@@ -217,7 +207,7 @@ mod platform {
         }
 
         pub fn update(&self, st: &TrayState) {
-            self.status.set_text(if st.status.is_empty() { "Laurabrod" } else { &st.status });
+            self.status.set_text(if st.status.is_empty() { "LauraBoard" } else { &st.status });
             self.start_stop.set_text(st.start_stop().0);
             self.start_stop.set_enabled(st.online);
             self.skip.set_enabled(st.online && st.on_air);
@@ -259,10 +249,10 @@ mod platform {
 
     impl ksni::Tray for Item {
         fn id(&self) -> String {
-            "laurabrod".into()
+            "lauraboard".into()
         }
         fn title(&self) -> String {
-            "Laurabrod".into()
+            "LauraBoard".into()
         }
         fn icon_pixmap(&self) -> Vec<ksni::Icon> {
             self.icon.clone()
@@ -280,13 +270,13 @@ mod platform {
             let (man, man_a) = s.manual_entry();
             vec![
                 ksni::menu::StandardItem {
-                    label: if s.status.is_empty() { "Laurabrod".into() } else { s.status.clone() },
+                    label: if s.status.is_empty() { "LauraBoard".into() } else { s.status.clone() },
                     enabled: false,
                     ..Default::default()
                 }
                 .into(),
                 ksni::MenuItem::Separator,
-                self.entry("Открыть Laurabrod", true, TrayAction::Show),
+                self.entry("Открыть LauraBoard", true, TrayAction::Show),
                 self.entry("Экран «Эфир»", true, TrayAction::Section("air")),
                 ksni::MenuItem::Separator,
                 self.entry(ss, s.online, ss_a),

@@ -44,7 +44,7 @@ fn get_text(url: &str) -> Result<String, String> {
     // a plain user agent: the CSS API then answers with TrueType URLs
     agent()
         .get(url)
-        .header("User-Agent", "Laurabrod")
+        .header("User-Agent", "LauraBoard")
         .call()
         .map_err(|e| format!("{url}: {e}"))?
         .body_mut()
@@ -111,7 +111,9 @@ pub fn parse_css(css: &str) -> Vec<(String, String)> {
     let mut out = Vec::new();
     for block in css.split("@font-face").skip(1) {
         let prop = |name: &str| {
-            block.split(';').find_map(|l| l.trim().trim_start_matches('{').trim().strip_prefix(name).map(|v| v.trim_start_matches(':').trim().to_string()))
+            block.split(';').find_map(|l| {
+                l.trim().trim_start_matches('{').trim().strip_prefix(name).map(|v| v.trim_start_matches(':').trim().to_string())
+            })
         };
         let italic = prop("font-style").is_some_and(|s| s == "italic");
         let bold = prop("font-weight").and_then(|w| w.parse::<u32>().ok()).is_some_and(|w| w >= 600);
@@ -142,7 +144,10 @@ pub fn download(family: &str, fonts_dir: &Path) -> Result<Vec<PathBuf>, String> 
     if family.is_empty() {
         return Err("font family is empty".into());
     }
-    let info = catalog()?.into_iter().find(|f| f.family.eq_ignore_ascii_case(family)).ok_or_else(|| format!("font '{family}' not found in Google Fonts"))?;
+    let info = catalog()?
+        .into_iter()
+        .find(|f| f.family.eq_ignore_ascii_case(family))
+        .ok_or_else(|| format!("font '{family}' not found in Google Fonts"))?;
     let mut axes = vec!["0,400"];
     if info.bold {
         axes.push("0,700");

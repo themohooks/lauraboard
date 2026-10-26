@@ -39,7 +39,13 @@ impl Target {
     fn multi(self) -> bool {
         matches!(
             self,
-            Target::AdItems | Target::RuleItems | Target::RuleExclude | Target::RuleTrigger | Target::GapScenes | Target::BlockMedia(_) | Target::SceneTracks(_)
+            Target::AdItems
+                | Target::RuleItems
+                | Target::RuleExclude
+                | Target::RuleTrigger
+                | Target::GapScenes
+                | Target::BlockMedia(_)
+                | Target::SceneTracks(_)
         )
     }
 }
@@ -144,9 +150,13 @@ fn confirm(c: &mut Ctx) {
         return;
     }
     match target {
-        Target::AdItems | Target::AdIntro | Target::AdOutro | Target::RuleItems | Target::RuleExclude | Target::RuleTrigger | Target::GapScenes => {
-            super::rules::picked(c, target, ids)
-        }
+        Target::AdItems
+        | Target::AdIntro
+        | Target::AdOutro
+        | Target::RuleItems
+        | Target::RuleExclude
+        | Target::RuleTrigger
+        | Target::GapScenes => super::rules::picked(c, target, ids),
         Target::BlockMedia(_) | Target::BlockIntro(_) | Target::BlockOutro(_) => super::schedule::picked(c, target, ids),
         Target::SceneBackground | Target::SceneTracks(_) => super::scenes::picked(c, target, ids),
     }

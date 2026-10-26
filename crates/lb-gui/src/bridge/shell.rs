@@ -239,7 +239,9 @@ pub fn channels_changed(c: &mut Ctx) {
     g.set_channels(slint::ModelRc::new(slint::VecModel::from(list)));
     let idx = c.model.channel.as_ref().and_then(|ch| c.model.channels.iter().position(|x| x == ch)).map(|i| i as i32).unwrap_or(-1);
     g.set_channel_index(idx);
-    g.set_channel_initial(c.model.channel.as_deref().and_then(|ch| super::channels::entry(c, ch)).map(|e| e.initial()).unwrap_or_default().into());
+    g.set_channel_initial(
+        c.model.channel.as_deref().and_then(|ch| super::channels::entry(c, ch)).map(|e| e.initial()).unwrap_or_default().into(),
+    );
     status_changed(c);
     super::avatars::sync(c);
     // screens that load per channel on their own
@@ -266,8 +268,7 @@ pub fn status_changed(c: &mut Ctx) {
     let codec = if o.video_codec.is_empty() { "—" } else { o.video_codec.as_str() };
     let encoder_text = if o.running { format!("{codec} · {:.1} fps", o.stats.fps) } else { format!("Энкодер {codec}: стоп") };
     let rate = if o.stats.bitrate_kbps > 0.0 { format!("{:.0} кбит/с · ", o.stats.bitrate_kbps) } else { String::new() };
-    let encoder_detail =
-        format!("{rate}{:.2}x · потеряно кадров: {} · перезапусков: {}", o.stats.speed, o.stats.drop_frames, o.restarts);
+    let encoder_detail = format!("{rate}{:.2}x · потеряно кадров: {} · перезапусков: {}", o.stats.speed, o.stats.drop_frames, o.restarts);
     let channel_name = match c.model.channel.as_deref() {
         Some(ch) if !s.name.is_empty() => format!("{ch} — {}", s.name),
         Some(ch) => ch.to_string(),

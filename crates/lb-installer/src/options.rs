@@ -10,7 +10,7 @@ pub struct Options {
     /// Start menu (Windows) / applications menu (Linux) entry.
     pub menu_shortcut: bool,
     pub desktop_shortcut: bool,
-    /// `laurabrod` command in new terminals.
+    /// `lauraboard` command in new terminals.
     pub add_to_path: bool,
     /// Create this project (if missing) and open it from shortcuts.
     pub project: Option<PathBuf>,
@@ -33,22 +33,22 @@ impl Options {
 }
 
 /// Per-user location, no administrator rights needed:
-/// `%LOCALAPPDATA%\Programs\Laurabrod` or `~/.local/share/laurabrod`.
+/// `%LOCALAPPDATA%\Programs\LauraBoard` or `~/.local/share/lauraboard`.
 pub fn default_dir() -> PathBuf {
     let base = dirs::data_local_dir().unwrap_or_else(|| PathBuf::from("."));
-    if cfg!(windows) { base.join("Programs").join("Laurabrod") } else { base.join("laurabrod") }
+    if cfg!(windows) { base.join("Programs").join("LauraBoard") } else { base.join("lauraboard") }
 }
 
-/// Same default as the application uses: `<Documents>/Laurabrod`.
+/// Same default as the application uses: `<Documents>/LauraBoard`.
 pub fn default_project() -> PathBuf {
-    dirs::document_dir().or_else(dirs::home_dir).unwrap_or_else(|| PathBuf::from(".")).join("Laurabrod")
+    dirs::document_dir().or_else(dirs::home_dir).unwrap_or_else(|| PathBuf::from(".")).join("LauraBoard")
 }
 
-/// A folder picked in a dialog gets its own `Laurabrod` subfolder, so the
+/// A folder picked in a dialog gets its own `LauraBoard` subfolder, so the
 /// files never spill into e.g. `C:\Program Files` itself.
 pub fn with_app_folder(picked: PathBuf) -> PathBuf {
-    let named = picked.file_name().is_some_and(|n| n.to_string_lossy().eq_ignore_ascii_case("laurabrod"));
-    if named { picked } else { picked.join("Laurabrod") }
+    let named = picked.file_name().is_some_and(|n| n.to_string_lossy().eq_ignore_ascii_case("lauraboard"));
+    if named { picked } else { picked.join("LauraBoard") }
 }
 
 /// Check an install folder typed by the user: `Ok(note)` or `Err(problem)`.
@@ -68,7 +68,7 @@ pub fn check_dir(text: &str, binary: &str) -> Result<String, String> {
         return Ok("Папка будет создана".into());
     }
     if path.join(binary).exists() {
-        return Ok("Здесь уже установлен Laurabrod — файлы будут заменены".into());
+        return Ok("Здесь уже установлен LauraBoard — файлы будут заменены".into());
     }
     let empty = std::fs::read_dir(path).map(|mut d| d.next().is_none()).unwrap_or(true);
     Ok(if empty {
@@ -85,8 +85,8 @@ mod tests {
     #[test]
     fn picked_folder_gets_app_subfolder() {
         let base = std::env::temp_dir();
-        assert_eq!(with_app_folder(base.clone()), base.join("Laurabrod"));
-        assert_eq!(with_app_folder(base.join("laurabrod")), base.join("laurabrod"));
+        assert_eq!(with_app_folder(base.clone()), base.join("LauraBoard"));
+        assert_eq!(with_app_folder(base.join("lauraboard")), base.join("lauraboard"));
     }
 
     #[test]

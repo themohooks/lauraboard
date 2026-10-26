@@ -12,11 +12,11 @@
 
 ## Установщик
 
-Проще всего поставить Laurabrod установщиком `laurabrod-<версия>-<os>-<arch>-setup` — для Windows (`.exe`) и для Linux. Это мастер в том же стиле Material 3, что и интерфейс программы:
+Проще всего поставить LauraBoard установщиком `lauraboard-<версия>-<os>-<arch>-setup` — для Windows (`.exe`) и для Linux. Это мастер в том же стиле Material 3, что и интерфейс программы:
 
 1. **Приветствие** — что ставится, обновление поверх старой версии, проверка FFmpeg (если его нет — подсказка, как установить).
-2. **Папка** — по умолчанию `%LOCALAPPDATA%\Programs\Laurabrod` или `~/.local/share/laurabrod`. Установка только для текущего пользователя, права администратора не нужны.
-3. **Параметры** — ярлык в меню «Пуск» / меню приложений, ярлык на рабочем столе, команда `laurabrod` в терминале (PATH пользователя на Windows, ссылка в `~/.local/bin` на Linux), папка проекта канала и демо-канал (нужен FFmpeg).
+2. **Папка** — по умолчанию `%LOCALAPPDATA%\Programs\LauraBoard` или `~/.local/share/lauraboard`. Установка только для текущего пользователя, права администратора не нужны.
+3. **Параметры** — ярлык в меню «Пуск» / меню приложений, ярлык на рабочем столе, команда `lauraboard` в терминале (PATH пользователя на Windows, ссылка в `~/.local/bin` на Linux), папка проекта канала и демо-канал (нужен FFmpeg).
 4. **Установка** и **Готово** — с запуском программы.
 
 Удаление: «Параметры → Приложения» на Windows или `uninstall` в папке программы. Удаляется ровно то, что создал установщик (список хранится в `installation.json` рядом с `gui.json`); проекты, медиа и журналы остаются.
@@ -24,7 +24,7 @@
 Без окна (для скриптов и развёртывания):
 
 ```bash
-laurabrod-setup --silent --dir D:\Apps\Laurabrod --project D:\tv --no-desktop
+lauraboard-setup --silent --dir D:\Apps\LauraBoard --project D:\tv --no-desktop
 ```
 
 ```bash
@@ -41,13 +41,13 @@ uninstall --uninstall --silent
 cargo dist
 ```
 
-Результат — `target/dist/laurabrod-<версия>-<os>-<arch>-setup[.exe]`. Установщик собирается для той ОС, на которой запущена команда: Windows-версию собирайте на Windows, Linux-версию — на Linux (нужны те же зависимости, что и для сборки GUI, см. ниже).
+Результат — `target/dist/lauraboard-<версия>-<os>-<arch>-setup[.exe]`. Установщик собирается для той ОС, на которой запущена команда: Windows-версию собирайте на Windows, Linux-версию — на Linux (нужны те же зависимости, что и для сборки GUI, см. ниже).
 
 Как это устроено (крейты `xtask`, `lb-installer`, `lb-winres`):
 
-- `laurabrod-setup` без вложенного архива работает только как деинсталлятор — эта копия кладётся в пакет как `uninstall[.exe]`;
-- программа, деинсталлятор, иконка, README, документация и лицензии упаковываются в zip с `manifest.json` (версия, ОС, размер) и встраиваются в `laurabrod-setup` при сборке (`LB_PAYLOAD`);
-- на Windows оба exe получают иконку и манифест (`asInvoker`, DPI) без Windows SDK; иконка `.ico` генерируется из `crates/lb-gui/assets/app/laurabrod.svg` командой `cargo xtask icons`;
+- `lauraboard-setup` без вложенного архива работает только как деинсталлятор — эта копия кладётся в пакет как `uninstall[.exe]`;
+- программа, деинсталлятор, иконка, README, документация и лицензии упаковываются в zip с `manifest.json` (версия, ОС, размер) и встраиваются в `lauraboard-setup` при сборке (`LB_PAYLOAD`);
+- на Windows оба exe получают иконку и манифест (`asInvoker`, DPI) без Windows SDK; иконка `.ico` генерируется из `crates/lb-gui/assets/app/lauraboard.svg` командой `cargo xtask icons`;
 - страницы мастера можно отрисовать в PNG без экрана: `cargo run -p lb-installer --features snapshot -- --snapshot target/snapshots/setup`.
 
 ## Сборка из исходников
@@ -58,7 +58,7 @@ cargo dist
    ```bash
    winget install Gyan.FFmpeg
    ```
-   Можно скачать сборку с gyan.dev и прописать путь в `laurabrod.toml`:
+   Можно скачать сборку с gyan.dev и прописать путь в `lauraboard.toml`:
    ```toml
    [ffmpeg]
    ffmpeg = "C:/ffmpeg/bin/ffmpeg.exe"
@@ -68,13 +68,13 @@ cargo dist
    ```bash
    cargo build --release
    ```
-   Исполняемый файл появится в `target\release\laurabrod.exe`.
+   Исполняемый файл появится в `target\release\lauraboard.exe`.
 3. Создайте проект и запустите:
    ```bash
-   laurabrod -p D:\tv init --demo
+   lauraboard -p D:\tv init --demo
    ```
    ```bash
-   laurabrod -p D:\tv gui
+   lauraboard -p D:\tv gui
    ```
 
 #### Служба Windows
@@ -82,16 +82,16 @@ cargo dist
 Из командной строки, запущенной от имени администратора:
 
 ```bash
-laurabrod -p D:\tv service install --name laurabrod
+lauraboard -p D:\tv service install --name lauraboard
 ```
 
 Служба запускается автоматически при старте системы и перезапускается при сбое. Удаление:
 
 ```bash
-laurabrod service uninstall --name laurabrod
+lauraboard service uninstall --name lauraboard
 ```
 
-Пока служба работает, подключайтесь к ней из GUI командой `laurabrod -p D:\tv gui`: GUI найдёт работающий API и не станет запускать второй движок.
+Пока служба работает, подключайтесь к ней из GUI командой `lauraboard -p D:\tv gui`: GUI найдёт работающий API и не станет запускать второй движок.
 
 ### Linux
 
@@ -114,29 +114,29 @@ laurabrod service uninstall --name laurabrod
    ```
 4. Создайте проект и запустите:
    ```bash
-   ./target/release/laurabrod -p /srv/tv init --demo
+   ./target/release/lauraboard -p /srv/tv init --demo
    ```
    ```bash
-   ./target/release/laurabrod -p /srv/tv run
+   ./target/release/lauraboard -p /srv/tv run
    ```
 
 #### Сервис systemd
 
 ```bash
-sudo ./target/release/laurabrod -p /srv/tv service install
+sudo ./target/release/lauraboard -p /srv/tv service install
 ```
 
-Команда создаёт `/etc/systemd/system/laurabrod.service`, включает и запускает его. Без прав root unit-файл выводится на экран, установите его вручную:
+Команда создаёт `/etc/systemd/system/lauraboard.service`, включает и запускает его. Без прав root unit-файл выводится на экран, установите его вручную:
 
 ```ini
 [Unit]
-Description=Laurabrod TV playout
+Description=LauraBoard TV playout
 After=network-online.target
 Wants=network-online.target
 
 [Service]
 Type=simple
-ExecStart=/usr/local/bin/laurabrod --project /srv/tv run
+ExecStart=/usr/local/bin/lauraboard --project /srv/tv run
 WorkingDirectory=/srv/tv
 Restart=always
 RestartSec=3
@@ -147,31 +147,31 @@ TimeoutStopSec=20
 WantedBy=multi-user.target
 ```
 
-Логи: `journalctl -u laurabrod -f` и файлы в `<проект>/logs/`.
+Логи: `journalctl -u lauraboard -f` и файлы в `<проект>/logs/`.
 
 ## Перенос между Windows и Linux
 
-Пути к медиа хранятся относительно корня проекта и с прямыми слешами. Каталог проекта (или архив `laurabrod backup`) можно перенести на другую ОС без изменений. Абсолютные пути (`C:/media/...`) после переноса придётся поправить.
+Пути к медиа хранятся относительно корня проекта и с прямыми слешами. Каталог проекта (или архив `lauraboard backup`) можно перенести на другую ОС без изменений. Абсолютные пути (`C:/media/...`) после переноса придётся поправить.
 
 ## Первые шаги после установки
 
 1. Добавьте свои ролики:
    ```bash
-   laurabrod media add D:/video --recursive --category shows
+   lauraboard media add D:/video --recursive --category shows
    ```
 2. Создайте плейлист:
    ```bash
-   laurabrod playlist create day
+   lauraboard playlist create day
    ```
-   Затем добавьте в него ролики командой `laurabrod playlist add day <id...>`.
+   Затем добавьте в него ролики командой `lauraboard playlist add day <id...>`.
 3. Опишите сетку в `channels/<id>/schedule.toml` (см. [configuration.md](configuration.md)) или используйте режим `sequential`.
 4. Пропишите выход в `channel.toml`, например RTMP-сервер или YouTube.
 5. Проверьте настройки:
    ```bash
-   laurabrod validate
+   lauraboard validate
    ```
    Затем посмотрите прогноз эфира:
    ```bash
-   laurabrod plan --hours 12
+   lauraboard plan --hours 12
    ```
-6. Запустите `laurabrod run` или `laurabrod gui`.
+6. Запустите `lauraboard run` или `lauraboard gui`.

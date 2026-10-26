@@ -1,10 +1,10 @@
 //! `cargo dist`: one command from sources to an installer.
 //!
-//! 1. release build of `laurabrod` and of `laurabrod-setup` without payload
+//! 1. release build of `lauraboard` and of `lauraboard-setup` without payload
 //!    (that copy is shipped as the uninstaller);
 //! 2. stage the files and pack them with `manifest.json` into a zip;
-//! 3. rebuild `laurabrod-setup` with the zip embedded (`LB_PAYLOAD`);
-//! 4. `target/dist/laurabrod-<version>-<os>-<arch>-setup[.exe]`
+//! 3. rebuild `lauraboard-setup` with the zip embedded (`LB_PAYLOAD`);
+//! 4. `target/dist/lauraboard-<version>-<os>-<arch>-setup[.exe]`
 //!    (`$CARGO_TARGET_DIR/dist` when that is set).
 //!
 //! Builds for the host OS. `cargo dist --linux` builds the Linux installer
@@ -38,7 +38,7 @@ fn linux_in_docker() -> Result<(), String> {
     let status = Command::new("docker")
         .args(["run", "--rm", "-v"])
         .arg(format!("{}:/src", root.display()))
-        .args(["-v", "laurabrod-cargo-registry:/usr/local/cargo/registry", "-w", "/src", "-e", "CARGO_TARGET_DIR=/src/target/linux"])
+        .args(["-v", "lauraboard-cargo-registry:/usr/local/cargo/registry", "-w", "/src", "-e", "CARGO_TARGET_DIR=/src/target/linux"])
         .args([LINUX_IMAGE, "bash", "-c", &script])
         .env("MSYS_NO_PATHCONV", "1")
         .status()
@@ -59,30 +59,26 @@ fn build() -> Result<(), String> {
     let dist = target.join("dist");
     let stage = dist.join("stage");
 
-    step(1, &format!("сборка Laurabrod {version} ({os}/{arch})"));
-    cargo(&root, &["build", "--release", "-p", "laurabrod", "-p", "lb-installer"], None)?;
+    step(1, &format!("сборка LauraBoard {version} ({os}/{arch})"));
+    cargo(&root, &["build", "--locked", "--release", "-p", "lauraboard", "-p", "lb-installer"], None)?;
 
     step(2, "упаковка");
     let _ = std::fs::remove_dir_all(&stage);
-    let binary = format!("laurabrod{EXE}");
+    let binary = format!("lauraboard{EXE}");
     let uninstaller = format!("uninstall{EXE}");
     let assets = crate::app_assets();
     let gui_assets = root.join("crates/lb-gui/assets");
     let mut files: Vec<(PathBuf, String)> = vec![
         (release.join(&binary), binary.clone()),
-        (release.join(format!("laurabrod-setup{EXE}")), uninstaller.clone()),
-        (assets.join("laurabrod.svg"), "laurabrod.svg".into()),
+        (release.join(format!("lauraboard-setup{EXE}")), uninstaller.clone()),
+        (assets.join("lauraboard.svg"), "lauraboard.svg".into()),
         (root.join("README.md"), "README.md".into()),
         (gui_assets.join("fonts/OFL-Roboto.txt"), "licenses/OFL-Roboto.txt".into()),
         (gui_assets.join("fonts/OFL-RobotoMono.txt"), "licenses/OFL-RobotoMono.txt".into()),
         (gui_assets.join("icons/LICENSE"), "licenses/MaterialSymbols-Apache-2.0.txt".into()),
     ];
-    for doc in std::fs::read_dir(root.join("docs")).map_err(|e| format!("docs: {e}"))?.flatten() {
-        let path = doc.path();
-        if path.extension().is_some_and(|x| x == "md") {
-            files.push((path.clone(), format!("docs/{}", doc.file_name().to_string_lossy())));
-        }
-    }
+    collect_files(&root, &root.join("docs"), &mut files)?;
+    files.sort_by(|a, b| a.1.cmp(&b.1));
     for (src, rel) in &files {
         let dst = stage.join(rel);
         std::fs::create_dir_all(dst.parent().unwrap()).map_err(|e| e.to_string())?;
@@ -91,19 +87,37 @@ fn build() -> Result<(), String> {
     let size: u64 = files.iter().map(|(_, rel)| std::fs::metadata(stage.join(rel)).map(|m| m.len()).unwrap_or(0)).sum();
     let manifest = serde_json::json!({
         "version": version, "os": os, "arch": arch,
-        "binary": binary, "icon": "laurabrod.svg", "uninstaller": uninstaller, "size": size,
+        "binary": binary, "icon": "lauraboard.svg", "uninstaller": uninstaller, "size": size,
     });
     let payload = dist.join(format!("payload-{os}-{arch}.zip"));
     pack(&stage, &files, &manifest, &payload, &[binary.as_str(), uninstaller.as_str()])?;
     println!("    {} файлов, {} → {}", files.len(), mb(size), mb(len(&payload)));
 
     step(3, "сборка установщика с приложением внутри");
-    cargo(&root, &["build", "--release", "-p", "lb-installer"], Some(&payload))?;
-    let out = dist.join(format!("laurabrod-{version}-{os}-{arch}-setup{EXE}"));
-    std::fs::copy(release.join(format!("laurabrod-setup{EXE}")), &out).map_err(|e| format!("{}: {e}", out.display()))?;
+    cargo(&root, &["build", "--locked", "--release", "-p", "lb-installer"], Some(&payload))?;
+    let out = dist.join(format!("lauraboard-{version}-{os}-{arch}-setup{EXE}"));
+    std::fs::copy(release.join(format!("lauraboard-setup{EXE}")), &out).map_err(|e| format!("{}: {e}", out.display()))?;
 
     step(4, "готово");
     println!("    {} ({})", out.display(), mb(len(&out)));
+    Ok(())
+}
+
+/// Keep linked guides and screenshots in offline documentation too.
+fn collect_files(root: &Path, dir: &Path, files: &mut Vec<(PathBuf, String)>) -> Result<(), String> {
+    for entry in std::fs::read_dir(dir).map_err(|e| format!("{}: {e}", dir.display()))? {
+        let entry = entry.map_err(|e| e.to_string())?;
+        let path = entry.path();
+        let kind = entry.file_type().map_err(|e| e.to_string())?;
+        if kind.is_dir() {
+            if entry.file_name() != "__pycache__" {
+                collect_files(root, &path, files)?;
+            }
+        } else if kind.is_file() {
+            let rel = path.strip_prefix(root).map_err(|e| e.to_string())?.to_string_lossy().replace('\\', "/");
+            files.push((path, rel));
+        }
+    }
     Ok(())
 }
 
@@ -119,9 +133,9 @@ fn mb(bytes: u64) -> String {
     format!("{:.1} МБ", bytes as f64 / (1024.0 * 1024.0))
 }
 
-/// Version of the `laurabrod` package.
+/// Version of the `lauraboard` package.
 fn app_version(root: &Path) -> Result<String, String> {
-    let manifest = root.join("crates/laurabrod/Cargo.toml");
+    let manifest = root.join("crates/lauraboard/Cargo.toml");
     let text = std::fs::read_to_string(&manifest).map_err(|e| format!("{}: {e}", manifest.display()))?;
     let doc: toml::Table = text.parse().map_err(|e| format!("{}: {e}", manifest.display()))?;
     doc.get("package")
@@ -158,4 +172,18 @@ fn pack(stage: &Path, files: &[(PathBuf, String)], manifest: &serde_json::Value,
     }
     zip.finish().map_err(err)?;
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn release_documentation_includes_linked_guides_and_screenshots() {
+        let root = crate::root();
+        let mut files = Vec::new();
+        super::collect_files(&root, &root.join("docs"), &mut files).unwrap();
+        for linked in ["docs/guides/first-broadcast.md", "docs/screenshots/interface/clock-properties-light.png"] {
+            assert!(files.iter().any(|(source, name)| name == linked && source.is_file()), "missing offline document: {linked}");
+        }
+        assert!(files.iter().all(|(_, name)| !name.contains('\\')));
+    }
 }

@@ -1,0 +1,29 @@
+name: Set up LauraBoard build environment
+description: Install native GUI dependencies, Rust and the Cargo cache
+inputs:
+  toolchain:
+    description: Rust toolchain
+    default: '1.96.0'
+  cache-key:
+    description: Keep incompatible build modes in separate caches
+    default: ci
+runs:
+  using: composite
+  steps:
+    - name: Install Linux build dependencies
+      if: runner.os == 'Linux'
+      shell: bash
+      run: |
+        sudo apt-get update
+        sudo apt-get install --no-install-recommends -y \
+          build-essential pkg-config libfontconfig-dev libxkbcommon-dev \
+          libxkbcommon-x11-dev libwayland-dev libgl1-mesa-dev libssl-dev
+    - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable
+      with:
+        toolchain: ${{ inputs.toolchain }}
+        components: rustfmt, clippy
+    - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+      with:
+        key: ${{ inputs.cache-key }}
+        cache-on-failure: 'false'
+        save-if: ${{ github.event_name != 'pull_request' }}

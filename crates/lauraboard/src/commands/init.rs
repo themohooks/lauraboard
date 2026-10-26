@@ -16,11 +16,11 @@ pub fn run(ctx: &Ctx, id: &str, demo: bool) -> Result<()> {
         demo::populate(&ctx.root, ch)?;
         ch.save()?;
         println!("demo channel '{id}' configured. Next:");
-        println!("  laurabrod -p {} validate", ctx.root.display());
-        println!("  laurabrod -p {} plan --hours 3", ctx.root.display());
-        println!("  laurabrod -p {} run", ctx.root.display());
+        println!("  lauraboard -p {} validate", ctx.root.display());
+        println!("  lauraboard -p {} plan --hours 3", ctx.root.display());
+        println!("  lauraboard -p {} run", ctx.root.display());
     } else {
-        println!("edit channels/{id}/channel.toml, then add media with `laurabrod media add <files>`");
+        println!("edit channels/{id}/channel.toml, then add media with `lauraboard media add <files>`");
     }
     Ok(())
 }

@@ -80,7 +80,11 @@ pub fn pick(c: &mut Ctx) {
     if id.is_empty() {
         return;
     }
-    let Some(path) = rfd::FileDialog::new().set_title("Аватар канала").add_filter("Изображения", &["png", "jpg", "jpeg", "webp"]).pick_file() else { return };
+    let Some(path) =
+        rfd::FileDialog::new().set_title("Аватар канала").add_filter("Изображения", &["png", "jpg", "jpeg", "webp"]).pick_file()
+    else {
+        return;
+    };
     let bytes = match std::fs::read(&path) {
         Ok(b) => b,
         Err(e) => return c.toast(format!("{}: {e}", path.display()), true),

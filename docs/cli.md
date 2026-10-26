@@ -1,16 +1,16 @@
 # Командная строка
 
 ```
-laurabrod [-p ПРОЕКТ] [-c КАНАЛ] [--token ТОКЕН] [--json] <команда>
+lauraboard [-p ПРОЕКТ] [-c КАНАЛ] [--token ТОКЕН] [--json] <команда>
 ```
 
 Общие параметры (можно задать переменными окружения):
 
 | Параметр | Переменная | Значение |
 |---|---|---|
-| `-p, --project` | `LAURABROD_PROJECT` | каталог проекта (по умолчанию `.`) |
-| `-c, --channel` | `LAURABROD_CHANNEL` | канал (по умолчанию первый) |
-| `--token` | `LAURABROD_TOKEN` | токен API для `ctl` (по умолчанию — токен с наибольшей ролью из конфигурации) |
+| `-p, --project` | `LAURABOARD_PROJECT` | каталог проекта (по умолчанию `.`) |
+| `-c, --channel` | `LAURABOARD_CHANNEL` | канал (по умолчанию первый) |
+| `--token` | `LAURABOARD_TOKEN` | токен API для `ctl` (по умолчанию — токен с наибольшей ролью из конфигурации) |
 | `--json` | | машиночитаемый вывод (где поддерживается) |
 
 ## Команды
@@ -77,17 +77,17 @@ laurabrod [-p ПРОЕКТ] [-c КАНАЛ] [--token ТОКЕН] [--json] <ко�
 ## Примеры для скриптов
 
 ```bash
-laurabrod -p /srv/tv validate --no-media && laurabrod -p /srv/tv ctl reload
+lauraboard -p /srv/tv validate --no-media && lauraboard -p /srv/tv ctl reload
 ```
 
 ```bash
-laurabrod -p /srv/tv ctl var ticker "Срочно: штормовое предупреждение"
+lauraboard -p /srv/tv ctl var ticker "Срочно: штормовое предупреждение"
 ```
 
 ```bash
-laurabrod -p /srv/tv report asrun --from 2026-10-01 --to 2026-10-31 --format csv --out october.csv
+lauraboard -p /srv/tv report asrun --from 2026-10-01 --to 2026-10-31 --format csv --out october.csv
 ```
 
 ```bash
-laurabrod -p /srv/tv --json ctl status
+lauraboard -p /srv/tv --json ctl status
 ```

@@ -1,6 +1,6 @@
 #[derive(Debug, thiserror::Error)]
 pub enum MediaError {
-    #[error("failed to start '{program}': {source} (is FFmpeg installed and configured in laurabrod.toml?)")]
+    #[error("failed to start '{program}': {source} (is FFmpeg installed and configured in lauraboard.toml?)")]
     Spawn {
         program: String,
         #[source]

@@ -6,8 +6,8 @@ use slint::{CloseRequestResponse, ComponentHandle};
 
 use crate::GuiOptions;
 use crate::bridge;
-use crate::single;
 use crate::prefs::UiPrefs;
+use crate::single;
 use crate::tray::{self, TrayAction};
 
 slint::include_modules!();

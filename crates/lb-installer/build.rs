@@ -16,7 +16,7 @@ fn main() {
         .with_library_paths(HashMap::from([("m3".to_string(), shared)]));
     slint_build::compile_with_config("ui/installer.slint", config).expect("Slint UI failed to compile");
 
-    lb_winres::embed(&manifest.join("../lb-gui/assets/app/laurabrod.ico"));
+    lb_winres::embed(&manifest.join("../lb-gui/assets/app/lauraboard.ico"));
 
     println!("cargo:rerun-if-env-changed=LB_PAYLOAD");
     let out = PathBuf::from(std::env::var("OUT_DIR").unwrap()).join("payload.zip");

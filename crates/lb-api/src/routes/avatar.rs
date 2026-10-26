@@ -28,7 +28,10 @@ pub async fn put(State(s): State<AppState>, c: Caller, Path(id): Path<String>, b
     c.require(Role::Admin)?;
     let h = channel(&s, &id)?;
     let dir = h.read(|d| d.dir.clone());
-    tokio::task::spawn_blocking(move || avatar::save(&dir, &body)).await.map_err(|e| ApiError::bad_request(e.to_string()))?.map_err(ApiError::bad_request)?;
+    tokio::task::spawn_blocking(move || avatar::save(&dir, &body))
+        .await
+        .map_err(|e| ApiError::bad_request(e.to_string()))?
+        .map_err(ApiError::bad_request)?;
     Ok(Json(json!({ "avatar": h.status().avatar })))
 }
 

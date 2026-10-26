@@ -144,7 +144,16 @@ fn create() -> Result<Popup, String> {
             }
         })
     });
-    Ok(Popup { win, model, cards: Vec::new(), next_id: 0, hovered: None, timer: slint::Timer::default(), visible: false, shown_once: false })
+    Ok(Popup {
+        win,
+        model,
+        cards: Vec::new(),
+        next_id: 0,
+        hovered: None,
+        timer: slint::Timer::default(),
+        visible: false,
+        shown_once: false,
+    })
 }
 
 fn with(f: impl FnOnce(&mut Popup)) {

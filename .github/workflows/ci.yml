@@ -1,0 +1,119 @@
+name: CI
+on:
+  push:
+    branches: ['**']
+  pull_request:
+  workflow_dispatch:
+  workflow_call:
+permissions:
+  contents: read
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: '1'
+  CARGO_INCREMENTAL: '0'
+jobs:
+  quality:
+    name: Format, Clippy and workflow validation
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+        with:
+          cache-key: quality
+      - run: cargo fmt --all -- --check
+      - run: cargo clippy --workspace --all-targets --all-features --locked
+      - run: python3 -m unittest discover -s .github/scripts -p 'test_*.py' -v
+      - name: Validate Actions workflows
+        run: |
+          go install github.com/rhysd/actionlint/cmd/actionlint@v1.7.12
+          "$(go env GOPATH)/bin/actionlint" -color
+  test:
+    name: Tests (${{ matrix.os }}, ${{ matrix.mode }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            mode: desktop
+          - os: windows-2022
+            mode: desktop
+          - os: ubuntu-24.04-arm
+            mode: desktop
+          - os: windows-11-arm
+            mode: desktop
+          - os: macos-15-intel
+            mode: server
+          - os: macos-15
+            mode: server
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+        with:
+          cache-key: test-${{ matrix.mode }}
+      - name: Test desktop workspace
+        if: matrix.mode == 'desktop'
+        run: cargo test --workspace --locked
+      - name: Test server without desktop dependencies
+        if: matrix.mode == 'server'
+        run: >-
+          cargo test --locked --no-default-features
+          -p lauraboard -p lb-core -p lb-engine -p lb-api -p lb-media -p lb-gfx -p lb-winres -p xtask
+      - name: Check CLI without GUI
+        run: cargo check --locked -p lauraboard --no-default-features
+  msrv:
+    name: Minimum Rust 1.92 (server)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+        with:
+          toolchain: '1.92.0'
+          cache-key: msrv
+      - run: cargo check --locked -p lauraboard --no-default-features
+  media:
+    name: FFmpeg integration
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+        with:
+          cache-key: media
+      - name: Install FFmpeg
+        run: |
+          sudo apt-get install --no-install-recommends -y ffmpeg
+          ffmpeg -version
+          ffprobe -version
+      - run: cargo test --locked -p lb-media --test av_sync -- --ignored --test-threads=1
+      - run: cargo test --locked -p lb-engine --test broadcast_bookends -- --ignored --test-threads=1
+  status:
+    name: CI passed
+    if: always()
+    needs: [quality, test, msrv, media]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Require every CI job to succeed
+        env:
+          RESULTS: ${{ toJSON(needs) }}
+        run: |
+          python3 - <<'PY'
+          import json, os
+          results = json.loads(os.environ['RESULTS'])
+          assert all(job['result'] == 'success' for job in results.values()), results
+          PY

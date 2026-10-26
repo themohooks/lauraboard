@@ -63,7 +63,8 @@ pub fn segments(plan: &Rundown, day: NaiveDate, now: Option<WallTime>) -> Vec<Se
             kind: dominant(group).into(),
             block_id: block_id_of(first),
             gap: false,
-            conflict: warn_at.iter().any(|&w| w >= start && w < end) && group.iter().any(|i| i.fixed_deviation_ms().is_some_and(|d| d != 0)),
+            conflict: warn_at.iter().any(|&w| w >= start && w < end)
+                && group.iter().any(|i| i.fixed_deviation_ms().is_some_and(|d| d != 0)),
             current: now_m.is_some_and(|n| n >= start && n < end),
         });
         group.clear();
@@ -177,7 +178,12 @@ mod tests {
     fn groups_blocks_and_gaps() {
         let day = NaiveDate::from_ymd_opt(2026, 10, 21).unwrap();
         let plan = Rundown {
-            items: vec![item("a", 9, 0, 600, false), item("a", 9, 10, 600, false), item("a", 9, 20, 300, true), item("b", 9, 25, 300, false)],
+            items: vec![
+                item("a", 9, 0, 600, false),
+                item("a", 9, 10, 600, false),
+                item("a", 9, 20, 300, true),
+                item("b", 9, 25, 300, false),
+            ],
             ..Default::default()
         };
         let now = day.and_hms_opt(9, 12, 0);

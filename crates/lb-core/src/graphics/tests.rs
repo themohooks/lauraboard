@@ -75,7 +75,8 @@ fn logo_hidden_on_ads() {
     let manual = HashMap::new();
     let prog = item(MediaKind::Program, "news");
     let ad = item(MediaKind::Ad, "ads");
-    let ctx = |i| GfxContext { now: now(), item: Some(i), elapsed_ms: 1000, remaining_ms: 1000, profile: None, manual: &manual, vars: None };
+    let ctx =
+        |i| GfxContext { now: now(), item: Some(i), elapsed_ms: 1000, remaining_ms: 1000, profile: None, manual: &manual, vars: None };
     assert_eq!(evaluate(&cfg, &ctx(&prog)).len(), 1);
     assert_eq!(evaluate(&cfg, &ctx(&ad)).len(), 0);
 }
@@ -89,7 +90,10 @@ fn timing_after_start_and_before_end() {
     let manual = HashMap::new();
     let it = item(MediaKind::Program, "x");
     let at = |e, rem| {
-        evaluate(&cfg, &GfxContext { now: now(), item: Some(&it), elapsed_ms: e, remaining_ms: rem, profile: None, manual: &manual, vars: None })
+        evaluate(
+            &cfg,
+            &GfxContext { now: now(), item: Some(&it), elapsed_ms: e, remaining_ms: rem, profile: None, manual: &manual, vars: None },
+        )
     };
     assert!(at(5_000, 500_000).is_empty());
     let a = at(12_000, 500_000);
@@ -108,11 +112,17 @@ fn exclusive_layer_and_manual() {
     };
     let mut manual = HashMap::new();
     let it = item(MediaKind::Program, "x");
-    let r = evaluate(&cfg, &GfxContext { now: now(), item: Some(&it), elapsed_ms: 0, remaining_ms: 1, profile: None, manual: &manual, vars: None });
+    let r = evaluate(
+        &cfg,
+        &GfxContext { now: now(), item: Some(&it), elapsed_ms: 0, remaining_ms: 1, profile: None, manual: &manual, vars: None },
+    );
     assert_eq!(r.iter().map(|a| a.element.as_str()).collect::<Vec<_>>(), ["b"]);
     manual.insert("b".to_string(), Manual::Hide);
     manual.insert("c".to_string(), Manual::Show);
-    let r = evaluate(&cfg, &GfxContext { now: now(), item: Some(&it), elapsed_ms: 0, remaining_ms: 1, profile: None, manual: &manual, vars: None });
+    let r = evaluate(
+        &cfg,
+        &GfxContext { now: now(), item: Some(&it), elapsed_ms: 0, remaining_ms: 1, profile: None, manual: &manual, vars: None },
+    );
     assert_eq!(r.iter().map(|a| a.element.as_str()).collect::<Vec<_>>(), ["c", "a"]);
 }
 
@@ -123,7 +133,8 @@ fn absolute_time_rule() {
     r.timing.duration = Some(Dur::mins(2));
     let cfg = GraphicsConfig { layers: vec![], elements: vec![el("a", 0)], rules: vec![r], vars: Default::default() };
     let manual = HashMap::new();
-    let r = evaluate(&cfg, &GfxContext { now: now(), item: None, elapsed_ms: 0, remaining_ms: 0, profile: None, manual: &manual, vars: None });
+    let r =
+        evaluate(&cfg, &GfxContext { now: now(), item: None, elapsed_ms: 0, remaining_ms: 0, profile: None, manual: &manual, vars: None });
     assert_eq!(r.len(), 1);
     assert_eq!(r[0].shown_ms, 60_000);
 }
@@ -144,8 +155,12 @@ fn last_window_for_next_up_plate() {
     let cfg = GraphicsConfig { layers: vec![], elements: vec![el("n", 0)], rules: vec![r], vars: Default::default() };
     let manual = HashMap::new();
     let it = item(MediaKind::Program, "x");
-    let at =
-        |rem| evaluate(&cfg, &GfxContext { now: now(), item: Some(&it), elapsed_ms: 0, remaining_ms: rem, profile: None, manual: &manual, vars: None });
+    let at = |rem| {
+        evaluate(
+            &cfg,
+            &GfxContext { now: now(), item: Some(&it), elapsed_ms: 0, remaining_ms: rem, profile: None, manual: &manual, vars: None },
+        )
+    };
     assert!(at(40_000).is_empty());
     let a = at(20_000);
     assert_eq!(a.len(), 1);
@@ -195,7 +210,15 @@ fn empty_text_hides_the_plate() {
     let manual = HashMap::new();
     let it = item(MediaKind::Program, "news");
     let shown = |vars: &HashMap<String, String>| {
-        let ctx = GfxContext { now: now(), item: Some(&it), elapsed_ms: 1000, remaining_ms: 1000, profile: None, manual: &manual, vars: Some(vars) };
+        let ctx = GfxContext {
+            now: now(),
+            item: Some(&it),
+            elapsed_ms: 1000,
+            remaining_ms: 1000,
+            profile: None,
+            manual: &manual,
+            vars: Some(vars),
+        };
         evaluate(&cfg, &ctx).len()
     };
     assert_eq!(shown(&HashMap::new()), 0);
@@ -213,7 +236,9 @@ fn switched_off_layer_shows_nothing_by_rules() {
     };
     let mut manual = HashMap::new();
     let it = item(MediaKind::Program, "x");
-    let ctx = |m: &HashMap<String, Manual>| evaluate(&cfg, &GfxContext { now: now(), item: Some(&it), elapsed_ms: 0, remaining_ms: 1, profile: None, manual: m, vars: None });
+    let ctx = |m: &HashMap<String, Manual>| {
+        evaluate(&cfg, &GfxContext { now: now(), item: Some(&it), elapsed_ms: 0, remaining_ms: 1, profile: None, manual: m, vars: None })
+    };
     assert_eq!(ctx(&manual).iter().map(|a| a.element.as_str()).collect::<Vec<_>>(), ["b"]);
     manual.insert("a".to_string(), Manual::Show);
     assert_eq!(ctx(&manual).len(), 2, "a manual show still works");

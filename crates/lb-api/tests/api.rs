@@ -67,8 +67,11 @@ async fn graphic_commands_immediately_publish_the_new_state() {
     let (status, body) = call(&app, "PUT", "/api/v1/channels/main/graphics", None, Some(graphics)).await;
     assert_eq!(status, StatusCode::OK, "{body}");
     for (command, visible) in [("hide", false), ("show", true), ("auto", true)] {
-        let body = if command == "auto" { r#"{"cmd":"graphic_auto","element":"logo"}"#.to_string() }
-            else { format!(r#"{{"cmd":"graphic","element":"logo","action":"{command}"}}"#) };
+        let body = if command == "auto" {
+            r#"{"cmd":"graphic_auto","element":"logo"}"#.to_string()
+        } else {
+            format!(r#"{{"cmd":"graphic","element":"logo","action":"{command}"}}"#)
+        };
         let (status, response) = call(&app, "POST", "/api/v1/channels/main/command", None, Some(&body)).await;
         assert_eq!(status, StatusCode::OK, "{response}");
         let (_, response) = call(&app, "GET", "/api/v1/channels/main/status", None, None).await;
@@ -156,7 +159,8 @@ async fn plan_with_draft_documents() {
     let (st, body) = call(&app, "POST", "/api/v1/channels/main/plan", None, Some(r#"{"hours":2}"#)).await;
     assert_eq!(st, StatusCode::OK, "{body}");
     assert!(body.contains("\"items\""), "{body}");
-    let (st, body) = call(&app, "POST", "/api/v1/channels/main/plan", None, Some(r#"{"from":"2030-01-01T10:00:00","hours":1,"rules":{}}"#)).await;
+    let (st, body) =
+        call(&app, "POST", "/api/v1/channels/main/plan", None, Some(r#"{"from":"2030-01-01T10:00:00","hours":1,"rules":{}}"#)).await;
     assert_eq!(st, StatusCode::OK, "{body}");
     // a malformed draft is rejected, never stored
     let (st, _) = call(&app, "POST", "/api/v1/channels/main/plan", None, Some(r#"{"rules":{"rules":"nope"}}"#)).await;
@@ -164,7 +168,8 @@ async fn plan_with_draft_documents() {
 }
 
 async fn call_bytes(app: &axum::Router, method: &str, uri: &str, body: &str) -> (StatusCode, Vec<u8>) {
-    let req = Request::builder().method(method).uri(uri).header("content-type", "application/json").body(Body::from(body.to_string())).unwrap();
+    let req =
+        Request::builder().method(method).uri(uri).header("content-type", "application/json").body(Body::from(body.to_string())).unwrap();
     let res = app.clone().oneshot(req).await.unwrap();
     let status = res.status();
     (status, axum::body::to_bytes(res.into_body(), 16 << 20).await.unwrap().to_vec())
@@ -184,7 +189,9 @@ async fn graphics_render_draws_the_draft() {
     assert_eq!(img.get_pixel(5, 5).0, [255, 0, 0, 255]);
     assert_eq!(img.get_pixel(470, 260).0[3], 0);
     // half-way through a fade-in the plate is partly transparent
-    let cfg = cfg.replace(r#""width":480"#, r#""width":480,"t_ms":250"#).replace(r#""y":0}"#, r#""y":0},"animation":{"in":"fade","duration":"500ms"}"#);
+    let cfg = cfg
+        .replace(r#""width":480"#, r#""width":480,"t_ms":250"#)
+        .replace(r#""y":0}"#, r#""y":0},"animation":{"in":"fade","duration":"500ms"}"#);
     let (st, png) = call_bytes(&app, "POST", "/api/v1/channels/main/graphics/render", &cfg).await;
     assert_eq!(st, StatusCode::OK, "{}", String::from_utf8_lossy(&png));
     let a = image::load_from_memory(&png).unwrap().to_rgba8().get_pixel(5, 5).0[3];
@@ -200,7 +207,18 @@ async fn media_thumbnails() {
     assert_eq!(call(&app, "GET", "/api/v1/channels/main/media/zzz/thumb.jpg", None, None).await.0, StatusCode::NOT_FOUND);
     std::fs::create_dir_all(dir.path().join("media")).unwrap();
     let ok = std::process::Command::new("ffmpeg")
-        .args(["-hide_banner", "-loglevel", "error", "-y", "-f", "lavfi", "-i", "testsrc=size=640x360:rate=25:duration=2", "-pix_fmt", "yuv420p"])
+        .args([
+            "-hide_banner",
+            "-loglevel",
+            "error",
+            "-y",
+            "-f",
+            "lavfi",
+            "-i",
+            "testsrc=size=640x360:rate=25:duration=2",
+            "-pix_fmt",
+            "yuv420p",
+        ])
         .arg(dir.path().join("media/a.mp4"))
         .status()
         .is_ok_and(|s| s.success());
@@ -280,7 +298,9 @@ async fn media_copies_and_folders() {
 
     let (_, body) = call(&app, "GET", "/api/v1/channels/main/media/folders", None, None).await;
     assert_eq!(body, r#"["Графика","Графика/Логотипы"]"#);
-    let (st, body) = call(&app, "POST", "/api/v1/channels/main/media/folders", None, Some(r#"{"op":"rename","path":"Графика","to":"Оформление"}"#)).await;
+    let (st, body) =
+        call(&app, "POST", "/api/v1/channels/main/media/folders", None, Some(r#"{"op":"rename","path":"Графика","to":"Оформление"}"#))
+            .await;
     assert_eq!(st, StatusCode::OK, "{body}");
     assert_eq!(body, r#"["Оформление","Оформление/Логотипы"]"#);
 

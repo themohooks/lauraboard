@@ -28,16 +28,16 @@ component Fact inherits HorizontalLayout {
 }
 
 export component RemovePage inherits WizardPage {
-    title: Setup.mode == SetupMode.missing ? "Laurabrod не установлен" : "Удалить Laurabrod \{Setup.installed-version}?";
+    title: Setup.mode == SetupMode.missing ? "LauraBoard не установлен" : "Удалить LauraBoard \{Setup.installed-version}?";
     text: Setup.mode == SetupMode.missing
-        ? "Сведения об установке не найдены — удалять нечего. Чтобы установить программу, запустите установщик laurabrod-setup."
+        ? "Сведения об установке не найдены — удалять нечего. Чтобы установить программу, запустите установщик lauraboard-setup."
         : "Папка: \{Setup.installed-dir}";
 
     if Setup.mode == SetupMode.uninstall: Card {
         card-style: low;
         Fact {
             icon: Icons.delete;
-            text: "Будут удалены программа, ярлыки, команда laurabrod и запись в списке приложений.";
+            text: "Будут удалены программа, ярлыки, команда lauraboard и запись в списке приложений.";
         }
         if !Setup.remove-data: Fact {
             icon: Icons.check-circle;

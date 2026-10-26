@@ -37,17 +37,17 @@ fn quiet(cmd: &str, args: &[&str]) {
     let _ = Command::new(cmd).args(args).stdin(Stdio::null()).stdout(Stdio::null()).stderr(Stdio::null()).status();
 }
 
-/// Applications menu: `~/.local/share/applications/laurabrod.desktop` plus
+/// Applications menu: `~/.local/share/applications/lauraboard.desktop` plus
 /// the icon in the hicolor theme.
 pub fn menu_shortcut(binary: &Path, icon: &Path) -> Result<Vec<PathBuf>, String> {
     let data = data_dir()?;
-    let icon_file = data.join("icons/hicolor/scalable/apps/laurabrod.svg");
+    let icon_file = data.join("icons/hicolor/scalable/apps/lauraboard.svg");
     if let Some(dir) = icon_file.parent() {
         std::fs::create_dir_all(dir).map_err(|e| format!("{}: {e}", dir.display()))?;
     }
     std::fs::copy(icon, &icon_file).map_err(|e| format!("{}: {e}", icon_file.display()))?;
-    let entry = data.join("applications/laurabrod.desktop");
-    write(&entry, &desktop_entry(binary, "laurabrod"), false)?;
+    let entry = data.join("applications/lauraboard.desktop");
+    write(&entry, &desktop_entry(binary, "lauraboard"), false)?;
     let apps = entry.parent().unwrap_or(&data).display().to_string();
     quiet("update-desktop-database", &[&apps]);
     Ok(vec![entry, icon_file])
@@ -56,21 +56,20 @@ pub fn menu_shortcut(binary: &Path, icon: &Path) -> Result<Vec<PathBuf>, String>
 /// Launcher on the desktop (marked trusted where GNOME supports it).
 pub fn desktop_shortcut(binary: &Path, icon: &Path) -> Result<Vec<PathBuf>, String> {
     // without xdg-user-dirs configured, fall back to ~/Desktop if it exists
-    let dir = dirs::desktop_dir()
-        .or_else(|| dirs::home_dir().map(|h| h.join("Desktop")).filter(|d| d.is_dir()))
-        .ok_or("нет рабочего стола")?;
-    let entry = dir.join("laurabrod.desktop");
+    let dir =
+        dirs::desktop_dir().or_else(|| dirs::home_dir().map(|h| h.join("Desktop")).filter(|d| d.is_dir())).ok_or("нет рабочего стола")?;
+    let entry = dir.join("lauraboard.desktop");
     write(&entry, &desktop_entry(binary, &icon.display().to_string()), true)?;
     quiet("gio", &["set", &entry.display().to_string(), "metadata::trusted", "true"]);
     Ok(vec![entry])
 }
 
-/// `~/.local/bin/laurabrod` → the installed binary (that directory is on the
+/// `~/.local/bin/lauraboard` → the installed binary (that directory is on the
 /// PATH in most distributions).
 pub fn add_to_path(_dir: &Path, binary: &Path) -> Result<PathChange, String> {
     let bin = dirs::home_dir().ok_or("нет домашнего каталога")?.join(".local/bin");
     std::fs::create_dir_all(&bin).map_err(|e| format!("{}: {e}", bin.display()))?;
-    let link = bin.join("laurabrod");
+    let link = bin.join("lauraboard");
     if let Ok(meta) = std::fs::symlink_metadata(&link) {
         if !meta.file_type().is_symlink() {
             return Err(format!("{} уже существует и это не ссылка", link.display()));

@@ -11,12 +11,12 @@ use slint::{ComponentHandle, Model, SharedString, VecModel};
 use lb_core::media::{MediaItem, MediaKind};
 use lb_core::playlist::PlaylistEntry;
 
+use super::folders;
 use super::{Ctx, thumbs, vec_model, with};
 use crate::fmt::{KINDS, hms, kind_id};
 use crate::logic::filter::{self, MediaFilter, SortKey};
 use crate::net::Msg;
 use crate::shell::{AppWindow, Lib, MediaEdit, MediaRow, TileLine};
-use super::folders;
 
 #[derive(Default)]
 pub struct LibraryState {
@@ -352,9 +352,12 @@ fn row_action(c: &mut Ctx, row: i32, action: &str) {
     match action {
         "edit" => open_edit(c, row),
         "queue" => c.command(json!({ "cmd": "queue", "media": id })),
-        "play-now" => c.ask("Показать сейчас?", &format!("Текущий элемент будет прерван, в эфир пойдёт «{title}»."), "Показать сейчас", move |c| {
-            c.command(json!({ "cmd": "play_now", "media": id }))
-        }),
+        "play-now" => c.ask(
+            "Показать сейчас?",
+            &format!("Текущий элемент будет прерван, в эфир пойдёт «{title}»."),
+            "Показать сейчас",
+            move |c| c.command(json!({ "cmd": "play_now", "media": id })),
+        ),
         "add-to-open-playlist" => {
             if c.pl.is_open() {
                 super::playlists::append(c, &id);
@@ -399,8 +402,7 @@ fn delete_ids(c: &mut Ctx, ids: Vec<String>) {
 }
 
 fn bulk(c: &mut Ctx, action: &str, arg: i32) {
-    let ids: Vec<String> =
-        c.lib.shown.iter().map(|&i| c.model.library[i].id.clone()).filter(|id| c.lib.checked.contains(id)).collect();
+    let ids: Vec<String> = c.lib.shown.iter().map(|&i| c.model.library[i].id.clone()).filter(|id| c.lib.checked.contains(id)).collect();
     if ids.is_empty() {
         return;
     }
@@ -427,10 +429,14 @@ fn bulk(c: &mut Ctx, action: &str, arg: i32) {
         }
         "enable" | "disable" => {
             let on = action == "enable";
-            let items: Vec<MediaItem> = ids.iter().filter_map(|id| item(c, id)).map(|mut m| {
-                m.enabled = on;
-                m
-            }).collect();
+            let items: Vec<MediaItem> = ids
+                .iter()
+                .filter_map(|id| item(c, id))
+                .map(|mut m| {
+                    m.enabled = on;
+                    m
+                })
+                .collect();
             c.change(move |api| {
                 for m in &items {
                     api.put(&format!("/channels/{ch}/media/{}", m.id), m)?;
@@ -451,10 +457,14 @@ fn bulk(c: &mut Ctx, action: &str, arg: i32) {
         }
         "kind" => {
             let Some(k) = KINDS.get(arg as usize).copied() else { return };
-            let items: Vec<MediaItem> = ids.iter().filter_map(|id| item(c, id)).map(|mut m| {
-                m.kind = k;
-                m
-            }).collect();
+            let items: Vec<MediaItem> = ids
+                .iter()
+                .filter_map(|id| item(c, id))
+                .map(|mut m| {
+                    m.kind = k;
+                    m
+                })
+                .collect();
             c.change(move |api| {
                 for m in &items {
                     api.put(&format!("/channels/{ch}/media/{}", m.id), m)?;
@@ -466,7 +476,9 @@ fn bulk(c: &mut Ctx, action: &str, arg: i32) {
             let n = ids.len();
             c.ask(
                 "Удалить выбранные ролики?",
-                &format!("Из медиатеки будет удалено элементов: {n}. Копии в хранилище канала удаляются, остальные файлы на диске останутся."),
+                &format!(
+                    "Из медиатеки будет удалено элементов: {n}. Копии в хранилище канала удаляются, остальные файлы на диске останутся."
+                ),
                 "Удалить",
                 move |c| delete_ids(c, ids),
             );
@@ -476,8 +488,10 @@ fn bulk(c: &mut Ctx, action: &str, arg: i32) {
 }
 
 /// Extensions offered by the file picker (the server probes the rest).
-const MEDIA_EXT: &[&str] =
-    &["mp4", "mov", "mkv", "avi", "ts", "mts", "m2ts", "mxf", "webm", "flv", "wmv", "mpg", "mpeg", "m4v", "mp3", "wav", "aac", "flac", "m4a", "ogg"];
+const MEDIA_EXT: &[&str] = &[
+    "mp4", "mov", "mkv", "avi", "ts", "mts", "m2ts", "mxf", "webm", "flv", "wmv", "mpg", "mpeg", "m4v", "mp3", "wav", "aac", "flac", "m4a",
+    "ogg",
+];
 
 /// Several picked files share the path field.
 const PATH_SEP: &str = "; ";
@@ -524,8 +538,10 @@ fn do_import(c: &mut Ctx) {
                 }
                 Ok(r) => {
                     let added = r["added"].as_array().map(|a| a.len()).unwrap_or(0);
-                    let errors: Vec<String> =
-                        r["errors"].as_array().map(|a| a.iter().filter_map(|e| e.as_str().map(str::to_string)).collect()).unwrap_or_default();
+                    let errors: Vec<String> = r["errors"]
+                        .as_array()
+                        .map(|a| a.iter().filter_map(|e| e.as_str().map(str::to_string)).collect())
+                        .unwrap_or_default();
                     if added == 0 && !errors.is_empty() {
                         c.toast(format!("Импорт не выполнен: {}", errors.join("; ")), true);
                         return;

@@ -1,4 +1,4 @@
-//! `laurabrod-setup` — installer and uninstaller of Laurabrod.
+//! `lauraboard-setup` — installer and uninstaller of LauraBoard.
 //!
 //! * with the application packed inside (`cargo dist`): installs or updates;
 //! * without it (the copy shipped as `uninstall`) or with `--uninstall`:
@@ -30,7 +30,7 @@ use options::Options;
 use receipt::Receipt;
 
 #[derive(Parser, Debug)]
-#[command(name = "laurabrod-setup", version, about = "Установка и удаление Laurabrod")]
+#[command(name = "lauraboard-setup", version, about = "Установка и удаление LauraBoard")]
 struct Args {
     /// Remove the installed application.
     #[arg(long)]
@@ -47,7 +47,7 @@ struct Args {
     /// No desktop shortcut.
     #[arg(long)]
     no_desktop: bool,
-    /// Do not put `laurabrod` on the PATH.
+    /// Do not put `lauraboard` on the PATH.
     #[arg(long)]
     no_path: bool,
     /// Project to create (if missing) and open from shortcuts.
@@ -92,7 +92,7 @@ fn main() -> ExitCode {
         Err(e) => {
             eprintln!("ошибка: {e}");
             if !args.silent {
-                rfd::MessageDialog::new().set_level(rfd::MessageLevel::Error).set_title("Laurabrod").set_description(&e).show();
+                rfd::MessageDialog::new().set_level(rfd::MessageLevel::Error).set_title("LauraBoard").set_description(&e).show();
             }
             ExitCode::FAILURE
         }
@@ -117,7 +117,7 @@ fn silent(args: &Args) -> Result<(), String> {
         }
     };
     let warnings = if args.uninstall || !payload::present() {
-        let r = Receipt::load().ok_or("Laurabrod не установлен")?;
+        let r = Receipt::load().ok_or("LauraBoard не установлен")?;
         let data = if args.remove_data { project::remembered() } else { None };
         uninstall::uninstall(&r, args.forget_settings, data.as_deref(), &mut report)?
     } else {

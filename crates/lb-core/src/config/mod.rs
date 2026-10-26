@@ -1,6 +1,6 @@
 //! Configuration files.
 //!
-//! * [`app`] — system settings (`laurabrod.toml`): FFmpeg, API, logging
+//! * [`app`] — system settings (`lauraboard.toml`): FFmpeg, API, logging
 //! * [`channel`] — per-channel settings (`channel.toml`): video/audio format,
 //!   encoder, outputs, preview, fallback, planning
 //! * [`record`] — recording of the broadcast to files

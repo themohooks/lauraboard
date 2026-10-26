@@ -333,7 +333,9 @@ where
                 Trigger::AfterMedia { items } => items.iter().any(|i| i == &m.id),
                 Trigger::AfterPlaylist { playlist } => pass_end.is_some_and(|p| p.eq_ignore_ascii_case(playlist)),
                 Trigger::AtTimes { .. } | Trigger::Hourly { .. } => {
-                    if r.time_conflict == crate::rules::TimeConflict::Truncate { return false; }
+                    if r.time_conflict == crate::rules::TimeConflict::Truncate {
+                        return false;
+                    }
                     // a time right at the block start counts for this block
                     let since = last_fired
                         .get(&r.id)

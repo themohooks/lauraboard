@@ -1,5 +1,5 @@
 //! What an installation created, so the uninstaller removes exactly that
-//! and nothing else (`<config dir>/laurabrod/installation.json`).
+//! and nothing else (`<config dir>/lauraboard/installation.json`).
 
 use std::path::{Path, PathBuf};
 
@@ -20,9 +20,9 @@ pub struct Receipt {
     pub registered: bool,
 }
 
-/// `<config dir>/laurabrod` — shared with the application.
+/// `<config dir>/lauraboard` — shared with the application.
 pub fn config_dir() -> Option<PathBuf> {
-    Some(dirs::config_dir()?.join("laurabrod"))
+    Some(dirs::config_dir()?.join("lauraboard"))
 }
 
 fn path() -> Option<PathBuf> {

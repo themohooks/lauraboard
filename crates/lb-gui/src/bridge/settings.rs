@@ -107,15 +107,20 @@ pub fn connect(ui: &AppWindow) {
     });
     g.on_reset_all(|| {
         with(|c| {
-            c.ask("Сбросить все настройки?", "Тема, масштаб, плотность, анимации и компоновка вернутся к исходным.", "Сбросить", |c| {
-                let section = c.prefs.section.clone();
-                let persist = c.prefs.persist;
-                c.prefs = UiPrefs { section, persist, ..UiPrefs::default() };
-                reset_layout(c);
-                saved(c);
-                super::shell::apply_scale(c);
-                c.toast("Настройки сброшены", false);
-            })
+            c.ask(
+                "Сбросить все настройки?",
+                "Тема, масштаб, плотность, анимации и компоновка вернутся к исходным.",
+                "Сбросить",
+                |c| {
+                    let section = c.prefs.section.clone();
+                    let persist = c.prefs.persist;
+                    c.prefs = UiPrefs { section, persist, ..UiPrefs::default() };
+                    reset_layout(c);
+                    saved(c);
+                    super::shell::apply_scale(c);
+                    c.toast("Настройки сброшены", false);
+                },
+            )
         })
     });
 }
@@ -155,7 +160,12 @@ pub fn opened(c: &mut Ctx) {
             let v: Result<serde_json::Value, String> = api.get("/version");
             Ok(Msg::Apply(Box::new(move |c: &mut Ctx| {
                 c.settings.server_version = Some(match v {
-                    Ok(v) => format!("{} {} (API v{})", v["name"].as_str().unwrap_or("laurabrod"), v["version"].as_str().unwrap_or("?"), v["api"]),
+                    Ok(v) => format!(
+                        "{} {} (API v{})",
+                        v["name"].as_str().unwrap_or("lauraboard"),
+                        v["version"].as_str().unwrap_or("?"),
+                        v["api"]
+                    ),
                     Err(e) => format!("недоступна: {e}"),
                 });
                 show(c);

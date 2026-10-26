@@ -14,11 +14,16 @@ use crate::net::poller::decode_jpeg;
 use crate::shell::{AppWindow, Lib};
 
 /// Aspect presets offered first (value, label); `None` = from the file.
-const ASPECTS: &[(Option<&str>, &str)] =
-    &[(None, "Как в файле"), (Some("4:3"), "4:3"), (Some("16:9"), "16:9"), (Some("1.85"), "1.85:1"), (Some("2.35"), "2.35:1"), (Some("1:1"), "1:1")];
+const ASPECTS: &[(Option<&str>, &str)] = &[
+    (None, "Как в файле"),
+    (Some("4:3"), "4:3"),
+    (Some("16:9"), "16:9"),
+    (Some("1.85"), "1.85:1"),
+    (Some("2.35"), "2.35:1"),
+    (Some("1:1"), "1:1"),
+];
 
-const SCALES: &[Option<ScaleMode>] =
-    &[None, Some(ScaleMode::Fit), Some(ScaleMode::Fill), Some(ScaleMode::Stretch), Some(ScaleMode::Blur)];
+const SCALES: &[Option<ScaleMode>] = &[None, Some(ScaleMode::Fit), Some(ScaleMode::Fill), Some(ScaleMode::Stretch), Some(ScaleMode::Blur)];
 const ROTATIONS: &[Rotate] = &[Rotate::None, Rotate::Cw90, Rotate::R180, Rotate::Ccw90];
 
 #[derive(Default)]

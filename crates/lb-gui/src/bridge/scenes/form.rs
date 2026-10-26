@@ -35,7 +35,8 @@ pub fn show(c: &mut Ctx) {
         }
         Background::Media { media } => {
             g.set_f_bg_type(1);
-            let t = c.model.library.iter().find(|x| &x.id == media).map(super::title).unwrap_or_else(|| format!("{media} — нет в медиатеке"));
+            let t =
+                c.model.library.iter().find(|x| &x.id == media).map(super::title).unwrap_or_else(|| format!("{media} — нет в медиатеке"));
             g.set_f_bg_media(t.into());
         }
     }

@@ -33,7 +33,13 @@ fn with_alpha(hex: &str, a: f32) -> Color {
 fn linear(p: &mut Pixmap, from: (f32, f32), to: (f32, f32), stops: &[(f32, Color)]) {
     let (w, h) = (p.width() as f32, p.height() as f32);
     let stops = stops.iter().map(|(o, c)| GradientStop::new(*o, *c)).collect();
-    if let Some(shader) = LinearGradient::new(Point::from_xy(from.0 * w, from.1 * h), Point::from_xy(to.0 * w, to.1 * h), stops, SpreadMode::Pad, Transform::identity()) {
+    if let Some(shader) = LinearGradient::new(
+        Point::from_xy(from.0 * w, from.1 * h),
+        Point::from_xy(to.0 * w, to.1 * h),
+        stops,
+        SpreadMode::Pad,
+        Transform::identity(),
+    ) {
         fill(p, shader);
     }
 }
@@ -45,7 +51,15 @@ fn glow(p: &mut Pixmap, x: f32, y: f32, r: f32, color: Color) {
     let mut edge = color;
     edge.set_alpha(0.0);
     let center = Point::from_xy(x * w, y * h);
-    if let Some(shader) = RadialGradient::new(center, 0.0, center, r * w, vec![GradientStop::new(0.0, color), GradientStop::new(1.0, edge)], SpreadMode::Pad, Transform::identity()) {
+    if let Some(shader) = RadialGradient::new(
+        center,
+        0.0,
+        center,
+        r * w,
+        vec![GradientStop::new(0.0, color), GradientStop::new(1.0, edge)],
+        SpreadMode::Pad,
+        Transform::identity(),
+    ) {
         fill(p, shader);
     }
 }

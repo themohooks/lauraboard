@@ -1,4 +1,4 @@
-//! Blocking HTTP client for the Laurabrod API.
+//! Blocking HTTP client for the LauraBoard API.
 
 use std::time::Duration;
 
@@ -122,13 +122,21 @@ pub fn humanize(status: u16, msg: &str) -> String {
     let msg = msg.trim();
     if let Some(list) = msg.strip_prefix("validation failed:") {
         let items: Vec<String> = list.split("; ").map(|x| format!("• {}", x.trim())).filter(|x| x.len() > 4).collect();
-        return format!("Не сохранено — проверка канала нашла ошибки:
-{}", items.join("
-"));
+        return format!(
+            "Не сохранено — проверка канала нашла ошибки:
+{}",
+            items.join(
+                "
+"
+            )
+        );
     }
     // channel start (engine pre-flight check)
     if let Some(m) = msg.strip_prefix("validation failed with") {
-        return format!("Канал не прошёл проверку перед запуском —{}. Подробности: «Журнал» или `laurabrod validate`", m.replace("error(s); first:", "ошибок, первая:"));
+        return format!(
+            "Канал не прошёл проверку перед запуском —{}. Подробности: «Журнал» или `lauraboard validate`",
+            m.replace("error(s); first:", "ошибок, первая:")
+        );
     }
     if let Some(m) = msg.strip_prefix("invalid:") {
         return format!("Неверные данные: {}", m.trim());
@@ -159,9 +167,17 @@ mod tests {
     fn validation_errors_are_listed() {
         let t = humanize(400, "validation failed: graphics/rules/a: unknown element 'x'; schedule: bad");
         assert!(t.starts_with("Не сохранено"));
-        assert!(t.contains("
+        assert!(
+            t.contains(
+                "
 • graphics/rules/a: unknown element 'x'
-• schedule: bad"), "{t}");
-        assert_eq!(humanize(422, "Failed to deserialize the JSON body into the target type: missing field `id`"), "Сервер не принял данные: missing field `id`");
+• schedule: bad"
+            ),
+            "{t}"
+        );
+        assert_eq!(
+            humanize(422, "Failed to deserialize the JSON body into the target type: missing field `id`"),
+            "Сервер не принял данные: missing field `id`"
+        );
     }
 }

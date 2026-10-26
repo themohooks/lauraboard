@@ -5,16 +5,16 @@ use std::path::PathBuf;
 use clap::{Args, Parser, Subcommand, ValueEnum};
 
 #[derive(Parser, Debug)]
-#[command(name = "laurabrod", version, about = "Internet TV channel playout & automation", long_about = None)]
+#[command(name = "lauraboard", version, about = "Internet TV channel playout & automation", long_about = None)]
 pub struct Cli {
-    /// Project directory (contains laurabrod.toml).
-    #[arg(short, long, global = true, env = "LAURABROD_PROJECT", default_value = ".")]
+    /// Project directory (contains lauraboard.toml).
+    #[arg(short, long, global = true, env = "LAURABOARD_PROJECT", default_value = ".")]
     pub project: PathBuf,
     /// Channel id (default: the first channel).
-    #[arg(short, long, global = true, env = "LAURABROD_CHANNEL")]
+    #[arg(short, long, global = true, env = "LAURABOARD_CHANNEL")]
     pub channel: Option<String>,
     /// API token for `ctl` commands (default: first admin token in config).
-    #[arg(long, global = true, env = "LAURABROD_TOKEN", hide_env_values = true)]
+    #[arg(long, global = true, env = "LAURABOARD_TOKEN", hide_env_values = true)]
     pub token: Option<String>,
     /// Output machine-readable JSON where supported.
     #[arg(long, global = true)]
@@ -346,19 +346,19 @@ pub enum GfxAction {
 
 #[derive(Subcommand, Debug)]
 pub enum ServiceCmd {
-    /// Register the service (runs `laurabrod run` for this project).
+    /// Register the service (runs `lauraboard run` for this project).
     Install {
-        #[arg(long, default_value = "laurabrod")]
+        #[arg(long, default_value = "lauraboard")]
         name: String,
     },
     Uninstall {
-        #[arg(long, default_value = "laurabrod")]
+        #[arg(long, default_value = "lauraboard")]
         name: String,
     },
     /// Entry point used by the Windows service manager.
     #[command(hide = true)]
     Run {
-        #[arg(long, default_value = "laurabrod")]
+        #[arg(long, default_value = "lauraboard")]
         name: String,
     },
 }
