@@ -81,7 +81,7 @@ def archive(source, destination):
         def permissions(entry):
             # Apply POSIX modes explicitly, including when packaging is tested
             # on Windows where chmod cannot set executable bits.
-            entry.mode = 0o755 if entry.isdir() or Path(entry.name).name in {"lauraboard", "uninstall"} else 0o644
+            entry.mode = 0o755 if entry.isdir() or Path(entry.name).name in {"lauraboard", "uninstall", "ffmpeg", "ffprobe"} else 0o644
             entry.uid = entry.gid = 0
             entry.uname = entry.gname = "root"
             return entry
@@ -104,6 +104,16 @@ def smoke(binary, release_version):
         raise ValueError(f"Unexpected CLI version: {output!r}")
     run(str(binary), "--help", stdout=subprocess.DEVNULL)
     run(str(binary), "-p", str(ROOT / "examples/demo"), "validate", "--no-media")
+
+
+def bundle_ffmpeg(stage):
+    if bundle := os.environ.get("LB_FFMPEG_DIR"):
+        directory = Path(bundle)
+        suffix = ".exe" if os.name == "nt" else ""
+        for tool in ("ffmpeg", "ffprobe"):
+            binary = directory / f"{tool}{suffix}"
+            run(str(binary), "-version", stdout=subprocess.DEVNULL)
+        shutil.copytree(directory, stage, dirs_exist_ok=True)
 
 
 def build():
@@ -147,6 +157,7 @@ def build():
         shutil.copy2(ROOT / "README.md", stage / "README.md")
         shutil.copytree(ROOT / "docs", stage / "docs", ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
         shutil.copytree(ROOT / "examples", stage / "examples")
+        bundle_ffmpeg(stage)
         build_info(stage, release_version, target, "server")
         archive(stage, ASSETS / f"{prefix}-{target}-server{extension}")
     print("Release assets:", *(p.name for p in sorted(ASSETS.iterdir())), sep="\n")

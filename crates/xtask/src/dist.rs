@@ -78,6 +78,16 @@ fn build() -> Result<(), String> {
         (gui_assets.join("icons/LICENSE"), "licenses/MaterialSymbols-Apache-2.0.txt".into()),
     ];
     collect_files(&root, &root.join("docs"), &mut files)?;
+    if let Some(bundle) = std::env::var_os("LB_FFMPEG_DIR") {
+        let bundle = PathBuf::from(bundle);
+        for tool in ["ffmpeg", "ffprobe"] {
+            let path = bundle.join(format!("{tool}{EXE}"));
+            if !path.is_file() {
+                return Err(format!("нет {}", path.display()));
+            }
+        }
+        collect_files(&bundle, &bundle, &mut files)?;
+    }
     files.sort_by(|a, b| a.1.cmp(&b.1));
     for (src, rel) in &files {
         let dst = stage.join(rel);
@@ -90,7 +100,7 @@ fn build() -> Result<(), String> {
         "binary": binary, "icon": "lauraboard.svg", "uninstaller": uninstaller, "size": size,
     });
     let payload = dist.join(format!("payload-{os}-{arch}.zip"));
-    pack(&stage, &files, &manifest, &payload, &[binary.as_str(), uninstaller.as_str()])?;
+    pack(&stage, &files, &manifest, &payload, &[binary.as_str(), uninstaller.as_str(), "ffmpeg", "ffprobe", "ffmpeg.exe", "ffprobe.exe"])?;
     println!("    {} файлов, {} → {}", files.len(), mb(size), mb(len(&payload)));
 
     step(3, "сборка установщика с приложением внутри");

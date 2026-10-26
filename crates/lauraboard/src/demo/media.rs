@@ -27,6 +27,8 @@ fn source(name: &str, secs: u32) -> String {
 
 /// Generate all clips into `dir`. Returns false when FFmpeg is missing.
 pub fn generate(ffmpeg: &str, dir: &Path) -> bool {
+    let ffmpeg = lb_media::process::bundled_program(ffmpeg);
+    let ffmpeg = &ffmpeg;
     if Command::new(ffmpeg).arg("-version").output().is_err() {
         return false;
     }

@@ -1,0 +1,16 @@
+name: Build Linux
+on:
+  workflow_dispatch:
+    inputs:
+      include_ffmpeg:
+        description: Include FFmpeg and ffprobe in installers and portable archives
+        type: boolean
+        default: true
+permissions:
+  contents: read
+jobs:
+  build:
+    uses: ./.github/workflows/build-ffmpeg.yml
+    with:
+      platform: linux
+      include_ffmpeg: ${{ inputs.include_ffmpeg }}

@@ -1,0 +1,66 @@
+name: Build with FFmpeg
+on:
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: Platforms to build
+        type: choice
+        options: [all, linux, windows]
+        default: all
+      include_ffmpeg:
+        description: Include FFmpeg and ffprobe in installers and portable archives
+        type: boolean
+        default: true
+  workflow_call:
+    inputs:
+      platform:
+        type: string
+        default: all
+      include_ffmpeg:
+        type: boolean
+        default: true
+permissions:
+  contents: read
+concurrency:
+  group: build-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: '0'
+jobs:
+  build:
+    name: Build ${{ matrix.platform }} ${{ matrix.arch }}
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: ${{ inputs.platform == 'all' && fromJSON('["linux", "windows"]') || fromJSON(format('["{0}"]', inputs.platform)) }}
+        arch: [x86_64, aarch64]
+    runs-on: ${{ matrix.platform == 'linux' && (matrix.arch == 'x86_64' && 'ubuntu-24.04' || 'ubuntu-24.04-arm') || (matrix.arch == 'x86_64' && 'windows-2022' || 'windows-11-arm') }}
+    timeout-minutes: 360
+    env:
+      RELEASE_TARGET: ${{ format('{0}-{1}', matrix.arch, matrix.platform == 'linux' && 'unknown-linux-gnu' || 'pc-windows-msvc') }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.12'
+      - uses: ./.github/actions/setup
+        with:
+          cache-key: build-${{ matrix.platform }}-${{ matrix.arch }}-ffmpeg-${{ inputs.include_ffmpeg }}
+      - name: Prepare bundled FFmpeg
+        if: inputs.include_ffmpeg
+        timeout-minutes: 15
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python .github/scripts/fetch_ffmpeg.py
+      - name: Build installers and portable archives
+        run: python .github/scripts/release.py build
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: build-${{ env.RELEASE_TARGET }}${{ inputs.include_ffmpeg && '-with-ffmpeg' || '' }}
+          path: target/release-assets/*
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 14

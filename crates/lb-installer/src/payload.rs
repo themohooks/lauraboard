@@ -31,6 +31,12 @@ pub fn present() -> bool {
     !PAYLOAD.is_empty()
 }
 
+/// A bundled pair is available after installation even without a system FFmpeg.
+pub fn has_ffmpeg() -> bool {
+    let Ok(mut zip) = archive() else { return false };
+    ["ffmpeg", "ffprobe"].iter().all(|tool| zip.by_name(&format!("{tool}{}", std::env::consts::EXE_SUFFIX)).is_ok())
+}
+
 fn archive() -> Result<zip::ZipArchive<Cursor<&'static [u8]>>, String> {
     zip::ZipArchive::new(Cursor::new(PAYLOAD)).map_err(|e| format!("пакет повреждён: {e}"))
 }

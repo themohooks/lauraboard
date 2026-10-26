@@ -4,6 +4,9 @@ use std::process::{Command, Stdio};
 
 /// Version of the `ffmpeg` found on the PATH.
 pub fn detect() -> Option<String> {
+    if crate::payload::has_ffmpeg() {
+        return Some("в комплекте установщика".into());
+    }
     let mut cmd = Command::new("ffmpeg");
     cmd.arg("-version").stdin(Stdio::null()).stderr(Stdio::null());
     crate::platform::no_window(&mut cmd);

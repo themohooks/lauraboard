@@ -50,6 +50,8 @@ class ReleaseTests(unittest.TestCase):
             source.mkdir()
             (source / "lauraboard").write_bytes(b"binary")
             (source / "lauraboard").chmod(0o755)
+            (source / "ffmpeg").write_bytes(b"ffmpeg")
+            (source / "ffprobe").write_bytes(b"ffprobe")
             release.archive(source, directory / "portable.zip")
             with zipfile.ZipFile(directory / "portable.zip") as archive:
                 self.assertEqual(archive.read("portable/lauraboard"), b"binary")
@@ -57,6 +59,27 @@ class ReleaseTests(unittest.TestCase):
             with tarfile.open(directory / "portable.tar.gz") as archive:
                 entry = archive.getmember("portable/lauraboard")
                 self.assertEqual(entry.mode & 0o111, 0o111)
+                for tool in ("ffmpeg", "ffprobe"):
+                    self.assertEqual(archive.getmember(f"portable/{tool}").mode, 0o755)
+
+    def test_server_bundle_copies_both_tools_and_notices(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            bundle = root / "bundle"
+            bundle.mkdir()
+            suffix = ".exe" if release.os.name == "nt" else ""
+            for tool in ("ffmpeg", "ffprobe"):
+                (bundle / f"{tool}{suffix}").write_bytes(b"binary")
+            notices = bundle / "licenses/ffmpeg"
+            notices.mkdir(parents=True)
+            (notices / "LICENSE.txt").write_text("upstream notice")
+            stage = root / "stage"
+            with mock.patch.dict("os.environ", {"LB_FFMPEG_DIR": str(bundle)}), mock.patch.object(release, "run") as run:
+                release.bundle_ffmpeg(stage)
+            self.assertEqual(run.call_count, 2)
+            for tool in ("ffmpeg", "ffprobe"):
+                self.assertEqual((stage / f"{tool}{suffix}").read_bytes(), b"binary")
+            self.assertEqual((stage / "licenses/ffmpeg/LICENSE.txt").read_text(), "upstream notice")
 
     def test_current_workspace_versions_agree(self):
         self.assertRegex(release.version(), release.VERSION)
