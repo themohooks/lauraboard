@@ -24,9 +24,17 @@ runs:
         sudo python3 - <<'PY'
         from pathlib import Path
         import re
-        directory = Path('/etc/apt/sources.list.d')
-        sources = [Path('/etc/apt/sources.list'), *directory.glob('*.list'), *directory.glob('*.sources')]
-        for path in sources:
+        apt_root = Path('/etc/apt')
+        directory = apt_root / 'sources.list.d'
+        sources = [apt_root / 'sources.list', *directory.glob('*.list'), *directory.glob('*.sources')]
+        for path in list(sources):
+            if not path.is_file():
+                continue
+            for reference in re.findall(r'mirror\+file:(/\S+)', path.read_text()):
+                mirror = Path(reference)
+                if mirror.is_file() and mirror.resolve().is_relative_to(apt_root.resolve()):
+                    sources.append(mirror)
+        for path in sorted(set(sources)):
             if not path.is_file():
                 continue
             original = path.read_text()
