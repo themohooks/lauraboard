@@ -23,8 +23,8 @@ pub mod slate;
 
 /// Intermediate format between decoders and the encoder: MPEG-TS with
 /// high-quality MPEG-2 video and PCM audio (SMPTE 302M). PCM keeps audio
-/// sample-exact so every item has identical audio and video length; the
-/// encoder then rebuilds continuous timestamps from frame/sample counts.
+/// sample-exact. The encoder follows the shared MPEG-TS timestamps and
+/// compensates gaps instead of assuming equal audio and video lengths.
 pub fn intermediate_codec_args(fps: f64, audio_channels: u32) -> Vec<String> {
     let gop = (fps.round() as i64 / 2).max(1);
     let mut a = sv(&["-c:v", "mpeg2video", "-q:v", "2", "-g", &gop.to_string(), "-bf", "0"]);

@@ -47,7 +47,7 @@ pub fn video_chain(v: &VideoFormat, d: &MediaDisplay, fade_in_ms: i64, fade_out_
     // identical colour metadata for every item (no filter reconfiguration
     // at item boundaries in the encoder)
     f.push("setparams=range=tv:colorspace=bt709:color_primaries=bt709:color_trc=bt709".into());
-    f.push(format!("fps={}", fps_str(v.fps)));
+    f.push(format!("fps={}:start_time=0", fps_str(v.fps)));
     f.push("format=yuv420p".into());
     if fade_in_ms > 0 {
         f.push(format!("fade=t=in:st=0:d={}", secs(fade_in_ms)));
@@ -124,7 +124,9 @@ pub fn audio_chain(a: &AudioFormat, volume_db: f32, fade_in_ms: i64, fade_out_ms
         2 => "stereo".to_string(),
         n => format!("{n}c"),
     };
-    let mut f: Vec<String> = vec![format!("aresample={}", a.sample_rate)];
+    // Preserve the source A/V timeline, including delayed audio starts and
+    // timestamp gaps, before sending samples to the continuous encoder.
+    let mut f: Vec<String> = vec![format!("aresample={}:async=1000:first_pts=0", a.sample_rate)];
     if a.normalize {
         f.push("loudnorm=I=-23:TP=-2:LRA=11".into());
         f.push(format!("aresample={}", a.sample_rate));

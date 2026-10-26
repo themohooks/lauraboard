@@ -47,7 +47,7 @@ pub fn encoder_args(j: &EncodeJob) -> Vec<String> {
     }
     // input 0: intermediate stream (already paced by the decoders)
     // items are normalised identically: never rebuild the filter graph on a
-    // stream change (that would reset the frame/sample counters)
+    // stream change (that would reset the synchronisation filters)
     args.extend(sv(&["-fflags", "+genpts+discardcorrupt", "-reinit_filter", "0", "-f", "mpegts", "-i", "pipe:0"]));
     // input 1: graphics
     if let Some(g) = &j.gfx {
@@ -88,10 +88,11 @@ pub fn encoder_args(j: &EncodeJob) -> Vec<String> {
 
 fn filter_graph(j: &EncodeJob) -> String {
     let mut parts: Vec<String> = Vec::new();
-    // continuous timestamps rebuilt from frame / sample counts: the
-    // concatenated items have discontinuous input timestamps
+    // Keep the shared timeline repaired by the MPEG-TS demuxer at item
+    // boundaries. Counting video frames and audio samples independently
+    // turns every lost frame or partial audio packet into permanent drift.
     let fps = fps_str(j.video.fps);
-    parts.push(format!("[0:v]setpts=N/({fps}*TB)[vin]"));
+    parts.push(format!("[0:v]fps={fps}:start_time=0[vin]"));
     let vbase = if j.gfx.is_some() {
         parts.push("[vin][1:v]overlay=x=0:y=0:eof_action=pass:repeatlast=1:format=auto,format=yuv420p[vmix]".into());
         "[vmix]"
@@ -109,8 +110,9 @@ fn filter_graph(j: &EncodeJob) -> String {
         None => parts.push(format!("{vbase}null{hw_tail}[vout]")),
     }
     let gain = if j.audio.volume_db.abs() > 0.01 { format!("volume={:.2}dB,", j.audio.volume_db) } else { String::new() };
-    // async resampling keeps A/V in sync across item boundaries
-    parts.push(format!("[0:a]asetpts=N/SR/TB,{gain}anull[aout]"));
+    // Resample against timestamps BEFORE any sample-count timestamp reset.
+    // Fill/trim gaps and gently compensate clock drift on long broadcasts.
+    parts.push(format!("[0:a]aresample={}:async=1000:first_pts=0,{gain}anull[aout]", j.audio.sample_rate));
     parts.join(";")
 }
 
@@ -282,7 +284,8 @@ mod tests {
         let s = encoder_args(&j).join(" ");
         assert!(s.contains("-c:v h264_nvenc -preset p4 -rc cbr"));
         assert!(s.contains("[vin]format=yuv420p[vmix]"));
-        assert!(s.contains("[0:v]setpts=N/(25*TB)[vin]"));
+        assert!(s.contains("[0:v]fps=25:start_time=0[vin]"));
+        assert!(s.contains("[0:a]aresample=48000:async=1000:first_pts=0"));
         assert!(s.contains("-f tee [f=null]-"));
         assert_eq!(double_rate("2.5M"), "5M");
     }
