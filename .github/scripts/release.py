@@ -17,8 +17,10 @@ ROOT = Path(__file__).resolve().parents[2]
 ASSETS = ROOT / "target/release-assets"
 TARGETS = {
     "x86_64-pc-windows-msvc": ("windows", "x86_64"),
+    "i686-pc-windows-msvc": ("windows", "x86"),
     "aarch64-pc-windows-msvc": ("windows", "aarch64"),
     "x86_64-unknown-linux-gnu": ("linux", "x86_64"),
+    "i686-unknown-linux-gnu": ("linux", "x86"),
     "aarch64-unknown-linux-gnu": ("linux", "aarch64"),
     "x86_64-apple-darwin": ("macos", "x86_64"),
     "aarch64-apple-darwin": ("macos", "aarch64"),
@@ -66,6 +68,9 @@ def expected_assets(release_version):
         if system != "macos":
             result.add(f"{prefix}-{target}-desktop{extension}")
             result.add(f"{prefix}-{system}-{arch}-setup" + (".exe" if system == "windows" else ""))
+        if system == "linux":
+            for extension in ("AppImage", "deb", "rpm", "aur.tar.gz"):
+                result.add(f"{prefix}-{target}.{extension}")
     return result
 
 

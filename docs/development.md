@@ -10,8 +10,9 @@
 - Отдельная проверка собирает CLI без GUI на минимальной заявленной версии Rust 1.92.
 - FFmpeg-тесты на Ubuntu 24.04 и 26.04 выполняют обычно пропускаемые регрессии синхронизации аудио/видео и начала/конца эфира. Таким образом проверяются поставляемые этими ОС версии FFmpeg 6.1 и 8.0. Браузерные тесты с Chromium/Ruffle автоматически не запускаются.
 - Actionlint проверяет workflows; Python-тесты проверяют архивы, версии и полноту релизных файлов.
+- На небольшом ELF-файле дополнительно проверяются настоящие DEB, RPM и AppImage, их распаковка и запуск, а также выполнение `package()` из AUR PKGBUILD.
 
-Основная версия Rust в Actions закреплена на **1.96.0**, Python для сборки релизов — **3.12**. При смене Rust обновляйте значение в `.github/actions/setup/action.yml` и повторяйте проверки. Изменения зависимостей должны сопровождаться актуальным `Cargo.lock`; сборки используют `--locked`.
+Основная версия Rust в Actions закреплена на **1.96.0**, Python для сборки релизов — **3.12**. При смене Rust обновляйте значения в `.github/actions/setup/action.yml` и `.github/scripts/build_matrix.py` и повторяйте проверки. Изменения зависимостей должны сопровождаться актуальным `Cargo.lock`; сборки используют `--locked`.
 
 На Linux общий setup ограничивает Cargo одним параллельным job и отключает отладочные символы профилей dev/test, чтобы уменьшить расход памяти и диска при компиляции большого сгенерированного GUI. Тесты, debug assertions и проверки переполнения при этом остаются включены. Release-профиль не меняется. Начальный объём доступной памяти и места на диске выводится в журнал.
 
@@ -26,23 +27,29 @@
 | Система | Процессор | Runner GitHub | Файлы |
 |---|---|---|---|
 | Windows | x86-64 | `windows-2022` | установщик `.exe`, portable desktop `.zip`, server `.zip` |
+| Windows | x86 (32-bit) | `windows-2022`, Rust host i686 | установщик `.exe`, portable desktop `.zip`, server `.zip` |
 | Windows | ARM64 | `windows-11-arm` | установщик `.exe`, portable desktop `.zip`, server `.zip` |
-| Linux | x86-64 | `ubuntu-24.04` | установщик, portable desktop `.tar.gz`, server `.tar.gz` |
-| Linux | ARM64 | `ubuntu-24.04-arm` | установщик, portable desktop `.tar.gz`, server `.tar.gz` |
+| Linux | x86-64 | `ubuntu-24.04` | setup, portable desktop, server, AppImage, DEB, RPM, AUR |
+| Linux | x86 (32-bit) | `ubuntu-24.04`, Rust host i686 + i386 libraries | setup, portable desktop, server, AppImage, DEB, RPM, AUR |
+| Linux | ARM64 | `ubuntu-24.04-arm` | setup, portable desktop, server, AppImage, DEB, RPM, AUR |
 | macOS | Intel x86-64 | `macos-15-intel` | server `.tar.gz` |
 | macOS | Apple Silicon ARM64 | `macos-15` | server `.tar.gz` |
 
-Сборки нативные: архитектура Rust проверяется перед упаковкой. macOS пока получает только CLI/API без GUI и системного установщика; команда `service` использует systemd и на macOS не поддерживается. Linux-пакеты собраны на Ubuntu 24.04 и требуют совместимых системных библиотек; это не статические musl-сборки. На других дистрибутивах совместимость нужно проверить отдельно.
+Архитектура Rust host проверяется перед упаковкой. Для x86 используется 32-битный toolchain i686 на x64 runner; Linux дополнительно получает multilib и i386-библиотеки. ARM означает ARM64 (`aarch64`), не ARMv7. macOS пока получает только CLI/API без GUI и системного установщика; команда `service` использует systemd и на macOS не поддерживается. Linux-пакеты собраны на Ubuntu 24.04 и требуют совместимых системных библиотек; это не статические musl-сборки. AppImage включает зависимости через linuxdeploy, но требует совместимой glibc. На других дистрибутивах совместимость нужно проверить отдельно.
 
 Workflow **Release** сохраняет прежний состав: FFmpeg/ffprobe нужно установить отдельно. Для комплектов с FFmpeg используйте workflows ниже. Подпись Windows-кода и notarization macOS не настроены. Перед первым публичным релизом проверьте установку, обновление и удаление на целевых ОС: CI проверяет сборку, тесты и запуск CLI, но не проходит интерактивный мастер.
 
 ## Отдельные сборки Linux и Windows
 
-В **Actions → Run workflow** доступны **Build Linux**, **Build Windows** и **Build with FFmpeg**. Первые два собирают выбранную ОС под x86-64 и ARM64; третий по умолчанию собирает обе ОС и позволяет выбрать `platform`. Все три включают FFmpeg и ffprobe по умолчанию (`include_ffmpeg: true`); флажок можно отключить. Они сохраняют установщик, desktop-архив и server-архив в Artifacts на 14 дней, без публикации GitHub Release.
+В **Actions → Run workflow** доступны **Build Linux**, **Build Windows** и **Build with FFmpeg**. Выбор `architecture`: `all`, `x64`, `x86`, `arm64`. Выбор `package_format`: `all`, `setup`, `portable`, `server`, а на Linux также `appimage`, `debpackage`, `rpmpackage`, `aur`. Третий workflow позволяет выбрать `platform`: `all`, `linux`, `windows`. По умолчанию собираются все архитектуры и форматы. Несовместимый выбор (например Windows + AppImage) отклоняется до компиляции.
 
-Сборки используют общий `.github/workflows/build-ffmpeg.yml`. Лимит каждого build-job здесь и в **Release** — **360 минут**; `fail-fast: false` позволяет другим архитектурам завершиться независимо от результата соседней сборки.
+Каждый формат каждой архитектуры имеет отдельный packaging-job и отдельный artifact: например `build-i686-pc-windows-msvc-setup-with-ffmpeg` и `build-i686-pc-windows-msvc-portable-with-ffmpeg`. Внутри каждого итогового artifact ровно один файл. Компиляция выполняется один раз на архитектуру; промежуточные `payload-*` и `ffmpeg-*` artifacts хранятся один день, итоговые — 14 дней. Ручные сборки не публикуют GitHub Release.
 
-FFmpeg берётся из статических GPL-сборок ветки 8.1 [BtbN/FFmpeg-Builds](https://github.com/BtbN/FFmpeg-Builds/releases/tag/latest) для нативной ОС и архитектуры. Перед использованием проверяется SHA256 по upstream `checksums.sha256`, затем запускаются обе утилиты с `-version`. В установщик и оба portable-архива входят бинарные файлы, upstream-документация/лицензии в `licenses/ffmpeg` и `provenance.json` с URL исходного архива и его SHA256. Тег upstream `latest` меняется, поэтому точный комплект фиксируется в provenance каждой сборки.
+DEB и RPM устанавливают приложение в `/opt/lauraboard`, команду в `/usr/bin` и пункт меню с иконкой. Удалением управляет пакетный менеджер; пользовательский `uninstall` в эти пакеты не входит. AUR-артефакт — самостоятельный архив с `PKGBUILD`, `.SRCINFO`, desktop-файлом и portable-payload с SHA256: распакуйте его и выполните `makepkg -si`. Автопубликация в AUR не выполняется. x86/i686 и ARM64 предназначены для Arch Linux 32 и Arch Linux ARM; официальный Arch Linux использует x86-64.
+
+Сборки и **Release** используют общий `.github/workflows/build-ffmpeg.yml` и матрицу `.github/scripts/build_matrix.py`. Лимит каждого build-job — **360 минут**, упаковки — 30 минут; `fail-fast: false` позволяет соседним заданиям матрицы завершиться независимо.
+
+Все три ручных workflow включают FFmpeg и ffprobe по умолчанию (`include_ffmpeg: true`); флажок можно отключить. Для x64/ARM64 FFmpeg берётся из статических GPL-сборок ветки 8.1 [BtbN/FFmpeg-Builds](https://github.com/BtbN/FFmpeg-Builds/releases/tag/latest). Перед использованием проверяется SHA256 по upstream `checksums.sha256`, затем запускаются обе утилиты с `-version`. BtbN не публикует готовые x86-сборки: для x86 workflow компилирует FFmpeg 8.1 с libx264 из исходников с закреплёнными SHA256; Windows-бинарники собираются через MinGW-w64. Этот x86-комплект поддерживает встроенные кодеки FFmpeg и libx264, но не дополнительные внешние кодеки вроде libx265. Лицензии и provenance входят в `licenses/ffmpeg`. Тег BtbN `latest` меняется, поэтому точный комплект фиксируется в provenance каждой сборки.
 
 LauraBoard ищет комплектные утилиты рядом со своим исполняемым файлом, включая создание демо-проекта; установка в системный PATH не требуется. Явные пути в `[ffmpeg]` сохраняют приоритет. Мастер установки распознаёт FFmpeg внутри своего пакета и позволяет создать демо-проект без предварительной установки системного FFmpeg.
 
@@ -57,7 +64,7 @@ LauraBoard ищет комплектные утилиты рядом со сво
    git push origin v0.1.0
    ```
 
-4. Workflow проверит версии всех крейтов, выполнит CI и RustSec audit, соберёт все шесть платформ и проверит комплект из **14 файлов**. Затем создаст GitHub Release с автоматически сгенерированными release notes и `SHA256SUMS`. Тег вида `v0.2.0-rc.1` создаёт prerelease. Если любая проверка или сборка упала, публикация не выполняется.
+4. Workflow проверит версии всех крейтов, выполнит CI и RustSec audit, соберёт восемь сочетаний ОС/архитектуры и проверит комплект из **32 файлов**: Windows 3 × 3, Linux 3 × 7 и два server-архива macOS. Затем создаст GitHub Release с автоматически сгенерированными release notes и `SHA256SUMS`. Тег вида `v0.2.0-rc.1` создаёт prerelease. Если любая проверка или сборка упала, публикация не выполняется.
 
 Архивы содержат каталог с именем сборки, бинарный файл, документацию, примеры и `build-info.json` с версией, Rust target, типом сборки, commit SHA и версией компилятора. `desktop` включает GUI; `server` собран с `--no-default-features`. Названия архивов содержат полный Rust target, например `lauraboard-0.1.0-aarch64-unknown-linux-gnu-server.tar.gz`.
 
@@ -107,6 +114,6 @@ go install github.com/rhysd/actionlint/cmd/actionlint@v1.7.12
 actionlint
 ```
 
-Сборка установщика: `cargo dist`. Полная локальная релизная упаковка: задайте `RELEASE_TARGET` равным нативному Rust target и выполните `python .github/scripts/release.py build`. Каталог `target/release-assets` перед таким запуском должен отсутствовать или быть пустым; не задавайте `CARGO_BUILD_TARGET` и `CARGO_TARGET_DIR`. GitHub-hosted runners начинают с чистого checkout.
+Сборка установщика: `cargo dist`. Для локальной сборки setup и portable задайте `RELEASE_TARGET` равным Rust host target и выполните `python .github/scripts/release.py build`. Для дополнительной упаковки перенесите полученные файлы из `target/release-assets` в `target/build-input`, задайте `PACKAGE_FORMAT` и выполните `python .github/scripts/package.py`. Каталог `target/release-assets` перед каждым запуском должен отсутствовать или быть пустым; не задавайте `CARGO_BUILD_TARGET` и `CARGO_TARGET_DIR`. Для проверки настоящих Linux-пакетов на небольшом ELF-файле вместо GUI: `LB_PACKAGE_INTEGRATION=1 python3 .github/scripts/test_package_integration.py -v` (нужны gcc, dpkg-dev, rpm, cpio, patchelf, file, desktop-file-utils и системные библиотеки). GitHub-hosted runners начинают с чистого checkout.
 
 Источники параметров CI: [список runners GitHub](https://docs.github.com/en/actions/reference/runners/github-hosted-runners), [Rust cache](https://github.com/Swatinem/rust-cache), [Cargo audit](https://github.com/rustsec/rustsec/tree/main/cargo-audit).

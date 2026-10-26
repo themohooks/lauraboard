@@ -2,6 +2,16 @@ name: Build Windows
 on:
   workflow_dispatch:
     inputs:
+      architecture:
+        description: Architecture (arm64 is 64-bit ARM)
+        type: choice
+        options: [all, x64, x86, arm64]
+        default: all
+      package_format:
+        description: Package format
+        type: choice
+        options: [all, setup, portable, server]
+        default: all
       include_ffmpeg:
         description: Include FFmpeg and ffprobe in installers and portable archives
         type: boolean
@@ -13,4 +23,6 @@ jobs:
     uses: ./.github/workflows/build-ffmpeg.yml
     with:
       platform: windows
+      architecture: ${{ inputs.architecture }}
+      package_format: ${{ inputs.package_format }}
       include_ffmpeg: ${{ inputs.include_ffmpeg }}

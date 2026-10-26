@@ -17,7 +17,7 @@ class ReleaseTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp:
             directory = Path(temp)
             expected = release.expected_assets("1.2.3-rc.1")
-            self.assertEqual(len(expected), 14)
+            self.assertEqual(len(expected), 32)
             for name in expected:
                 (directory / name).write_bytes(name.encode())
             release.finalize(directory, "1.2.3-rc.1")

@@ -7,8 +7,18 @@ on:
         type: choice
         options: [all, linux, windows]
         default: all
+      architecture:
+        description: Architecture (arm64 is 64-bit ARM)
+        type: choice
+        options: [all, x64, x86, arm64]
+        default: all
+      package_format:
+        description: Package format (Linux formats require Linux)
+        type: choice
+        options: [all, setup, portable, server, appimage, debpackage, rpmpackage, aur]
+        default: all
       include_ffmpeg:
-        description: Include FFmpeg and ffprobe in installers and portable archives
+        description: Include FFmpeg and ffprobe
         type: boolean
         default: true
   workflow_call:
@@ -16,9 +26,18 @@ on:
       platform:
         type: string
         default: all
+      architecture:
+        type: string
+        default: all
+      package_format:
+        type: string
+        default: all
       include_ffmpeg:
         type: boolean
         default: true
+      artifact_prefix:
+        type: string
+        default: build
 permissions:
   contents: read
 concurrency:
@@ -28,17 +47,66 @@ env:
   CARGO_TERM_COLOR: always
   CARGO_INCREMENTAL: '0'
 jobs:
-  build:
-    name: Build ${{ matrix.platform }} ${{ matrix.arch }}
+  plan:
+    name: Select architectures and formats
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      build: ${{ steps.matrix.outputs.build }}
+      package: ${{ steps.matrix.outputs.package }}
+      ffmpeg: ${{ steps.matrix.outputs.ffmpeg }}
+      has_x86: ${{ steps.matrix.outputs.has_x86 }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - id: matrix
+        env:
+          BUILD_PLATFORM: ${{ inputs.platform }}
+          BUILD_ARCHITECTURE: ${{ inputs.architecture }}
+          BUILD_FORMAT: ${{ inputs.package_format }}
+        run: python3 .github/scripts/build_matrix.py
+  ffmpeg-x86:
+    name: FFmpeg x86 (${{ matrix.platform }})
+    needs: plan
+    if: inputs.include_ffmpeg && needs.plan.outputs.has_x86 == 'true'
     strategy:
       fail-fast: false
-      matrix:
-        platform: ${{ inputs.platform == 'all' && fromJSON('["linux", "windows"]') || fromJSON(format('["{0}"]', inputs.platform)) }}
-        arch: [x86_64, aarch64]
-    runs-on: ${{ matrix.platform == 'linux' && (matrix.arch == 'x86_64' && 'ubuntu-24.04' || 'ubuntu-24.04-arm') || (matrix.arch == 'x86_64' && 'windows-2022' || 'windows-11-arm') }}
+      matrix: ${{ fromJSON(needs.plan.outputs.ffmpeg) }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install FFmpeg compilers
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y gcc-multilib g++-multilib mingw-w64 nasm pkg-config
+      - name: Build FFmpeg 8.1 and libx264 from checked sources
+        env:
+          FFMPEG_PLATFORM: ${{ matrix.platform }}
+        run: python3 .github/scripts/build_ffmpeg_x86.py
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ffmpeg-${{ inputs.artifact_prefix || 'build' }}-${{ matrix.target }}
+          path: target/ffmpeg-x86/
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 1
+  build:
+    name: Compile ${{ matrix.platform }} ${{ matrix.arch }}
+    needs: [plan, ffmpeg-x86]
+    if: >-
+      always() && !cancelled() && needs.plan.result == 'success' &&
+      (needs.ffmpeg-x86.result == 'success' || needs.ffmpeg-x86.result == 'skipped')
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.build) }}
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 360
     env:
-      RELEASE_TARGET: ${{ format('{0}-{1}', matrix.arch, matrix.platform == 'linux' && 'unknown-linux-gnu' || 'pc-windows-msvc') }}
+      RELEASE_TARGET: ${{ matrix.target }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -48,18 +116,83 @@ jobs:
           python-version: '3.12'
       - uses: ./.github/actions/setup
         with:
-          cache-key: build-${{ matrix.platform }}-${{ matrix.arch }}-ffmpeg-${{ inputs.include_ffmpeg }}
+          toolchain: ${{ matrix.toolchain }}
+          x86: ${{ matrix.arch == 'x86' }}
+          cache-key: build-${{ matrix.target }}-ffmpeg-${{ inputs.include_ffmpeg }}
+      - name: Download compiled x86 FFmpeg
+        if: inputs.include_ffmpeg && matrix.arch == 'x86'
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: ffmpeg-${{ inputs.artifact_prefix || 'build' }}-${{ matrix.target }}
+          path: target/ffmpeg-bundle
+      - name: Enable x86 FFmpeg bundle
+        if: inputs.include_ffmpeg && matrix.arch == 'x86'
+        shell: bash
+        run: |
+          if [[ "$RUNNER_OS" == Linux ]]; then
+            chmod +x target/ffmpeg-bundle/ffmpeg target/ffmpeg-bundle/ffprobe
+          fi
+          python -c 'import os; from pathlib import Path; p = Path("target/ffmpeg-bundle").resolve(); open(os.environ["GITHUB_ENV"], "a", encoding="utf-8").write(f"LB_FFMPEG_DIR={p}\n")'
       - name: Prepare bundled FFmpeg
-        if: inputs.include_ffmpeg
+        if: inputs.include_ffmpeg && matrix.arch != 'x86'
         timeout-minutes: 15
         env:
           GH_TOKEN: ${{ github.token }}
         run: python .github/scripts/fetch_ffmpeg.py
-      - name: Build installers and portable archives
+      - name: Build and smoke-test installers and portable archives
         run: python .github/scripts/release.py build
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: build-${{ env.RELEASE_TARGET }}${{ inputs.include_ffmpeg && '-with-ffmpeg' || '' }}
+          name: payload-${{ inputs.artifact_prefix || 'build' }}-${{ matrix.target }}
+          path: target/release-assets/*
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 1
+  package:
+    name: Package ${{ matrix.platform }} ${{ matrix.arch }} / ${{ matrix.format }}
+    needs: [plan, build]
+    if: always() && !cancelled() && needs.plan.result == 'success' && needs.build.result == 'success'
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.package) }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    env:
+      RELEASE_TARGET: ${{ matrix.target }}
+      PACKAGE_FORMAT: ${{ matrix.format }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.12'
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: payload-${{ inputs.artifact_prefix || 'build' }}-${{ matrix.target }}
+          path: target/build-input
+      - name: Install Linux packaging tools and runtime libraries
+        if: matrix.platform == 'linux' && matrix.format != 'setup' && matrix.format != 'portable' && matrix.format != 'server'
+        env:
+          PACKAGE_ARCH: ${{ matrix.arch }}
+        run: |
+          suffix=''
+          if [[ "$PACKAGE_ARCH" == x86 ]]; then
+            sudo dpkg --add-architecture i386
+            suffix=':i386'
+          fi
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y rpm cpio dpkg-dev patchelf file desktop-file-utils \
+            "libfontconfig1$suffix" "libxkbcommon0$suffix" "libxkbcommon-x11-0$suffix" \
+            "libwayland-client0$suffix" "libwayland-cursor0$suffix" "libwayland-egl1$suffix" \
+            "libgl1$suffix" "libssl3t64$suffix"
+      - name: Package selected format
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python .github/scripts/package.py
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ${{ inputs.artifact_prefix || 'build' }}-${{ matrix.target }}-${{ matrix.format }}${{ inputs.include_ffmpeg && '-with-ffmpeg' || '' }}
           path: target/release-assets/*
           if-no-files-found: error
           compression-level: 0
