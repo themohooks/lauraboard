@@ -100,6 +100,7 @@ export component AppWindow inherits Window {
         App.navigate(id);
     }
 
+    // any layout: keys.rs turns Ctrl+«ы» into Ctrl+S before it gets here
     keys := FocusScope {
         key-pressed(e) => {
             if e.modifiers.control && !e.modifiers.shift && !e.modifiers.alt {
@@ -114,24 +115,24 @@ export component AppWindow inherits Window {
                     root.go(App.nav-items[9].id);
                     return accept;
                 }
-                if e.text == "s" || e.text == "ы" {
+                if e.text == "s" {
                     App.shortcut("save");
                     return accept;
                 }
-                if e.text == "z" || e.text == "я" {
+                if e.text == "z" {
                     App.shortcut("undo");
                     return accept;
                 }
-                if e.text == "y" || e.text == "н" {
+                if e.text == "y" {
                     App.shortcut("redo");
                     return accept;
                 }
-                if e.text == "f" || e.text == "а" {
+                if e.text == "f" {
                     App.shortcut("search");
                     return accept;
                 }
             }
-            if e.modifiers.control && e.modifiers.shift && (e.text == "Z" || e.text == "Я" || e.text == "z") {
+            if e.modifiers.control && e.modifiers.shift && (e.text == "Z" || e.text == "z") {
                 App.shortcut("redo");
                 return accept;
             }
