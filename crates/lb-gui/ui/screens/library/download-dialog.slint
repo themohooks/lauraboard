@@ -54,6 +54,84 @@ component ToolMissing inherits Rectangle {
     }
 }
 
+// Signing in to the site: a browser where the user is signed in, or a
+// cookies.txt exported from it.
+component LoginPanel inherits Rectangle {
+    border-radius: Theme.radius-m;
+    background: Dl.login-needed && Dl.step == "error" ? Theme.color.secondary-container : Theme.color.surface-container-highest;
+    VerticalLayout {
+        padding: Theme.sp4;
+        spacing: Theme.sp3;
+        HorizontalLayout {
+            spacing: Theme.sp3;
+            Icon {
+                source: Icons.account-circle;
+                tint: Theme.color.secondary;
+                y: 2px;
+            }
+            Label {
+                horizontal-stretch: 1;
+                wrap: word-wrap;
+                text: (Dl.login-needed && Dl.step == "error" ? "Сайт просит войти в аккаунт — например, YouTube для видео 18+. " : "")
+                    + "yt-dlp не вводит пароль: он берёт вход из браузера, в котором вы уже вошли на сайт, или из файла cookies.txt.";
+            }
+        }
+        Select {
+            label: "Браузер, где вы вошли на сайт";
+            options: Dl.browsers;
+            current-index <=> Dl.login-browser;
+            enabled: !Dl.login-saving;
+            supporting: "Chrome и Edge часто не отдают вход, пока открыты, — лучше Firefox или cookies.txt";
+            container-color: Theme.color.surface-container-high;
+            selected(i, _) => {
+                Dl.login-browser-picked(i);
+            }
+        }
+        HorizontalLayout {
+            spacing: Theme.sp2;
+            Label {
+                horizontal-stretch: 1;
+                vertical-alignment: center;
+                wrap: word-wrap;
+                type-style: Theme.body-small;
+                color: Theme.color.on-surface-variant;
+                text: Dl.login-cookies
+                    ? "Используется загруженный cookies.txt (он важнее браузера)."
+                    : "cookies.txt можно выгрузить из браузера расширением вроде «Get cookies.txt LOCALLY».";
+            }
+            if Dl.login-cookies: Button {
+                text: "Убрать файл";
+                variant: ButtonVariant.text;
+                enabled: !Dl.login-saving;
+                clicked => {
+                    Dl.login-cookies-clear();
+                }
+            }
+            Button {
+                text: Dl.login-cookies ? "Заменить…" : "Файл cookies.txt…";
+                variant: ButtonVariant.outlined;
+                enabled: !Dl.login-saving;
+                clicked => {
+                    Dl.login-cookies-pick();
+                }
+            }
+        }
+        if Dl.step == "error": HorizontalLayout {
+            alignment: end;
+            Button {
+                text: "Повторить";
+                icon: Icons.refresh;
+                has-icon: true;
+                variant: ButtonVariant.tonal;
+                enabled: !Dl.login-saving && (Dl.login-browser > 0 || Dl.login-cookies);
+                clicked => {
+                    Dl.probe();
+                }
+            }
+        }
+    }
+}
+
 // Title, author and preview of the link.
 component LinkSummary inherits HorizontalLayout {
     spacing: Theme.sp3;
@@ -157,6 +235,7 @@ export component DownloadDialog inherits Dialog {
         color: Theme.color.error;
         wrap: word-wrap;
     }
+    if Dl.tool-ok && (Dl.login-open || (Dl.login-needed && Dl.step == "error")): LoginPanel { }
     if Dl.step == "ready": VerticalLayout {
         spacing: Theme.sp4;
         LinkSummary { }
@@ -190,11 +269,25 @@ export component DownloadDialog inherits Dialog {
         }
     }
 
-    if !Dl.tool-checking && Dl.tool-ok: Label {
-        text: "yt-dlp " + Dl.tool-version + ". Скачивайте только то, на что у канала есть права.";
-        type-style: Theme.body-small;
-        color: Theme.color.on-surface-variant;
-        wrap: word-wrap;
+    if !Dl.tool-checking && Dl.tool-ok: HorizontalLayout {
+        spacing: Theme.sp2;
+        Label {
+            horizontal-stretch: 1;
+            vertical-alignment: center;
+            text: "yt-dlp " + Dl.tool-version + ". Скачивайте только то, на что у канала есть права.";
+            type-style: Theme.body-small;
+            color: Theme.color.on-surface-variant;
+            wrap: word-wrap;
+        }
+        if !(Dl.login-needed && Dl.step == "error"): Button {
+            text: Dl.login-open ? "Скрыть вход" : (Dl.login-browser > 0 || Dl.login-cookies) ? "Вход: включён" : "Вход в аккаунт";
+            icon: Icons.account-circle;
+            has-icon: true;
+            variant: ButtonVariant.text;
+            clicked => {
+                Dl.login-open = !Dl.login-open;
+            }
+        }
     }
 
     DialogActions {

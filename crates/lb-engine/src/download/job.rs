@@ -1,6 +1,7 @@
 //! Running yt-dlp: reading what a link offers, and the download job that
 //! saves videos into the channel's storage and adds them to the library.
 
+use std::ffi::OsString;
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
 use std::time::Duration;
@@ -31,6 +32,8 @@ pub struct Tools {
     /// ffmpeg for merging video and audio (a bare name: found in PATH).
     pub ffmpeg: PathBuf,
     pub ffprobe: String,
+    /// Sign-in arguments ([`super::login::args`]).
+    pub login: Vec<OsString>,
 }
 
 /// Options common to every call.
@@ -44,12 +47,13 @@ fn last_error(stderr: &str) -> String {
 }
 
 /// What `url` offers (one video or a playlist).
-pub async fn probe(ytdlp: &Path, url: &str) -> Result<LinkInfo, String> {
+pub async fn probe(ytdlp: &Path, login: &[OsString], url: &str) -> Result<LinkInfo, String> {
     if !info::is_web_link(url) {
         return Err("not a web link (http:// or https://)".into());
     }
     let mut cmd = tool::command(ytdlp);
     base_args(&mut cmd);
+    cmd.args(login);
     cmd.args(["-J", "--flat-playlist", "--", url.trim()]).stdout(Stdio::piped()).stderr(Stdio::piped());
     let out = tokio::time::timeout(PROBE_TIMEOUT, cmd.output())
         .await
@@ -171,6 +175,7 @@ async fn fetch(
     }
     let mut cmd = tool::command(&tools.ytdlp);
     base_args(&mut cmd);
+    cmd.args(&tools.login);
     cmd.args(info::format_args(quality));
     cmd.args(["--newline", "--progress", "--no-mtime", "--no-part"]);
     cmd.arg("--progress-template").arg(format!(

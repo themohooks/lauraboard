@@ -9,7 +9,7 @@ use serde_json::{Value, json};
 use lb_core::config::Role;
 use lb_core::media::MediaKind;
 use lb_engine::download::info::{self, Entry, LinkInfo};
-use lb_engine::download::{job, tool};
+use lb_engine::download::{job, login, tool};
 use lb_engine::library::ImportOptions;
 
 use super::channel;
@@ -38,6 +38,27 @@ pub async fn install(State(s): State<AppState>, c: Caller) -> ApiResult<Json<Val
     Ok(Json(json!({ "job": job })))
 }
 
+/// How yt-dlp signs in to sites (browser cookies or a cookies.txt).
+pub async fn get_login(State(s): State<AppState>, c: Caller) -> ApiResult<Json<login::Login>> {
+    c.require(Role::Operator)?;
+    Ok(Json(login::load(&s.engine.project_root)))
+}
+
+#[derive(Deserialize)]
+pub struct LoginBody {
+    #[serde(default)]
+    pub browser: Option<String>,
+    /// Contents of a cookies.txt; "" removes the stored one, absent keeps it.
+    #[serde(default)]
+    pub cookies: Option<String>,
+}
+
+/// Choose how to sign in. Cookies are account access: administrators only.
+pub async fn put_login(State(s): State<AppState>, c: Caller, Json(b): Json<LoginBody>) -> ApiResult<Json<login::Login>> {
+    c.require(Role::Admin)?;
+    login::save(&s.engine.project_root, b.browser.as_deref(), b.cookies.as_deref()).map(Json).map_err(ApiError::bad_request)
+}
+
 #[derive(Deserialize)]
 pub struct ProbeBody {
     pub url: String,
@@ -48,7 +69,7 @@ pub async fn probe(State(s): State<AppState>, c: Caller, Path(id): Path<String>,
     c.require(Role::Operator)?;
     channel(&s, &id)?;
     let exe = ytdlp(&s).await?;
-    job::probe(&exe, &b.url).await.map(Json).map_err(ApiError::bad_request)
+    job::probe(&exe, &login::args(&s.engine.project_root), &b.url).await.map(Json).map_err(ApiError::bad_request)
 }
 
 #[derive(Deserialize)]
@@ -95,6 +116,7 @@ pub async fn download(State(s): State<AppState>, c: Caller, Path(id): Path<Strin
         ytdlp: ytdlp(&s).await?,
         ffmpeg: lb_media::process::bundled_program(&s.engine.app.ffmpeg.ffmpeg),
         ffprobe: s.engine.app.ffmpeg.ffprobe.clone(),
+        login: login::args(&s.engine.project_root),
     };
     let title = match entries.as_slice() {
         [one] if !one.title.is_empty() => format!("Загрузка: {}", one.title),

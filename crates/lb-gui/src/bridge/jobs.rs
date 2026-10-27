@@ -129,6 +129,9 @@ fn finished(c: &mut Ctx, j: &JobView) {
                 c.load_all();
             }
         }
+        ("failed", "download_media") if super::download::needs_login(&j.message) => {
+            c.toast_with("Сайт просит войти в аккаунт, чтобы скачать это видео", "Войти", super::download::open_login);
+        }
         (state, "install_ytdlp") => {
             if state != "done" {
                 c.toast(format!("Установка yt-dlp: {}", crate::ru::server(&j.message)), true);

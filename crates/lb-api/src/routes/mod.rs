@@ -104,6 +104,12 @@ pub fn router(state: AppState) -> Router {
         .route("/jobs", get(jobs::list))
         .route("/tools/ytdlp", get(download::status))
         .route("/tools/ytdlp/install", post(download::install))
+        .route(
+            "/tools/ytdlp/login",
+            get(download::get_login)
+                .put(download::put_login)
+                .layer(axum::extract::DefaultBodyLimit::max(lb_engine::download::login::MAX_COOKIES * 2)),
+        )
         .route("/jobs/{job}", get(jobs::get_one).delete(jobs::cancel))
         .nest("/channels/{id}", ch.route("/events", get(crate::ws::events_channel)))
         .route("/channels/{id}/var/{key}", put(control::set_var));

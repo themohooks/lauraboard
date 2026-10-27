@@ -24,6 +24,97 @@ pub fn connect(ui: &AppWindow) {
     g.on_probe(|| with(probe));
     g.on_start(|| with(start));
     g.on_install_tool(|| with(install_tool));
+    g.on_login_browser_picked(|i| with(move |c| login_browser(c, i)));
+    g.on_login_cookies_pick(|| with(login_cookies_pick));
+    g.on_login_cookies_clear(|| with(|c| save_login(c, None, Some(String::new()))));
+}
+
+/// yt-dlp names of `Dl.browsers` (after "Не использовать").
+const BROWSERS: [&str; 7] = ["firefox", "chrome", "edge", "brave", "opera", "vivaldi", "chromium"];
+
+/// The site wants a signed-in user (YouTube: "Sign in to confirm your
+/// age"; yt-dlp then suggests `--cookies`).
+pub fn needs_login(error: &str) -> bool {
+    let e = error.to_ascii_lowercase();
+    ["sign in to confirm", "confirm your age", "age-restricted", "--cookies", "login required", "members-only"].iter().any(|k| e.contains(k))
+}
+
+/// Open the dialog on the sign-in panel (after a failed download).
+pub fn open_login(c: &mut Ctx) {
+    let Some(ui) = c.window() else { return };
+    let g = ui.global::<Dl>();
+    g.set_login_open(true);
+    g.set_open(true);
+    opened(c);
+}
+
+fn show_login(c: &mut Ctx, v: &Value) {
+    let Some(ui) = c.window() else { return };
+    let g = ui.global::<Dl>();
+    let browser = v["browser"].as_str().and_then(|b| BROWSERS.iter().position(|x| *x == b)).map_or(0, |i| i + 1);
+    g.set_login_browser(browser as i32);
+    g.set_login_cookies(v["cookies"].as_bool().unwrap_or(false));
+}
+
+fn refresh_login(c: &mut Ctx) {
+    c.worker.spawn(|api| {
+        let r: Result<Value, String> = api.get("/tools/ytdlp/login");
+        Ok(Msg::Apply(Box::new(move |c: &mut Ctx| {
+            if let Ok(v) = r {
+                show_login(c, &v);
+            }
+        })))
+    });
+}
+
+fn login_browser(c: &mut Ctx, i: i32) {
+    let browser = usize::try_from(i - 1).ok().and_then(|i| BROWSERS.get(i)).map(|b| b.to_string());
+    save_login(c, browser, None);
+}
+
+fn login_cookies_pick(c: &mut Ctx) {
+    let Some(path) = rfd::FileDialog::new().set_title("Файл cookies.txt").add_filter("cookies.txt", &["txt"]).pick_file() else {
+        return;
+    };
+    match std::fs::read_to_string(&path) {
+        Ok(text) if text.trim().is_empty() => c.toast("Файл cookies.txt пуст", true),
+        Ok(text) => {
+            let browser = current_browser(c);
+            save_login(c, browser, Some(text));
+        }
+        Err(e) => c.toast(format!("{}: {e}", path.display()), true),
+    }
+}
+
+fn current_browser(c: &mut Ctx) -> Option<String> {
+    let i = c.window()?.global::<Dl>().get_login_browser();
+    usize::try_from(i - 1).ok().and_then(|i| BROWSERS.get(i)).map(|b| b.to_string())
+}
+
+/// Store the choice on the server; `cookies`: `Some("")` removes the file.
+fn save_login(c: &mut Ctx, browser: Option<String>, cookies: Option<String>) {
+    let browser = browser.or_else(|| if cookies.is_some() { current_browser(c) } else { None });
+    let Some(ui) = c.window() else { return };
+    ui.global::<Dl>().set_login_saving(true);
+    let mut body = json!({ "browser": browser });
+    if let Some(text) = cookies {
+        body["cookies"] = json!(text);
+    }
+    c.worker.spawn(move |api| {
+        let r = api.put("/tools/ytdlp/login", &body);
+        Ok(Msg::Apply(Box::new(move |c: &mut Ctx| {
+            if let Some(ui) = c.window() {
+                ui.global::<Dl>().set_login_saving(false);
+            }
+            match r {
+                Ok(v) => show_login(c, &v),
+                Err(e) => {
+                    c.toast(format!("Вход в аккаунт: {}", crate::ru::server(&e)), true);
+                    refresh_login(c);
+                }
+            }
+        })))
+    });
 }
 
 fn opened(c: &mut Ctx) {
@@ -35,6 +126,7 @@ fn opened(c: &mut Ctx) {
         g.set_step(SharedString::new());
     }
     refresh_tool(c);
+    refresh_login(c);
 }
 
 /// Ask the server whether yt-dlp is there.
@@ -131,6 +223,7 @@ fn probe(c: &mut Ctx) {
             }
             let Some(ui) = c.window() else { return };
             let g = ui.global::<Dl>();
+            g.set_login_needed(r.as_ref().err().is_some_and(|e| needs_login(e)));
             match r {
                 Ok(info) if info["is_live"].as_bool() == Some(true) => {
                     g.set_error(
@@ -231,5 +324,11 @@ mod tests {
         assert_eq!(details(&info), format!("Канал · Youtube · {}", hms(61_000)));
         let pl = json!({"site": "youtube:tab", "entries": [{}, {}, {}]});
         assert_eq!(details(&pl), "youtube:tab · плейлист: 3 видео");
+    }
+
+    #[test]
+    fn sign_in_errors() {
+        assert!(needs_login("[youtube] abc: Sign in to confirm your age. This video may be inappropriate for some users."));
+        assert!(!needs_login("[youtube] abc: Video unavailable"));
     }
 }

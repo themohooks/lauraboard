@@ -31,8 +31,22 @@ export global Dl {
     in-out property <int> folder;
     in property <bool> starting;
 
+    // signing in to the site (yt-dlp uses browser cookies or a cookies.txt)
+    // the last error asks for it (YouTube: "Sign in to confirm your age")
+    in property <bool> login-needed;
+    // the panel was opened by hand
+    in-out property <bool> login-open;
+    // 0 = no browser, then Dl.browsers
+    in-out property <int> login-browser;
+    in property <bool> login-cookies;
+    in property <bool> login-saving;
+    out property <[string]> browsers: ["Не использовать", "Firefox", "Chrome", "Edge", "Brave", "Opera", "Vivaldi", "Chromium"];
+
     callback opened();
     callback probe();
     callback start();
     callback install-tool();
+    callback login-browser-picked(int);
+    callback login-cookies-pick();
+    callback login-cookies-clear();
 }

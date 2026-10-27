@@ -326,6 +326,21 @@ fn demo_overlay(ui: &AppWindow, name: &str) {
             ui.set_section("settings".into());
             return;
         }
+        // download dialog: YouTube asks to sign in
+        "download-login" => {
+            let d = ui.global::<crate::shell::Dl>();
+            d.set_tool_checking(false);
+            d.set_tool_ok(true);
+            d.set_tool_version("2026.09.30".into());
+            d.set_url("https://www.youtube.com/watch?v=abc".into());
+            d.set_error("[youtube] abc: Sign in to confirm your age. This video may be inappropriate for some users.".into());
+            d.set_step("error".into());
+            d.set_login_needed(true);
+            d.set_login_browser(1);
+            d.set_open(true);
+            ui.set_section("library".into());
+            return;
+        }
         // the video editor over the library
         "editor" => {
             use crate::shell::{EditRegion, Ved};
