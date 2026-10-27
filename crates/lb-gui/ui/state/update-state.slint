@@ -1,0 +1,29 @@
+// Data contract of updates (src/bridge/update.rs).
+
+export global Upd {
+    in property <string> current;
+    // "idle", "checking", "latest" (up to date), "available",
+    // "downloading", "ready" (downloaded and checked), "error"
+    in property <string> phase: "idle";
+    in property <string> latest;
+    // release notes, shortened
+    in property <string> notes;
+    // status line under the title (time of the last check, the error…)
+    in property <string> status;
+    in property <float> progress;
+    // what the install button does on this computer
+    in property <string> install-hint;
+    in property <string> install-label;
+    in property <bool> auto: true;
+    in property <bool> skipped;
+    // a small mark in the app bar
+    in property <bool> badge;
+
+    callback check();
+    callback install();
+    callback skip();
+    callback open-page();
+    callback auto-changed(bool);
+    // the app bar mark: open Settings
+    callback show();
+}

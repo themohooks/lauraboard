@@ -61,6 +61,24 @@ impl Default for NotifyPrefs {
     }
 }
 
+/// Update checks (see `crate::update`).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
+pub struct UpdatePrefs {
+    /// Look for a new version quietly once a day.
+    pub auto: bool,
+    /// A version the operator chose to skip (no mark in the app bar).
+    pub skipped: String,
+    /// Unix time of the last successful check.
+    pub last_check: Option<i64>,
+}
+
+impl Default for UpdatePrefs {
+    fn default() -> Self {
+        UpdatePrefs { auto: true, skipped: String::new(), last_check: None }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(default)]
 pub struct UiPrefs {
@@ -82,6 +100,7 @@ pub struct UiPrefs {
     pub notify: NotifyPrefs,
     /// Plate designs saved by the user ("my styles").
     pub plate_styles: Vec<lb_core::graphics::PlateStyle>,
+    pub updates: UpdatePrefs,
     /// Written to disk on change (off for headless tools).
     #[serde(skip)]
     pub persist: bool,
@@ -101,6 +120,7 @@ impl Default for UiPrefs {
             close_to_tray: true,
             notify: NotifyPrefs::default(),
             plate_styles: Vec::new(),
+            updates: UpdatePrefs::default(),
             persist: true,
         }
     }
@@ -167,5 +187,6 @@ mod tests {
         assert!(p.nav_expanded);
         assert_eq!(p.section, "home");
         assert!(p.close_to_tray);
+        assert!(p.updates.auto);
     }
 }

@@ -9,6 +9,7 @@
 //! * [`net`] — background requests, polling and the event stream
 //! * [`model`] — client-side cache of server data
 //! * [`fmt`] — shared formatting
+//! * [`update`] — new versions from GitHub releases
 //! * [`prefs`] / [`sysprefs`] — persisted UI preferences, OS accessibility hints
 
 mod bridge;
@@ -26,6 +27,7 @@ mod single;
 mod sysprefs;
 mod theme_transition;
 mod tray;
+mod update;
 
 /// How to reach the API.
 #[derive(Debug, Clone)]

@@ -14,6 +14,8 @@ import { Button, ButtonVariant } from "../../components/button.slint";
 import { StatusChip, StatusTone } from "../../components/indicators.slint";
 import { Page, PageHeader } from "../../shell/page.slint";
 import { Settings } from "../../state/settings-state.slint";
+import { Upd } from "../../state/update-state.slint";
+import { LinearProgress } from "../../components/feedback.slint";
 
 component Setting inherits HorizontalLayout {
     in property <string> title;
@@ -113,6 +115,100 @@ export component SettingsScreen inherits Page {
                 PageHeader {
                     title: "Настройки";
                     subtitle: "Интерфейс этого компьютера — на эфир не влияют";
+                }
+
+                Card {
+                    card-style: CardStyle.low;
+                    CardHeader {
+                        title: "Обновления";
+                        subtitle: "Версия " + Upd.current + (Upd.status != "" ? " · " + Upd.status : "");
+                        if Upd.phase != "checking" && Upd.phase != "downloading": Button {
+                            text: "Проверить";
+                            variant: ButtonVariant.text;
+                            icon: Icons.refresh;
+                            has-icon: true;
+                            clicked => {
+                                Upd.check();
+                            }
+                        }
+                    }
+                    if Upd.phase == "checking": LinearProgress {
+                        indeterminate: true;
+                    }
+                    if Upd.phase == "available" || Upd.phase == "downloading" || Upd.phase == "ready": VerticalLayout {
+                        spacing: Theme.sp2;
+                        HorizontalLayout {
+                            spacing: Theme.sp2;
+                            Icon {
+                                source: Icons.upgrade;
+                                tint: Theme.color.primary;
+                            }
+                            Label {
+                                horizontal-stretch: 1;
+                                text: "Доступна версия " + Upd.latest + (Upd.skipped ? " (пропущена)" : "");
+                                type-style: Theme.title-small;
+                                vertical-alignment: center;
+                            }
+                        }
+                        if Upd.notes != "": Label {
+                            text: Upd.notes;
+                            type-style: Theme.body-small;
+                            color: Theme.color.on-surface-variant;
+                            wrap: word-wrap;
+                        }
+                        if Upd.phase == "downloading": LinearProgress {
+                            progress: Upd.progress;
+                        }
+                        Label {
+                            text: Upd.install-hint;
+                            type-style: Theme.body-small;
+                            color: Theme.color.on-surface-variant;
+                            wrap: word-wrap;
+                        }
+                        HorizontalLayout {
+                            spacing: Theme.sp2;
+                            alignment: start;
+                            Button {
+                                text: Upd.install-label;
+                                icon: Icons.upgrade;
+                                has-icon: true;
+                                variant: ButtonVariant.filled;
+                                enabled: Upd.phase != "downloading";
+                                clicked => {
+                                    Upd.install();
+                                }
+                            }
+                            Button {
+                                text: "Что нового";
+                                variant: ButtonVariant.text;
+                                clicked => {
+                                    Upd.open-page();
+                                }
+                            }
+                            if !Upd.skipped && Upd.phase == "available": Button {
+                                text: "Пропустить эту версию";
+                                variant: ButtonVariant.text;
+                                clicked => {
+                                    Upd.skip();
+                                }
+                            }
+                        }
+                    }
+                    Setting {
+                        title: "Проверять автоматически";
+                        hint: "Раз в день, тихо: только значок в верхней панели. Без вашего согласия ничего не скачивается";
+                        VerticalLayout {
+                            horizontal-stretch: 1;
+                            alignment: center;
+                            Switch {
+                                text: "Искать новые версии на GitHub";
+                                checked: Upd.auto;
+                                toggled(v) => {
+                                    Upd.auto-changed(v);
+                                }
+                            }
+                        }
+                    }
                 }
 
                 Card {

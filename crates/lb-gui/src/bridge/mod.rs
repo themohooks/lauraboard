@@ -37,6 +37,7 @@ pub mod sources;
 pub mod stats;
 pub mod system;
 pub mod thumbs;
+pub mod update;
 
 use std::cell::RefCell;
 use std::sync::Arc;
@@ -91,6 +92,8 @@ pub struct Ctx {
     pub avatars: avatars::Avatars,
     pub system: system::SystemState,
     pub jobs: jobs::JobsState,
+    /// New versions from GitHub.
+    pub upd: update::UpdateState,
     /// The notification-area icon is up (closing hides the window).
     pub has_tray: bool,
     /// Channel configuration (admin only; `None` when not available).
@@ -167,6 +170,7 @@ pub fn start(ui: &AppWindow, opts: &GuiOptions, prefs: UiPrefs) {
         notify: Default::default(),
         system: Default::default(),
         jobs: Default::default(),
+        upd: update::UpdateState::new(opts.embedded_engine),
         has_tray: false,
         channel_config: None,
         last_load: Default::default(),
@@ -195,6 +199,7 @@ pub fn start(ui: &AppWindow, opts: &GuiOptions, prefs: UiPrefs) {
     record::connect(ui);
     settings::connect(ui);
     picker::connect(ui);
+    update::connect(ui);
     with(|c| {
         shell::apply_prefs(c);
         air::apply_prefs(c);
