@@ -1,0 +1,63 @@
+import { ScrollView, Button } from "std-widgets.slint";
+import { Theme } from "../theme/tokens.slint";
+
+export component CrashWindow inherits Window {
+    in property <string> log;
+    in property <string> log-path;
+    title: "LauraBoard — критическая ошибка";
+    preferred-width: 960px;
+    preferred-height: 700px;
+    min-width: 600px;
+    min-height: 400px;
+    background: Theme.color.surface;
+    default-font-family: Theme.font;
+    VerticalLayout {
+        padding: 24px;
+        spacing: 16px;
+        Text {
+            text: "Программа завершилась с критической ошибкой";
+            color: Theme.color.error;
+            font-size: 22px;
+            wrap: word-wrap;
+        }
+        Text {
+            text: "Полный журнал сеанса сохранён в файле:\n" + root.log-path;
+            color: Theme.color.on-surface;
+            wrap: word-wrap;
+        }
+        Rectangle {
+            vertical-stretch: 1;
+            min-height: 100px;
+            border-width: 1px;
+            border-color: Theme.color.outline;
+            border-radius: 4px;
+            background: Theme.color.surface-container-low;
+            log-view := ScrollView {
+                x: 12px;
+                y: 12px;
+                width: parent.width - 24px;
+                height: parent.height - 24px;
+                content-width: max(self.visible-width, log-text.preferred-width);
+                content-height: max(self.visible-height, log-text.preferred-height);
+                log-text := TextInput {
+                    width: log-view.content-width;
+                    height: log-view.content-height;
+                    text: root.log;
+                    read-only: true;
+                    single-line: false;
+                    wrap: no-wrap;
+                    font-family: "Roboto Mono";
+                    font-size: 12px;
+                    color: Theme.color.on-surface;
+                    selection-background-color: Theme.color.primary;
+                    selection-foreground-color: Theme.color.on-primary;
+                    page-height: log-view.visible-height;
+                }
+            }
+        }
+        HorizontalLayout {
+            Rectangle { horizontal-stretch: 1; }
+            Button { text: "Закрыть"; clicked => { root.hide(); } }
+        }
+    }
+}

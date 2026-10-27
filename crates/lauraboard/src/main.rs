@@ -9,6 +9,8 @@
 mod api_client;
 mod cli;
 mod commands;
+#[cfg(feature = "gui")]
+mod crash;
 mod ctx;
 mod demo;
 #[cfg(feature = "gui")]
@@ -23,8 +25,14 @@ use cli::{Cli, Cmd};
 
 fn main() {
     let (cli, desktop) = parse();
+    #[cfg(feature = "gui")]
+    if is_gui(&cli.cmd) && std::env::var_os(crash::LOG_ENV).is_none() {
+        std::process::exit(crash::supervise(&cli.project, desktop));
+    }
     let long_running = matches!(cli.cmd, Cmd::Run { .. }) || is_gui(&cli.cmd);
-    let _guard = logging::init(&cli.project, long_running);
+    let guard = logging::init(&cli.project, long_running);
+    #[cfg(feature = "gui")]
+    crash::install_hook();
     let ctx = ctx::Ctx { root: cli.project.clone(), channel: cli.channel.clone(), token: cli.token.clone(), json: cli.json };
     let result =
         if desktop { desktop_start(&ctx).and_then(|()| commands::dispatch(&ctx, cli.cmd)) } else { commands::dispatch(&ctx, cli.cmd) };
@@ -38,6 +46,7 @@ fn main() {
             code
         }
     };
+    drop(guard);
     std::process::exit(code as i32);
 }
 
@@ -79,6 +88,13 @@ fn desktop_start(_: &ctx::Ctx) -> anyhow::Result<()> {
 }
 
 fn report(desktop: bool, message: &str) {
+    #[cfg(feature = "gui")]
+    if std::env::var_os(crash::LOG_ENV).is_some() {
+        tracing::error!("{message}");
+        // Preserve the failure even when RUST_LOG disables tracing entirely.
+        eprintln!("Критическая ошибка: {message}");
+        return;
+    }
     #[cfg(feature = "gui")]
     if desktop {
         desktop::show_error(message);

@@ -38,6 +38,10 @@ on:
       artifact_prefix:
         type: string
         default: build
+      release_profile:
+        description: Publish only AppImage, DEB and RPM for Linux x64 and ARM64
+        type: boolean
+        default: false
 permissions:
   contents: read
 concurrency:
@@ -65,6 +69,7 @@ jobs:
           BUILD_PLATFORM: ${{ inputs.platform }}
           BUILD_ARCHITECTURE: ${{ inputs.architecture }}
           BUILD_FORMAT: ${{ inputs.package_format }}
+          BUILD_RELEASE_PROFILE: ${{ inputs.release_profile }}
         run: python3 .github/scripts/build_matrix.py
   ffmpeg-x86:
     name: FFmpeg x86 (${{ matrix.platform }})

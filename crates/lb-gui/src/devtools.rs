@@ -64,11 +64,14 @@ pub fn snapshot(out: &Path, section: &str, width: u32, height: u32, scale: f32, 
     if section == "notify" {
         return snapshot_notify(out, &window, scale);
     }
+    if section == "crash" {
+        return snapshot_crash(out, &window, width, height, scale);
+    }
     let ui = AppWindow::new().map_err(|e| e.to_string())?;
     window.dispatch_event(WindowEvent::ScaleFactorChanged { scale_factor: scale });
     window.set_size(slint::PhysicalSize::new(width, height));
     let (name, page) = section.split_once(':').unwrap_or((section, ""));
-    ui.set_section(name.into());
+    ui.set_section(if name == "theme-transition" { "settings" } else { name }.into());
     ui.set_gallery_page(page.into());
     // No time passes between frames here, so animated properties would keep stale values.
     ui.global::<Theme>().set_animations(false);
@@ -108,6 +111,23 @@ pub fn snapshot(out: &Path, section: &str, width: u32, height: u32, scale: f32, 
         }
         pump_for(&jobs, Duration::from_millis(live.map_or(300, |_| 1500)));
     }
+    if name == "theme-transition" {
+        ui.global::<Theme>().set_mode(ThemeMode::Light);
+        let old = ui.window().take_snapshot().map_err(|e| e.to_string())?;
+        ui.global::<Theme>().set_mode(ThemeMode::Dark);
+        let mut reveal = crate::theme_transition::Reveal::new(old);
+        ui.set_theme_snapshot(reveal.frame(0.65));
+        ui.set_theme_transition(true);
+        let mut buf = vec![Rgb8Pixel::default(); (width * height) as usize];
+        window.request_redraw();
+        window.draw_if_needed(|r| {
+            r.render(&mut buf, width as usize);
+        });
+        let raw: Vec<u8> = buf.iter().flat_map(|p| [p.r, p.g, p.b]).collect();
+        let img = image::RgbImage::from_raw(width, height, raw).ok_or("bad buffer")?;
+        img.save(out.join("theme-transition.png")).map_err(|e| e.to_string())?;
+        return Ok(());
+    }
     for (name, mode) in [("light", ThemeMode::Light), ("dark", ThemeMode::Dark)] {
         ui.global::<Theme>().set_mode(mode);
         let mut buf = vec![Rgb8Pixel::default(); (width * height) as usize];
@@ -120,6 +140,32 @@ pub fn snapshot(out: &Path, section: &str, width: u32, height: u32, scale: f32, 
         let path = out.join(format!("{}-{name}.png", section.replace(':', "-")));
         img.save(&path).map_err(|e| format!("{}: {e}", path.display()))?;
         println!("{}", path.display());
+    }
+    Ok(())
+}
+
+/// A long report exercises the resizable, scrollable crash window.
+fn snapshot_crash(out: &Path, window: &Rc<MinimalSoftwareWindow>, width: u32, height: u32, scale: f32) -> Result<(), String> {
+    let ui = crate::shell::CrashWindow::new().map_err(|e| e.to_string())?;
+    window.dispatch_event(WindowEvent::ScaleFactorChanged { scale_factor: scale });
+    window.set_size(slint::PhysicalSize::new(width, height));
+    ui.set_log_path("C:\\Users\\Operator\\Documents\\LauraBoard\\logs\\session-20261027-120000.log".into());
+    let mut log = String::from("Критическая ошибка: thread 'main' panicked at engine.rs:42\n");
+    for i in 0..1000 {
+        log.push_str(&format!("2026-10-27 12:00:00 INFO Журнал сеанса: запись {i:04} — обработка события вещания\n"));
+    }
+    ui.set_log(log.into());
+    ui.show().map_err(|e| e.to_string())?;
+    for (name, mode) in [("light", ThemeMode::Light), ("dark", ThemeMode::Dark)] {
+        ui.global::<Theme>().set_mode(mode);
+        let mut buf = vec![Rgb8Pixel::default(); (width * height) as usize];
+        window.request_redraw();
+        window.draw_if_needed(|r| {
+            r.render(&mut buf, width as usize);
+        });
+        let raw: Vec<u8> = buf.iter().flat_map(|p| [p.r, p.g, p.b]).collect();
+        let img = image::RgbImage::from_raw(width, height, raw).ok_or("bad buffer")?;
+        img.save(out.join(format!("crash-{name}.png"))).map_err(|e| e.to_string())?;
     }
     Ok(())
 }

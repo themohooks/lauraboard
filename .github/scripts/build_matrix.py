@@ -11,7 +11,7 @@ FORMATS = {
 }
 
 
-def matrices(platform="all", architecture="all", package_format="all"):
+def matrices(platform="all", architecture="all", package_format="all", release_profile=False):
     if platform not in ("all", *FORMATS):
         raise ValueError(f"Unknown platform: {platform}")
     if architecture not in ("all", *ARCHES):
@@ -23,9 +23,13 @@ def matrices(platform="all", architecture="all", package_format="all"):
         if platform not in ("all", system):
             continue
         selected = [f for f in formats if package_format in ("all", f)]
+        if release_profile and system == "linux":
+            selected = [f for f in selected if f in ("appimage", "debpackage", "rpmpackage")]
         if not selected:
             continue
         for label, arch in ARCHES.items():
+            if release_profile and system == "linux" and label == "x86":
+                continue
             if architecture not in ("all", label):
                 continue
             target = f"{arch}-" + ("pc-windows-msvc" if system == "windows" else "unknown-linux-gnu")
@@ -47,7 +51,8 @@ def matrices(platform="all", architecture="all", package_format="all"):
 if __name__ == "__main__":
     result = matrices(os.environ.get("BUILD_PLATFORM", "all"),
                       os.environ.get("BUILD_ARCHITECTURE", "all"),
-                      os.environ.get("BUILD_FORMAT", "all"))
+                      os.environ.get("BUILD_FORMAT", "all"),
+                      os.environ.get("BUILD_RELEASE_PROFILE") == "true")
     with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
         for name, value in result.items():
             output.write(f"{name}={json.dumps(value, separators=(',', ':'))}\n")

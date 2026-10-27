@@ -1,6 +1,7 @@
 //! Logging: console (stderr) plus a daily rolling file in the project's log
 //! directory. Level from `lauraboard.toml` (`[log] level`) or `RUST_LOG`.
 
+use std::io::IsTerminal;
 use std::path::Path;
 
 use tracing_appender::non_blocking::WorkerGuard;
@@ -14,7 +15,7 @@ pub fn init(root: &Path, file_logging: bool) -> Option<WorkerGuard> {
         .unwrap_or_default();
     let filter = EnvFilter::try_from_default_env()
         .unwrap_or_else(|_| EnvFilter::new(format!("{},ffmpeg=warn,wgpu_hal=off,wgpu_core=warn,naga=warn", app.log.level)));
-    let console = fmt::layer().with_writer(std::io::stderr).with_target(false).compact();
+    let console = fmt::layer().with_writer(std::io::stderr).with_ansi(std::io::stderr().is_terminal()).with_target(false).compact();
     if !file_logging {
         let _ = tracing_subscriber::registry().with(filter).with(console).try_init();
         return None;

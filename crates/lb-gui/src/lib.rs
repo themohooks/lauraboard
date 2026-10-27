@@ -24,6 +24,7 @@ mod ru;
 mod shell;
 mod single;
 mod sysprefs;
+mod theme_transition;
 mod tray;
 
 /// How to reach the API.
@@ -42,4 +43,16 @@ pub struct GuiOptions {
 /// closing the window only hides it).
 pub fn run(opts: GuiOptions) -> Result<(), String> {
     shell::run(opts)
+}
+
+/// Used by the supervisor after the application process has exited.
+pub fn show_crash_report(log: &str, path: &str) -> Result<(), String> {
+    use slint::ComponentHandle;
+    // The application may have crashed in its graphics driver. Reporting
+    // must be able to open without initializing GPU rendering again.
+    slint::BackendSelector::new().backend_name("winit".into()).renderer_name("software".into()).select().map_err(|e| e.to_string())?;
+    let window = shell::CrashWindow::new().map_err(|e| e.to_string())?;
+    window.set_log(log.into());
+    window.set_log_path(path.into());
+    window.run().map_err(|e| e.to_string())
 }

@@ -18,6 +18,7 @@ const SCALE_DELAY: Duration = Duration::from_millis(400);
 pub struct SettingsState {
     scale_seq: u64,
     server_version: Option<String>,
+    theme_timer: slint::Timer,
 }
 
 pub fn connect(ui: &AppWindow) {
@@ -143,14 +144,41 @@ fn saved(c: &mut Ctx) {
     c.prefs.save();
     let Some(ui) = c.window() else { return };
     let t = ui.global::<crate::shell::Theme>();
-    t.set_mode(match c.prefs.theme {
+    let was_dark = t.get_dark();
+    let mode = match c.prefs.theme {
         ThemeMode::System => crate::shell::ThemeMode::System,
         ThemeMode::Light => crate::shell::ThemeMode::Light,
         ThemeMode::Dark => crate::shell::ThemeMode::Dark,
-    });
+    };
+    let snapshot =
+        if t.get_mode() != mode && c.prefs.animations() && !ui.get_theme_transition() { ui.window().take_snapshot().ok() } else { None };
+    t.set_mode(mode);
     t.set_animations(c.prefs.animations());
     t.set_compact(c.prefs.compact);
     show(c);
+    if was_dark != t.get_dark() {
+        if let Some(snapshot) = snapshot {
+            let mut reveal = crate::theme_transition::Reveal::new(snapshot);
+            ui.set_theme_snapshot(reveal.frame(0.0));
+            ui.set_theme_transition(true);
+            let start = std::time::Instant::now();
+            let weak = ui.as_weak();
+            c.settings.theme_timer.start(slint::TimerMode::Repeated, Duration::from_millis(16), move || {
+                let progress = (start.elapsed().as_secs_f32() / 0.48).min(1.0);
+                if let Some(ui) = weak.upgrade() {
+                    if progress < 1.0 {
+                        ui.set_theme_snapshot(reveal.frame(progress * progress * (3.0 - 2.0 * progress)));
+                    } else {
+                        ui.set_theme_transition(false);
+                        ui.set_theme_snapshot(slint::Image::default());
+                    }
+                }
+                if progress >= 1.0 {
+                    with(|c| c.settings.theme_timer.stop());
+                }
+            });
+        }
+    }
 }
 
 pub fn opened(c: &mut Ctx) {

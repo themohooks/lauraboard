@@ -40,6 +40,7 @@ jobs:
     with:
       include_ffmpeg: false
       artifact_prefix: release
+      release_profile: true
   build-macos:
     name: Build ${{ matrix.target }}
     needs: [validate, checks, audit]
@@ -100,7 +101,8 @@ jobs:
           RELEASE_COMMIT: ${{ github.sha }}
           RELEASE_REF_TYPE: ${{ github.ref_type }}
         run: |
-          args=(--target "$RELEASE_COMMIT" --generate-notes --title "LauraBoard ${RELEASE_TAG}")
+          python3 .github/scripts/release.py notes
+          args=(--target "$RELEASE_COMMIT" --generate-notes --notes-file target/release-notes.md --title "LauraBoard ${RELEASE_TAG}")
           if [[ "$RELEASE_REF_TYPE" == tag ]]; then
             args+=(--verify-tag)
           fi

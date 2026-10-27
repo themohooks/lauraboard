@@ -64,11 +64,14 @@ export { Jobs, JobRow } from "state/jobs-state.slint";
 export { Picker, PickRow } from "state/picker-state.slint";
 export { Scenes, SceneItemRow, MusicRow, TrackRow, SceneGfxRow } from "state/scenes-state.slint";
 export { NotifyWindow, Popups, NoticeRow } from "shell/notify-window.slint";
+export { CrashWindow } from "shell/crash-window.slint";
 
 export component AppWindow inherits Window {
     // kept for the snapshot tool; mirrors App.section
     in-out property <string> section <=> App.section;
     in-out property <string> gallery-page;
+    in-out property <image> theme-snapshot;
+    in-out property <bool> theme-transition: false;
 
     // below this width the drawer collapses into a rail; updated on resize
     // (a plain binding would loop through the window's layout constraints)
@@ -269,6 +272,18 @@ export component AppWindow inherits Window {
     TooltipLayer {
         bound-width: root.width;
         bound-height: root.height;
+    }
+
+    if root.theme-transition: Rectangle {
+        width: root.width;
+        height: root.height;
+        clip: true;
+        Image {
+            width: root.width;
+            height: root.height;
+            source: root.theme-snapshot;
+        }
+        TouchArea { }
     }
 
     init => {

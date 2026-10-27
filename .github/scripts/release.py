@@ -1,6 +1,7 @@
 """Native release builds and packaging; Python 3.11+, no third-party packages."""
 
 import hashlib
+from html import escape
 import json
 import os
 from pathlib import Path
@@ -11,6 +12,7 @@ import sys
 import tarfile
 import tempfile
 import tomllib
+from urllib.parse import quote, urlencode
 import zipfile
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -64,14 +66,84 @@ def expected_assets(release_version):
     for target, (system, arch) in TARGETS.items():
         extension = ".zip" if system == "windows" else ".tar.gz"
         prefix = f"lauraboard-{release_version}"
+        if system == "linux":
+            if arch != "x86":
+                for extension in ("AppImage", "deb", "rpm"):
+                    result.add(f"{prefix}-{target}.{extension}")
+            continue
         result.add(f"{prefix}-{target}-server{extension}")
         if system != "macos":
             result.add(f"{prefix}-{target}-desktop{extension}")
             result.add(f"{prefix}-{system}-{arch}-setup" + (".exe" if system == "windows" else ""))
-        if system == "linux":
-            for extension in ("AppImage", "deb", "rpm", "aur.tar.gz"):
-                result.add(f"{prefix}-{target}.{extension}")
     return result
+
+
+def download_table(repository, release_version, server_url="https://github.com"):
+    """GitHub-compatible table with one download badge per published asset."""
+    if not re.fullmatch(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+", repository):
+        raise ValueError(f"Expected owner/repository, got {repository!r}")
+    base = f"{server_url.rstrip('/')}/{repository}/releases/download/{quote('v' + release_version, safe='')}"
+    prefix = f"lauraboard-{release_version}"
+    linked = set()
+
+    def button(name, label, arch, color, system):
+        linked.add(name)
+        badge = "https://img.shields.io/static/v1?" + urlencode({
+            "label": label, "message": arch, "color": color,
+            "labelColor": "454b52", "style": "flat-square",
+        })
+        return (f'<a href="{escape(base + "/" + quote(name, safe=""), quote=True)}">'
+                f'<img src="{escape(badge, quote=True)}" alt="{escape(system + " " + label + " " + arch, quote=True)}"></a>')
+
+    rows = []
+    for system, title in (("windows", "Windows"), ("macos", "macOS"), ("linux", "Linux")):
+        formats = [("setup", "Setup", "1684c7"), ("desktop", "Portable", "269ca8")]
+        if system == "macos":
+            formats = []
+        elif system == "linux":
+            formats = [("AppImage", "AppImage", "e05d2f"), ("deb", "DebPackage", "d36b8c"),
+                       ("rpm", "RpmPackage", "d6a22a")]
+        if system != "linux":
+            formats += [("server", "Server", "747b86")]
+        lines = []
+        for kind, label, color in formats:
+            buttons = []
+            for target, (target_system, arch) in TARGETS.items():
+                if target_system != system:
+                    continue
+                if system == "linux" and arch == "x86":
+                    continue
+                arch_label = {"x86_64": "x64", "x86": "x86", "aarch64": "ARM64"}[arch]
+                if system == "macos":
+                    arch_label = "Intel x64" if arch == "x86_64" else "Apple Silicon"
+                if kind == "setup":
+                    name = f"{prefix}-{system}-{arch}-setup" + (".exe" if system == "windows" else "")
+                elif kind in ("desktop", "server"):
+                    extension = ".zip" if system == "windows" else ".tar.gz"
+                    name = f"{prefix}-{target}-{kind}{extension}"
+                else:
+                    name = f"{prefix}-{target}.{kind}"
+                buttons.append(button(name, label, arch_label, color, title))
+            lines.append(" ".join(buttons))
+        rows.append(f'<tr><td><strong>{title}</strong></td><td>' + "<br>".join(lines) + "</td></tr>")
+    if linked != expected_assets(release_version):
+        raise ValueError("Download table does not match the release asset set")
+    checksum = f"{base}/SHA256SUMS"
+    return ("## Скачать для вашей ОС\n\n"
+            '<table>\n<tr><th>ОС</th><th>Скачать</th></tr>\n' + "\n".join(rows) + "\n</table>\n\n"
+            "**x86** — 32 бита; **ARM64** — 64-битный ARM. "
+            "Server — CLI/API без GUI; для macOS доступен только Server.\n\n"
+            "FFmpeg и ffprobe устанавливаются отдельно.\n\n"
+            f"[SHA256SUMS — контрольные суммы файлов]({checksum})\n\n---\n\n")
+
+
+def notes():
+    path = ROOT / "target/release-notes.md"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(download_table(os.environ["GH_REPO"], version(),
+                                  os.environ.get("GITHUB_SERVER_URL", "https://github.com")),
+                    encoding="utf-8", newline="\n")
+    print(f"Generated download table: {path}")
 
 
 def archive(source, destination):
@@ -186,7 +258,7 @@ def finalize(directory=ASSETS, release_version=None):
 
 
 if __name__ == "__main__":
-    commands = {"validate": validate, "build": build, "finalize": finalize}
+    commands = {"validate": validate, "build": build, "finalize": finalize, "notes": notes}
     if len(sys.argv) != 2 or sys.argv[1] not in commands:
-        sys.exit("usage: release.py validate|build|finalize")
+        sys.exit("usage: release.py validate|build|finalize|notes")
     commands[sys.argv[1]]()
