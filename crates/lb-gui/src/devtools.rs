@@ -312,6 +312,51 @@ fn demo_overlay(ui: &AppWindow, name: &str) {
             c.set_e_name("Основной канал".into());
             c.set_form("import".into());
         }
+        // Settings with a new version found (and its mark in the app bar)
+        "update" => {
+            let u = ui.global::<crate::shell::Upd>();
+            u.set_current("0.1.0".into());
+            u.set_phase("available".into());
+            u.set_latest("0.2.0".into());
+            u.set_notes("— Скачивание роликов с сайтов в медиатеку\n— Монтаж: обрезка, скрытие логотипа, кадрирование\n— Обновления из программы".into());
+            u.set_status("проверено 27.10 09:12".into());
+            u.set_install_hint(crate::update::local::install_hint(&crate::update::release::Kind::Setup).into());
+            u.set_install_label("Скачать и установить".into());
+            u.set_badge(true);
+            ui.set_section("settings".into());
+            return;
+        }
+        // the video editor over the library
+        "editor" => {
+            use crate::shell::{EditRegion, Ved};
+            let v = ui.global::<Ved>();
+            v.set_media_title("Утренний эфир — выпуск 12".into());
+            v.set_duration_ms(754_000.0);
+            v.set_position_ms(81_500.0);
+            v.set_start_ms(12_000.0);
+            v.set_end_ms(700_000.0);
+            v.set_crop_bottom(6.0);
+            let r = EditRegion {
+                x: 0.82,
+                y: 0.05,
+                w: 0.14,
+                h: 0.1,
+                mode: 0,
+                strength: 0.5,
+                color: slint::Color::from_rgb_u8(0, 0, 0),
+                timed: false,
+                from_ms: 0.0,
+                to_ms: 754_000.0,
+            };
+            v.set_regions(model(vec![r.clone(), EditRegion { x: 0.04, y: 0.84, w: 0.3, h: 0.08, mode: 2, ..r.clone() }]));
+            v.set_selected(0);
+            v.set_current(model(vec![r]));
+            v.set_can_replace(true);
+            v.set_new_title("Утренний эфир — выпуск 12 (ред.)".into());
+            v.set_open(true);
+            ui.set_section("library".into());
+            return;
+        }
         // start screen of a project without channels
         "welcome" => {
             let g = ui.global::<crate::shell::App>();

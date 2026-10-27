@@ -81,14 +81,15 @@ component RegionDetails inherits VerticalLayout {
     in property <EditRegion> r;
     spacing: Theme.sp3;
 
-    HorizontalLayout {
+    // two rows: four chips do not fit the side panel
+    for row[k] in [["Размытие", "Пиксели"], ["Заливка", "Стереть"]]: HorizontalLayout {
         spacing: Theme.sp1;
         alignment: start;
-        for m[i] in ["Размытие", "Пиксели", "Заливка", "Стереть"]: Choice {
+        for m[j] in row: Choice {
             text: m;
-            on: root.r.mode == i;
+            on: root.r.mode == k * 2 + j;
             picked => {
-                Ved.region-set(Ved.selected, "mode", i);
+                Ved.region-set(Ved.selected, "mode", k * 2 + j);
                 Ved.regions-changed();
             }
         }
