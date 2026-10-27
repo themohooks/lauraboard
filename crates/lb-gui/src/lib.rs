@@ -21,6 +21,7 @@ mod logic;
 mod model;
 mod net;
 mod notify;
+mod pointer;
 mod prefs;
 mod ru;
 mod shell;

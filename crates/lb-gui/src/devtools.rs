@@ -115,7 +115,7 @@ pub fn snapshot(out: &Path, section: &str, width: u32, height: u32, scale: f32, 
         ui.global::<Theme>().set_mode(ThemeMode::Light);
         let old = ui.window().take_snapshot().map_err(|e| e.to_string())?;
         ui.global::<Theme>().set_mode(ThemeMode::Dark);
-        let mut reveal = crate::theme_transition::Reveal::new(old);
+        let mut reveal = crate::theme_transition::Reveal::new(old, Some((width as f32 - 60.0, 40.0)));
         ui.set_theme_snapshot(reveal.frame(0.65));
         ui.set_theme_transition(true);
         let mut buf = vec![Rgb8Pixel::default(); (width * height) as usize];

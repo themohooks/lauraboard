@@ -16,6 +16,7 @@ use slint::winit_030::{EventResult, WinitWindowAccessor};
 pub fn install(window: &slint::Window) {
     let mods = Rc::new(Cell::new(ModifiersState::empty()));
     window.on_winit_window_event(move |w, e| {
+        crate::pointer::track(e);
         match e {
             WinitEvent::ModifiersChanged(m) => mods.set(m.state()),
             WinitEvent::KeyboardInput { event, is_synthetic: false, .. } => {

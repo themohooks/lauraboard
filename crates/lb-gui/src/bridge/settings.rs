@@ -158,7 +158,7 @@ fn saved(c: &mut Ctx) {
     show(c);
     if was_dark != t.get_dark() {
         if let Some(snapshot) = snapshot {
-            let mut reveal = crate::theme_transition::Reveal::new(snapshot);
+            let mut reveal = crate::theme_transition::Reveal::new(snapshot, crate::pointer::last_click());
             ui.set_theme_snapshot(reveal.frame(0.0));
             ui.set_theme_transition(true);
             let start = std::time::Instant::now();
