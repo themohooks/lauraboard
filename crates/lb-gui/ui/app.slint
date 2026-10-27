@@ -31,6 +31,7 @@ import { PlaylistsScreen } from "screens/playlists/playlists.slint";
 import { CreatePlaylistDialog } from "screens/playlists/create-dialog.slint";
 import { LibraryScreen } from "screens/library/library.slint";
 import { ImportDialog } from "screens/library/import-dialog.slint";
+import { DownloadDialog } from "screens/library/download-dialog.slint";
 import { FolderDialog } from "screens/library/folder-panel.slint";
 import { FontDialog } from "screens/graphics/font-dialog.slint";
 import { TextureDialog } from "screens/graphics/texture-dialog.slint";
@@ -51,6 +52,7 @@ export { App, StatusInfo } from "state/app-state.slint";
 export { Air, NowInfo, NextInfo, QueueRow, MediaPick, GfxRow, LogRow } from "state/air-state.slint";
 export { Pl, PlaylistItem, EntryRow, EntryProps } from "state/playlists-state.slint";
 export { Lib, MediaRow, TileLine, MediaEdit, FolderRow } from "state/library-state.slint";
+export { Dl } from "state/download-state.slint";
 export { Grid, BlockRow, BlockDetails, DayChip } from "state/schedule-state.slint";
 export { TimelineSegment, DayRow } from "components/timeline.slint";
 export { Rules, RuleRow } from "state/rules-state.slint";
@@ -218,6 +220,8 @@ export component AppWindow inherits Window {
     CreatePlaylistDialog { }
 
     ImportDialog { }
+
+    DownloadDialog { }
 
     FolderDialog { }
 

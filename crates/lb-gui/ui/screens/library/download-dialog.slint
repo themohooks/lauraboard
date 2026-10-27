@@ -1,0 +1,218 @@
+// Download from a site (yt-dlp on the server): link → what it offers →
+// quality, kind, folder → a background job (progress in the app bar).
+
+import { Theme } from "../../theme/tokens.slint";
+import { Icons } from "../../theme/icons.slint";
+import { Dialog, DialogActions } from "../../components/dialog.slint";
+import { TextField } from "../../components/text-field.slint";
+import { Select } from "../../components/select.slint";
+import { Button, ButtonVariant } from "../../components/button.slint";
+import { Icon } from "../../components/icon.slint";
+import { LinearProgress } from "../../components/feedback.slint";
+import { Label } from "../../components/label.slint";
+import { Lib } from "../../state/library-state.slint";
+import { Dl } from "../../state/download-state.slint";
+
+// yt-dlp is missing on the server: what to do about it.
+component ToolMissing inherits Rectangle {
+    border-radius: Theme.radius-m;
+    background: Theme.color.surface-container-highest;
+    VerticalLayout {
+        padding: Theme.sp4;
+        spacing: Theme.sp3;
+        HorizontalLayout {
+            spacing: Theme.sp3;
+            Icon {
+                source: Icons.info;
+                tint: Theme.color.secondary;
+                y: 2px;
+            }
+            Label {
+                horizontal-stretch: 1;
+                wrap: word-wrap;
+                text: Dl.can-install
+                    ? "Для загрузки нужна программа yt-dlp. LauraBoard может установить её сам: официальная сборка с GitHub, около 20 МБ, файл проверяется по контрольной сумме."
+                    : "Для загрузки нужна программа yt-dlp. Установите её на сервере вещания и добавьте в PATH, либо укажите путь в lauraboard.toml ([tools] ytdlp).";
+            }
+        }
+        if Dl.installing: LinearProgress {
+            indeterminate: true;
+        }
+        if Dl.can-install: HorizontalLayout {
+            alignment: end;
+            Button {
+                text: Dl.installing ? "Устанавливается…" : "Установить yt-dlp";
+                icon: Icons.download;
+                has-icon: true;
+                variant: ButtonVariant.tonal;
+                enabled: !Dl.installing;
+                clicked => {
+                    Dl.install-tool();
+                }
+            }
+        }
+    }
+}
+
+// Title, author and preview of the link.
+component LinkSummary inherits HorizontalLayout {
+    spacing: Theme.sp3;
+    Rectangle {
+        width: 160px;
+        height: 90px;
+        border-radius: Theme.radius-s;
+        clip: true;
+        background: Theme.color.surface-container-highest;
+        if !Dl.has-thumb: Icon {
+            source: Icons.movie;
+            tint: Theme.color.on-surface-variant;
+        }
+        if Dl.has-thumb: Image {
+            width: parent.width;
+            height: parent.height;
+            source: Dl.thumb;
+            image-fit: cover;
+        }
+    }
+    VerticalLayout {
+        horizontal-stretch: 1;
+        spacing: Theme.sp1;
+        alignment: center;
+        Label {
+            text: Dl.title;
+            type-style: Theme.title-medium;
+            wrap: word-wrap;
+            max-height: 3 * Theme.title-medium.line;
+            overflow: elide;
+        }
+        Label {
+            text: Dl.details;
+            type-style: Theme.body-small;
+            color: Theme.color.on-surface-variant;
+            wrap: word-wrap;
+        }
+    }
+}
+
+export component DownloadDialog inherits Dialog {
+    open: Dl.open;
+    title: "Скачать по ссылке";
+    text: "YouTube, TikTok, VK, Rutube и сотни других сайтов. Видео сохраняется в хранилище канала; загрузка идёт в фоне — прогресс виден в шапке.";
+    has-icon: true;
+    icon: Icons.download;
+    dialog-width: 600px;
+    dismissed => {
+        Dl.open = false;
+    }
+
+    if Dl.tool-checking: LinearProgress {
+        indeterminate: true;
+    }
+    if !Dl.tool-checking && !Dl.tool-ok: ToolMissing { }
+
+    HorizontalLayout {
+        spacing: Theme.sp2;
+        TextField {
+            horizontal-stretch: 1;
+            label: "Ссылка на видео или плейлист";
+            text <=> Dl.url;
+            placeholder: "https://www.youtube.com/watch?v=…";
+            has-leading: true;
+            leading-icon: Icons.link;
+            enabled: Dl.tool-ok;
+            container-color: Theme.color.surface-container-high;
+            accepted => {
+                Dl.probe();
+            }
+        }
+        VerticalLayout {
+            alignment: start;
+            padding-top: 4px;
+            Button {
+                text: "Найти";
+                icon: Icons.search;
+                has-icon: true;
+                variant: ButtonVariant.tonal;
+                enabled: Dl.tool-ok && Dl.url != "" && Dl.step != "probing";
+                clicked => {
+                    Dl.probe();
+                }
+            }
+        }
+    }
+
+    if Dl.step == "probing": VerticalLayout {
+        spacing: Theme.sp2;
+        LinearProgress {
+            indeterminate: true;
+        }
+        Label {
+            text: "Получаем сведения о видео…";
+            type-style: Theme.body-small;
+            color: Theme.color.on-surface-variant;
+        }
+    }
+    if Dl.step == "error": Label {
+        text: Dl.error;
+        color: Theme.color.error;
+        wrap: word-wrap;
+    }
+    if Dl.step == "ready": VerticalLayout {
+        spacing: Theme.sp4;
+        LinkSummary { }
+        Select {
+            label: "Качество";
+            options: Dl.qualities;
+            current-index <=> Dl.quality;
+            container-color: Theme.color.surface-container-high;
+        }
+        HorizontalLayout {
+            spacing: Theme.sp3;
+            Select {
+                horizontal-stretch: 1;
+                label: "Тип";
+                options: ["Определить автоматически", "Передача", "Заставка", "Реклама", "Анонс", "Заполнение", "Изображение", "Поток"];
+                current-index <=> Dl.kind;
+                container-color: Theme.color.surface-container-high;
+            }
+            TextField {
+                horizontal-stretch: 1;
+                label: "Категория";
+                text <=> Dl.category;
+                container-color: Theme.color.surface-container-high;
+            }
+        }
+        Select {
+            label: "Папка медиатеки";
+            options: Lib.folder-options;
+            current-index <=> Dl.folder;
+            container-color: Theme.color.surface-container-high;
+        }
+    }
+
+    if !Dl.tool-checking && Dl.tool-ok: Label {
+        text: "yt-dlp " + Dl.tool-version + ". Скачивайте только то, на что у канала есть права.";
+        type-style: Theme.body-small;
+        color: Theme.color.on-surface-variant;
+        wrap: word-wrap;
+    }
+
+    DialogActions {
+        Button {
+            text: "Отмена";
+            variant: ButtonVariant.text;
+            clicked => {
+                Dl.open = false;
+            }
+        }
+        Button {
+            text: "Скачать";
+            icon: Icons.download;
+            has-icon: true;
+            enabled: Dl.step == "ready" && !Dl.starting;
+            clicked => {
+                Dl.start();
+            }
+        }
+    }
+}

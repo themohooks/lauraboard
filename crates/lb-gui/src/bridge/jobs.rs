@@ -103,6 +103,27 @@ fn finished(c: &mut Ctx, j: &JobView) {
                 c.load_all();
             }
         }
+        ("done", "download_media") => {
+            let added = result["added"].as_array().map(|a| a.len()).unwrap_or(0);
+            let errors: Vec<String> = result["errors"]
+                .as_array()
+                .map(|a| a.iter().filter_map(|e| e.as_str().map(crate::ru::server)).collect())
+                .unwrap_or_default();
+            let text = match (added, errors.len()) {
+                (n, 0) => format!("Скачано в медиатеку: {n}"),
+                (n, e) => format!("Скачано: {n}, не получилось {e}: {}", errors.join("; ")),
+            };
+            c.toast(text, !errors.is_empty());
+            if j.channel.as_deref() == c.model.channel.as_deref() {
+                c.load_all();
+            }
+        }
+        (state, "install_ytdlp") => {
+            if state != "done" {
+                c.toast(format!("Установка yt-dlp: {}", crate::ru::server(&j.message)), true);
+            }
+            super::download::tool_installed(c, state == "done");
+        }
         ("done", "backgrounds") => {
             let added = result["added"].as_array().map(|a| a.len()).unwrap_or(0);
             let errors = result["errors"].as_array().map(|a| a.len()).unwrap_or(0);
@@ -129,7 +150,7 @@ fn finished(c: &mut Ctx, j: &JobView) {
         ("done", _) => c.toast(format!("{}: готово", j.title), false),
         ("cancelled", _) => {
             c.toast(format!("{}: отменено", j.title), false);
-            if j.kind == "import_media" {
+            if j.kind == "import_media" || j.kind == "download_media" {
                 c.load_all(); // files finished before the cancel stay
             }
         }

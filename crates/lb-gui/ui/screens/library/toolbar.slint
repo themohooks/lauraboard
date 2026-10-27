@@ -13,6 +13,7 @@ import { IconButton, IconButtonVariant } from "../../components/icon-button.slin
 import { CircularProgress } from "../../components/feedback.slint";
 import { Lib } from "../../state/library-state.slint";
 import { App } from "../../state/app-state.slint";
+import { Dl } from "../../state/download-state.slint";
 
 export component LibraryToolbar inherits VerticalLayout {
     spacing: Theme.sp3;
@@ -236,6 +237,17 @@ export component LibraryToolbar inherits VerticalLayout {
             tooltip: "Выбрать один или несколько файлов";
             clicked => {
                 Lib.browse-import(false);
+            }
+        }
+        Button {
+            text: App.narrow ? "Скачать" : "Скачать по ссылке";
+            variant: ButtonVariant.tonal;
+            icon: Icons.download;
+            has-icon: true;
+            tooltip: "YouTube, TikTok, VK и другие сайты (yt-dlp)";
+            clicked => {
+                Dl.open = true;
+                Dl.opened();
             }
         }
         Button {

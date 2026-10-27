@@ -15,6 +15,7 @@ pub mod air;
 pub mod archive;
 pub mod avatars;
 pub mod channels;
+pub mod download;
 pub mod encoder;
 pub mod folders;
 pub mod graphics;
@@ -73,6 +74,7 @@ pub struct Ctx {
     pub air_marks: (Option<String>, Option<String>),
     pub pl: playlists::PlaylistsState,
     pub lib: library::LibraryState,
+    pub download: download::DownloadState,
     pub grid: schedule::ScheduleState,
     pub rules: rules::RulesState,
     pub gfx: graphics::GraphicsState,
@@ -147,6 +149,7 @@ pub fn start(ui: &AppWindow, opts: &GuiOptions, prefs: UiPrefs) {
         air_marks: (None, None),
         pl: Default::default(),
         lib: Default::default(),
+        download: Default::default(),
         grid: Default::default(),
         rules: Default::default(),
         gfx: Default::default(),
@@ -172,6 +175,7 @@ pub fn start(ui: &AppWindow, opts: &GuiOptions, prefs: UiPrefs) {
     air::connect(ui);
     playlists::connect(ui);
     library::connect(ui);
+    download::connect(ui);
     media_display::connect(ui);
     folders::connect(ui);
     schedule::connect(ui);
