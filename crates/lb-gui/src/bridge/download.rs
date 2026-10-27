@@ -1,6 +1,9 @@
 //! "Download from a site": yt-dlp state on the server (and installing
 //! it), reading a link, choosing the quality and starting the download job.
 
+use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
+
 use serde_json::{Value, json};
 use slint::{ComponentHandle, Image, Rgba8Pixel, SharedPixelBuffer, SharedString};
 
@@ -16,6 +19,8 @@ pub struct DownloadState {
     quality_ids: Vec<String>,
     /// Bumped per probe: answers to an older link are dropped.
     serial: u64,
+    /// The sign-in window is open: set to finish it.
+    web_done: Option<Arc<AtomicBool>>,
 }
 
 pub fn connect(ui: &AppWindow) {
@@ -27,6 +32,45 @@ pub fn connect(ui: &AppWindow) {
     g.on_login_browser_picked(|i| with(move |c| login_browser(c, i)));
     g.on_login_cookies_pick(|| with(login_cookies_pick));
     g.on_login_cookies_clear(|| with(|c| save_login(c, None, Some(String::new()))));
+    g.on_login_web(|| with(login_web));
+    g.on_login_web_done(|| {
+        with(|c| {
+            if let Some(d) = &c.download.web_done {
+                d.store(true, Ordering::Relaxed);
+            }
+        })
+    });
+}
+
+/// Sign in in our own browser window; its cookies go to the server.
+fn login_web(c: &mut Ctx) {
+    if c.download.web_done.is_some() {
+        return;
+    }
+    let Some(ui) = c.window() else { return };
+    ui.global::<Dl>().set_login_web_running(true);
+    let done = Arc::new(AtomicBool::new(false));
+    c.download.web_done = Some(done.clone());
+    std::thread::spawn(move || {
+        let r = crate::weblogin::run(crate::weblogin::YOUTUBE, done);
+        let _ = slint::invoke_from_event_loop(move || with(move |c| login_web_ended(c, r)));
+    });
+}
+
+fn login_web_ended(c: &mut Ctx, r: Result<(String, bool), String>) {
+    c.download.web_done = None;
+    if let Some(ui) = c.window() {
+        ui.global::<Dl>().set_login_web_running(false);
+    }
+    match r {
+        Ok((cookies, signed_in)) => {
+            if !signed_in {
+                c.toast("Вход в YouTube не найден — cookies всё равно сохранены (другие сайты)", true);
+            }
+            save_login(c, None, Some(cookies));
+        }
+        Err(e) => c.toast(format!("Окно входа: {e}"), true),
+    }
 }
 
 /// yt-dlp names of `Dl.browsers` (after "Не использовать").
@@ -107,7 +151,16 @@ fn save_login(c: &mut Ctx, browser: Option<String>, cookies: Option<String>) {
                 ui.global::<Dl>().set_login_saving(false);
             }
             match r {
-                Ok(v) => show_login(c, &v),
+                Ok(v) => {
+                    show_login(c, &v);
+                    if let Some(ui) = c.window()
+                        && ui.global::<Dl>().get_step() == "error"
+                        && v["cookies"].as_bool() == Some(true)
+                    {
+                        c.toast("Вход сохранён — пробуем ссылку ещё раз", false);
+                        probe(c);
+                    }
+                }
                 Err(e) => {
                     c.toast(format!("Вход в аккаунт: {}", crate::ru::server(&e)), true);
                     refresh_login(c);

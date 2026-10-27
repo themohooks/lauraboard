@@ -29,6 +29,7 @@ mod sysprefs;
 mod theme_transition;
 mod tray;
 mod update;
+mod weblogin;
 
 /// How to reach the API.
 #[derive(Debug, Clone)]

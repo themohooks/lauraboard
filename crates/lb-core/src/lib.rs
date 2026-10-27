@@ -4,6 +4,7 @@
 //! scheduling logic can be tested deterministically. File loading lives in
 //! [`project`], everything else is pure.
 
+pub mod browser;
 pub mod config;
 pub mod duration;
 pub mod error;

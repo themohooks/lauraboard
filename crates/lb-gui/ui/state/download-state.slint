@@ -40,6 +40,8 @@ export global Dl {
     in-out property <int> login-browser;
     in property <bool> login-cookies;
     in property <bool> login-saving;
+    // our own browser window for signing in is open
+    in property <bool> login-web-running;
     out property <[string]> browsers: ["Не использовать", "Firefox", "Chrome", "Edge", "Brave", "Opera", "Vivaldi", "Chromium"];
 
     callback opened();
@@ -49,4 +51,6 @@ export global Dl {
     callback login-browser-picked(int);
     callback login-cookies-pick();
     callback login-cookies-clear();
+    callback login-web();
+    callback login-web-done();
 }

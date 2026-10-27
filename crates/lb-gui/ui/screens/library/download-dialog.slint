@@ -73,8 +73,40 @@ component LoginPanel inherits Rectangle {
                 horizontal-stretch: 1;
                 wrap: word-wrap;
                 text: (Dl.login-needed && Dl.step == "error" ? "Сайт просит войти в аккаунт — например, YouTube для видео 18+. " : "")
-                    + "yt-dlp не вводит пароль: он берёт вход из браузера, в котором вы уже вошли на сайт, или из файла cookies.txt.";
+                    + "Войдите в отдельном окне браузера: вход сохранится для загрузок, ваш обычный браузер не затрагивается.";
             }
+        }
+        HorizontalLayout {
+            spacing: Theme.sp2;
+            alignment: start;
+            Button {
+                text: Dl.login-web-running ? "Окно входа открыто…" : Dl.login-cookies ? "Войти заново" : "Войти в YouTube";
+                icon: Icons.account-circle;
+                has-icon: true;
+                enabled: !Dl.login-web-running && !Dl.login-saving;
+                clicked => {
+                    Dl.login-web();
+                }
+            }
+            if Dl.login-web-running: Button {
+                text: "Готово";
+                variant: ButtonVariant.tonal;
+                clicked => {
+                    Dl.login-web-done();
+                }
+            }
+        }
+        if Dl.login-web-running: Label {
+            wrap: word-wrap;
+            type-style: Theme.body-small;
+            color: Theme.color.on-surface-variant;
+            text: "Войдите в аккаунт в открывшемся окне, затем закройте его или нажмите «Готово».";
+        }
+        Label {
+            wrap: word-wrap;
+            type-style: Theme.body-small;
+            color: Theme.color.on-surface-variant;
+            text: "Или возьмите вход из своего браузера либо файла cookies.txt:";
         }
         Select {
             label: "Браузер, где вы вошли на сайт";
@@ -96,11 +128,11 @@ component LoginPanel inherits Rectangle {
                 type-style: Theme.body-small;
                 color: Theme.color.on-surface-variant;
                 text: Dl.login-cookies
-                    ? "Используется загруженный cookies.txt (он важнее браузера)."
+                    ? "Вход сохранён — загрузки идут от вашего аккаунта."
                     : "cookies.txt можно выгрузить из браузера расширением вроде «Get cookies.txt LOCALLY».";
             }
             if Dl.login-cookies: Button {
-                text: "Убрать файл";
+                text: "Выйти";
                 variant: ButtonVariant.text;
                 enabled: !Dl.login-saving;
                 clicked => {
@@ -108,7 +140,7 @@ component LoginPanel inherits Rectangle {
                 }
             }
             Button {
-                text: Dl.login-cookies ? "Заменить…" : "Файл cookies.txt…";
+                text: "Файл cookies.txt…";
                 variant: ButtonVariant.outlined;
                 enabled: !Dl.login-saving;
                 clicked => {
