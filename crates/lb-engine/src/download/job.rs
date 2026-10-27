@@ -179,7 +179,7 @@ async fn fetch(
     cmd.args(info::format_args(quality));
     cmd.args(["--newline", "--progress", "--no-mtime", "--no-part"]);
     cmd.arg("--progress-template").arg(format!(
-        "download:{PROGRESS} %(progress.downloaded_bytes)s %(progress.total_bytes)s %(progress.total_bytes_estimate)s %(info.format_id)s"
+        "download:{PROGRESS} %(progress.downloaded_bytes)s %(progress.total_bytes)s %(progress.total_bytes_estimate)s %(info.format_id)s %(progress.speed)s"
     ));
     cmd.arg("--progress-template").arg(format!("postprocess:{POST} %(progress.postprocessor)s"));
     cmd.arg("--print").arg(format!("after_move:{DONE} %(.{{filepath,title,ext,webpage_url,uploader}})j"));
@@ -226,8 +226,10 @@ async fn fetch(
                     format = id.to_string();
                     let f = if total > 0.0 { (got / total) as f32 } else { 0.0 };
                     let mb = got / (1024.0 * 1024.0);
+                    ctl.speed(num(4));
                     progress(((phase + f.clamp(0.0, 1.0)) / streams) * 0.9, &format!("{mb:.0} МБ"));
                 } else if l.starts_with(POST) {
+                    ctl.speed(None);
                     progress(0.93, "сборка файла");
                 } else if let Some(rest) = l.strip_prefix(DONE) {
                     done = serde_json::from_str(rest.trim()).ok();

@@ -5,6 +5,7 @@
 use std::future::Future;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
+use std::time::Instant;
 
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -33,11 +34,20 @@ pub struct JobInfo {
     pub message: String,
     #[serde(default)]
     pub result: Option<Value>,
+    /// Estimated seconds left (running jobs, once the pace is known).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub eta_secs: Option<u64>,
+    /// Transfer speed, bytes per second (downloads).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub speed: Option<f64>,
 }
 
 struct Entry {
     info: JobInfo,
     cancel: Arc<AtomicBool>,
+    /// When the progress first moved, and from where: the pace since then
+    /// gives the time left (setup before the first step does not count).
+    pace_from: Option<(Instant, f32)>,
 }
 
 /// Registry of jobs (shared by the engine and its API).
@@ -88,9 +98,11 @@ impl Jobs {
             progress: 0.0,
             message: String::new(),
             result: None,
+            eta_secs: None,
+            speed: None,
         };
         self.with(|l| {
-            l.push(Entry { info, cancel: cancel.clone() });
+            l.push(Entry { info, cancel: cancel.clone(), pace_from: None });
             prune(l);
         });
         let ctl = JobCtl { id, jobs: self.clone(), cancel };
@@ -98,6 +110,10 @@ impl Jobs {
             let jobs = ctl.jobs.clone();
             let cancelled = ctl.cancel.clone();
             let outcome = work(ctl).await;
+            jobs.update(id, |j| {
+                j.eta_secs = None;
+                j.speed = None;
+            });
             jobs.update(id, |j| match outcome {
                 _ if cancelled.load(Ordering::Relaxed) => {
                     j.state = JobState::Cancelled;
@@ -141,6 +157,12 @@ impl Jobs {
     }
 }
 
+/// Seconds left when `done` of the work took `elapsed` seconds; unknown
+/// while there is too little to judge by.
+fn eta(elapsed: f32, done: f32, left: f32) -> Option<u64> {
+    (elapsed >= 2.0 && done >= 0.01).then(|| (elapsed * left / done).round() as u64)
+}
+
 fn prune(l: &mut Vec<Entry>) {
     while l.iter().filter(|e| e.info.state != JobState::Running).count() > KEEP_FINISHED {
         let Some(pos) = l.iter().position(|e| e.info.state != JobState::Running) else { break };
@@ -151,10 +173,24 @@ fn prune(l: &mut Vec<Entry>) {
 impl JobCtl {
     pub fn progress(&self, fraction: f32, message: impl Into<String>) {
         let message = message.into();
-        self.jobs.update(self.id, |j| {
-            j.progress = fraction.clamp(0.0, 1.0);
-            j.message = message;
+        let fraction = fraction.clamp(0.0, 1.0);
+        let now = Instant::now();
+        self.jobs.with(|l| {
+            let Some(e) = l.iter_mut().find(|e| e.info.id == self.id) else { return };
+            e.info.progress = fraction;
+            e.info.message = message;
+            match e.pace_from {
+                Some((_, from)) if fraction < from => e.pace_from = Some((now, fraction)),
+                Some((at, from)) => e.info.eta_secs = eta(now.duration_since(at).as_secs_f32(), fraction - from, 1.0 - fraction),
+                None if fraction > 0.0 => e.pace_from = Some((now, fraction)),
+                None => {}
+            }
         });
+    }
+
+    /// Current transfer speed (bytes per second; `None` clears it).
+    pub fn speed(&self, bytes_per_sec: Option<f64>) {
+        self.jobs.update(self.id, |j| j.speed = bytes_per_sec.filter(|s| s.is_finite() && *s > 0.0));
     }
 
     pub fn cancelled(&self) -> bool {
@@ -204,6 +240,13 @@ pub fn copy_with_progress(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn estimates_the_time_left() {
+        assert_eq!(eta(1.0, 0.5, 0.5), None, "too early");
+        assert_eq!(eta(10.0, 0.005, 0.9), None, "too little done");
+        assert_eq!(eta(10.0, 0.25, 0.5), Some(20));
+    }
 
     #[tokio::test]
     async fn job_reports_and_finishes() {

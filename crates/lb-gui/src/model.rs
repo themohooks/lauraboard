@@ -187,6 +187,12 @@ pub struct JobView {
     pub message: String,
     #[serde(default)]
     pub result: Option<serde_json::Value>,
+    /// Seconds left (estimated by the server).
+    #[serde(default)]
+    pub eta_secs: Option<u64>,
+    /// Bytes per second (downloads).
+    #[serde(default)]
+    pub speed: Option<f64>,
 }
 
 /// Everything the GUI knows about the selected channel.

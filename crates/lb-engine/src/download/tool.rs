@@ -203,6 +203,7 @@ fn download_to(url: &str, to: &Path, ctl: &JobCtl) -> Result<String, String> {
     let mut hasher = Sha256::new();
     let mut buf = vec![0u8; 256 * 1024];
     let mut done = 0u64;
+    let started = std::time::Instant::now();
     loop {
         ctl.check()?;
         let n = body.read(&mut buf).map_err(|e| format!("{url}: {e}"))?;
@@ -215,7 +216,9 @@ fn download_to(url: &str, to: &Path, ctl: &JobCtl) -> Result<String, String> {
         if total > 0 {
             ctl.progress(0.05 + 0.9 * done as f32 / total as f32, format!("{} МБ", done / (1024 * 1024)));
         }
+        ctl.speed(Some(done as f64 / started.elapsed().as_secs_f64().max(0.001)));
     }
+    ctl.speed(None);
     file.flush().map_err(|e| e.to_string())?;
     Ok(hex(&hasher.finalize()))
 }

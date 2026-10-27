@@ -38,8 +38,19 @@ pub fn started(c: &mut Ctx, job: u64) {
 
 fn state_text(j: &JobView) -> String {
     match j.state.as_str() {
-        "running" if j.message.is_empty() => format!("{:.0} %", j.progress * 100.0),
-        "running" => format!("{:.0} % · {}", j.progress * 100.0, j.message),
+        "running" => {
+            let mut parts = vec![format!("{:.0} %", j.progress * 100.0)];
+            if !j.message.is_empty() {
+                parts.push(j.message.clone());
+            }
+            if let Some(s) = j.speed {
+                parts.push(format!("{}/с", crate::fmt::bytes(s as u64)));
+            }
+            if let Some(t) = j.eta_secs {
+                parts.push(format!("осталось {}", crate::fmt::left(t)));
+            }
+            parts.join(" · ")
+        }
         "done" => "Готово".into(),
         "cancelled" => "Отменено".into(),
         _ => format!("Ошибка: {}", crate::ru::server(&j.message)),
@@ -66,7 +77,10 @@ pub fn changed(c: &mut Ctx, list: Vec<JobView>) {
     g.set_summary(
         match running.as_slice() {
             [] => String::new(),
-            [one] => format!("{:.0} % · {}", one.progress * 100.0, one.title),
+            [one] => match one.eta_secs {
+                Some(t) => format!("{:.0} % · {} · {}", one.progress * 100.0, crate::fmt::left(t), one.title),
+                None => format!("{:.0} % · {}", one.progress * 100.0, one.title),
+            },
             many => format!("{:.0} % · задач: {}", progress * 100.0, many.len()),
         }
         .into(),
