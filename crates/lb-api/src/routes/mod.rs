@@ -5,6 +5,7 @@
 //! | channels, status, rundown, preview | [`status`] |
 //! | playback / graphics commands | [`control`] |
 //! | media library | [`library`] |
+//! | downloads from sites (yt-dlp) | [`download`] |
 //! | playlists | [`playlists`] |
 //! | schedules, rules, graphics, channel config | [`config`] |
 //! | graphics render (draft preview) | [`render`] |
@@ -18,6 +19,7 @@ pub mod avatar;
 pub mod backgrounds;
 pub mod config;
 pub mod control;
+pub mod download;
 pub mod fonts;
 pub mod jobs;
 pub mod library;
@@ -63,6 +65,8 @@ pub fn router(state: AppState) -> Router {
         .route("/media", get(library::list).post(library::add))
         .route("/media/import", post(library::import))
         .route("/media/check", post(library::check))
+        .route("/media/download", post(download::download))
+        .route("/media/download/probe", post(download::probe))
         .route("/media/folders", get(library::folders).post(library::folder_op))
         .route("/media/{media}/thumb.jpg", get(thumbs::thumb))
         .route("/media/{media}/preview.jpg", post(thumbs::preview))
@@ -94,6 +98,8 @@ pub fn router(state: AppState) -> Router {
         .route("/archives/inspect", post(transfer::inspect))
         .route("/archives/import", post(transfer::import))
         .route("/jobs", get(jobs::list))
+        .route("/tools/ytdlp", get(download::status))
+        .route("/tools/ytdlp/install", post(download::install))
         .route("/jobs/{job}", get(jobs::get_one).delete(jobs::cancel))
         .nest("/channels/{id}", ch.route("/events", get(crate::ws::events_channel)))
         .route("/channels/{id}/var/{key}", put(control::set_var));
