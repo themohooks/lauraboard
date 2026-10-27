@@ -1,5 +1,6 @@
 //! Configuration documents: schedules, rules, graphics, channel settings.
-//! Each document is replaced as a whole (GET → edit → PUT).
+//! Each document is replaced as a whole (GET → edit → PUT). Files the
+//! graphics and the settings use are copied into the channel folder first.
 
 use axum::Json;
 use axum::extract::{Path, State};
@@ -10,6 +11,7 @@ use lb_core::project::ChannelData;
 use lb_core::rules::RuleSet;
 use lb_core::schedule::ScheduleSet;
 use lb_core::validate::{Report, validate_channel};
+use lb_engine::channel::assets;
 
 use super::channel;
 use crate::AppState;
@@ -76,9 +78,16 @@ pub async fn put_graphics(
     State(s): State<AppState>,
     c: Caller,
     Path(id): Path<String>,
-    Json(v): Json<GraphicsConfig>,
+    Json(mut v): Json<GraphicsConfig>,
 ) -> ApiResult<Json<Report>> {
     c.require(Role::Operator)?;
+    let (root, dir) = (s.engine.project_root.clone(), channel(&s, &id)?.read(|d| d.dir.clone()));
+    let v = tokio::task::spawn_blocking(move || {
+        assets::adopt_graphics(&root, &dir, &mut v);
+        v
+    })
+    .await
+    .map_err(|e| ApiError::bad_request(e.to_string()))?;
     update(&s, &id, move |d| d.graphics = v).await
 }
 
@@ -96,5 +105,12 @@ pub async fn put_config(
 ) -> ApiResult<Json<Report>> {
     c.require(Role::Admin)?;
     v.id = id.clone();
+    let (root, dir) = (s.engine.project_root.clone(), channel(&s, &id)?.read(|d| d.dir.clone()));
+    let v = tokio::task::spawn_blocking(move || {
+        assets::adopt_config(&root, &dir, &mut v);
+        v
+    })
+    .await
+    .map_err(|e| ApiError::bad_request(e.to_string()))?;
     update(&s, &id, move |d| d.config = v).await
 }
