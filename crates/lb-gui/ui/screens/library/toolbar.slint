@@ -1,4 +1,4 @@
-// Library toolbar: search, filters, view mode, import / check; and the
+// Library toolbar: search, filters, view mode, check, the "Добавить" menu; and the
 // bulk action bar shown while items are checked.
 
 import { Theme } from "../../theme/tokens.slint";
@@ -11,6 +11,7 @@ import { SegmentedButton } from "../../components/segmented-button.slint";
 import { Button, ButtonVariant } from "../../components/button.slint";
 import { IconButton, IconButtonVariant } from "../../components/icon-button.slint";
 import { CircularProgress } from "../../components/feedback.slint";
+import { Menu } from "../../components/menu.slint";
 import { Lib } from "../../state/library-state.slint";
 import { App } from "../../state/app-state.slint";
 import { Dl } from "../../state/download-state.slint";
@@ -161,21 +162,22 @@ export component LibraryToolbar inherits VerticalLayout {
                 }
                 VerticalLayout {
                     alignment: center;
-                    Button {
-                        text: "Включить";
-                        variant: ButtonVariant.text;
+                    more := IconButton {
+                        icon: Icons.more-vert;
+                        tooltip: "Ещё";
+                        icon-tint: Theme.color.on-secondary-container;
                         clicked => {
-                            Lib.bulk("enable", 0);
+                            more-menu.open-at(more.width - more-menu.menu-width, more.height);
                         }
-                    }
-                }
-                VerticalLayout {
-                    alignment: center;
-                    Button {
-                        text: "Выключить";
-                        variant: ButtonVariant.text;
-                        clicked => {
-                            Lib.bulk("disable", 0);
+                        more-menu := Menu {
+                            menu-width: 200px;
+                            entries: [
+                                { id: "enable", text: "Включить", icon: Icons.check-circle, has-icon: true, enabled: true },
+                                { id: "disable", text: "Выключить", icon: Icons.close, has-icon: true, enabled: true },
+                            ];
+                            activated(id) => {
+                                Lib.bulk(id, 0);
+                            }
                         }
                     }
                 }
@@ -205,8 +207,7 @@ export component LibraryToolbar inherits VerticalLayout {
                 vertical-alignment: center;
             }
         }
-        // narrow window: icon only, so the folder panel still fits
-        if App.narrow: VerticalLayout {
+        VerticalLayout {
             alignment: center;
             IconButton {
                 icon: Icons.check-circle;
@@ -218,44 +219,32 @@ export component LibraryToolbar inherits VerticalLayout {
                 }
             }
         }
-        if !App.narrow: Button {
-            text: "Проверить файлы";
-            variant: ButtonVariant.outlined;
-            icon: Icons.check-circle;
-            has-icon: true;
-            enabled: !Lib.checking;
-            tooltip: "Проверить доступность и читаемость всех файлов";
-            clicked => {
-                Lib.check-files();
-            }
-        }
-        if Lib.can-browse: Button {
-            text: App.narrow ? "Добавить" : "Добавить ролики";
+        // one entry point for every way to add media
+        add := Button {
+            text: "Добавить";
             variant: ButtonVariant.tonal;
-            icon: Icons.movie;
+            icon: Icons.add;
             has-icon: true;
-            tooltip: "Выбрать один или несколько файлов";
             clicked => {
-                Lib.browse-import(false);
+                add-menu.open-at(add.width - add-menu.menu-width, add.height);
             }
-        }
-        Button {
-            text: App.narrow ? "Скачать" : "Скачать по ссылке";
-            variant: ButtonVariant.tonal;
-            icon: Icons.download;
-            has-icon: true;
-            tooltip: "YouTube, TikTok, VK и другие сайты (yt-dlp)";
-            clicked => {
-                Dl.open = true;
-                Dl.opened();
-            }
-        }
-        Button {
-            text: "Импорт";
-            icon: Icons.upload;
-            has-icon: true;
-            clicked => {
-                Lib.import-open = true;
+            add-menu := Menu {
+                menu-width: 260px;
+                entries: [
+                    { id: "files", text: "Файлы с компьютера…", icon: Icons.movie, has-icon: true, enabled: Lib.can-browse },
+                    { id: "link", text: "Скачать по ссылке…", icon: Icons.download, has-icon: true, enabled: true },
+                    { id: "import", text: "Импорт: путь, папка, URL…", icon: Icons.upload, has-icon: true, enabled: true },
+                ];
+                activated(id) => {
+                    if id == "files" {
+                        Lib.browse-import(false);
+                    } else if id == "link" {
+                        Dl.open = true;
+                        Dl.opened();
+                    } else {
+                        Lib.import-open = true;
+                    }
+                }
             }
         }
     }
