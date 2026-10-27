@@ -72,12 +72,11 @@ fn build() -> Result<(), String> {
         (release.join(&binary), binary.clone()),
         (release.join(format!("lauraboard-setup{EXE}")), uninstaller.clone()),
         (assets.join("lauraboard.svg"), "lauraboard.svg".into()),
-        (root.join("README.md"), "README.md".into()),
         (gui_assets.join("fonts/OFL-Roboto.txt"), "licenses/OFL-Roboto.txt".into()),
         (gui_assets.join("fonts/OFL-RobotoMono.txt"), "licenses/OFL-RobotoMono.txt".into()),
         (gui_assets.join("icons/LICENSE"), "licenses/MaterialSymbols-Apache-2.0.txt".into()),
     ];
-    collect_files(&root, &root.join("docs"), &mut files)?;
+    // README and docs/ are read on GitHub: the installed app needs neither
     if let Some(bundle) = std::env::var_os("LB_FFMPEG_DIR") {
         let bundle = PathBuf::from(bundle);
         for tool in ["ffmpeg", "ffprobe"] {
@@ -182,18 +181,4 @@ fn pack(stage: &Path, files: &[(PathBuf, String)], manifest: &serde_json::Value,
     }
     zip.finish().map_err(err)?;
     Ok(())
-}
-
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn release_documentation_includes_linked_guides_and_screenshots() {
-        let root = crate::root();
-        let mut files = Vec::new();
-        super::collect_files(&root, &root.join("docs"), &mut files).unwrap();
-        for linked in ["docs/guides/first-broadcast.md", "docs/screenshots/interface/clock-properties-light.png"] {
-            assert!(files.iter().any(|(source, name)| name == linked && source.is_file()), "missing offline document: {linked}");
-        }
-        assert!(files.iter().all(|(_, name)| !name.contains('\\')));
-    }
 }
