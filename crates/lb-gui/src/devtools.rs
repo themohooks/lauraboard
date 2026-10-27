@@ -115,10 +115,15 @@ pub fn snapshot(out: &Path, section: &str, width: u32, height: u32, scale: f32, 
         ui.global::<Theme>().set_mode(ThemeMode::Light);
         let old = ui.window().take_snapshot().map_err(|e| e.to_string())?;
         ui.global::<Theme>().set_mode(ThemeMode::Dark);
-        let mut reveal = crate::theme_transition::Reveal::new(old, Some((width as f32 - 60.0, 40.0)));
-        ui.set_theme_snapshot(reveal.frame(0.65));
-        ui.set_theme_transition(true);
+        let new = ui.window().take_snapshot().map_err(|e| e.to_string())?;
+        // the software renderer clips to a square; the GPU draws a circle
+        crate::theme_transition::start(&ui, old, new, Some((width as f32 - 60.0, 40.0)));
         let mut buf = vec![Rgb8Pixel::default(); (width * height) as usize];
+        // the first frame creates the overlay (its clock starts there)
+        window.draw_if_needed(|r| {
+            r.render(&mut buf, width as usize);
+        });
+        pump_for(&jobs, Duration::from_millis(200));
         window.request_redraw();
         window.draw_if_needed(|r| {
             r.render(&mut buf, width as usize);

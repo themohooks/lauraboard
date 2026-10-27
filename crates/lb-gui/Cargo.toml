@@ -14,8 +14,11 @@ serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.154"
 # update downloads are checked against the release's SHA256SUMS
 sha2 = "0.10.9"
-# winit access: the popup window is shown without taking the focus
-slint = { version = "1.18.1", features = ["unstable-winit-030"] }
+# winit access: the popup window is shown without taking the focus.
+# femtovg over wgpu (Direct3D 12 / Vulkan on Windows, Metal on macOS,
+# Vulkan / GL on Linux): over OpenGL animations stuttered on Windows.
+# Slint prefers it and falls back to the software renderer.
+slint = { version = "1.18.1", features = ["unstable-winit-030", "renderer-femtovg-wgpu"] }
 tungstenite = "0.30.0"
 ureq = "3.4.2"
 

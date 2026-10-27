@@ -150,34 +150,24 @@ fn saved(c: &mut Ctx) {
         ThemeMode::Light => crate::shell::ThemeMode::Light,
         ThemeMode::Dark => crate::shell::ThemeMode::Dark,
     };
-    let snapshot =
-        if t.get_mode() != mode && c.prefs.animations() && !ui.get_theme_transition() { ui.window().take_snapshot().ok() } else { None };
+    let old_mode = t.get_mode();
+    let old = if old_mode != mode && c.prefs.animations() && !ui.get_theme_transition() { ui.window().take_snapshot().ok() } else { None };
     t.set_mode(mode);
     t.set_animations(c.prefs.animations());
     t.set_compact(c.prefs.compact);
     show(c);
-    if was_dark != t.get_dark() {
-        if let Some(snapshot) = snapshot {
-            let mut reveal = crate::theme_transition::Reveal::new(snapshot, crate::pointer::last_click());
-            ui.set_theme_snapshot(reveal.frame(0.0));
-            ui.set_theme_transition(true);
-            let start = std::time::Instant::now();
-            let weak = ui.as_weak();
-            c.settings.theme_timer.start(slint::TimerMode::Repeated, Duration::from_millis(16), move || {
-                let progress = (start.elapsed().as_secs_f32() / 0.48).min(1.0);
-                if let Some(ui) = weak.upgrade() {
-                    if progress < 1.0 {
-                        ui.set_theme_snapshot(reveal.frame(progress * progress * (3.0 - 2.0 * progress)));
-                    } else {
-                        ui.set_theme_transition(false);
-                        ui.set_theme_snapshot(slint::Image::default());
-                    }
+    if was_dark != t.get_dark()
+        && let Some(old) = old
+        && let Ok(new) = ui.window().take_snapshot()
+    {
+        crate::theme_transition::start(&ui, old, new, crate::pointer::last_click());
+        c.settings.theme_timer.start(slint::TimerMode::SingleShot, crate::theme_transition::DURATION, || {
+            with(|c| {
+                if let Some(ui) = c.window() {
+                    crate::theme_transition::finish(&ui);
                 }
-                if progress >= 1.0 {
-                    with(|c| c.settings.theme_timer.stop());
-                }
-            });
-        }
+            })
+        });
     }
 }
 

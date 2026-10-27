@@ -1,70 +1,54 @@
-//! Raster alpha mask: rounded clipping is unsupported by Slint's software renderer.
-//! The snapshot of the old theme lies over the new one; a growing circle
-//! is cut out of it, so the new theme spreads from the clicked button.
-use slint::{Image, Rgba8Pixel, SharedPixelBuffer};
+//! Theme change: the new theme spreads in a circle from the clicked
+//! button. Two still pictures (old and new theme) are uploaded once; the
+//! circle itself is a Slint animation (a rounded clip), drawn by the GPU
+//! at the display's refresh rate.
 
-pub(crate) struct Reveal {
-    pixels: SharedPixelBuffer<Rgba8Pixel>,
-    /// Already cleared part of each row (empty: start == end).
-    cleared: Vec<(usize, usize)>,
-    origin: (f32, f32),
-    radius: f32,
+use std::time::Duration;
+
+use slint::{ComponentHandle, Image, Rgba8Pixel, SharedPixelBuffer};
+
+use crate::shell::AppWindow;
+
+/// How long the circle grows (the animation in `app.slint` matches it).
+pub const DURATION: Duration = Duration::from_millis(520);
+
+/// Show `old` and let `new` grow over it from `click` (window pixels;
+/// `None`: from the middle).
+pub fn start(ui: &AppWindow, old: SharedPixelBuffer<Rgba8Pixel>, new: SharedPixelBuffer<Rgba8Pixel>, click: Option<(f32, f32)>) {
+    let scale = ui.window().scale_factor().max(0.1);
+    let (w, h) = (old.width() as f32 / scale, old.height() as f32 / scale);
+    let (x, y) = click.map_or((w / 2.0, h / 2.0), |(x, y)| ((x / scale).clamp(0.0, w), (y / scale).clamp(0.0, h)));
+    ui.set_theme_origin_x(x);
+    ui.set_theme_origin_y(y);
+    ui.set_theme_radius(radius(w, h, x, y));
+    ui.set_theme_snapshot(Image::from_rgba8(old));
+    ui.set_theme_next(Image::from_rgba8(new));
+    // the overlay's clock starts at the last frame's time: bring it up to
+    // now, the two snapshots took a while and the circle would jump ahead
+    slint::platform::update_timers_and_animations();
+    ui.set_theme_transition(true);
 }
 
-impl Reveal {
-    /// `origin` in snapshot pixels; `None`: the middle of the window.
-    pub fn new(pixels: SharedPixelBuffer<Rgba8Pixel>, origin: Option<(f32, f32)>) -> Self {
-        let (w, h) = (pixels.width() as f32, pixels.height() as f32);
-        let (cx, cy) = origin.map_or((w / 2.0, h / 2.0), |(x, y)| (x.clamp(0.0, w), y.clamp(0.0, h)));
-        // reach the farthest corner
-        let radius = (cx.max(w - cx)).hypot(cy.max(h - cy)) + 1.0;
-        let start = cx as usize;
-        Self { cleared: vec![(start, start); pixels.height() as usize], pixels, origin: (cx, cy), radius }
-    }
+/// Drop the pictures (the live interface already has the new theme).
+pub fn finish(ui: &AppWindow) {
+    ui.set_theme_transition(false);
+    ui.set_theme_snapshot(Image::default());
+    ui.set_theme_next(Image::default());
+}
 
-    /// Progress is monotonic. Only the newly uncovered pixels are cleared.
-    pub fn frame(&mut self, progress: f32) -> Image {
-        let width = self.pixels.width() as usize;
-        let (cx, cy) = self.origin;
-        let radius = self.radius * progress.clamp(0.0, 1.0);
-        let pixels = self.pixels.make_mut_slice();
-        for (y, span) in self.cleared.iter_mut().enumerate() {
-            let dy = y as f32 + 0.5 - cy;
-            let half = (radius * radius - dy * dy).max(0.0).sqrt();
-            if half == 0.0 {
-                continue;
-            }
-            let left = ((cx - half).floor().max(0.0) as usize).min(span.0);
-            let right = ((cx + half).ceil() as usize).min(width).max(span.1);
-            let row = &mut pixels[y * width..(y + 1) * width];
-            row[left..span.0].fill(Rgba8Pixel::default());
-            row[span.1..right].fill(Rgba8Pixel::default());
-            *span = (left, right);
-        }
-        Image::from_rgba8(self.pixels.clone())
-    }
+/// Distance from (x, y) to the farthest corner: the circle covers the
+/// whole window at the end.
+fn radius(w: f32, h: f32, x: f32, y: f32) -> f32 {
+    x.max(w - x).hypot(y.max(h - y)) + 1.0
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    fn alpha(r: &Reveal, x: usize, y: usize) -> u8 {
-        r.pixels.as_slice()[y * r.pixels.width() as usize + x].a
-    }
-
     #[test]
-    fn grows_from_the_origin() {
-        let px = SharedPixelBuffer::<Rgba8Pixel>::new(100, 50);
-        let mut px = px;
-        px.make_mut_slice().fill(Rgba8Pixel { r: 1, g: 2, b: 3, a: 255 });
-        let mut r = Reveal::new(px, Some((90.0, 10.0)));
-        r.frame(0.0);
-        assert_eq!(alpha(&r, 90, 10), 255);
-        r.frame(0.2);
-        assert_eq!(alpha(&r, 90, 10), 0, "the origin is uncovered first");
-        assert_eq!(alpha(&r, 5, 45), 255, "the far corner stays old");
-        r.frame(1.0);
-        assert!(r.pixels.as_slice().iter().all(|p| p.a == 0), "everything is new at the end");
+    fn circle_reaches_the_farthest_corner() {
+        assert_eq!(radius(400.0, 300.0, 400.0, 0.0), 501.0);
+        assert_eq!(radius(400.0, 300.0, 200.0, 150.0), 251.0);
     }
 }

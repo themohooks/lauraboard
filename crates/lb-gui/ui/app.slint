@@ -75,8 +75,14 @@ export component AppWindow inherits Window {
     // kept for the snapshot tool; mirrors App.section
     in-out property <string> section <=> App.section;
     in-out property <string> gallery-page;
+    // theme change: the old theme's picture, the new one growing over it
+    // in a circle from the clicked point (theme_transition.rs)
     in-out property <image> theme-snapshot;
+    in-out property <image> theme-next;
     in-out property <bool> theme-transition: false;
+    in-out property <length> theme-origin-x;
+    in-out property <length> theme-origin-y;
+    in-out property <length> theme-radius;
 
     // below this width the drawer collapses into a rail; updated on resize
     // (a plain binding would loop through the window's layout constraints)
@@ -288,10 +294,33 @@ export component AppWindow inherits Window {
         width: root.width;
         height: root.height;
         clip: true;
+        // created when the change starts; driven by the frame clock (an
+        // `animate` would skip a value set while the element is created)
+        property <duration> started;
+        init => {
+            self.started = animation-tick();
+        }
+        property <float> t: clamp((animation-tick() - self.started) / 520ms, 0, 1);
+        property <length> r: root.theme-radius * self.t * self.t * (3 - 2 * self.t);
         Image {
             width: root.width;
             height: root.height;
             source: root.theme-snapshot;
+        }
+        circle := Rectangle {
+            x: root.theme-origin-x - parent.r;
+            y: root.theme-origin-y - parent.r;
+            width: 2 * parent.r;
+            height: 2 * parent.r;
+            border-radius: parent.r;
+            clip: true;
+            Image {
+                x: -circle.x;
+                y: -circle.y;
+                width: root.width;
+                height: root.height;
+                source: root.theme-next;
+            }
         }
         TouchArea { }
     }
