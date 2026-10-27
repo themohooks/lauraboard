@@ -104,10 +104,32 @@ pub struct NotifyConfig {
     pub command: Option<String>,
 }
 
+/// External helper programs.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ToolsConfig {
+    /// yt-dlp executable for downloading videos from sites (name in PATH
+    /// or full path). With the default name a copy shipped next to the
+    /// program or installed into `<project>/tools` is preferred.
+    #[serde(default = "default_ytdlp")]
+    pub ytdlp: String,
+}
+
+fn default_ytdlp() -> String {
+    "yt-dlp".into()
+}
+
+impl Default for ToolsConfig {
+    fn default() -> Self {
+        ToolsConfig { ytdlp: default_ytdlp() }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 pub struct AppConfig {
     #[serde(default)]
     pub ffmpeg: FfmpegConfig,
+    #[serde(default)]
+    pub tools: ToolsConfig,
     #[serde(default)]
     pub api: ApiConfig,
     #[serde(default)]

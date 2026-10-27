@@ -7,6 +7,7 @@
 //! * [`channel`] — channel actor and its handle
 //! * [`persist`] — runtime state, as-run log, instance lock
 //! * [`library`] — media import / probing
+//! * [`download`] — downloading videos from sites with yt-dlp
 //! * [`jobs`] — background jobs with progress
 //! * [`transfer`] — channel export / import (ZIP)
 //! * [`stats`] — reports and CSV export
@@ -15,6 +16,7 @@
 //! * [`google_fonts`] — Google Fonts catalogue and downloads
 
 pub mod channel;
+pub mod download;
 pub mod engine;
 pub mod error;
 pub mod google_fonts;
