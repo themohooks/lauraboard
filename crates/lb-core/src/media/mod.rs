@@ -3,8 +3,10 @@
 //! * [`folders`] — virtual folders of the library
 //! * [`display`] — per-item display settings (scaling, crop, filters)
 //! * [`scene`] — scenes: background + music composed on air
+//! * [`edit`] — video editor changes (trim, hidden areas, crop, sound)
 
 pub mod display;
+pub mod edit;
 pub mod folders;
 pub mod scene;
 

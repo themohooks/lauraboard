@@ -6,6 +6,7 @@
 //! | playback / graphics commands | [`control`] |
 //! | media library | [`library`] |
 //! | downloads from sites (yt-dlp) | [`download`] |
+//! | video editor (frames, render job) | [`edit`] |
 //! | playlists | [`playlists`] |
 //! | schedules, rules, graphics, channel config | [`config`] |
 //! | graphics render (draft preview) | [`render`] |
@@ -20,6 +21,7 @@ pub mod backgrounds;
 pub mod config;
 pub mod control;
 pub mod download;
+pub mod edit;
 pub mod fonts;
 pub mod jobs;
 pub mod library;
@@ -70,6 +72,8 @@ pub fn router(state: AppState) -> Router {
         .route("/media/folders", get(library::folders).post(library::folder_op))
         .route("/media/{media}/thumb.jpg", get(thumbs::thumb))
         .route("/media/{media}/preview.jpg", post(thumbs::preview))
+        .route("/media/{media}/edit", post(edit::render))
+        .route("/media/{media}/edit/frame.jpg", post(edit::frame))
         .route("/media/{media}", get(library::get_one).put(library::update).delete(library::remove))
         .route("/playlists", get(playlists::list).post(playlists::create))
         .route("/playlists/{pl}", get(playlists::get_one).put(playlists::replace).delete(playlists::remove))

@@ -388,3 +388,17 @@ async fn downloads_reject_bad_requests() {
     let (st, _) = call(&app, "POST", "/api/v1/channels/nope/media/download/probe", None, Some(r#"{"url":"https://example.com/v"}"#)).await;
     assert_eq!(st, StatusCode::NOT_FOUND);
 }
+
+#[tokio::test]
+async fn editor_checks_the_item() {
+    let dir = project(vec![]);
+    let app = app(&dir).await;
+    let (st, _) = call(&app, "POST", "/api/v1/channels/main/media/nope/edit", None, Some("{}")).await;
+    assert_eq!(st, StatusCode::NOT_FOUND);
+    // "a" was never probed: no video known, nothing is started
+    let (st, body) = call(&app, "POST", "/api/v1/channels/main/media/a/edit", None, Some(r#"{"spec":{"start_ms":1000}}"#)).await;
+    assert_eq!(st, StatusCode::BAD_REQUEST, "{body}");
+    assert!(body.contains("no video"), "{body}");
+    let (st, _) = call(&app, "POST", "/api/v1/channels/main/media/a/edit/frame.jpg?at=5000", None, Some("{}")).await;
+    assert_eq!(st, StatusCode::BAD_REQUEST);
+}
