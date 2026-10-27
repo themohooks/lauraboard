@@ -1,0 +1,223 @@
+// Editor picture: the frame under the cursor, the cut-off edges shaded,
+// hidden areas outlined. Drag on the picture to draw a new area; drag an
+// area to move it, its corner to resize it.
+
+import { Theme } from "../../theme/tokens.slint";
+import { Icons } from "../../theme/icons.slint";
+import { Icon } from "../../components/icon.slint";
+import { Label } from "../../components/label.slint";
+import { CircularProgress } from "../../components/feedback.slint";
+import { Ved, EditRegion } from "../../state/editor-state.slint";
+
+// One hidden area over the picture (pic-* = the picture rectangle).
+component RegionBox inherits Rectangle {
+    in property <int> index;
+    in property <EditRegion> r;
+    in property <length> pic-w;
+    in property <length> pic-h;
+    property <bool> selected: Ved.selected == index;
+
+    x: r.x * pic-w;
+    y: r.y * pic-h;
+    width: r.w * pic-w;
+    height: r.h * pic-h;
+    border-width: selected ? 2px : 1.5px;
+    border-color: selected ? Theme.color.primary : #ffffff;
+    background: selected ? Theme.color.primary.with-alpha(0.12) : #ffffff.with-alpha(0.06);
+    drop-shadow-blur: 2px;
+    drop-shadow-color: #000000.with-alpha(0.6);
+
+    TouchArea {
+        mouse-cursor: self.pressed ? grabbing : move;
+        pointer-event(e) => {
+            if e.kind == PointerEventKind.down {
+                Ved.select(root.index);
+            }
+            if e.kind == PointerEventKind.up {
+                Ved.regions-changed();
+            }
+        }
+        moved => {
+            if self.pressed {
+                let nx = clamp(root.r.x + (self.mouse-x - self.pressed-x) / root.pic-w, 0, 1 - root.r.w);
+                let ny = clamp(root.r.y + (self.mouse-y - self.pressed-y) / root.pic-h, 0, 1 - root.r.h);
+                Ved.region-move(root.index, nx, ny, root.r.w, root.r.h);
+            }
+        }
+    }
+
+    Rectangle {
+        x: 4px;
+        y: 4px;
+        width: number.preferred-width + 10px;
+        height: 18px;
+        border-radius: 9px;
+        background: root.selected ? Theme.color.primary : #000000.with-alpha(0.55);
+        number := Label {
+            text: root.index + 1;
+            type-style: Theme.label-small;
+            color: root.selected ? Theme.color.on-primary : #ffffff;
+        }
+    }
+
+    // resize handle (bottom right)
+    if root.selected: Rectangle {
+        x: parent.width - 8px;
+        y: parent.height - 8px;
+        width: 14px;
+        height: 14px;
+        border-radius: 7px;
+        background: Theme.color.primary;
+        border-width: 2px;
+        border-color: #ffffff;
+        TouchArea {
+            mouse-cursor: nwse-resize;
+            pointer-event(e) => {
+                if e.kind == PointerEventKind.up {
+                    Ved.regions-changed();
+                }
+            }
+            moved => {
+                if self.pressed {
+                    let nw = clamp(root.r.w + (self.mouse-x - self.pressed-x) / root.pic-w, 0.02, 1 - root.r.x);
+                    let nh = clamp(root.r.h + (self.mouse-y - self.pressed-y) / root.pic-h, 0.02, 1 - root.r.y);
+                    Ved.region-move(root.index, root.r.x, root.r.y, nw, nh);
+                }
+            }
+        }
+    }
+}
+
+export component EditorCanvas inherits Rectangle {
+    // the picture fits into this box keeping the source aspect
+    property <float> box-aspect: self.width / max(self.height, 1px);
+    property <length> pic-w: Ved.aspect >= box-aspect ? self.width : self.height * Ved.aspect;
+    property <length> pic-h: Ved.aspect >= box-aspect ? self.width / Ved.aspect : self.height;
+    // rubber band while drawing (fractions)
+    property <float> band-x;
+    property <float> band-y;
+    property <float> band-w;
+    property <float> band-h;
+    property <bool> banding;
+
+    border-radius: Theme.radius-m;
+    background: #000000;
+    clip: true;
+
+    pic := Rectangle {
+        x: (parent.width - root.pic-w) / 2;
+        y: (parent.height - root.pic-h) / 2;
+        width: root.pic-w;
+        height: root.pic-h;
+
+        if Ved.has-frame: Image {
+            width: parent.width;
+            height: parent.height;
+            source: Ved.frame;
+            image-fit: fill;
+        }
+
+        // drawing a new area on the free picture
+        draw := TouchArea {
+            mouse-cursor: crosshair;
+            pointer-event(e) => {
+                if e.kind == PointerEventKind.down {
+                    Ved.select(-1);
+                    root.band-x = clamp(self.mouse-x / root.pic-w, 0, 1);
+                    root.band-y = clamp(self.mouse-y / root.pic-h, 0, 1);
+                    root.band-w = 0;
+                    root.band-h = 0;
+                    root.banding = true;
+                }
+                if e.kind == PointerEventKind.up && root.banding {
+                    root.banding = false;
+                    if root.band-w * root.pic-w > 8px && root.band-h * root.pic-h > 8px {
+                        Ved.add-region(root.band-x, root.band-y, root.band-w, root.band-h);
+                    }
+                }
+            }
+            moved => {
+                if self.pressed && root.banding {
+                    let x0 = self.pressed-x / root.pic-w;
+                    let y0 = self.pressed-y / root.pic-h;
+                    let x1 = clamp(self.mouse-x / root.pic-w, 0, 1);
+                    let y1 = clamp(self.mouse-y / root.pic-h, 0, 1);
+                    root.band-x = min(x0, x1);
+                    root.band-y = min(y0, y1);
+                    root.band-w = abs(x1 - x0);
+                    root.band-h = abs(y1 - y0);
+                }
+            }
+        }
+
+        // cut-off edges
+        Rectangle {
+            width: parent.width * Ved.crop-left / 100;
+            background: #000000.with-alpha(0.6);
+        }
+        Rectangle {
+            x: parent.width * (1 - Ved.crop-right / 100);
+            width: parent.width * Ved.crop-right / 100;
+            background: #000000.with-alpha(0.6);
+        }
+        Rectangle {
+            x: parent.width * Ved.crop-left / 100;
+            width: parent.width * (1 - (Ved.crop-left + Ved.crop-right) / 100);
+            height: parent.height * Ved.crop-top / 100;
+            y: 0;
+            background: #000000.with-alpha(0.6);
+        }
+        Rectangle {
+            x: parent.width * Ved.crop-left / 100;
+            width: parent.width * (1 - (Ved.crop-left + Ved.crop-right) / 100);
+            y: parent.height * (1 - Ved.crop-bottom / 100);
+            height: parent.height * Ved.crop-bottom / 100;
+            background: #000000.with-alpha(0.6);
+        }
+
+        for r[i] in Ved.regions: RegionBox {
+            index: i;
+            r: r;
+            pic-w: root.pic-w;
+            pic-h: root.pic-h;
+        }
+
+        if root.banding: Rectangle {
+            x: root.band-x * root.pic-w;
+            y: root.band-y * root.pic-h;
+            width: root.band-w * root.pic-w;
+            height: root.band-h * root.pic-h;
+            border-width: 1.5px;
+            border-color: Theme.color.primary;
+            background: Theme.color.primary.with-alpha(0.15);
+        }
+    }
+
+    if !Ved.has-frame && !Ved.loading-frame: VerticalLayout {
+        alignment: center;
+        spacing: Theme.sp2;
+        HorizontalLayout {
+            alignment: center;
+            Icon {
+                source: Ved.frame-error != "" ? Icons.broken-image : Icons.movie;
+                tint: #ffffff.with-alpha(0.7);
+            }
+        }
+        Label {
+            text: Ved.frame-error;
+            color: #ffffff.with-alpha(0.8);
+            horizontal-alignment: center;
+            wrap: word-wrap;
+        }
+    }
+
+    if Ved.loading-frame: Rectangle {
+        x: parent.width - 36px;
+        y: 12px;
+        width: 24px;
+        height: 24px;
+        CircularProgress {
+            size: 24px;
+        }
+    }
+}

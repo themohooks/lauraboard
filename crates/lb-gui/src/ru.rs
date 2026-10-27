@@ -67,6 +67,15 @@ const TABLE: &[(&str, &str)] = &[
     ("the downloaded yt-dlp does not start", "Скачанный yt-dlp не запускается"),
     ("{}: checksum mismatch (download damaged or replaced)", "{0}: контрольная сумма не совпала — файл повреждён или подменён"),
     ("{}: no checksum in SHA2-256SUMS", "{0}: нет контрольной суммы в SHA2-256SUMS"),
+    // video editor
+    ("only video files can be edited", "Монтаж доступен только для видеофайлов"),
+    (
+        "only copies in the channel's storage can be replaced; save as a new item",
+        "Заменить можно только копию в хранилище канала — сохраните результат новым роликом",
+    ),
+    ("the kept part is too short", "Оставленный фрагмент слишком короткий"),
+    ("too many hidden areas (16 at most)", "Слишком много областей (не больше 16)"),
+    ("ffmpeg: {}", "Ошибка обработки видео (ffmpeg): {0}"),
     // command results
     ("started", "Вещание запущено"),
     ("stopped", "Вещание остановлено"),

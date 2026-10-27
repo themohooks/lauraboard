@@ -1,0 +1,114 @@
+// Editor timeline: the position slider over the kept part (trim), frame
+// stepping and "start here" / "end here".
+
+import { Theme } from "../../theme/tokens.slint";
+import { Icons } from "../../theme/icons.slint";
+import { Label } from "../../components/label.slint";
+import { Slider } from "../../components/slider.slint";
+import { Button, ButtonVariant } from "../../components/button.slint";
+import { IconButton } from "../../components/icon-button.slint";
+import { Ved } from "../../state/editor-state.slint";
+
+export component EditorTimeline inherits VerticalLayout {
+    spacing: Theme.sp1;
+
+    function go(ms: float) {
+        Ved.position-ms = clamp(ms, 0, Ved.duration-ms);
+        Ved.seek(Ved.position-ms);
+    }
+
+    Rectangle {
+        height: Theme.touch-target;
+        // kept part under the slider track
+        property <length> pad: 10px;
+        property <float> span: max(Ved.duration-ms, 1);
+        Rectangle {
+            x: parent.pad + (parent.width - 2 * parent.pad) * Ved.start-ms / parent.span;
+            width: (parent.width - 2 * parent.pad) * (Ved.end-ms - Ved.start-ms) / parent.span;
+            height: 14px;
+            border-radius: 4px;
+            background: Theme.color.tertiary-container;
+        }
+        Slider {
+            width: parent.width;
+            minimum: 0;
+            maximum: Ved.duration-ms;
+            value <=> Ved.position-ms;
+            value-text: Ved.clock(self.value);
+            changed(v) => {
+                Ved.seek(v);
+            }
+        }
+    }
+
+    HorizontalLayout {
+        spacing: Theme.sp1;
+        alignment: space-between;
+        HorizontalLayout {
+            spacing: Theme.sp1;
+            VerticalLayout {
+                alignment: center;
+                Button {
+                    text: "Начало здесь";
+                    variant: ButtonVariant.text;
+                    tooltip: "Отрезать всё до текущего кадра";
+                    clicked => {
+                        Ved.start-ms = min(Ved.position-ms, Ved.end-ms - 500);
+                    }
+                }
+            }
+            Label {
+                text: Ved.clock(Ved.start-ms);
+                mono: true;
+                vertical-alignment: center;
+            }
+        }
+        HorizontalLayout {
+            spacing: Theme.sp1;
+            IconButton {
+                icon: Icons.chevron-left;
+                tooltip: "Назад на 1 с";
+                clicked => {
+                    root.go(Ved.position-ms - 1000);
+                }
+            }
+            Label {
+                text: Ved.clock(Ved.position-ms) + " / " + Ved.clock(Ved.duration-ms);
+                mono: true;
+                vertical-alignment: center;
+            }
+            IconButton {
+                icon: Icons.chevron-right;
+                tooltip: "Вперёд на 1 с";
+                clicked => {
+                    root.go(Ved.position-ms + 1000);
+                }
+            }
+        }
+        HorizontalLayout {
+            spacing: Theme.sp1;
+            Label {
+                text: Ved.clock(Ved.end-ms);
+                mono: true;
+                vertical-alignment: center;
+            }
+            VerticalLayout {
+                alignment: center;
+                Button {
+                    text: "Конец здесь";
+                    variant: ButtonVariant.text;
+                    tooltip: "Отрезать всё после текущего кадра";
+                    clicked => {
+                        Ved.end-ms = max(Ved.position-ms, Ved.start-ms + 500);
+                    }
+                }
+            }
+        }
+    }
+    Label {
+        text: "Останется " + Ved.clock(Ved.end-ms - Ved.start-ms) + (Ved.start-ms > 0 || Ved.end-ms < Ved.duration-ms ? " из " + Ved.clock(Ved.duration-ms) : "");
+        type-style: Theme.body-small;
+        color: Theme.color.on-surface-variant;
+        horizontal-alignment: center;
+    }
+}

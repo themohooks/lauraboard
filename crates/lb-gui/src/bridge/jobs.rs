@@ -118,6 +118,17 @@ fn finished(c: &mut Ctx, j: &JobView) {
                 c.load_all();
             }
         }
+        ("done", "edit_media") => {
+            let text = if result["replaced"].as_bool() == Some(true) {
+                "Монтаж готов: файл ролика заменён".to_string()
+            } else {
+                "Монтаж готов: новый ролик добавлен в медиатеку".to_string()
+            };
+            c.toast(text, false);
+            if j.channel.as_deref() == c.model.channel.as_deref() {
+                c.load_all();
+            }
+        }
         (state, "install_ytdlp") => {
             if state != "done" {
                 c.toast(format!("Установка yt-dlp: {}", crate::ru::server(&j.message)), true);

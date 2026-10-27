@@ -351,6 +351,7 @@ fn row_action(c: &mut Ctx, row: i32, action: &str) {
     let title = item(c, &id).map(|m| m.title).unwrap_or_else(|| id.clone());
     match action {
         "edit" => open_edit(c, row),
+        "video-edit" => super::editor::open(c, &id),
         "queue" => c.command(json!({ "cmd": "queue", "media": id })),
         "play-now" => c.ask(
             "Показать сейчас?",

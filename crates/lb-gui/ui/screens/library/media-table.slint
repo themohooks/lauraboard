@@ -49,6 +49,7 @@ component RowMenu inherits Menu {
     in property <MediaRow> item;
     entries: [
         { id: "edit", text: "Изменить свойства", icon: Icons.edit, has-icon: true, enabled: true },
+        { id: "video-edit", text: "Монтаж…", icon: Icons.movie, has-icon: true, enabled: item.kind != "image" && item.kind != "stream" },
         { id: "add-to-open-playlist", text: "В открытый плейлист", icon: Icons.playlist-add, has-icon: true, enabled: true },
         { id: "queue", text: "В очередь эфира", icon: Icons.queue-music, has-icon: true, enabled: item.problem == "" },
         { id: "play-now", text: "Показать сейчас…", icon: Icons.play-arrow, has-icon: true, enabled: item.problem == "" },

@@ -16,6 +16,7 @@ pub mod archive;
 pub mod avatars;
 pub mod channels;
 pub mod download;
+pub mod editor;
 pub mod encoder;
 pub mod folders;
 pub mod graphics;
@@ -75,6 +76,8 @@ pub struct Ctx {
     pub pl: playlists::PlaylistsState,
     pub lib: library::LibraryState,
     pub download: download::DownloadState,
+    /// Video editor.
+    pub ed: editor::EditorState,
     pub grid: schedule::ScheduleState,
     pub rules: rules::RulesState,
     pub gfx: graphics::GraphicsState,
@@ -150,6 +153,7 @@ pub fn start(ui: &AppWindow, opts: &GuiOptions, prefs: UiPrefs) {
         pl: Default::default(),
         lib: Default::default(),
         download: Default::default(),
+        ed: Default::default(),
         grid: Default::default(),
         rules: Default::default(),
         gfx: Default::default(),
@@ -176,6 +180,7 @@ pub fn start(ui: &AppWindow, opts: &GuiOptions, prefs: UiPrefs) {
     playlists::connect(ui);
     library::connect(ui);
     download::connect(ui);
+    editor::connect(ui);
     media_display::connect(ui);
     folders::connect(ui);
     schedule::connect(ui);
