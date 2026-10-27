@@ -137,13 +137,47 @@ def download_table(repository, release_version, server_url="https://github.com")
             f"[SHA256SUMS — контрольные суммы файлов]({checksum})\n\n---\n\n")
 
 
+def previous_tag(release_version):
+    """Newest release tag before this one that is an ancestor of HEAD."""
+    tags = run("git", "tag", "--merged", "HEAD", "--sort=-v:refname", "v[0-9]*",
+               capture_output=True, text=True).stdout.split()
+    return next((t for t in tags if t != f"v{release_version}" and VERSION.fullmatch(t[1:])), None)
+
+
+def commits(since):
+    """`(sha, subject, author)` of every commit since the tag, newest first.
+    Commits of merged pull requests are included; the merge commits
+    themselves are skipped (they change nothing of their own)."""
+    span = f"{since}..HEAD" if since else "HEAD"
+    out = run("git", "log", "--no-merges", "--format=%H%x1f%s%x1f%an%x1e", span,
+              capture_output=True, text=True, encoding="utf-8").stdout
+    return [tuple(entry.strip().split("\x1f")) for entry in out.split("\x1e") if entry.strip()]
+
+
+def changelog(entries, repository, since, release_version, server_url="https://github.com"):
+    """Markdown list of the commits with links to them."""
+    base = f"{server_url.rstrip('/')}/{repository}"
+    lines = ["## Изменения\n"]
+    for sha, subject, author in entries:
+        lines.append(f"- {subject.replace('<', '&lt;')} ([`{sha[:7]}`]({base}/commit/{sha})) — {author}")
+    if not entries:
+        lines.append("- Без изменений в коде.")
+    if since:
+        lines.append(f"\n[Все изменения {since}…v{release_version}]({base}/compare/{since}...v{release_version})")
+    return "\n".join(lines) + "\n"
+
+
 def notes():
     path = ROOT / "target/release-notes.md"
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(download_table(os.environ["GH_REPO"], version(),
-                                  os.environ.get("GITHUB_SERVER_URL", "https://github.com")),
+    repository = os.environ["GH_REPO"]
+    server = os.environ.get("GITHUB_SERVER_URL", "https://github.com")
+    release_version = version()
+    since = previous_tag(release_version)
+    path.write_text(download_table(repository, release_version, server)
+                    + changelog(commits(since), repository, since, release_version, server),
                     encoding="utf-8", newline="\n")
-    print(f"Generated download table: {path}")
+    print(f"Generated release notes since {since or 'the first commit'}: {path}")
 
 
 def archive(source, destination):

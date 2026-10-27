@@ -55,6 +55,31 @@ class ReleaseTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             release.download_table('bad/repo\"<script>', "1.2.3")
 
+    def test_changelog_lists_every_commit(self):
+        entries = [("a" * 40, "Fix <crash>", "Ann"), ("b" * 40, "Add editor", "Bob")]
+        text = release.changelog(entries, "team/app", "v1.2.2", "1.2.3")
+        self.assertIn("- Fix &lt;crash> ([`aaaaaaa`](https://github.com/team/app/commit/" + "a" * 40 + ")) — Ann", text)
+        self.assertLess(text.index("Fix"), text.index("Add editor"))
+        self.assertIn("https://github.com/team/app/compare/v1.2.2...v1.2.3", text)
+        first = release.changelog([], "team/app", None, "0.1.0")
+        self.assertIn("Без изменений", first)
+        self.assertNotIn("compare", first)
+
+    def test_commits_include_pull_request_commits(self):
+        with tempfile.TemporaryDirectory() as temp, mock.patch.object(release, "ROOT", Path(temp)):
+            def git(*args):
+                release.run("git", "-c", "user.name=T", "-c", "user.email=t@t", *args, capture_output=True)
+            git("init", "-q", "-b", "main")
+            git("commit", "-q", "--allow-empty", "-m", "Before")
+            git("tag", "v1.0.0")
+            git("commit", "-q", "--allow-empty", "-m", "On main")
+            git("checkout", "-q", "-b", "pr")
+            git("commit", "-q", "--allow-empty", "-m", "Inside the PR")
+            git("checkout", "-q", "main")
+            git("merge", "-q", "--no-ff", "-m", "Merge pull request #1", "pr")
+            self.assertEqual(release.previous_tag("1.1.0"), "v1.0.0")
+            self.assertEqual(sorted(s for _, s, _ in release.commits("v1.0.0")), ["Inside the PR", "On main"])
+
     def test_complete_release_checksums(self):
         with tempfile.TemporaryDirectory() as temp:
             directory = Path(temp)

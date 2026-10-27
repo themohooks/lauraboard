@@ -87,10 +87,19 @@ pub fn newer(latest: &str, current: &str) -> bool {
     }
 }
 
-/// Release notes up to the download table the release script appends.
+/// The change list the release script writes after the download table
+/// (older releases: the text before that table).
 fn short_notes(body: &str) -> String {
-    let body = body.split("## Скачать").next().unwrap_or(body);
-    let text: String = body.lines().map(str::trim_end).filter(|l| !l.trim_start().starts_with("<")).collect::<Vec<_>>().join("\n");
+    let body = match body.split_once("## Изменения") {
+        Some((_, changes)) => changes,
+        None => body.split("## Скачать").next().unwrap_or(body),
+    };
+    let text: String = body
+        .lines()
+        .map(str::trim_end)
+        .filter(|l| !l.trim_start().starts_with('<') && !l.starts_with("[Все изменения"))
+        .collect::<Vec<_>>()
+        .join("\n");
     let text = text.trim();
     if text.chars().count() > 1200 { format!("{}…", text.chars().take(1200).collect::<String>().trim_end()) } else { text.to_string() }
 }
@@ -164,6 +173,17 @@ mod tests {
         let r = release();
         assert_eq!(r.version, "1.4.0");
         assert_eq!(r.notes, "Новое");
+        let notes = "## Скачать для вашей ОС
+<table>
+---
+
+## Изменения
+
+- Fix ([`abc`](u)) — Ann
+
+[Все изменения v1…v2](u)
+";
+        assert_eq!(short_notes(notes), "- Fix ([`abc`](u)) — Ann");
         assert_eq!(r.assets.len(), 8);
         assert!(parse(&json!({"tag_name": "v2.0.0-rc.1"})).is_none());
         assert!(parse(&json!({"tag_name": "v2.0.0", "prerelease": true})).is_none());
