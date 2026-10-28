@@ -39,9 +39,16 @@ export global Popups {
 component NoticeCard inherits Rectangle {
     in property <NoticeRow> notice;
     out property <bool> appeared;
-    init => { self.appeared = true; }
-    opacity: appeared ? 1 : 0;
-    animate opacity { duration: Theme.motion-medium; easing: ease-out; }
+    // A full stack reuses delegate components when the oldest row is
+    // removed, so restart entry motion when the notice changes too.
+    changed notice => { root.appeared = false; }
+    Timer {
+        interval: 16ms;
+        running: !root.appeared;
+        triggered => { root.appeared = true; }
+    }
+    opacity: appeared || !Theme.animations ? 1 : 0;
+    animate opacity { duration: appeared ? Theme.motion-medium : 0ms; easing: ease-out; }
     property <color> accent: notice.urgency == 2 ? Theme.color.error : notice.urgency == 1 ? Theme.status.warning : Theme.color.primary;
 
     border-radius: Theme.radius-m;
@@ -168,8 +175,8 @@ export component NotifyWindow inherits Window {
 
     for row[i] in Popups.items: NoticeCard {
         notice: row;
-        x: Popups.margin + (self.appeared ? 0px : 32px);
-        animate x { duration: Theme.motion-long; easing: ease-out; }
+        x: Popups.margin + (self.appeared || !Theme.animations ? 0px : 32px);
+        animate x { duration: self.appeared ? Theme.motion-long : 0ms; easing: ease-out; }
         width: root.width - 2 * Popups.margin;
         height: Popups.card-height;
         y: root.height - Popups.margin - (Popups.items.length - i) * (Popups.card-height + Popups.gap) + Popups.gap;
