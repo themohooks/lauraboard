@@ -45,12 +45,29 @@ fn caret_reveals_both_ends_of_a_long_single_line() {
     };
     draw();
     ui.invoke_focus_editor();
-    window.dispatch_event(WindowEvent::KeyPressed { text: Key::End.into() });
-    window.dispatch_event(WindowEvent::KeyReleased { text: Key::End.into() });
+    // Slint maps Control to Command on Apple platforms. Home/End there
+    // scroll the document rather than moving the text caret.
+    let navigate = |to_end: bool| {
+        let key = if cfg!(target_vendor = "apple") {
+            if to_end { Key::RightArrow } else { Key::LeftArrow }
+        } else if to_end {
+            Key::End
+        } else {
+            Key::Home
+        };
+        if cfg!(target_vendor = "apple") {
+            window.dispatch_event(WindowEvent::KeyPressed { text: Key::Control.into() });
+        }
+        window.dispatch_event(WindowEvent::KeyPressed { text: key.into() });
+        window.dispatch_event(WindowEvent::KeyReleased { text: key.into() });
+        if cfg!(target_vendor = "apple") {
+            window.dispatch_event(WindowEvent::KeyReleased { text: Key::Control.into() });
+        }
+    };
+    navigate(true);
     draw();
-    assert!(ui.get_text_x() < -100.0, "End must scroll toward the hidden end of the line");
-    window.dispatch_event(WindowEvent::KeyPressed { text: Key::Home.into() });
-    window.dispatch_event(WindowEvent::KeyReleased { text: Key::Home.into() });
+    assert!(ui.get_text_x() < -100.0, "Moving the caret to the end must reveal the hidden end of the line");
+    navigate(false);
     draw();
-    assert!(ui.get_text_x().abs() < 0.01, "Home must reveal the start again");
+    assert!(ui.get_text_x().abs() < 0.01, "Moving the caret to the start must reveal the start again");
 }
