@@ -19,6 +19,9 @@ pub fn install(window: &slint::Window) {
         crate::pointer::track(e);
         match e {
             WinitEvent::ModifiersChanged(m) => mods.set(m.state()),
+            WinitEvent::Moved(_) | WinitEvent::ScaleFactorChanged { .. } | WinitEvent::Focused(true) => {
+                crate::bridge::with(crate::bridge::settings::monitor_changed);
+            }
             WinitEvent::KeyboardInput { event, is_synthetic: false, .. } => {
                 let m = mods.get();
                 // Ctrl+Alt is AltGr on Windows: it types characters

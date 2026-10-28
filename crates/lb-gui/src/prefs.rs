@@ -85,6 +85,9 @@ pub struct UiPrefs {
     pub theme: ThemeMode,
     /// UI scale on top of the system DPI (1.0 = 100 %).
     pub scale: f32,
+    /// Client preview refresh rate; divisor 1/2/4 follows the active monitor.
+    pub preview_fps: f64,
+    pub preview_monitor_divisor: u8,
     pub compact: bool,
     pub motion: MotionMode,
     pub nav_expanded: bool,
@@ -111,6 +114,8 @@ impl Default for UiPrefs {
         UiPrefs {
             theme: ThemeMode::System,
             scale: 1.0,
+            preview_fps: 15.0,
+            preview_monitor_divisor: 0,
             compact: false,
             motion: MotionMode::System,
             nav_expanded: true,
@@ -161,7 +166,20 @@ impl UiPrefs {
             self.scale = 1.0;
         }
         self.scale = self.scale.clamp(0.8, 2.0);
+        if !self.preview_fps.is_finite() {
+            self.preview_fps = 15.0;
+        }
+        self.preview_fps = self.preview_fps.clamp(10.0, 360.0);
+        if !matches!(self.preview_monitor_divisor, 0 | 1 | 2 | 4) {
+            self.preview_monitor_divisor = 0;
+        }
         self
+    }
+
+    pub fn effective_preview_fps(&self, monitor_hz: f64) -> f64 {
+        let hz = if monitor_hz.is_finite() && monitor_hz > 0.0 { monitor_hz } else { 60.0 };
+        let fps = if self.preview_monitor_divisor > 0 { hz / f64::from(self.preview_monitor_divisor) } else { self.preview_fps };
+        if fps.is_finite() { fps.clamp(10.0, 360.0) } else { 15.0 }
     }
 
     /// Whether decorative animations should play.
@@ -188,5 +206,25 @@ mod tests {
         assert_eq!(p.section, "home");
         assert!(p.close_to_tray);
         assert!(p.updates.auto);
+        assert_eq!(p.preview_fps, 15.0);
+        assert_eq!(p.preview_monitor_divisor, 0);
+    }
+
+    #[test]
+    fn preview_cadence_follows_monitor_and_rejects_invalid_preferences() {
+        let mut p = UiPrefs { preview_fps: 29.97, ..Default::default() };
+        assert_eq!(p.effective_preview_fps(144.0), 29.97);
+        p.preview_monitor_divisor = 1;
+        assert_eq!(p.effective_preview_fps(143.856), 143.856);
+        p.preview_monitor_divisor = 2;
+        assert_eq!(p.effective_preview_fps(144.0), 72.0);
+        p.preview_monitor_divisor = 4;
+        assert_eq!(p.effective_preview_fps(30.0), 10.0);
+        assert_eq!(p.effective_preview_fps(f64::NAN), 15.0);
+        p.preview_fps = f64::NAN;
+        p.preview_monitor_divisor = 9;
+        p = p.sanitized();
+        assert_eq!(p.preview_fps, 15.0);
+        assert_eq!(p.preview_monitor_divisor, 0);
     }
 }

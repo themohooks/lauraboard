@@ -2,6 +2,12 @@
 //! reset, connection and version info.
 
 use std::time::Duration;
+mod preview;
+pub use preview::apply_rate as apply_preview_rate;
+
+pub fn monitor_changed(c: &mut Ctx) {
+    preview::monitor_changed(c);
+}
 
 use slint::{ComponentHandle, SharedString};
 
@@ -16,6 +22,8 @@ const SCALE_DELAY: Duration = Duration::from_millis(400);
 
 #[derive(Default)]
 pub struct SettingsState {
+    preview_initialized: bool,
+    preview_monitor_hz: f64,
     scale_seq: u64,
     server_version: Option<String>,
     theme_timer: slint::Timer,
@@ -23,6 +31,8 @@ pub struct SettingsState {
 
 pub fn connect(ui: &AppWindow) {
     let g = ui.global::<Settings>();
+    g.on_preview_selected(|i| with(move |c| preview::select(c, i)));
+    g.on_preview_save(|| with(preview::save));
     g.on_hls_save(|| {
         with(|c| {
             let Some(ui) = c.window() else { return };
@@ -134,6 +144,8 @@ pub fn connect(ui: &AppWindow) {
                     let section = c.prefs.section.clone();
                     let persist = c.prefs.persist;
                     c.prefs = UiPrefs { section, persist, ..UiPrefs::default() };
+                    c.settings.preview_initialized = false;
+                    apply_preview_rate(c);
                     reset_layout(c);
                     saved(c);
                     super::shell::apply_scale(c);
@@ -217,6 +229,7 @@ pub fn opened(c: &mut Ctx) {
 
 /// Preferences and connection facts into the screen.
 pub fn show(c: &mut Ctx) {
+    preview::show(c);
     let Some(ui) = c.window() else { return };
     let g = ui.global::<Settings>();
     g.set_theme(match c.prefs.theme {

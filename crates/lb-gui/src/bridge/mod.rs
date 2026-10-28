@@ -205,6 +205,7 @@ pub fn start(ui: &AppWindow, opts: &GuiOptions, prefs: UiPrefs) {
     with(|c| {
         forms::refresh(c);
         shell::apply_prefs(c);
+        settings::apply_preview_rate(c);
         air::apply_prefs(c);
         playlists::apply_prefs(c);
         library::apply_prefs(c);

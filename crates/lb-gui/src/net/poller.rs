@@ -14,6 +14,7 @@ pub struct PollTarget {
     pub channel: Option<String>,
     pub preview: bool,
     pub revision: u64,
+    pub fps: f64,
 }
 
 pub struct Poller {
@@ -32,9 +33,6 @@ pub fn decode_jpeg(bytes: &[u8]) -> Option<Frame> {
     Some(Frame { width: img.width(), height: img.height(), rgba: img.into_raw() })
 }
 
-/// Interval between preview requests (the engine produces 15 frames/s).
-const PREVIEW_EVERY: Duration = Duration::from_millis(66);
-
 /// Separate loop for the live picture: much faster than the status poll,
 /// and an unchanged frame is neither decoded nor sent to the window.
 fn spawn_preview(api: Api, tx: std::sync::mpsc::Sender<Msg>, wake: Wake, target: Arc<Mutex<PollTarget>>, stop: Arc<AtomicBool>) {
@@ -43,11 +41,11 @@ fn spawn_preview(api: Api, tx: std::sync::mpsc::Sender<Msg>, wake: Wake, target:
         let mut last_channel = None;
         while !stop.load(Ordering::Relaxed) {
             let started = Instant::now();
-            let (channel, wanted, revision) = {
+            let (channel, wanted, revision, fps) = {
                 let g = target.lock().unwrap_or_else(|e| e.into_inner());
-                (g.channel.clone(), g.preview, g.revision)
+                (g.channel.clone(), g.preview, g.revision, g.fps)
             };
-            let mut pause = PREVIEW_EVERY;
+            let mut pause = Duration::from_secs_f64(1.0 / fps.clamp(10.0, 360.0));
             if Some((channel.clone(), revision)) != last_channel {
                 last.clear();
                 last_channel = Some((channel.clone(), revision));
@@ -74,7 +72,7 @@ fn spawn_preview(api: Api, tx: std::sync::mpsc::Sender<Msg>, wake: Wake, target:
 
 impl Poller {
     pub fn start(api: Api, tx: std::sync::mpsc::Sender<Msg>, wake: Wake) -> Self {
-        let target = Arc::new(Mutex::new(PollTarget { channel: None, preview: true, revision: 0 }));
+        let target = Arc::new(Mutex::new(PollTarget { channel: None, preview: true, revision: 0, fps: 15.0 }));
         let stop = Arc::new(AtomicBool::new(false));
         spawn_preview(api.clone(), tx.clone(), wake.clone(), target.clone(), stop.clone());
         let (t2, s2) = (target.clone(), stop.clone());
@@ -147,6 +145,12 @@ impl Poller {
 
     pub fn revision(&self) -> u64 {
         self.target.lock().unwrap_or_else(|e| e.into_inner()).revision
+    }
+
+    pub fn set_fps(&self, fps: f64) {
+        if let Ok(mut target) = self.target.lock() {
+            target.fps = fps;
+        }
     }
 
     pub fn set_channel(&self, ch: &str) {

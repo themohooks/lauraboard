@@ -1,3 +1,4 @@
+import { Select } from "../../components/select.slint";
 import { TextField } from "../../components/text-field.slint";
 // Settings: appearance (theme, scale, density, motion, navigation), layout
 // reset, connection info, keyboard shortcuts, about.
@@ -115,7 +116,7 @@ export component SettingsScreen inherits Page {
 
                 PageHeader {
                     title: "Настройки";
-                    subtitle: "Интерфейс этого компьютера — на эфир не влияют";
+                    subtitle: "Интерфейс и параметры предпросмотра выбранного канала";
                 }
 
                 Card {
@@ -212,6 +213,19 @@ export component SettingsScreen inherits Page {
                     }
                 }
 
+                Card {
+                    card-style: CardStyle.low;
+                    CardHeader { title: "Частота кадров предпросмотра"; subtitle: "Пресеты и синхронизация с монитором. Частота выходного видео сохраняется."; }
+                    Select { label: "Режим"; options: Settings.preview-options; current-index <=> Settings.preview-preset;
+                        selected(i, _) => { Settings.preview-selected(i); }
+                    }
+                    TextField { label: "FPS (10–360)"; text <=> Settings.preview-fps;
+                        enabled: Settings.preview-preset == Settings.preview-options.length - 1;
+                    }
+                    Label { text: Settings.preview-info; wrap: word-wrap; color: Theme.color.on-surface-variant; }
+                    Label { text: "Изменение частоты источника перезапускает кодировщик. Режимы монитора автоматически учитывают экран, на котором находится окно."; wrap: word-wrap; color: Theme.color.on-surface-variant; }
+                    Button { text: "Применить"; clicked => { Settings.preview-save(); } }
+                }
                 Card {
                     card-style: CardStyle.low;
                     CardHeader { title: "Ретрансляция в локальную сеть"; subtitle: "Эфир выбранного канала в HLS (m3u8). У каждого канала должен быть свой свободный порт."; }
