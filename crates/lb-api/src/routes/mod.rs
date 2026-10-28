@@ -113,5 +113,27 @@ pub fn router(state: AppState) -> Router {
         .route("/jobs/{job}", get(jobs::get_one).delete(jobs::cancel))
         .nest("/channels/{id}", ch.route("/events", get(crate::ws::events_channel)))
         .route("/channels/{id}/var/{key}", put(control::set_var));
-    Router::new().nest("/api/v1", api).layer(CorsLayer::permissive()).with_state(state)
+    Router::new().nest("/api/v1", api).layer(axum::middleware::from_fn(measure)).layer(CorsLayer::permissive()).with_state(state)
+}
+
+async fn measure(request: axum::extract::Request, next: axum::middleware::Next) -> axum::response::Response {
+    use axum::body::Body;
+    use futures_util::StreamExt;
+    let (parts, body) = request.into_parts();
+    let stream = body.into_data_stream().inspect(|chunk| {
+        if let Ok(bytes) = chunk {
+            lb_core::traffic::received(lb_core::traffic::API, bytes.len() as u64);
+        }
+    });
+    let response = next.run(axum::extract::Request::from_parts(parts, Body::from_stream(stream))).await;
+    if response.status() == axum::http::StatusCode::SWITCHING_PROTOCOLS {
+        return response;
+    }
+    response.map(|body| {
+        Body::from_stream(body.into_data_stream().inspect(|chunk| {
+            if let Ok(bytes) = chunk {
+                lb_core::traffic::sent(lb_core::traffic::API, bytes.len() as u64);
+            }
+        }))
+    })
 }

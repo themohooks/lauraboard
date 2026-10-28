@@ -208,7 +208,7 @@ export component StatsScreen inherits Page {
                 alignment: center;
                 SegmentedButton {
                     width: 240px;
-                    segments: [{ text: "Эфир" }, { text: "Система" }];
+                    segments: [{ text: "Эфир" }, { text: "Приложение" }];
                     selected <=> Stats.view;
                     changed => {
                         Stats.view-changed();

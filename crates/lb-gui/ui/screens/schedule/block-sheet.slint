@@ -1,3 +1,4 @@
+import { CategorySelect, CategoryMultiSelect } from "../../components/category-select.slint";
 // Side sheet with the less frequent block properties.
 
 import { Theme } from "../../theme/tokens.slint";
@@ -57,7 +58,7 @@ export component BlockSheet inherits SideSheet {
             Grid.block-edited(Grid.details.index, "max-items", t);
         }
     }
-    TextField {
+    CategorySelect {
         label: "Категория для шаблонов графики";
         text: Grid.details.category;
         container-color: Theme.color.surface-container-low;

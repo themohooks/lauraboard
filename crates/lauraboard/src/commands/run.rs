@@ -12,6 +12,7 @@ use crate::ctx::Ctx;
 /// Run until `stop` flips to true (or Ctrl+C).
 pub async fn serve(ctx: &Ctx, api: bool, mut stop: watch::Receiver<bool>) -> Result<()> {
     let engine = Arc::new(Engine::start(&ctx.root)?);
+    let hls_monitor = tokio::spawn(lb_api::hls::monitor(engine.clone()));
     let version = lb_media::hw::ffmpeg_version(&engine.app.ffmpeg.ffmpeg).await;
     match &version {
         Some(v) => tracing::info!("{v}"),
@@ -42,6 +43,7 @@ pub async fn serve(ctx: &Ctx, api: bool, mut stop: watch::Receiver<bool>) -> Res
         _ = async { while stop.changed().await.is_ok() { if *stop.borrow() { break; } } } => tracing::info!("stop requested"),
     }
     engine.shutdown().await;
+    hls_monitor.abort();
     let _ = api_stop_tx.send(());
     if let Some(t) = api_task {
         let _ = t.await;

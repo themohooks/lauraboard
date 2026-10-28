@@ -1,3 +1,4 @@
+import { CategorySelect, CategoryMultiSelect } from "../../components/category-select.slint";
 // Side sheet for editing media metadata, with inline validation.
 
 import { Theme } from "../../theme/tokens.slint";
@@ -40,7 +41,7 @@ export component MediaEditSheet inherits SideSheet {
         current-index <=> Lib.e-kind;
         container-color: Theme.color.surface-container-low;
     }
-    TextField {
+    CategorySelect {
         label: "Категория";
         text <=> Lib.e-category;
         placeholder: "news, idents…";

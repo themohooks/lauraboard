@@ -193,21 +193,24 @@ pub fn apply_prefs(c: &mut Ctx) {
 /// UI scale = OS scale × user scale.
 pub fn apply_scale(c: &mut Ctx) {
     let Some(ui) = c.window() else { return };
-    let target = c.system_scale * c.prefs.scale;
+    use slint::winit_030::WinitWindowAccessor;
+    let native = ui.window().with_winit_window(|w| (w.scale_factor() as f32, w.inner_size()));
+    let (base, physical) = native
+        .unwrap_or((c.system_scale, slint::winit_030::winit::dpi::PhysicalSize::new(ui.window().size().width, ui.window().size().height)));
+    c.system_scale = base;
+    ui.global::<App>().set_ui_scale(c.prefs.scale);
+    let target = base * c.prefs.scale;
     if (ui.window().scale_factor() - target).abs() > 0.001 {
         ui.window().dispatch_event(WindowEvent::ScaleFactorChanged { scale_factor: target });
+        ui.window().dispatch_event(WindowEvent::Resized {
+            size: slint::LogicalSize::new(physical.width as f32 / target, physical.height as f32 / target),
+        });
     }
 }
 
-/// The OS replaces our factor when DPI changes: take it as the new base.
+/// Native DPI is independent of the application's synthetic scale factor.
 fn watch_scale(c: &mut Ctx) {
-    let Some(ui) = c.window() else { return };
-    let current = ui.window().scale_factor();
-    let expected = c.system_scale * c.prefs.scale;
-    if (current - expected).abs() > 0.001 {
-        c.system_scale = current;
-        apply_scale(c);
-    }
+    apply_scale(c);
 }
 
 fn tick_clock(c: &mut Ctx) {

@@ -1,3 +1,4 @@
+import { CategorySelect, CategoryMultiSelect } from "../../components/category-select.slint";
 // Graphics tabs besides the canvas: display rules, template variables,
 // saved design templates.
 
@@ -108,7 +109,7 @@ component RuleCard inherits FormSection {
     }
     HorizontalLayout {
         spacing: Theme.sp2;
-        TextField {
+        CategoryMultiSelect {
             horizontal-stretch: 1;
             label: "Только для категорий";
             text: root.r.categories;
@@ -116,7 +117,7 @@ component RuleCard inherits FormSection {
                 Gfx.rule-edited(root.r.index, "categories", t);
             }
         }
-        TextField {
+        CategoryMultiSelect {
             horizontal-stretch: 1;
             label: "Кроме категорий";
             text: root.r.xcategories;

@@ -78,6 +78,15 @@ impl Output {
         if self.codec.is_none() {
             self.codec = Some(lb_media::hw::resolve_codec(&ff.ffmpeg, &cfg.encoder.video_codec).await);
         }
+        // FFmpeg's VideoToolbox constant-quality mode is Apple-Silicon-only.
+        // Keep quality semantics on Intel instead of retrying an unusable codec.
+        if cfg!(all(target_os = "macos", target_arch = "x86_64"))
+            && cfg.encoder.rate_control == lb_core::config::RateControl::Quality
+            && self.codec.as_deref().is_some_and(|c| c.ends_with("_videotoolbox"))
+        {
+            tracing::warn!("VideoToolbox quality mode unavailable on Intel; using libx264");
+            self.codec = Some("libx264".into());
+        }
         let codec = self.codec.clone().unwrap_or_else(|| "libx264".into());
         // the recorder listens first: the encoder connects to it at start
         self.apply_record(ff, data).await;
@@ -87,7 +96,7 @@ impl Output {
                 let _ = std::fs::create_dir_all(parent);
             }
         }
-        let outputs: Vec<_> = cfg
+        let mut outputs: Vec<_> = cfg
             .outputs
             .iter()
             .map(|o| {
@@ -98,6 +107,23 @@ impl Output {
                 o
             })
             .collect();
+        if cfg.local_hls.enabled {
+            let dir = std::path::absolute(data.dir.join("runtime/hls")).map_err(|e| e.to_string())?;
+            std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+            for entry in std::fs::read_dir(&dir).map_err(|e| e.to_string())?.flatten() {
+                let path = entry.path();
+                if entry.file_type().is_ok_and(|t| t.is_file()) && path.extension().is_some_and(|e| e == "ts" || e == "m3u8" || e == "tmp")
+                {
+                    let _ = std::fs::remove_file(path);
+                }
+            }
+            outputs.push(lb_core::config::OutputTarget {
+                name: "Локальная сеть (HLS)".into(),
+                url: dir.join("index.m3u8").to_string_lossy().into_owned(),
+                enabled: true,
+                format: Some("hls".into()),
+            });
+        }
         self.targets = outputs.iter().filter(|o| o.enabled).map(|o| o.name.clone()).collect();
         self.network =
             outputs.iter().filter(|o| o.enabled && lb_core::media::is_url(&o.url)).map(|o| (o.name.clone(), o.url.clone())).collect();

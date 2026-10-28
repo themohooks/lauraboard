@@ -113,7 +113,11 @@ const TABLE: &[(&str, &str)] = &[
 /// Russian version of a server message, or the message itself.
 pub fn server(msg: &str) -> String {
     let msg = msg.trim();
-    TABLE.iter().find_map(|(pat, ru)| capture(pat, msg).map(|caps| fill(ru, &caps))).unwrap_or_else(|| msg.to_string())
+    TABLE
+        .iter()
+        .find_map(|(pat, ru)| capture(pat, msg).map(|caps| fill(ru, &caps)))
+        .unwrap_or_else(|| msg.to_string())
+        .replace("yt-dlp", "компонент загрузки")
 }
 
 /// Text in place of each `{}` of `pat`, if `s` has its shape.

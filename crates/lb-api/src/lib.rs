@@ -9,6 +9,7 @@
 
 pub mod auth;
 pub mod error;
+pub mod hls;
 pub mod routes;
 pub mod ws;
 

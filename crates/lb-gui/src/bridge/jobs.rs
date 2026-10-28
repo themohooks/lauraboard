@@ -148,7 +148,7 @@ fn finished(c: &mut Ctx, j: &JobView) {
         }
         (state, "install_ytdlp") => {
             if state != "done" {
-                c.toast(format!("Установка yt-dlp: {}", crate::ru::server(&j.message)), true);
+                c.toast(format!("Установка компонента загрузки: {}", crate::ru::server(&j.message)), true);
             }
             super::download::tool_installed(c, state == "done");
         }

@@ -207,6 +207,7 @@ fn download_to(url: &str, to: &Path, ctl: &JobCtl) -> Result<String, String> {
     loop {
         ctl.check()?;
         let n = body.read(&mut buf).map_err(|e| format!("{url}: {e}"))?;
+        lb_core::traffic::received(lb_core::traffic::DOWNLOADS, n as u64);
         if n == 0 {
             break;
         }

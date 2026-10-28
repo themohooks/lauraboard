@@ -76,18 +76,18 @@ fn login_web_ended(c: &mut Ctx, r: Result<(String, bool), String>) {
 /// age"; yt-dlp then suggests `--cookies`).
 pub fn needs_login(error: &str) -> bool {
     let e = error.to_ascii_lowercase();
-    ["sign in to confirm", "confirm your age", "age-restricted", "--cookies", "login required", "members-only"]
-        .iter()
-        .any(|k| e.contains(k))
+    e.contains("[youtube]")
+        && ["confirm your age", "age-restricted", "inappropriate for some users", "age restricted"].iter().any(|k| e.contains(k))
 }
 
 /// Open the dialog on the sign-in panel (after a failed download).
 pub fn open_login(c: &mut Ctx) {
     let Some(ui) = c.window() else { return };
     let g = ui.global::<Dl>();
-    g.set_login_open(true);
+    g.set_login_needed(true);
+    g.set_step("error".into());
     g.set_open(true);
-    opened(c);
+    refresh_login(c);
 }
 
 fn show_login(c: &mut Ctx, v: &Value) {
@@ -184,7 +184,7 @@ pub fn refresh_tool(c: &mut Ctx) {
                 }
                 Err(e) => {
                     g.set_tool_ok(false);
-                    c.toast(format!("yt-dlp: {e}"), true);
+                    c.toast(format!("Компонент загрузки: {e}"), true);
                 }
             }
         })))
@@ -202,7 +202,7 @@ fn install_tool(c: &mut Ctx) {
                 if let Some(ui) = c.window() {
                     ui.global::<Dl>().set_installing(false);
                 }
-                c.toast(format!("Установка yt-dlp: {e}"), true);
+                c.toast(format!("Установка компонента загрузки: {e}"), true);
             }
         })))
     });
@@ -214,7 +214,7 @@ pub fn tool_installed(c: &mut Ctx, ok: bool) {
         ui.global::<Dl>().set_installing(false);
     }
     if ok {
-        c.toast("yt-dlp установлен — можно скачивать", false);
+        c.toast("Компонент загрузки установлен", false);
     }
     refresh_tool(c);
 }
@@ -367,5 +367,7 @@ mod tests {
     fn sign_in_errors() {
         assert!(needs_login("[youtube] abc: Sign in to confirm your age. This video may be inappropriate for some users."));
         assert!(!needs_login("[youtube] abc: Video unavailable"));
+        assert!(!needs_login("[youtube] Sign in to confirm you are not a bot. Use --cookies"));
+        assert!(!needs_login("[vimeo] age-restricted"));
     }
 }

@@ -105,6 +105,22 @@ pub async fn put_config(
 ) -> ApiResult<Json<Report>> {
     c.require(Role::Admin)?;
     v.id = id.clone();
+    if v.local_hls.enabled {
+        if v.local_hls.port < 1024 {
+            return Err(ApiError::bad_request("HLS port must be 1024–65535"));
+        }
+        for other in s.engine.channels() {
+            if other.id() != id && other.read(|d| d.config.local_hls.enabled && d.config.local_hls.port == v.local_hls.port) {
+                return Err(ApiError::bad_request("HLS port is already used by another channel"));
+            }
+        }
+        let previous = channel(&s, &id)?.read(|d| d.config.local_hls.clone());
+        if !previous.enabled || previous.port != v.local_hls.port {
+            std::net::TcpListener::bind((std::net::Ipv4Addr::UNSPECIFIED, v.local_hls.port))
+                .map_err(|e| ApiError::bad_request(format!("HLS port: {e}")))?;
+        }
+    }
+
     let (root, dir) = (s.engine.project_root.clone(), channel(&s, &id)?.read(|d| d.dir.clone()));
     let v = tokio::task::spawn_blocking(move || {
         assets::adopt_config(&root, &dir, &mut v);

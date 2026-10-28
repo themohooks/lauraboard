@@ -207,6 +207,7 @@ async fn fetch(
     let streams = if quality == "audio" { 1.0 } else { 2.0 };
     let mut phase = 0.0f32;
     let mut format = String::new();
+    let mut previous_bytes = 0u64;
     let mut done: Option<Done> = None;
     let mut lines = BufReader::new(stdout).lines();
     let mut tick = tokio::time::interval(Duration::from_millis(300));
@@ -223,6 +224,10 @@ async fn fetch(
                     if !format.is_empty() && id != format {
                         phase = (phase + 1.0).min(streams - 1.0);
                     }
+                    if id != format { previous_bytes = 0; }
+                    let bytes = got.max(0.0) as u64;
+                    lb_core::traffic::received(lb_core::traffic::DOWNLOADS, bytes.saturating_sub(previous_bytes));
+                    previous_bytes = bytes;
                     format = id.to_string();
                     let f = if total > 0.0 { (got / total) as f32 } else { 0.0 };
                     let mb = got / (1024.0 * 1024.0);

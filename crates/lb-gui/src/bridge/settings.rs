@@ -23,6 +23,24 @@ pub struct SettingsState {
 
 pub fn connect(ui: &AppWindow) {
     let g = ui.global::<Settings>();
+    g.on_hls_save(|| {
+        with(|c| {
+            let Some(ui) = c.window() else { return };
+            let g = ui.global::<Settings>();
+            let Some(mut cfg) = super::sources::config(c) else { return };
+            let Ok(port) = g.get_hls_port().trim().parse::<u16>() else {
+                c.toast("Укажите порт 1024–65535", true);
+                return;
+            };
+            if port < 1024 {
+                c.toast("Укажите порт 1024–65535", true);
+                return;
+            }
+            cfg.local_hls.enabled = g.get_hls_enabled();
+            cfg.local_hls.port = port;
+            c.save_doc("/config", cfg, "Настройки локального HLS сохранены");
+        })
+    });
     g.on_theme_changed(|i| {
         with(move |c| {
             c.prefs.theme = match i {
@@ -204,6 +222,17 @@ pub fn show(c: &mut Ctx) {
         ThemeMode::Dark => 2,
     });
     g.set_scale((c.prefs.scale * 100.0).round() as i32);
+    if let Some(cfg) = super::sources::config(c) {
+        g.set_hls_can_edit(true);
+        g.set_hls_enabled(cfg.local_hls.enabled);
+        g.set_hls_port(cfg.local_hls.port.to_string().into());
+        let base = ui.global::<App>().get_api_url();
+        let authority = base.split_once("://").map_or(base.as_str(), |(_, rest)| rest).split('/').next().unwrap_or("127.0.0.1");
+        let host = if authority.starts_with('[') { "127.0.0.1" } else { authority.split(':').next().unwrap_or("127.0.0.1") };
+        g.set_hls_url(format!("http://{host}:{}/index.m3u8", cfg.local_hls.port).into());
+    } else {
+        g.set_hls_can_edit(false);
+    }
     g.set_compact(c.prefs.compact);
     g.set_motion(match c.prefs.motion {
         MotionMode::System => 0,

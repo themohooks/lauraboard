@@ -1,0 +1,48 @@
+import { Theme } from "../theme/tokens.slint";
+import { TextField } from "text-field.slint";
+
+export global FormChoices {
+    callback slug(string) -> string;
+    in-out property <[string]> categories: ["Без категории"];
+    in-out property <[string]> category-values: [""];
+    pure callback category-index(string) -> int;
+    pure callback category-labels(string) -> string;
+    callback toggle-category(string, string) -> string;
+}
+
+export component NameIdFields inherits VerticalLayout {
+    in-out property <string> name;
+    in-out property <string> identifier;
+    in property <string> error;
+    in property <bool> reset;
+    in property <bool> id-enabled: true;
+    in property <string> supporting: "Заполняется по названию; можно изменить отдельно";
+    callback id-edited(string);
+    callback accepted();
+    property <bool> manual;
+    changed reset => { root.manual = false; }
+    spacing: Theme.sp3;
+    TextField {
+        label: "Название";
+        text <=> root.name;
+        container-color: Theme.color.surface-container-high;
+        edited(t) => {
+            if !root.manual && root.id-enabled {
+                root.identifier = FormChoices.slug(t);
+                root.id-edited(root.identifier);
+            }
+        }
+        accepted => { root.accepted(); }
+    }
+    TextField {
+        label: "Идентификатор";
+        text <=> root.identifier;
+        enabled: root.id-enabled;
+        error: root.error;
+        supporting: root.supporting;
+        mono: true;
+        container-color: Theme.color.surface-container-high;
+        edited(t) => { root.manual = true; root.id-edited(t); }
+        accepted => { root.accepted(); }
+    }
+}

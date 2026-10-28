@@ -36,6 +36,7 @@ fn prepare(mut data: ChannelData, root: &Path, parts: &Parts) -> (ChannelData, V
         data.config.name = name;
     } else if !parts.outputs {
         data.config.outputs.clear();
+        data.config.local_hls.enabled = false;
     }
     if !parts.library {
         data.library = Default::default();

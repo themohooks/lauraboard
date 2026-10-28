@@ -78,6 +78,7 @@ impl Engine {
             }
             data.config.enabled = true;
             data.config.autostart = false;
+            data.config.local_hls.enabled = false;
             data.save().map_err(|e| e.to_string())?;
             // the id may have been taken while unpacking
             self.check_new_id(&id).map_err(|e| e.to_string())?;

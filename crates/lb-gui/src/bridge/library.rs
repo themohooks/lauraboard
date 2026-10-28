@@ -157,6 +157,7 @@ fn media_row(c: &Ctx, row: usize, m: &MediaItem) -> MediaRow {
 
 /// Recompute the visible list from filters / sorting.
 pub fn refresh(c: &mut Ctx) {
+    super::forms::refresh(c);
     let Some(ui) = c.window() else { return };
     let g = ui.global::<Lib>();
     c.lib.categories = filter::categories(&c.model.library);

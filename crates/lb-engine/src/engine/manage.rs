@@ -81,6 +81,7 @@ impl Engine {
         data.config.name = if name.trim().is_empty() { format!("{} (копия)", data.config.name) } else { name.trim().to_string() };
         data.config.autostart = false;
         data.config.outputs.clear();
+        data.config.local_hls.enabled = false;
         data.rebase_paths(src, new_id);
         data.save()?;
         self.edit_channel_list(|l| l.push(new_id.to_string()))?;

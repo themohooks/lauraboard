@@ -1,6 +1,11 @@
 // Data contract of the settings screen (src/bridge/settings.rs).
 
 export global Settings {
+    in-out property <bool> hls-enabled;
+    in-out property <string> hls-port: "8788";
+    in property <bool> hls-can-edit;
+    in property <string> hls-url;
+    callback hls-save();
     // 0 system, 1 light, 2 dark
     in-out property <int> theme;
     // 80 … 200 %

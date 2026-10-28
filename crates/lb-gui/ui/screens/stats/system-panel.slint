@@ -117,119 +117,22 @@ export component SystemPanel inherits ScrollView {
 
         Card {
             card-style: CardStyle.low;
-            CardHeader {
-                title: "Ядра процессора";
-                subtitle: "Загрузка каждого логического ядра";
-            }
-            HorizontalLayout {
-                spacing: 3px;
-                height: 64px;
-                for v in Stats.sys-cores: Rectangle {
-                    horizontal-stretch: 1;
-                    border-radius: 2px;
-                    background: Theme.color.surface-container-highest;
-                    Rectangle {
-                        y: parent.height - self.height;
-                        height: max(2px, clamp(v, 0, 1) * parent.height);
-                        border-radius: 2px;
-                        background: Load.color(v);
-                    }
-                }
+            CardHeader { title: "Компоненты LauraBoard"; subtitle: "CPU · ОЗУ · дисковый ввод / вывод. Учтены все дочерние процессы."; }
+            for p in Stats.sys-procs: HorizontalLayout {
+                spacing: Theme.sp2;
+                Label { horizontal-stretch: 1; text: p.name; wrap: word-wrap; }
+                Label { width: 70px; text: p.cpu; mono: true; }
+                Label { width: 110px; text: p.memory; mono: true; }
+                Label { width: 220px; text: p.io; mono: true; }
             }
         }
-
-        HorizontalLayout {
-            spacing: Theme.sp3;
-            Card {
-                horizontal-stretch: 1;
-                card-style: CardStyle.low;
-                CardHeader {
-                    title: "Диски";
-                    subtitle: "Занято, свободно и скорость чтения / записи";
-                }
-                for d in Stats.sys-disks: VerticalLayout {
-                    spacing: 4px;
-                    HorizontalLayout {
-                        spacing: Theme.sp2;
-                        Label {
-                            text: d.mount;
-                            mono: true;
-                            type-style: Theme.title-small;
-                        }
-                        Label {
-                            horizontal-stretch: 1;
-                            text: d.detail;
-                            color: Theme.color.on-surface-variant;
-                        }
-                        Label {
-                            text: d.io;
-                            mono: true;
-                            type-style: Theme.body-small;
-                            color: Theme.color.on-surface-variant;
-                        }
-                    }
-                    LinearProgress {
-                        progress: d.share;
-                        fill: Load.color(d.share);
-                    }
-                }
-            }
-            Card {
-                horizontal-stretch: 1;
-                card-style: CardStyle.low;
-                CardHeader {
-                    title: "Процессы LauraBoard";
-                    subtitle: "Программа и её FFmpeg (кодировщик, декодеры)";
-                }
-                for p in Stats.sys-procs: HorizontalLayout {
-                    spacing: Theme.sp2;
-                    Label {
-                        horizontal-stretch: 1;
-                        text: p.name;
-                        mono: true;
-                    }
-                    VerticalLayout {
-                        width: 90px;
-                        alignment: center;
-                        LinearProgress {
-                            progress: p.share;
-                            fill: Load.color(p.share);
-                        }
-                    }
-                    Label {
-                        width: 64px;
-                        text: p.cpu;
-                        mono: true;
-                        horizontal-alignment: right;
-                    }
-                    Label {
-                        width: 90px;
-                        text: p.memory;
-                        mono: true;
-                        horizontal-alignment: right;
-                        color: Theme.color.on-surface-variant;
-                    }
-                }
-            }
-        }
-
         Card {
             card-style: CardStyle.low;
-            CardHeader {
-                title: "Компьютер";
-            }
+            CardHeader { title: "Трафик приложения"; subtitle: "Полезные данные API, загрузок и HLS. Трафик сторонних программ и компьютера не включён; внешние потоки FFmpeg здесь не измеряются."; }
             for l in Stats.sys-info: HorizontalLayout {
                 spacing: Theme.sp3;
-                Label {
-                    width: 220px;
-                    text: l.label;
-                    color: Theme.color.on-surface-variant;
-                }
-                Label {
-                    horizontal-stretch: 1;
-                    text: l.value;
-                    wrap: word-wrap;
-                }
+                Label { width: 220px; text: l.label; }
+                Label { horizontal-stretch: 1; text: l.value; wrap: word-wrap; }
             }
         }
     }

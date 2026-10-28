@@ -24,6 +24,7 @@ export struct StatusInfo {
 }
 
 export global App {
+    in-out property <float> ui-scale: 1;
     // navigation
     in-out property <string> section: "home";
     in-out property <bool> nav-expanded: true;

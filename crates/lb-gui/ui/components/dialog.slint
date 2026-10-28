@@ -1,3 +1,4 @@
+import { ScrollView } from "std-widgets.slint";
 // M3 basic dialog over a scrim (place it last in the window so it covers
 // everything). Esc / scrim click cancel when `dismissible`. ConfirmDialog is
 // the standard confirmation for risky actions: icon, title, explanation,
@@ -54,7 +55,7 @@ export component Dialog inherits Rectangle {
 
     card := Rectangle {
         width: min(root.dialog-width, root.width - 48px);
-        height: body.preferred-height;
+        height: min(body.preferred-height, max(120px, root.height - 32px));
         y: (root.height - self.height) / 2 + (root.open ? 0 : 16px);
         animate y { duration: Theme.motion-medium; easing: ease-out; }
         border-radius: Theme.radius-xl;
@@ -68,7 +69,13 @@ export component Dialog inherits Rectangle {
         // swallow clicks so they do not reach the scrim
         TouchArea { }
 
+        scroll := ScrollView {
+            width: parent.width;
+            height: parent.height;
+            horizontal-scrollbar-policy: always-off;
         body := VerticalLayout {
+            width: scroll.visible-width;
+            height: self.preferred-height;
             padding: Theme.sp6;
             spacing: Theme.sp4;
             if root.has-icon: HorizontalLayout {
@@ -91,6 +98,7 @@ export component Dialog inherits Rectangle {
                 wrap: word-wrap;
             }
             @children
+        }
         }
     }
 }

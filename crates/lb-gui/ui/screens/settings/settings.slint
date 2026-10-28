@@ -1,3 +1,4 @@
+import { TextField } from "../../components/text-field.slint";
 // Settings: appearance (theme, scale, density, motion, navigation), layout
 // reset, connection info, keyboard shortcuts, about.
 
@@ -211,6 +212,15 @@ export component SettingsScreen inherits Page {
                     }
                 }
 
+                Card {
+                    card-style: CardStyle.low;
+                    CardHeader { title: "Ретрансляция в локальную сеть"; subtitle: "Эфир выбранного канала в HLS (m3u8). У каждого канала должен быть свой свободный порт."; }
+                    Switch { text: "Раздавать эфир по локальной сети"; checked <=> Settings.hls-enabled; enabled: Settings.hls-can-edit; }
+                    TextField { label: "Порт HTTP"; text <=> Settings.hls-port; enabled: Settings.hls-can-edit; }
+                    TextField { label: "Адрес плейлиста"; text: Settings.hls-url; read-only: true; }
+                    Label { text: "На другом устройстве замените адрес на IP компьютера вещания. Поток доступен без пароля всем устройствам, имеющим доступ к этому порту."; wrap: word-wrap; color: Theme.color.on-surface-variant; }
+                    Button { text: "Применить"; enabled: Settings.hls-can-edit; clicked => { Settings.hls-save(); } }
+                }
                 Card {
                     card-style: CardStyle.low;
                     gap: Theme.sp4;

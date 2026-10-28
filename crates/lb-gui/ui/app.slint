@@ -1,3 +1,4 @@
+import { ScrollView } from "std-widgets.slint";
 // Main window of the Material 3 operator GUI: app bar, navigation,
 // section host, global overlays (snackbar, confirmation) and shortcuts.
 
@@ -48,6 +49,7 @@ import { SettingsScreen } from "screens/settings/settings.slint";
 import { ScenesScreen } from "screens/scenes/scenes.slint";
 import { WelcomeScreen } from "screens/welcome/welcome.slint";
 
+export { FormChoices } from "components/name-id-fields.slint";
 export { Theme, ThemeMode } from "theme/tokens.slint";
 export { App, StatusInfo } from "state/app-state.slint";
 export { Air, NowInfo, NextInfo, QueueRow, MediaPick, GfxRow, LogRow } from "state/air-state.slint";
@@ -96,8 +98,8 @@ export component AppWindow inherits Window {
     icon: @image-url("../assets/app/lauraboard.svg");
     preferred-width: 1400px;
     preferred-height: 860px;
-    min-width: 960px;
-    min-height: 600px;
+    min-width: 640px / App.ui-scale;
+    min-height: 360px / App.ui-scale;
     background: Theme.color.surface;
     default-font-family: Theme.font;
     default-font-size: Theme.body-medium.size;
@@ -189,8 +191,11 @@ export component AppWindow inherits Window {
                         App.nav-expanded-changed(v);
                     }
                 }
-                Rectangle {
+                pages := ScrollView {
                     horizontal-stretch: 1;
+                Rectangle {
+                    width: max(pages.visible-width, 960px);
+                    height: max(pages.visible-height, 480px);
                     background: Theme.color.surface;
                     if App.section == "gallery": Gallery {
                         page: root.gallery-page;
@@ -208,6 +213,7 @@ export component AppWindow inherits Window {
                     if App.section == "stats": StatsScreen { }
                     if App.section == "log": LogScreen { }
                     if App.section == "settings": SettingsScreen { }
+                }
                 }
             }
         }

@@ -13,3 +13,5 @@ pub mod placement;
 pub mod rule_check;
 pub mod timeline;
 pub mod undo;
+
+pub mod slug;

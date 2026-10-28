@@ -1,3 +1,4 @@
+import { CategorySelect, CategoryMultiSelect } from "../../components/category-select.slint";
 // Rule form split into the four steps of the wizard: when, what,
 // conditions, limits. Used both by the editor and by the wizard.
 
@@ -52,7 +53,7 @@ export component WhenSection inherits FormSection {
                 Rules.form-changed();
             }
         }
-        if Rules.f-trigger == 5 || Rules.f-trigger == 6: TextField {
+        if Rules.f-trigger == 5 || Rules.f-trigger == 6: CategorySelect {
             horizontal-stretch: 1;
             label: "Категория";
             text <=> Rules.f-tcat;
@@ -209,7 +210,7 @@ export component WhatSection inherits FormSection {
                 Rules.form-changed();
             }
         }
-        if Rules.f-action == 0: TextField {
+        if Rules.f-action == 0: CategorySelect {
             horizontal-stretch: 1;
             label: "Категория заставок";
             text <=> Rules.f-jcat;
@@ -241,7 +242,7 @@ export component WhatSection inherits FormSection {
                 Rules.form-changed();
             }
         }
-        if Rules.f-action == 2: TextField {
+        if Rules.f-action == 2: CategorySelect {
             horizontal-stretch: 1;
             label: "Категория анонсов";
             text <=> Rules.f-pcat;
@@ -295,7 +296,7 @@ export component ConditionsSection inherits FormSection {
     icon: Icons.filter-list;
     HorizontalLayout {
         spacing: Theme.sp3;
-        TextField {
+        CategoryMultiSelect {
             horizontal-stretch: 1;
             label: "Только для категорий";
             text <=> Rules.f-cats;
@@ -304,7 +305,7 @@ export component ConditionsSection inherits FormSection {
                 Rules.form-changed();
             }
         }
-        TextField {
+        CategoryMultiSelect {
             horizontal-stretch: 1;
             label: "Кроме категорий";
             text <=> Rules.f-xcats;
