@@ -263,7 +263,10 @@ fn run() -> Result<(), String> {
             Event::MainEventsCleared if Instant::now() >= next => {
                 next = Instant::now() + if login { Duration::from_secs(2) } else { Duration::from_millis(33) };
                 *control = ControlFlow::WaitUntil(next);
-                if login && loaded && !cookie_pending {
+                // Cookie storage is available independently of document loading.
+                // WebKit under Xvfb (and sign-in pages with slow subresources)
+                // can delay Finished long after the response sets the cookie.
+                if login && !cookie_pending {
                     let proxy = proxy.clone();
                     cookie_pending = true;
                     if let Err(error) = cookies::read(&view, move |value| {

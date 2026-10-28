@@ -1,9 +1,9 @@
 //! Exercise cookie export without accessing an external account or its profile.
-use std::io::{BufRead, Read, Write};
+use std::io::{BufRead, Write};
 use std::process::{Command, Stdio};
 use std::sync::{
     Arc,
-    atomic::{AtomicBool, Ordering},
+    atomic::{AtomicBool, AtomicUsize, Ordering},
 };
 use std::time::{Duration, Instant};
 
@@ -83,14 +83,58 @@ fn exports_http_only_cookies_and_closes_on_done() {
     listener.set_nonblocking(true).unwrap();
     let url = format!("http://{}/", listener.local_addr().unwrap());
     let stop = Arc::new(AtomicBool::new(false));
+    let requests = Arc::new(AtomicUsize::new(0));
+    let served = requests.clone();
+    let pending_resource = Arc::new(AtomicBool::new(false));
+    let pending_seen = pending_resource.clone();
     let ended = stop.clone();
     let server = std::thread::spawn(move || {
+        let mut pending_streams = Vec::new();
         while !ended.load(Ordering::Relaxed) {
             if let Ok((mut stream, _)) = listener.accept() {
                 let _ = stream.set_read_timeout(Some(Duration::from_secs(2)));
-                let mut request = [0; 4096];
-                let _ = stream.read(&mut request);
-                let _ = stream.write_all(b"HTTP/1.1 200 OK\r\nContent-Length: 15\r\nContent-Type: text/html\r\nSet-Cookie: lb-test=session; HttpOnly; Path=/; SameSite=Lax\r\nConnection: close\r\n\r\n<p>WebView</p>\n");
+                // Drain the complete request before closing the TCP socket;
+                // unread headers can reset the response on Unix clients.
+                let mut reader = std::io::BufReader::new(&mut stream);
+                let mut complete = false;
+                let mut slow_resource = false;
+                let mut bytes = 0;
+                for line_index in 0..64 {
+                    let mut line = String::new();
+                    match reader.read_line(&mut line) {
+                        Ok(0) | Err(_) => break,
+                        Ok(n) => bytes += n,
+                    }
+                    if line_index == 0 {
+                        slow_resource = line.starts_with("GET /pending ");
+                    }
+                    if bytes > 8192 {
+                        break;
+                    }
+                    if line == "\r\n" || line == "\n" {
+                        complete = true;
+                        break;
+                    }
+                }
+                drop(reader);
+                if !complete {
+                    continue;
+                }
+                served.fetch_add(1, Ordering::Relaxed);
+                if slow_resource {
+                    // Keep a subresource pending so PageLoadEvent::Finished
+                    // cannot gate cookie export, even on a fast test machine.
+                    let _ = stream.write_all(b"HTTP/1.1 200 OK\r\nContent-Length: 1024\r\nContent-Type: image/png\r\n\r\n");
+                    pending_streams.push(stream);
+                    pending_seen.store(true, Ordering::Relaxed);
+                    continue;
+                }
+                let body = b"<!doctype html><p>WebView</p><img src='/pending'>";
+                let header = format!(
+                    "HTTP/1.1 200 OK\r\nContent-Length: {}\r\nContent-Type: text/html\r\nSet-Cookie: lb-test=session; HttpOnly; Path=/; SameSite=Lax\r\nConnection: close\r\n\r\n",
+                    body.len()
+                );
+                let _ = stream.write_all(header.as_bytes()).and_then(|_| stream.write_all(body));
             } else {
                 std::thread::sleep(Duration::from_millis(10));
             }
@@ -123,18 +167,30 @@ fn exports_http_only_cookies_and_closes_on_done() {
     });
     let start = Instant::now();
     let mut found = false;
-    while start.elapsed() < Duration::from_secs(20) {
+    let mut last_cookie_count = None;
+    let mut premature_exit = None;
+    // Cold WebKit/Xvfb initialization can take ~16 s even after receiving
+    // the HTTP response. Keep startup budget separate from the 5 s close
+    // requirement; the pending subresource still makes the old load gate fail.
+    while start.elapsed() < Duration::from_secs(60) {
+        if let Some(status) = host.0.try_wait().unwrap() {
+            premature_exit = Some(status);
+            break;
+        }
         if let Ok(value) = rx.recv_timeout(Duration::from_millis(100)) {
             assert!(value["error"].is_null(), "{value}");
             if let Some(cookies) = value["cookies"].as_array() {
+                last_cookie_count = Some(cookies.len());
                 found = cookies.iter().any(|c| c["name"] == "lb-test" && c["value"] == "session" && c["httpOnly"] == true);
-                if found {
+                if found && pending_resource.load(Ordering::Relaxed) {
                     break;
                 }
             }
         }
     }
-    host.0.stdin.as_mut().unwrap().write_all(b"done\n").unwrap();
+    if premature_exit.is_none() {
+        let _ = host.0.stdin.as_mut().unwrap().write_all(b"done\n");
+    }
     let start = Instant::now();
     let closed = loop {
         if let Some(status) = host.0.try_wait().unwrap() {
@@ -148,6 +204,11 @@ fn exports_http_only_cookies_and_closes_on_done() {
     stop.store(true, Ordering::Relaxed);
     server.join().unwrap();
     let _ = std::fs::remove_dir_all(profile);
-    assert!(found, "HttpOnly cookie was not exported");
+    assert!(
+        found,
+        "HttpOnly cookie was not exported: requests={}, last_cookie_count={last_cookie_count:?}, premature_exit={premature_exit:?}, closed={closed}",
+        requests.load(Ordering::Relaxed)
+    );
     assert!(closed, "WebView did not close after the parent sent done");
+    assert!(pending_resource.load(Ordering::Relaxed), "Slow subresource was not requested");
 }

@@ -1,3 +1,4 @@
+#[cfg(any(windows, target_os = "macos"))]
 use serde_json::{Value, json};
 
 #[cfg(windows)]
@@ -14,7 +15,13 @@ pub fn read(view: &wry::WebView, done: impl FnOnce(Value) + Send + 'static) -> R
     unsafe { view.webview().CallDevToolsProtocolMethod(w!("Storage.getCookies"), w!("{}"), &handler) }.map_err(|e| e.to_string())
 }
 
-#[cfg(not(windows))]
+#[cfg(target_os = "linux")]
+#[path = "cookies_linux.rs"]
+mod linux;
+#[cfg(target_os = "linux")]
+pub use linux::read;
+
+#[cfg(target_os = "macos")]
 pub fn read(view: &wry::WebView, done: impl FnOnce(Value) + Send + 'static) -> Result<(), String> {
     let cookies = view.cookies().map_err(|e| e.to_string())?;
     done(json!({"cookies": cookies.iter().map(|c| json!({
