@@ -167,6 +167,10 @@ jobs:
           cargo test --locked -p lb-gfx web::tests -- --ignored --test-threads=1
       - name: Test WebKitGTK on virtual display
         if: runner.os == 'Linux'
+        env:
+          # Exercise WebKit's POSIX language tags instead of hiding the Ruffle regression.
+          LC_ALL: C
+          GDK_BACKEND: x11
         run: |
           xvfb-run -a cargo test --locked -p lb-webview --test native -- --ignored --test-threads=1
           xvfb-run -a cargo test --locked -p lb-gfx web::tests -- --ignored --test-threads=1

@@ -212,8 +212,9 @@ impl FileServer {
         }
         let script = "/__ruffle/ruffle.js";
         let movie_json = serde_json::to_string(movie.as_str()).unwrap().replace('<', "\\u003c");
+        let init = include_str!("ruffle_init.js");
         let wrapper = format!(
-            r#"<!doctype html><meta charset="utf-8"><style>html,body{{margin:0;width:100%;height:100%;overflow:hidden;background:transparent}}ruffle-player{{display:block;width:100%;height:100%}}</style><script>window.__lbReady=false;window.RufflePlayer={{config:{{autoplay:"on",volume:0,unmuteOverlay:"hidden",wmode:"transparent",allowScriptAccess:false}}}};</script><script src="{script}"></script><script>addEventListener('load',async()=>{{try{{const p=RufflePlayer.newest().createPlayer();document.body.appendChild(p);const loaded=new Promise(resolve=>p.addEventListener('loadeddata',resolve,{{once:true}}));await p.ruffle().load({{url:{movie_json},autoplay:"on",wmode:"transparent"}});await loaded;await new Promise(requestAnimationFrame);await new Promise(requestAnimationFrame);window.__lbReady=true;}}catch(e){{window.__lbError=String(e);console.error(e)}}}});</script><body></body>"#
+            r#"<!doctype html><meta charset="utf-8"><style>html,body{{margin:0;width:100%;height:100%;overflow:hidden;background:transparent}}ruffle-player{{display:block;width:100%;height:100%}}</style><script>{init}window.__lbReady=false;window.RufflePlayer={{config:{{autoplay:"on",volume:0,unmuteOverlay:"hidden",wmode:"transparent",allowScriptAccess:false}}}};</script><script src="{script}"></script><script>addEventListener('load',async()=>{{try{{const p=RufflePlayer.newest().createPlayer();document.body.appendChild(p);const loaded=new Promise(resolve=>p.addEventListener('loadeddata',resolve,{{once:true}}));await p.ruffle().load({{url:{movie_json},autoplay:"on",wmode:"transparent"}});await loaded;await new Promise(requestAnimationFrame);await new Promise(requestAnimationFrame);window.__lbReady=true;}}catch(e){{window.__lbError=String(e);console.error(e)}}}});</script><body></body>"#
         );
         let stop = Arc::new(AtomicBool::new(false));
         let ended = stop.clone();
