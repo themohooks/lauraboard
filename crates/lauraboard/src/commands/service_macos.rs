@@ -39,5 +39,5 @@ pub fn uninstall(name: &str) -> Result<()> {
     Ok(())
 }
 pub fn service_main(_: &str, ctx: &Ctx) -> Result<()> {
-    super::run::run(ctx, true)
+    crate::commands::run::run(ctx, true)
 }

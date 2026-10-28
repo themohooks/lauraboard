@@ -42,50 +42,11 @@ jobs:
       artifact_prefix: release
       release_profile: true
   build-macos:
-    name: Build ${{ matrix.target }}
+    name: macOS packages
     needs: [validate, checks, audit]
-    env:
-      CARGO_BUILD_JOBS: 1
-      CARGO_PROFILE_TEST_DEBUG: 0
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - os: macos-15-intel
-            target: x86_64-apple-darwin
-          - os: macos-15
-            target: aarch64-apple-darwin
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: 360
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
-        with:
-          python-version: '3.12'
-      - uses: ./.github/actions/setup
-        with:
-          cache-key: release-${{ matrix.target }}
-      - name: Install native FFmpeg
-        run: brew install ffmpeg
-      - name: Test native macOS build
-        run: cargo test --workspace --locked
-      - name: Prepare private web runtime
-        run: python .github/scripts/fetch_web_runtime.py --output target/debug/runtime
-      - name: Test native HTML and SWF capture
-        run: cargo test --locked -p lb-gfx web::tests -- --ignored --test-threads=1
-      - name: Build installers and portable archives
-        env:
-          RELEASE_TARGET: ${{ matrix.target }}
-        run: python .github/scripts/release.py build
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: release-${{ matrix.target }}
-          path: target/release-assets/*
-          if-no-files-found: error
-          compression-level: 0
-          retention-days: 14
+    uses: ./.github/workflows/build-macos.yml
+    with:
+      artifact_prefix: release
   publish:
     name: Publish GitHub Release
     needs: [validate, build, build-macos]
