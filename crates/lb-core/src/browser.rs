@@ -1,29 +1,21 @@
-//! Finding a Chromium-based browser (Edge, Chrome, Chromium): HTML
-//! graphics are captured with it, and sites are signed in to in its window.
+//! The private web runtime shipped with LauraBoard. Never searches installed
+//! browsers, PATH or system WebView runtimes.
 
 use std::path::PathBuf;
 
-/// `LAURABOARD_BROWSER`, otherwise the usual install locations.
+pub const MISSING: &str = "Не найден движок LauraBoard в runtime/browser. Переустановите полную версию приложения.";
+
 pub fn path() -> Option<PathBuf> {
-    if let Some(p) = std::env::var_os("LAURABOARD_BROWSER") {
-        return Some(p.into());
-    }
-    let mut paths = Vec::new();
-    for env in ["PROGRAMFILES(X86)", "PROGRAMFILES", "LOCALAPPDATA"] {
-        if let Some(base) = std::env::var_os(env) {
-            for suffix in ["Microsoft/Edge/Application/msedge.exe", "Google/Chrome/Application/chrome.exe"] {
-                paths.push(PathBuf::from(&base).join(suffix));
-            }
-        }
-    }
-    paths.extend(
-        [
-            "/usr/bin/chromium",
-            "/usr/bin/chromium-browser",
-            "/usr/bin/google-chrome",
-            "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
-        ]
-        .map(PathBuf::from),
-    );
-    paths.into_iter().find(|p| p.is_file())
+    let exe = std::env::current_exe().ok()?;
+    let name = if cfg!(windows) {
+        "chrome.exe"
+    } else if cfg!(target_os = "macos") {
+        "Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing"
+    } else {
+        "chrome"
+    };
+    let parent = exe.parent()?;
+    let parent = if parent.file_name().is_some_and(|p| p == "deps") { parent.parent()? } else { parent };
+    let path = parent.join("runtime/browser").join(name);
+    path.is_file().then_some(path)
 }

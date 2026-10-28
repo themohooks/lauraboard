@@ -103,7 +103,11 @@ pub fn snapshot(out: &Path, section: &str, width: u32, height: u32, scale: f32, 
         let n: Vec<f32> = p.split(',').filter_map(|v| v.trim().parse().ok()).collect();
         let [x, y, rest @ ..] = n.as_slice() else { continue };
         let position = slint::LogicalPosition::new(*x, *y);
-        let button = slint::platform::PointerEventButton::Left;
+        let button = if p.split(',').nth(2) == Some("right") {
+            slint::platform::PointerEventButton::Right
+        } else {
+            slint::platform::PointerEventButton::Left
+        };
         window.dispatch_event(WindowEvent::PointerMoved { position });
         for _ in 0..rest.first().map_or(1, |c| *c as usize) {
             window.dispatch_event(WindowEvent::PointerPressed { position, button });
@@ -323,7 +327,10 @@ fn demo_overlay(ui: &AppWindow, name: &str) {
             u.set_current("0.1.0".into());
             u.set_phase("available".into());
             u.set_latest("0.2.0".into());
-            u.set_notes("— Скачивание роликов с сайтов в медиатеку\n— Монтаж: обрезка, скрытие логотипа, кадрирование\n— Обновления из программы".into());
+            u.set_notes(
+                "— Скачивание роликов с сайтов в медиатеку\n— Монтаж: обрезка, скрытие логотипа, кадрирование\n— Обновления из программы"
+                    .into(),
+            );
             u.set_status("проверено 27.10 09:12".into());
             u.set_install_hint(crate::update::local::install_hint(&crate::update::release::Kind::Setup).into());
             u.set_install_label("Скачать и установить".into());
@@ -341,7 +348,7 @@ fn demo_overlay(ui: &AppWindow, name: &str) {
             d.set_error("[youtube] abc: Sign in to confirm your age. This video may be inappropriate for some users.".into());
             d.set_step("error".into());
             d.set_login_needed(true);
-            d.set_login_browser(1);
+            d.set_login_cookies(true);
             d.set_open(true);
             ui.set_section("library".into());
             return;

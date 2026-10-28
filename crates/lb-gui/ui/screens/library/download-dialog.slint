@@ -73,7 +73,7 @@ component LoginPanel inherits Rectangle {
                 horizontal-stretch: 1;
                 wrap: word-wrap;
                 text: (Dl.login-needed && Dl.step == "error" ? "Сайт просит войти в аккаунт — например, YouTube для видео 18+. " : "")
-                    + "Войдите в отдельном окне браузера: вход сохранится для загрузок, ваш обычный браузер не затрагивается.";
+                    + "Войдите в окне LauraBoard: вход сохранится для загрузок.";
             }
         }
         HorizontalLayout {
@@ -106,18 +106,7 @@ component LoginPanel inherits Rectangle {
             wrap: word-wrap;
             type-style: Theme.body-small;
             color: Theme.color.on-surface-variant;
-            text: "Или возьмите вход из своего браузера либо файла cookies.txt:";
-        }
-        Select {
-            label: "Браузер, где вы вошли на сайт";
-            options: Dl.browsers;
-            current-index <=> Dl.login-browser;
-            enabled: !Dl.login-saving;
-            supporting: "Chrome и Edge часто не отдают вход, пока открыты, — лучше Firefox или cookies.txt";
-            container-color: Theme.color.surface-container-high;
-            selected(i, _) => {
-                Dl.login-browser-picked(i);
-            }
+            text: "Также можно импортировать файл cookies.txt:";
         }
         HorizontalLayout {
             spacing: Theme.sp2;
@@ -129,7 +118,7 @@ component LoginPanel inherits Rectangle {
                 color: Theme.color.on-surface-variant;
                 text: Dl.login-cookies
                     ? "Вход сохранён — загрузки идут от вашего аккаунта."
-                    : "cookies.txt можно выгрузить из браузера расширением вроде «Get cookies.txt LOCALLY».";
+                    : "Можно импортировать сохранённый файл cookies.txt в формате Netscape.";
             }
             if Dl.login-cookies: Button {
                 text: "Выйти";
@@ -155,7 +144,7 @@ component LoginPanel inherits Rectangle {
                 icon: Icons.refresh;
                 has-icon: true;
                 variant: ButtonVariant.tonal;
-                enabled: !Dl.login-saving && (Dl.login-browser > 0 || Dl.login-cookies);
+                enabled: !Dl.login-saving && Dl.login-cookies;
                 clicked => {
                     Dl.probe();
                 }
@@ -312,7 +301,7 @@ export component DownloadDialog inherits Dialog {
             wrap: word-wrap;
         }
         if !(Dl.login-needed && Dl.step == "error"): Button {
-            text: Dl.login-open ? "Скрыть вход" : (Dl.login-browser > 0 || Dl.login-cookies) ? "Вход: включён" : "Вход в аккаунт";
+            text: Dl.login-open ? "Скрыть вход" : Dl.login-cookies ? "Вход: включён" : "Вход в аккаунт";
             icon: Icons.account-circle;
             has-icon: true;
             variant: ButtonVariant.text;

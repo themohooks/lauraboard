@@ -1,5 +1,5 @@
-//! Signing in to a site in a browser window of our own (Edge / Chrome /
-//! Chromium with a separate LauraBoard profile): the user signs in as
+//! Signing in with the bundled web runtime and a private
+//! LauraBoard profile: the user signs in as
 //! usual, closes the window, and the cookies of that profile become the
 //! `cookies.txt` yt-dlp downloads with. The user's own browser and its
 //! profile are not touched.
@@ -17,26 +17,31 @@ pub const YOUTUBE: &str = "https://accounts.google.com/ServiceLogin?service=yout
 
 /// The profile kept between sign-ins (the next window is already signed in).
 fn profile() -> PathBuf {
-    dirs::data_local_dir().unwrap_or_else(std::env::temp_dir).join("lauraboard").join("web-login")
+    dirs::data_local_dir().unwrap_or_else(std::env::temp_dir).join("lauraboard").join("web-login-runtime")
 }
 
 /// Open the window and wait until it is closed or `done` is set; returns
 /// the cookies in the Netscape `cookies.txt` format and whether YouTube
 /// sees a signed-in user.
 pub fn run(start: &str, done: Arc<AtomicBool>) -> Result<(String, bool), String> {
-    let exe = lb_core::browser::path().ok_or("не найден браузер Edge, Chrome или Chromium")?;
+    let exe = lb_core::browser::path().ok_or(lb_core::browser::MISSING)?;
     let dir = profile();
     std::fs::create_dir_all(&dir).map_err(|e| format!("{}: {e}", dir.display()))?;
     let _ = std::fs::remove_file(dir.join("DevToolsActivePort"));
-    let mut child = Command::new(exe)
+    let mut command = Command::new(exe);
+    command
         .arg(format!("--user-data-dir={}", dir.display()))
         .args(["--no-first-run", "--no-default-browser-check", "--disable-background-mode", "--remote-debugging-port=0"])
         .arg(format!("--app={start}"))
         .stdin(Stdio::null())
         .stdout(Stdio::null())
-        .stderr(Stdio::null())
-        .spawn()
-        .map_err(|e| format!("браузер не запустился: {e}"))?;
+        .stderr(Stdio::null());
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        command.creation_flags(0x08000000);
+    }
+    let mut child = command.spawn().map_err(|e| format!("браузер не запустился: {e}"))?;
     let result = watch(&mut child, &dir, &done);
     // "Готово" with the window still open: close it ourselves
     if child.try_wait().ok().flatten().is_none() {
@@ -74,6 +79,10 @@ fn watch(child: &mut Child, dir: &std::path::Path, done: &AtomicBool) -> Result<
         std::thread::sleep(Duration::from_millis(100));
     };
     let (mut socket, _) = tungstenite::connect(url.as_str()).map_err(|e| format!("браузер: {e}"))?;
+    if let tungstenite::stream::MaybeTlsStream::Plain(stream) = socket.get_ref() {
+        stream.set_read_timeout(Some(Duration::from_secs(5))).map_err(|e| e.to_string())?;
+        stream.set_write_timeout(Some(Duration::from_secs(5))).map_err(|e| e.to_string())?;
+    }
     let mut id = 0u64;
     let mut last = Vec::new();
     loop {

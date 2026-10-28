@@ -119,6 +119,10 @@ class ReleaseTests(unittest.TestCase):
             (source / "lauraboard").chmod(0o755)
             (source / "ffmpeg").write_bytes(b"ffmpeg")
             (source / "ffprobe").write_bytes(b"ffprobe")
+            browser = source / "runtime/browser/chrome"
+            browser.parent.mkdir(parents=True)
+            browser.write_bytes(b"browser")
+            browser.chmod(0o755)
             release.archive(source, directory / "portable.zip")
             with zipfile.ZipFile(directory / "portable.zip") as archive:
                 self.assertEqual(archive.read("portable/lauraboard"), b"binary")
@@ -128,6 +132,9 @@ class ReleaseTests(unittest.TestCase):
                 self.assertEqual(entry.mode & 0o111, 0o111)
                 for tool in ("ffmpeg", "ffprobe"):
                     self.assertEqual(archive.getmember(f"portable/{tool}").mode, 0o755)
+                # Windows chmod cannot set POSIX executable bits.
+                if release.os.name != "nt":
+                    self.assertEqual(archive.getmember("portable/runtime/browser/chrome").mode, 0o755)
 
     def test_server_bundle_copies_both_tools_and_notices(self):
         with tempfile.TemporaryDirectory() as temp:

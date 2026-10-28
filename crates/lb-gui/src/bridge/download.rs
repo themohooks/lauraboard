@@ -29,9 +29,8 @@ pub fn connect(ui: &AppWindow) {
     g.on_probe(|| with(probe));
     g.on_start(|| with(start));
     g.on_install_tool(|| with(install_tool));
-    g.on_login_browser_picked(|i| with(move |c| login_browser(c, i)));
     g.on_login_cookies_pick(|| with(login_cookies_pick));
-    g.on_login_cookies_clear(|| with(|c| save_login(c, None, Some(String::new()))));
+    g.on_login_cookies_clear(|| with(|c| save_login(c, Some(String::new()))));
     g.on_login_web(|| with(login_web));
     g.on_login_web_done(|| {
         with(|c| {
@@ -67,20 +66,19 @@ fn login_web_ended(c: &mut Ctx, r: Result<(String, bool), String>) {
             if !signed_in {
                 c.toast("Вход в YouTube не найден — cookies всё равно сохранены (другие сайты)", true);
             }
-            save_login(c, None, Some(cookies));
+            save_login(c, Some(cookies));
         }
         Err(e) => c.toast(format!("Окно входа: {e}"), true),
     }
 }
 
-/// yt-dlp names of `Dl.browsers` (after "Не использовать").
-const BROWSERS: [&str; 7] = ["firefox", "chrome", "edge", "brave", "opera", "vivaldi", "chromium"];
-
 /// The site wants a signed-in user (YouTube: "Sign in to confirm your
 /// age"; yt-dlp then suggests `--cookies`).
 pub fn needs_login(error: &str) -> bool {
     let e = error.to_ascii_lowercase();
-    ["sign in to confirm", "confirm your age", "age-restricted", "--cookies", "login required", "members-only"].iter().any(|k| e.contains(k))
+    ["sign in to confirm", "confirm your age", "age-restricted", "--cookies", "login required", "members-only"]
+        .iter()
+        .any(|k| e.contains(k))
 }
 
 /// Open the dialog on the sign-in panel (after a failed download).
@@ -95,8 +93,6 @@ pub fn open_login(c: &mut Ctx) {
 fn show_login(c: &mut Ctx, v: &Value) {
     let Some(ui) = c.window() else { return };
     let g = ui.global::<Dl>();
-    let browser = v["browser"].as_str().and_then(|b| BROWSERS.iter().position(|x| *x == b)).map_or(0, |i| i + 1);
-    g.set_login_browser(browser as i32);
     g.set_login_cookies(v["cookies"].as_bool().unwrap_or(false));
 }
 
@@ -111,11 +107,6 @@ fn refresh_login(c: &mut Ctx) {
     });
 }
 
-fn login_browser(c: &mut Ctx, i: i32) {
-    let browser = usize::try_from(i - 1).ok().and_then(|i| BROWSERS.get(i)).map(|b| b.to_string());
-    save_login(c, browser, None);
-}
-
 fn login_cookies_pick(c: &mut Ctx) {
     let Some(path) = rfd::FileDialog::new().set_title("Файл cookies.txt").add_filter("cookies.txt", &["txt"]).pick_file() else {
         return;
@@ -123,24 +114,17 @@ fn login_cookies_pick(c: &mut Ctx) {
     match std::fs::read_to_string(&path) {
         Ok(text) if text.trim().is_empty() => c.toast("Файл cookies.txt пуст", true),
         Ok(text) => {
-            let browser = current_browser(c);
-            save_login(c, browser, Some(text));
+            save_login(c, Some(text));
         }
         Err(e) => c.toast(format!("{}: {e}", path.display()), true),
     }
 }
 
-fn current_browser(c: &mut Ctx) -> Option<String> {
-    let i = c.window()?.global::<Dl>().get_login_browser();
-    usize::try_from(i - 1).ok().and_then(|i| BROWSERS.get(i)).map(|b| b.to_string())
-}
-
 /// Store the choice on the server; `cookies`: `Some("")` removes the file.
-fn save_login(c: &mut Ctx, browser: Option<String>, cookies: Option<String>) {
-    let browser = browser.or_else(|| if cookies.is_some() { current_browser(c) } else { None });
+fn save_login(c: &mut Ctx, cookies: Option<String>) {
     let Some(ui) = c.window() else { return };
     ui.global::<Dl>().set_login_saving(true);
-    let mut body = json!({ "browser": browser });
+    let mut body = json!({ "browser": null });
     if let Some(text) = cookies {
         body["cookies"] = json!(text);
     }

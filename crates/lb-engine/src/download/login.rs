@@ -1,7 +1,7 @@
 //! Signing in to sites for yt-dlp (YouTube asks for it on age-restricted
 //! videos: "Sign in to confirm your age"). yt-dlp cannot log in with a
-//! password there; it uses the cookies of a browser where the user is
-//! signed in, or an exported `cookies.txt`. The choice is kept in
+//! password there; it uses cookies from LauraBoard's private login window
+//! or an imported `cookies.txt`. The choice is kept in
 //! `<project>/tools` so it applies to every download of the project.
 
 use std::ffi::OsString;
@@ -16,13 +16,10 @@ const COOKIES: &str = "yt-dlp-cookies.txt";
 /// Largest `cookies.txt` accepted (they are a few KB to a few hundred KB).
 pub const MAX_COOKIES: usize = 4 * 1024 * 1024;
 
-/// Browsers yt-dlp reads cookies from (`--cookies-from-browser`).
-pub const BROWSERS: &[&str] = &["firefox", "chrome", "edge", "brave", "opera", "vivaldi", "chromium", "whale", "safari"];
-
 /// What the API reports and accepts.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct Login {
-    /// Browser to take cookies from (one of [`BROWSERS`]).
+    /// Legacy API field. System browser profiles are no longer used.
     #[serde(default)]
     pub browser: Option<String>,
     /// A `cookies.txt` is stored (it wins over the browser).
@@ -41,7 +38,7 @@ fn cookies_path(root: &Path) -> PathBuf {
 /// The current choice.
 pub fn load(root: &Path) -> Login {
     let mut l: Login = std::fs::read(settings_path(root)).ok().and_then(|b| serde_json::from_slice(&b).ok()).unwrap_or_default();
-    l.browser = l.browser.filter(|b| BROWSERS.contains(&b.as_str()));
+    l.browser = None;
     l.cookies = cookies_path(root).is_file();
     l
 }
@@ -50,10 +47,8 @@ pub fn load(root: &Path) -> Login {
 /// file, `Some(text)` replaces it, `None` keeps it.
 pub fn save(root: &Path, browser: Option<&str>, cookies: Option<&str>) -> Result<Login, String> {
     let browser = browser.map(str::trim).filter(|b| !b.is_empty());
-    if let Some(b) = browser
-        && !BROWSERS.contains(&b)
-    {
-        return Err(format!("unknown browser '{b}'"));
+    if browser.is_some() {
+        return Err("system browser login is no longer supported; use LauraBoard login or cookies.txt".into());
     }
     let dir = root.join(TOOLS_DIR);
     std::fs::create_dir_all(&dir).map_err(|e| format!("{}: {e}", dir.display()))?;
@@ -92,10 +87,7 @@ pub fn args(root: &Path) -> Vec<OsString> {
     if l.cookies {
         return vec!["--cookies".into(), cookies_path(root).into()];
     }
-    match l.browser {
-        Some(b) => vec!["--cookies-from-browser".into(), b.into()],
-        None => Vec::new(),
-    }
+    Vec::new()
 }
 
 /// The site wants a signed-in user (age check, members-only, "not a bot").
@@ -116,10 +108,13 @@ mod tests {
         let root = dir.path();
         assert_eq!(load(root), Login::default());
         assert!(args(root).is_empty());
-        save(root, Some("firefox"), None).unwrap();
-        assert_eq!(args(root), vec![OsString::from("--cookies-from-browser"), "firefox".into()]);
+        assert!(save(root, Some("firefox"), None).is_err());
+        // Previously saved browser settings must no longer read system profiles.
+        std::fs::create_dir_all(root.join(TOOLS_DIR)).unwrap();
+        std::fs::write(settings_path(root), r#"{"browser":"firefox"}"#).unwrap();
+        assert!(args(root).is_empty());
         let file = "# Netscape HTTP Cookie File\n.youtube.com\tTRUE\t/\tTRUE\t0\tSID\tx\n";
-        let l = save(root, Some("firefox"), Some(file)).unwrap();
+        let l = save(root, None, Some(file)).unwrap();
         assert!(l.cookies);
         assert_eq!(args(root)[0], OsString::from("--cookies"));
         save(root, None, Some("")).unwrap();

@@ -63,6 +63,20 @@ fn build() -> Result<(), String> {
     cargo(&root, &["build", "--locked", "--release", "-p", "lauraboard", "-p", "lb-installer"], None)?;
 
     step(2, "упаковка");
+    let runtime = release.join("runtime");
+    if !(os == "linux" && arch == "x86") {
+        let python = std::env::var_os("PYTHON").unwrap_or_else(|| if cfg!(windows) { "python" } else { "python3" }.into());
+        let status = Command::new(python)
+            .arg(root.join(".github/scripts/fetch_web_runtime.py"))
+            .arg("--output")
+            .arg(&runtime)
+            .args(["--system", os, "--arch", arch])
+            .status()
+            .map_err(|e| format!("web runtime: {e}"))?;
+        if !status.success() {
+            return Err("не удалось подготовить движок LauraBoard".into());
+        }
+    }
     let _ = std::fs::remove_dir_all(&stage);
     let binary = format!("lauraboard{EXE}");
     let uninstaller = format!("uninstall{EXE}");
@@ -76,6 +90,9 @@ fn build() -> Result<(), String> {
         (gui_assets.join("fonts/OFL-RobotoMono.txt"), "licenses/OFL-RobotoMono.txt".into()),
         (gui_assets.join("icons/LICENSE"), "licenses/MaterialSymbols-Apache-2.0.txt".into()),
     ];
+    if runtime.is_dir() {
+        collect_files(&release, &runtime, &mut files)?;
+    }
     // README and docs/ are read on GitHub: the installed app needs neither
     if let Some(bundle) = std::env::var_os("LB_FFMPEG_DIR") {
         let bundle = PathBuf::from(bundle);
@@ -173,8 +190,15 @@ fn pack(stage: &Path, files: &[(PathBuf, String)], manifest: &serde_json::Value,
     let err = |e: zip::result::ZipError| e.to_string();
     zip.start_file("manifest.json", base.unix_permissions(0o644)).map_err(err)?;
     zip.write_all(serde_json::to_string_pretty(manifest).unwrap().as_bytes()).map_err(|e| e.to_string())?;
-    for (_, rel) in files {
+    for (source, rel) in files {
         let mode = if executables.contains(&rel.as_str()) { 0o755 } else { 0o644 };
+        #[cfg(unix)]
+        let mode = {
+            use std::os::unix::fs::PermissionsExt;
+            mode | (std::fs::metadata(source).map_err(|e| e.to_string())?.permissions().mode() & 0o111)
+        };
+        #[cfg(not(unix))]
+        let _ = source;
         zip.start_file(rel.as_str(), base.unix_permissions(mode).large_file(false)).map_err(err)?;
         let mut src = std::fs::File::open(stage.join(rel)).map_err(|e| e.to_string())?;
         std::io::copy(&mut src, &mut zip).map_err(|e| e.to_string())?;

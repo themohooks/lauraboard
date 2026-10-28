@@ -192,7 +192,7 @@ def archive(source, destination):
         def permissions(entry):
             # Apply POSIX modes explicitly, including when packaging is tested
             # on Windows where chmod cannot set executable bits.
-            entry.mode = 0o755 if entry.isdir() or Path(entry.name).name in {"lauraboard", "uninstall", "ffmpeg", "ffprobe"} else 0o644
+            entry.mode = 0o755 if entry.isdir() or entry.mode & 0o111 or Path(entry.name).name in {"lauraboard", "uninstall", "ffmpeg", "ffprobe"} else 0o644
             entry.uid = entry.gid = 0
             entry.uname = entry.gname = "root"
             return entry
@@ -269,6 +269,10 @@ def build():
         shutil.copytree(ROOT / "docs", stage / "docs", ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
         shutil.copytree(ROOT / "examples", stage / "examples")
         bundle_ffmpeg(stage)
+        if not (system == "linux" and arch == "x86"):
+            runtime = ROOT / "target/release/runtime"
+            run(sys.executable, ROOT / ".github/scripts/fetch_web_runtime.py", "--output", runtime, "--system", system, "--arch", arch)
+            shutil.copytree(runtime, stage / "runtime", symlinks=True)
         build_info(stage, release_version, target, "server")
         archive(stage, ASSETS / f"{prefix}-{target}-server{extension}")
     print("Release assets:", *(p.name for p in sorted(ASSETS.iterdir())), sep="\n")

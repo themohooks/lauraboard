@@ -208,12 +208,20 @@ impl Cdp {
 }
 
 fn capture(path: &Path, w: u32, h: u32, frame: &Frame, used: &Mutex<Instant>, stop: &AtomicBool) -> Result<()> {
-    let executable = browser_path().ok_or("Install Edge / Chrome / Chromium or set LAURABOARD_BROWSER")?;
+    let executable = browser_path().ok_or(lb_core::browser::MISSING)?;
     let server = FileServer::start(path)?;
     static SERIAL: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
-    let profile =
-        std::env::temp_dir().join(format!("lauraboard-browser-{}-{}", std::process::id(), SERIAL.fetch_add(1, Ordering::Relaxed)));
-    std::fs::create_dir(&profile).map_err(|e| e.to_string())?;
+    // A previous crashed instance may have left this PID's directory behind.
+    // Reserve a fresh directory atomically instead of reusing its profile.
+    let profile = loop {
+        let path =
+            std::env::temp_dir().join(format!("lauraboard-browser-{}-{}", std::process::id(), SERIAL.fetch_add(1, Ordering::Relaxed)));
+        match std::fs::create_dir(&path) {
+            Ok(()) => break path,
+            Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => continue,
+            Err(e) => return Err(e.to_string()),
+        }
+    };
     let mut command = Command::new(executable);
     command
         .args([
@@ -228,6 +236,8 @@ fn capture(path: &Path, w: u32, h: u32, frame: &Frame, used: &Mutex<Instant>, st
             "--autoplay-policy=no-user-gesture-required",
             "--remote-debugging-port=0",
             "--remote-debugging-address=127.0.0.1",
+            "--use-angle=swiftshader",
+            "--enable-unsafe-swiftshader",
         ])
         .arg(format!("--user-data-dir={}", profile.display()))
         .arg("about:blank")
@@ -266,8 +276,8 @@ fn capture(path: &Path, w: u32, h: u32, frame: &Frame, used: &Mutex<Instant>, st
                 break port;
             }
         }
-        if browser.child.try_wait().map_err(|e| e.to_string())?.is_some() {
-            return Err("browser exited before capture started".into());
+        if let Some(status) = browser.child.try_wait().map_err(|e| e.to_string())? {
+            return Err(format!("LauraBoard web runtime exited before capture started: {status}"));
         }
         if start.elapsed() > Duration::from_secs(10) {
             return Err("browser debugging endpoint timed out".into());
@@ -306,13 +316,20 @@ fn capture(path: &Path, w: u32, h: u32, frame: &Frame, used: &Mutex<Instant>, st
         if stop.load(Ordering::Relaxed) {
             return Ok(());
         }
-        let expression = if server.swf { "window.__lbReady === true" } else { "document.readyState === 'complete'" };
+        let expression = if server.swf {
+            "({ready: window.__lbReady === true, error: window.__lbError || null})"
+        } else {
+            "({ready: document.readyState === 'complete'})"
+        };
         let ready = cdp.call("Runtime.evaluate", json!({"expression": expression, "returnByValue": true}))?;
-        if ready["result"]["value"] == true {
+        if let Some(error) = ready["result"]["value"]["error"].as_str() {
+            return Err(format!("Ruffle: {error}"));
+        }
+        if ready["result"]["value"]["ready"] == true {
             break;
         }
         if loading.elapsed() > Duration::from_secs(20) {
-            return Err("HTML / Ruffle loading timed out; install a local Ruffle package for offline SWF".into());
+            return Err("HTML / Ruffle loading timed out".into());
         }
         std::thread::sleep(Duration::from_millis(50));
     }
@@ -353,12 +370,15 @@ impl FileServer {
         movie.set_path(file.file_name().ok_or("source has no filename")?.to_str().ok_or("source filename is not UTF-8")?);
         let ruffle = std::env::var_os("LAURABOARD_RUFFLE")
             .map(PathBuf::from)
-            .or_else(|| std::env::current_exe().ok().and_then(|p| p.parent().map(|p| p.join("assets/ruffle"))))
+            .or_else(|| lb_core::browser::path().and_then(|p| p.parent()?.parent().map(|p| p.join("ruffle"))))
             .filter(|p| p.join("ruffle.js").is_file());
-        let script = if ruffle.is_some() { "/__ruffle/ruffle.js" } else { "https://unpkg.com/@ruffle-rs/ruffle@0.5.0/ruffle.js" };
+        if swf && ruffle.is_none() {
+            return Err("Не найден SWF-плеер LauraBoard в runtime/ruffle".into());
+        }
+        let script = "/__ruffle/ruffle.js";
         let movie_json = serde_json::to_string(movie.as_str()).unwrap().replace('<', "\\u003c");
         let wrapper = format!(
-            r#"<!doctype html><meta charset="utf-8"><style>html,body{{margin:0;width:100%;height:100%;overflow:hidden;background:transparent}}ruffle-player{{display:block;width:100%;height:100%}}</style><script>window.RufflePlayer={{config:{{autoplay:"on",unmuteOverlay:"hidden",wmode:"transparent",allowScriptAccess:false}}}};</script><script src="{script}"></script><script>addEventListener('load',async()=>{{try{{const p=RufflePlayer.newest().createPlayer();document.body.appendChild(p);await p.ruffle().load({{url:{movie_json},autoplay:"on",wmode:"transparent"}});window.__lbReady=true;}}catch(e){{console.error(e)}}}});</script><body></body>"#
+            r#"<!doctype html><meta charset="utf-8"><style>html,body{{margin:0;width:100%;height:100%;overflow:hidden;background:transparent}}ruffle-player{{display:block;width:100%;height:100%}}</style><script>window.RufflePlayer={{config:{{autoplay:"on",unmuteOverlay:"hidden",wmode:"transparent",allowScriptAccess:false}}}};</script><script src="{script}"></script><script>addEventListener('load',async()=>{{try{{const p=RufflePlayer.newest().createPlayer();document.body.appendChild(p);const loaded=new Promise(resolve=>p.addEventListener('loadeddata',resolve,{{once:true}}));await p.ruffle().load({{url:{movie_json},autoplay:"on",wmode:"transparent"}});await loaded;await new Promise(requestAnimationFrame);await new Promise(requestAnimationFrame);window.__lbReady=true;}}catch(e){{window.__lbError=String(e);console.error(e)}}}});</script><body></body>"#
         );
         let stop = Arc::new(AtomicBool::new(false));
         let ended = stop.clone();
@@ -439,7 +459,7 @@ mod tests {
     use super::*;
 
     #[test]
-    #[ignore = "requires an installed Chromium browser"]
+    #[ignore = "requires the bundled runtime in target/debug/runtime"]
     fn html_animation_preserves_alpha_and_updates_frames() {
         let dir = std::env::temp_dir().join(format!("lb-web-test-{}", std::process::id()));
         std::fs::create_dir_all(&dir).unwrap();
@@ -460,12 +480,13 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "requires Chromium and a local Ruffle package or internet"]
+    #[ignore = "requires the bundled browser and Ruffle in target/debug/runtime"]
     fn swf_is_loaded_by_ruffle() {
         let dir = std::env::temp_dir().join(format!("lb-swf-test-{}", std::process::id()));
         std::fs::create_dir_all(&dir).unwrap();
         let path = dir.join("test.swf");
         // Uncompressed one-frame SWF: 64×48 stage, red background.
+        // Transparent wmode intentionally suppresses the stage background.
         let bits = format!("{:05b}{:012b}{:012b}{:012b}{:012b}", 12, 0, 1280, 0, 960);
         let padded = format!("{bits}000");
         let mut body: Vec<u8> =
@@ -475,10 +496,18 @@ mod tests {
         swf.extend(((body.len() + 8) as u32).to_le_bytes());
         swf.extend(body);
         std::fs::write(&path, swf).unwrap();
-        let source = WebSource::get(&path, 64, 48);
+        let external = std::env::var_os("LB_TEST_SWF").map(PathBuf::from);
+        let source = WebSource::get(external.as_deref().unwrap_or(&path), 64, 48);
         source.wait(Duration::from_secs(30)).unwrap();
+        std::thread::sleep(Duration::from_millis(500));
         let frame = source.frame().unwrap();
         assert_eq!((frame.width(), frame.height()), (64, 48));
+        if external.is_none() {
+            assert!(frame.data().chunks_exact(4).all(|p| p[3] == 0), "transparent SWF must preserve alpha");
+        }
+        if let Some(output) = std::env::var_os("LB_TEST_FRAME") {
+            frame.save_png(output).unwrap();
+        }
         source.shutdown();
         let _ = std::fs::remove_file(path);
         let _ = std::fs::remove_dir(dir);
