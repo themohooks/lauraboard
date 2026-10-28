@@ -43,7 +43,7 @@ permissions:
   contents: read
 concurrency:
   group: build-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: false
+  cancel-in-progress: ${{ !inputs.release_profile }}
 env:
   CARGO_TERM_COLOR: always
   RUST_BACKTRACE: '1'
@@ -76,8 +76,6 @@ jobs:
     timeout-minutes: 360
     env:
       RELEASE_TARGET: ${{ matrix.target }}
-      CARGO_BUILD_JOBS: 1
-      CARGO_PROFILE_TEST_DEBUG: 0
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -90,6 +88,7 @@ jobs:
           toolchain: ${{ matrix.toolchain }}
           x86: ${{ matrix.arch == 'x86' }}
           cache-key: native-build
+          fast-release: 'true'
       - name: Prepare bundled FFmpeg
         if: inputs.include_ffmpeg && matrix.arch != 'x86'
         timeout-minutes: 15
@@ -119,7 +118,7 @@ jobs:
           path: target/packages/setup/*
           if-no-files-found: error
           compression-level: 0
-          retention-days: 14
+          retention-days: ${{ inputs.release_profile && 1 || 3 }}
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: contains(fromJSON(matrix.formats), 'portable')
         with:
@@ -127,7 +126,7 @@ jobs:
           path: target/packages/portable/*
           if-no-files-found: error
           compression-level: 0
-          retention-days: 14
+          retention-days: ${{ inputs.release_profile && 1 || 3 }}
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: contains(fromJSON(matrix.formats), 'server')
         with:
@@ -135,7 +134,7 @@ jobs:
           path: target/packages/server/*
           if-no-files-found: error
           compression-level: 0
-          retention-days: 14
+          retention-days: ${{ inputs.release_profile && 1 || 3 }}
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: contains(fromJSON(matrix.formats), 'appimage')
         with:
@@ -143,7 +142,7 @@ jobs:
           path: target/packages/appimage/*
           if-no-files-found: error
           compression-level: 0
-          retention-days: 14
+          retention-days: ${{ inputs.release_profile && 1 || 3 }}
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: contains(fromJSON(matrix.formats), 'debpackage')
         with:
@@ -151,7 +150,7 @@ jobs:
           path: target/packages/debpackage/*
           if-no-files-found: error
           compression-level: 0
-          retention-days: 14
+          retention-days: ${{ inputs.release_profile && 1 || 3 }}
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: contains(fromJSON(matrix.formats), 'rpmpackage')
         with:
@@ -159,7 +158,7 @@ jobs:
           path: target/packages/rpmpackage/*
           if-no-files-found: error
           compression-level: 0
-          retention-days: 14
+          retention-days: ${{ inputs.release_profile && 1 || 3 }}
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: contains(fromJSON(matrix.formats), 'aur')
         with:
@@ -167,4 +166,4 @@ jobs:
           path: target/packages/aur/*
           if-no-files-found: error
           compression-level: 0
-          retention-days: 14
+          retention-days: ${{ inputs.release_profile && 1 || 3 }}

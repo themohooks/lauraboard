@@ -8,12 +8,22 @@ on:
         options: [all, x64, arm64]
         default: all
   workflow_call:
+    inputs:
+      release_profile:
+        type: boolean
+        default: false
+concurrency:
+  group: macos-${{ github.workflow }}-${{ github.ref }}-${{ inputs.architecture || 'all' }}
+  cancel-in-progress: ${{ !inputs.release_profile }}
 permissions:
   contents: read
 env:
   CARGO_TERM_COLOR: always
   RUST_BACKTRACE: '1'
   CARGO_INCREMENTAL: '0'
+  HOMEBREW_NO_AUTO_UPDATE: '1'
+  HOMEBREW_NO_INSTALL_CLEANUP: '1'
+  HOMEBREW_NO_ANALYTICS: '1'
 jobs:
   matrix:
     runs-on: ubuntu-24.04
@@ -40,9 +50,6 @@ jobs:
   build-macos:
     name: Package ${{ matrix.target }}
     needs: matrix
-    env:
-      CARGO_BUILD_JOBS: 1
-      CARGO_PROFILE_TEST_DEBUG: 0
     strategy:
       fail-fast: false
       matrix:
@@ -59,6 +66,7 @@ jobs:
       - uses: ./.github/actions/setup
         with:
           cache-key: native-build
+          fast-release: 'true'
       - name: Install native FFmpeg
         run: brew install ffmpeg
       - uses: ./.github/actions/test-native
@@ -72,18 +80,18 @@ jobs:
           path: target/release-assets/*.dmg
           if-no-files-found: error
           compression-level: 0
-          retention-days: 14
+          retention-days: ${{ inputs.release_profile && 1 || 3 }}
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: macos-portable-${{ matrix.arch }}
           path: target/release-assets/*-desktop.tar.gz
           if-no-files-found: error
           compression-level: 0
-          retention-days: 14
+          retention-days: ${{ inputs.release_profile && 1 || 3 }}
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: macos-server-${{ matrix.arch }}
           path: target/release-assets/*-server.tar.gz
           if-no-files-found: error
           compression-level: 0
-          retention-days: 14
+          retention-days: ${{ inputs.release_profile && 1 || 3 }}

@@ -25,5 +25,6 @@ jobs:
       - uses: ./.github/actions/setup
         with:
           cache-key: audit
+          desktop: 'false'
       - run: cargo install cargo-audit --version 0.22.2 --locked
       - run: cargo audit

@@ -46,6 +46,8 @@ jobs:
     name: macOS packages
     needs: validate
     uses: ./.github/workflows/build-macos.yml
+    with:
+      release_profile: true
   publish:
     name: Publish GitHub Release
     needs: [validate, checks, audit, build, build-macos]

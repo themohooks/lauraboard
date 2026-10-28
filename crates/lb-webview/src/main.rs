@@ -2,6 +2,7 @@
 //! No browser is distributed or discovered. stdout is a private JSON-lines pipe.
 #![cfg_attr(windows, windows_subsystem = "windows")]
 mod cookies;
+mod javascript;
 mod snapshot;
 
 use base64::Engine;
@@ -62,6 +63,9 @@ fn main() {
 
 fn run() -> Result<(), String> {
     let args: Vec<_> = std::env::args().skip(1).collect();
+    if args.first().is_some_and(|a| a == "javascript") {
+        return javascript::run();
+    }
     let login = args.first().is_some_and(|v| v == "login");
     if args.len() != 4 || !matches!(args[0].as_str(), "login" | "capture") {
         return Err("usage: lauraboard-webview login URL PROFILE - | capture URL WIDTH HEIGHT".into());

@@ -38,10 +38,16 @@ pub struct Tools {
 
 /// Options common to every call.
 fn base_args(cmd: &mut tokio::process::Command) {
-    cmd.args(["--ignore-config", "--no-colors", "--no-warnings", "--no-playlist"]);
+    cmd.args(["--ignore-config", "--no-colors", "--no-playlist"]);
 }
 
 fn last_error(stderr: &str) -> String {
+    let lower = stderr.to_ascii_lowercase();
+    if lower.contains("javascript runtime")
+        && (lower.contains("challenge solving failed") || lower.contains("signature solving failed") || lower.contains("no supported"))
+    {
+        return "YouTube: не удалось выполнить проверку JavaScript. Обновите компонент загрузки и проверьте наличие WebView LauraBoard. Повторный вход в аккаунт эту ошибку не исправляет.".into();
+    }
     let line = stderr.lines().rev().find(|l| l.contains("ERROR")).or_else(|| stderr.lines().rev().find(|l| !l.trim().is_empty()));
     line.map(|l| l.trim().trim_start_matches("ERROR:").trim().to_string()).unwrap_or_else(|| "yt-dlp failed".into())
 }
@@ -288,6 +294,9 @@ mod tests {
         let e = "[youtube] abc: Downloading webpage\nERROR: [youtube] abc: Video unavailable\n";
         assert_eq!(last_error(e), "[youtube] abc: Video unavailable");
         assert_eq!(last_error(""), "yt-dlp failed");
+        let stderr = "WARNING: Signature solving failed. Ensure you have a supported JavaScript runtime\nERROR: [youtube] abc: Sorry, this content is age-restricted";
+        assert!(last_error(stderr).contains("проверку JavaScript"));
+        assert!(!super::super::login::needed(&last_error(stderr)));
         assert_eq!(sanitize("A/B: c?"), "A_B_ c_");
         assert_eq!(sanitize(" .. "), "video");
     }
