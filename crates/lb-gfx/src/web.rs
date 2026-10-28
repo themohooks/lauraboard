@@ -370,7 +370,7 @@ impl FileServer {
         movie.set_path(file.file_name().ok_or("source has no filename")?.to_str().ok_or("source filename is not UTF-8")?);
         let ruffle = std::env::var_os("LAURABOARD_RUFFLE")
             .map(PathBuf::from)
-            .or_else(|| lb_core::browser::path().and_then(|p| p.parent()?.parent().map(|p| p.join("ruffle"))))
+            .or_else(lb_core::browser::ruffle_path)
             .filter(|p| p.join("ruffle.js").is_file());
         if swf && ruffle.is_none() {
             return Err("Не найден SWF-плеер LauraBoard в runtime/ruffle".into());

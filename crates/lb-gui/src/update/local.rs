@@ -44,6 +44,9 @@ pub fn detect() -> Kind {
         }
         return Kind::Portable;
     }
+    if cfg!(target_os = "macos") {
+        return Kind::Dmg;
+    }
     Kind::Page
 }
 
@@ -63,6 +66,7 @@ pub fn install_hint(kind: &Kind) -> &'static str {
         Kind::Setup => "Программа закроется и откроется установщик новой версии — настройки и проекты сохранятся.",
         Kind::AppImage(_) => "Файл AppImage будет заменён новым, программа перезапустится.",
         Kind::Portable => "Архив новой версии будет скачан в «Загрузки» — закройте программу и распакуйте его поверх её папки.",
+        Kind::Dmg => "Откроется образ DMG новой версии. Закройте LauraBoard и перенесите приложение в «Программы»; проекты сохранятся.",
         Kind::Deb | Kind::Rpm => "Пакет новой версии будет скачан в «Загрузки» и открыт в установщике пакетов системы.",
         Kind::Page => "Откроется страница выпуска на GitHub.",
     }
@@ -83,7 +87,7 @@ pub fn install(kind: &Kind, file: &Path) -> Result<bool, String> {
             std::process::Command::new(target).spawn().map_err(|e| format!("не удалось запустить новую версию: {e}"))?;
             Ok(true)
         }
-        Kind::Deb | Kind::Rpm => open(file).map(|_| false),
+        Kind::Deb | Kind::Rpm | Kind::Dmg => open(file).map(|_| false),
         Kind::Portable => reveal(file).map(|_| false),
         Kind::Page => Ok(false),
     }

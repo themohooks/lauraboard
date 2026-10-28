@@ -22,7 +22,7 @@ pub fn install(window: &slint::Window) {
             WinitEvent::KeyboardInput { event, is_synthetic: false, .. } => {
                 let m = mods.get();
                 // Ctrl+Alt is AltGr on Windows: it types characters
-                if !m.control_key() || m.alt_key() {
+                if !(m.control_key() || (cfg!(target_os = "macos") && m.super_key())) || m.alt_key() {
                     return EventResult::Propagate;
                 }
                 let Key::Character(typed) = &event.logical_key else { return EventResult::Propagate };

@@ -36,7 +36,9 @@ pub enum Kind {
     /// Linux package managed by dpkg / rpm.
     Deb,
     Rpm,
-    /// Nothing to download here (macOS): the release page is opened.
+    /// Native macOS disk image.
+    Dmg,
+    /// No matching downloadable package: open the release page.
     Page,
 }
 
@@ -126,6 +128,8 @@ pub fn pick<'a>(r: &'a Release, kind: &Kind, os: &str, arch: &str) -> Option<&'a
         ("linux", Kind::Portable) => format!("{}-desktop.tar.gz", target("unknown-linux-gnu")),
         ("linux", Kind::AppImage(_)) => format!("{}.AppImage", target("unknown-linux-gnu")),
         ("linux", Kind::Deb) => format!("{}.deb", target("unknown-linux-gnu")),
+        ("macos", Kind::Dmg) => format!("{}.dmg", target("apple-darwin")),
+        ("macos", Kind::Portable) => format!("{}-desktop.tar.gz", target("apple-darwin")),
         ("linux", Kind::Rpm) => format!("{}.rpm", target("unknown-linux-gnu")),
         _ => return None,
     };

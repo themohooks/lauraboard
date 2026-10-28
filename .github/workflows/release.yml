@@ -44,6 +44,9 @@ jobs:
   build-macos:
     name: Build ${{ matrix.target }}
     needs: [validate, checks, audit]
+    env:
+      CARGO_BUILD_JOBS: 1
+      CARGO_PROFILE_TEST_DEBUG: 0
     strategy:
       fail-fast: false
       matrix:
@@ -64,6 +67,14 @@ jobs:
       - uses: ./.github/actions/setup
         with:
           cache-key: release-${{ matrix.target }}
+      - name: Install native FFmpeg
+        run: brew install ffmpeg
+      - name: Test native macOS build
+        run: cargo test --workspace --locked
+      - name: Prepare private web runtime
+        run: python .github/scripts/fetch_web_runtime.py --output target/debug/runtime
+      - name: Test native HTML and SWF capture
+        run: cargo test --locked -p lb-gfx web::tests -- --ignored --test-threads=1
       - name: Build installers and portable archives
         env:
           RELEASE_TARGET: ${{ matrix.target }}

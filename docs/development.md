@@ -6,7 +6,7 @@
 
 - `cargo fmt --all -- --check` проверяет форматирование по `rustfmt.toml`.
 - Clippy проверяет весь workspace, все targets Cargo и все features. Предупреждения видны в журнале; ошибки останавливают проверку.
-- Модульные и интеграционные тесты выполняются нативно на Windows и Linux под x86-64 и ARM64. На macOS под Intel и Apple Silicon проверяется серверная сборка без GUI.
+- Модульные и интеграционные тесты выполняются нативно на Windows и Linux под x86-64 и ARM64. В релизном macOS job под Intel и Apple Silicon запускаются тесты workspace с GUI и собираются нативные пакеты.
 - Отдельная проверка собирает CLI без GUI на минимальной заявленной версии Rust 1.92.
 - FFmpeg-тесты на Ubuntu 24.04 и 26.04 выполняют обычно пропускаемые регрессии синхронизации аудио/видео и начала/конца эфира. Таким образом проверяются поставляемые этими ОС версии FFmpeg 6.1 и 8.0. Браузерные тесты автоматически не запускаются: сначала выполните `python .github/scripts/fetch_web_runtime.py --output target/debug/runtime`, затем `cargo test -p lb-gfx web::tests -- --ignored --test-threads=1`. Для проверки своего SWF задайте `LB_TEST_SWF` с путём к файлу.
 - Actionlint проверяет workflows; Python-тесты проверяют архивы, версии и полноту релизных файлов.
@@ -32,12 +32,12 @@
 | Linux | x86-64 | `ubuntu-24.04` | setup, portable desktop, server, AppImage, DEB, RPM, AUR |
 | Linux | x86 (32-bit) | `ubuntu-24.04`, Rust host i686 + i386 libraries | setup, portable desktop, server, AppImage, DEB, RPM, AUR |
 | Linux | ARM64 | `ubuntu-24.04-arm` | setup, portable desktop, server, AppImage, DEB, RPM, AUR |
-| macOS | Intel x86-64 | `macos-15-intel` | server `.tar.gz` |
-| macOS | Apple Silicon ARM64 | `macos-15` | server `.tar.gz` |
+| macOS | Intel x86-64 | `macos-15-intel` | `.app`, DMG, desktop/server `.tar.gz` |
+| macOS | Apple Silicon ARM64 | `macos-15` | `.app`, DMG, desktop/server `.tar.gz` |
 
-Архитектура Rust host проверяется перед упаковкой. Для x86 используется 32-битный toolchain i686 на x64 runner; Linux дополнительно получает multilib и i386-библиотеки. ARM означает ARM64 (`aarch64`), не ARMv7. macOS пока получает только CLI/API без GUI и системного установщика; команда `service` использует systemd и на macOS не поддерживается. Linux-пакеты собраны на Ubuntu 24.04 и требуют совместимых системных библиотек; это не статические musl-сборки. AppImage включает зависимости через linuxdeploy, но требует совместимой glibc. На других дистрибутивах совместимость нужно проверить отдельно.
+Архитектура Rust host проверяется перед упаковкой. Для x86 используется 32-битный toolchain i686 на x64 runner; Linux дополнительно получает multilib и i386-библиотеки. ARM означает ARM64 (`aarch64`), не ARMv7. macOS получает нативный GUI в `.app`/DMG, серверный архив и пользовательский launchd-агент; подробности в [macOS](macos.md). Linux-пакеты собраны на Ubuntu 24.04 и требуют совместимых системных библиотек; это не статические musl-сборки. AppImage включает зависимости через linuxdeploy, но требует совместимой glibc. На других дистрибутивах совместимость нужно проверить отдельно.
 
-Workflow **Release** сохраняет прежний состав: FFmpeg/ffprobe нужно установить отдельно. Для комплектов с FFmpeg используйте workflows ниже. Подпись Windows-кода и notarization macOS не настроены. Перед первым публичным релизом проверьте установку, обновление и удаление на целевых ОС: CI проверяет сборку, тесты и запуск CLI, но не проходит интерактивный мастер.
+Для Windows/Linux workflow **Release** сохраняет прежний состав FFmpeg; macOS-пакеты содержат FFmpeg/ffprobe и перемещаемые библиотеки. Для комплектов с FFmpeg используйте workflows ниже. Подпись Windows-кода и notarization macOS не настроены. Перед первым публичным релизом проверьте установку, обновление и удаление на целевых ОС: CI проверяет сборку, тесты и запуск CLI, но не проходит интерактивный мастер.
 
 ## Отдельные сборки Linux и Windows
 

@@ -178,6 +178,10 @@ fn video_codec_args(j: &EncodeJob) -> Vec<String> {
                 a.extend(sv(&["-global_quality", &crf]));
             } else if vaapi {
                 a.extend(sv(&["-rc_mode", "CQP", "-qp", &crf]));
+            } else if codec.ends_with("_videotoolbox") {
+                // VideoToolbox uses 1…100, higher is better; it has no CRF.
+                let quality = (100.0 - e.crf.min(51) as f64 * 99.0 / 51.0).round().to_string();
+                a.extend(sv(&["-q:v", &quality]));
             } else {
                 a.extend(sv(&["-crf", &crf]));
             }
@@ -257,6 +261,17 @@ mod tests {
             preview: Some(PreviewOut { width: 480, fps: 5.0 }),
             loglevel: "warning",
         }
+    }
+
+    #[test]
+    fn videotoolbox_quality_uses_apple_scale_without_x264_options() {
+        let e = EncoderConfig { rate_control: RateControl::Quality, ..Default::default() };
+        let (v, a) = (VideoFormat::default(), AudioFormat::default());
+        let mut j = job(&e, &v, &a, &[]);
+        j.video_codec = "h264_videotoolbox";
+        let s = encoder_args(&j).join(" ");
+        assert!(s.contains("-q:v "));
+        assert!(!s.contains("-crf") && !s.contains("-preset") && !s.contains("-tune"));
     }
 
     #[test]

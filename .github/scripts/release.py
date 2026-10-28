@@ -72,7 +72,10 @@ def expected_assets(release_version):
                     result.add(f"{prefix}-{target}.{extension}")
             continue
         result.add(f"{prefix}-{target}-server{extension}")
-        if system != "macos":
+        if system == "macos":
+            result.add(f"{prefix}-{target}-desktop{extension}")
+            result.add(f"{prefix}-{target}.dmg")
+        else:
             result.add(f"{prefix}-{target}-desktop{extension}")
             result.add(f"{prefix}-{system}-{arch}-setup" + (".exe" if system == "windows" else ""))
     return result
@@ -99,7 +102,7 @@ def download_table(repository, release_version, server_url="https://github.com")
     for system, title in (("windows", "Windows"), ("macos", "macOS"), ("linux", "Linux")):
         formats = [("setup", "Setup", "1684c7"), ("desktop", "Portable", "269ca8")]
         if system == "macos":
-            formats = []
+            formats = [("dmg", "DMG", "1684c7"), ("desktop", "AppBundle", "269ca8")]
         elif system == "linux":
             formats = [("AppImage", "AppImage", "e05d2f"), ("deb", "DebPackage", "d36b8c"),
                        ("rpm", "RpmPackage", "d6a22a")]
@@ -254,6 +257,14 @@ def build():
         build_info(stage, release_version, target, "desktop")
         archive(stage, ASSETS / f"{prefix}-{target}-desktop{extension}")
 
+    else:
+        import macos
+        stage = macos.desktop(ROOT, ASSETS, release_version, target)
+        smoke(stage / "LauraBoard.app/Contents/MacOS/lauraboard", release_version)
+        build_info(stage, release_version, target, "desktop")
+        archive(stage, ASSETS / f"{prefix}-{target}-desktop{extension}")
+        macos.dmg(stage, ASSETS / f"{prefix}-{target}.dmg")
+
     # A separate target directory keeps the desktop binary and embedded
     # installer payload from being overwritten by the headless build.
     run("cargo", "build", "--release", "--locked", "-p", "lauraboard",
@@ -268,9 +279,13 @@ def build():
         shutil.copy2(ROOT / "README.md", stage / "README.md")
         shutil.copytree(ROOT / "docs", stage / "docs", ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
         shutil.copytree(ROOT / "examples", stage / "examples")
-        bundle_ffmpeg(stage)
+        if system == "macos":
+            import macos
+            macos.copy_tools(stage, stage / "Frameworks", stage / "licenses/ffmpeg")
+        else:
+            bundle_ffmpeg(stage)
         if not (system == "linux" and arch == "x86"):
-            runtime = ROOT / "target/release/runtime"
+            runtime = ROOT / ("target/debug/runtime" if system == "macos" else "target/release/runtime")
             run(sys.executable, ROOT / ".github/scripts/fetch_web_runtime.py", "--output", runtime, "--system", system, "--arch", arch)
             shutil.copytree(runtime, stage / "runtime", symlinks=True)
         build_info(stage, release_version, target, "server")

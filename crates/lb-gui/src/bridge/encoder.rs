@@ -8,7 +8,7 @@ use super::{Ctx, vec_model, with};
 use crate::shell::{AppWindow, Src};
 
 /// `(ffmpeg name, label)`.
-const CODECS: [(&str, &str); 8] = [
+const CODECS: [(&str, &str); 10] = [
     ("auto", "Авто — лучший доступный"),
     ("libx264", "H.264 — процессор (libx264)"),
     ("libx265", "HEVC — процессор (libx265)"),
@@ -17,6 +17,8 @@ const CODECS: [(&str, &str); 8] = [
     ("h264_qsv", "H.264 — Intel (Quick Sync)"),
     ("h264_amf", "H.264 — AMD (AMF)"),
     ("h264_vaapi", "H.264 — VAAPI (Linux)"),
+    ("h264_videotoolbox", "H.264 — Apple (VideoToolbox)"),
+    ("hevc_videotoolbox", "HEVC — Apple (VideoToolbox)"),
 ];
 const X26_PRESETS: [&str; 9] = ["ultrafast", "superfast", "veryfast", "faster", "fast", "medium", "slow", "slower", "veryslow"];
 const NVENC_PRESETS: [&str; 7] = ["p1", "p2", "p3", "p4", "p5", "p6", "p7"];

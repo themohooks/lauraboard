@@ -54,6 +54,20 @@ fn build() -> Result<(), String> {
     let root = crate::root();
     let version = app_version(&root)?;
     let (os, arch) = (std::env::consts::OS, std::env::consts::ARCH);
+    if os == "macos" {
+        let host = Command::new("rustc").args(["-vV"]).output().map_err(|e| e.to_string())?;
+        let text = String::from_utf8_lossy(&host.stdout);
+        let target = text.lines().find_map(|line| line.strip_prefix("host: ")).ok_or("rustc host unavailable")?;
+        let python = std::env::var_os("PYTHON").unwrap_or_else(|| "python3".into());
+        let status = Command::new(python)
+            .arg(root.join(".github/scripts/release.py"))
+            .arg("build")
+            .env("RELEASE_TARGET", target)
+            .status()
+            .map_err(|e| e.to_string())?;
+        return if status.success() { Ok(()) } else { Err("macOS packaging failed".into()) };
+    }
+
     let target = std::env::var_os("CARGO_TARGET_DIR").map(PathBuf::from).unwrap_or_else(|| root.join("target"));
     let release = target.join("release");
     let dist = target.join("dist");
