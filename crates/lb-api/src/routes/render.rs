@@ -75,11 +75,7 @@ pub async fn render(State(s): State<AppState>, c: Caller, Path(id): Path<String>
             next_program_ms: next_ms,
             program: Some(&program),
         });
-        let png = comp.png().ok_or("render failed")?;
-        Ok::<_, String>(match b.width {
-            Some(ow) if ow > 0 && ow < w => scale_png(&png, ow),
-            _ => Some(png),
-        })
+        Ok::<_, String>(comp.png_scaled(b.width.unwrap_or(w)))
     })
     .await
     .map_err(|e| ApiError::new(axum::http::StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
@@ -117,13 +113,4 @@ fn active_set(cfg: &GraphicsConfig, only: Option<&[String]>, t_ms: Option<Ms>) -
         .collect();
     v.sort_by_key(|a| a.layer);
     v
-}
-
-fn scale_png(png: &[u8], width: u32) -> Option<Vec<u8>> {
-    let img = image::load_from_memory_with_format(png, image::ImageFormat::Png).ok()?;
-    let height = ((img.height() as u64 * width as u64) / img.width().max(1) as u64).max(1) as u32;
-    let small = img.resize_exact(width, height, image::imageops::FilterType::Triangle);
-    let mut out = std::io::Cursor::new(Vec::new());
-    small.write_to(&mut out, image::ImageFormat::Png).ok()?;
-    Some(out.into_inner())
 }
