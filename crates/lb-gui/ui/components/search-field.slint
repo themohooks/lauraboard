@@ -1,3 +1,4 @@
+import { ScrollingInput } from "scrolling-input.slint";
 // Compact M3 search bar: pill on surface-container-high, search icon,
 // clear button. `focus-input()` is bound to Ctrl+F by the screens.
 
@@ -55,9 +56,8 @@ export component SearchField inherits Rectangle {
                 text: root.placeholder;
                 color: Theme.color.on-surface-variant;
             }
-            input := TextInput {
-                width: 100%;
-                height: 100%;
+            input := ScrollingInput {
+                viewport-width: parent.width;
                 text <=> root.text;
                 single-line: true;
                 vertical-alignment: center;

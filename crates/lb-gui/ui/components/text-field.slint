@@ -1,3 +1,4 @@
+import { ScrollingInput } from "scrolling-input.slint";
 // M3 outlined text field (dense desktop variant): the label sits on the
 // border, placeholder inside, supporting or error text below. An error
 // turns the outline and label red and adds an error icon, so the state is
@@ -86,9 +87,8 @@ export component TextField inherits VerticalLayout {
                     x: root.has-focus ? 8px : 0;
                     animate opacity, x { duration: Theme.motion-short; easing: ease-out; }
                 }
-                input := TextInput {
-                    width: 100%;
-                    height: 100%;
+                input := ScrollingInput {
+                    viewport-width: parent.width;
                     text <=> root.text;
                     enabled: root.enabled;
                     read-only: root.read-only;

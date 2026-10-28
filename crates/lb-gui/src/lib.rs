@@ -16,6 +16,8 @@ mod bridge;
 #[cfg(feature = "snapshot")]
 pub mod devtools;
 mod fmt;
+#[cfg(test)]
+mod input_tests;
 mod keys;
 mod logic;
 mod model;
