@@ -18,7 +18,7 @@ on:
         options: [all, setup, portable, server, appimage, debpackage, rpmpackage, aur]
         default: all
       include_ffmpeg:
-        description: Include FFmpeg and ffprobe
+        description: Include FFmpeg and ffprobe (x64 and ARM64 only)
         type: boolean
         default: true
   workflow_call:
@@ -35,9 +35,6 @@ on:
       include_ffmpeg:
         type: boolean
         default: true
-      artifact_prefix:
-        type: string
-        default: build
       release_profile:
         description: Publish only AppImage, DEB and RPM for Linux x64 and ARM64
         type: boolean
@@ -49,6 +46,7 @@ concurrency:
   cancel-in-progress: false
 env:
   CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: '1'
   CARGO_INCREMENTAL: '0'
 jobs:
   plan:
@@ -57,9 +55,6 @@ jobs:
     timeout-minutes: 5
     outputs:
       build: ${{ steps.matrix.outputs.build }}
-      package: ${{ steps.matrix.outputs.package }}
-      ffmpeg: ${{ steps.matrix.outputs.ffmpeg }}
-      has_x86: ${{ steps.matrix.outputs.has_x86 }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -71,40 +66,9 @@ jobs:
           BUILD_FORMAT: ${{ inputs.package_format }}
           BUILD_RELEASE_PROFILE: ${{ inputs.release_profile }}
         run: python3 .github/scripts/build_matrix.py
-  ffmpeg-x86:
-    name: FFmpeg x86 (${{ matrix.platform }})
-    needs: plan
-    if: inputs.include_ffmpeg && needs.plan.outputs.has_x86 == 'true'
-    strategy:
-      fail-fast: false
-      matrix: ${{ fromJSON(needs.plan.outputs.ffmpeg) }}
-    runs-on: ubuntu-24.04
-    timeout-minutes: 90
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - name: Install FFmpeg compilers
-        run: |
-          sudo apt-get update
-          sudo apt-get install --no-install-recommends -y gcc-multilib g++-multilib mingw-w64 nasm pkg-config
-      - name: Build FFmpeg 8.1 and libx264 from checked sources
-        env:
-          FFMPEG_PLATFORM: ${{ matrix.platform }}
-        run: python3 .github/scripts/build_ffmpeg_x86.py
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: ffmpeg-${{ inputs.artifact_prefix || 'build' }}-${{ matrix.target }}
-          path: target/ffmpeg-x86/
-          if-no-files-found: error
-          compression-level: 0
-          retention-days: 1
   build:
-    name: Compile ${{ matrix.platform }} ${{ matrix.arch }}
-    needs: [plan, ffmpeg-x86]
-    if: >-
-      always() && !cancelled() && needs.plan.result == 'success' &&
-      (needs.ffmpeg-x86.result == 'success' || needs.ffmpeg-x86.result == 'skipped')
+    name: Test, build and package ${{ matrix.platform }} ${{ matrix.arch }}
+    needs: plan
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(needs.plan.outputs.build) }}
@@ -112,6 +76,8 @@ jobs:
     timeout-minutes: 360
     env:
       RELEASE_TARGET: ${{ matrix.target }}
+      CARGO_BUILD_JOBS: 1
+      CARGO_PROFILE_TEST_DEBUG: 0
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -123,82 +89,82 @@ jobs:
         with:
           toolchain: ${{ matrix.toolchain }}
           x86: ${{ matrix.arch == 'x86' }}
-          cache-key: build-${{ matrix.target }}-ffmpeg-${{ inputs.include_ffmpeg }}
-      - name: Download compiled x86 FFmpeg
-        if: inputs.include_ffmpeg && matrix.arch == 'x86'
-        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
-        with:
-          name: ffmpeg-${{ inputs.artifact_prefix || 'build' }}-${{ matrix.target }}
-          path: target/ffmpeg-bundle
-      - name: Enable x86 FFmpeg bundle
-        if: inputs.include_ffmpeg && matrix.arch == 'x86'
-        shell: bash
-        run: |
-          if [[ "$RUNNER_OS" == Linux ]]; then
-            chmod +x target/ffmpeg-bundle/ffmpeg target/ffmpeg-bundle/ffprobe
-          fi
-          python -c 'import os; from pathlib import Path; p = Path("target/ffmpeg-bundle").resolve(); open(os.environ["GITHUB_ENV"], "a", encoding="utf-8").write(f"LB_FFMPEG_DIR={p}\n")'
+          cache-key: native-build
       - name: Prepare bundled FFmpeg
         if: inputs.include_ffmpeg && matrix.arch != 'x86'
         timeout-minutes: 15
         env:
           GH_TOKEN: ${{ github.token }}
         run: python .github/scripts/fetch_ffmpeg.py
+      - name: Install Linux packaging tools
+        if: matrix.platform == 'linux'
+        shell: bash
+        run: |
+          sudo apt-get install --no-install-recommends -y rpm cpio dpkg-dev patchelf file desktop-file-utils
+      - uses: ./.github/actions/test-native
+      - name: Reuse the tested offline SWF runtime
+        shell: bash
+        run: python -c "import shutil; shutil.copytree('target/debug/runtime', 'target/release/runtime', dirs_exist_ok=True)"
       - name: Build and smoke-test installers and portable archives
         run: python .github/scripts/release.py build
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: payload-${{ inputs.artifact_prefix || 'build' }}-${{ matrix.target }}
-          path: target/release-assets/*
-          if-no-files-found: error
-          compression-level: 0
-          retention-days: 1
-  package:
-    name: Package ${{ matrix.platform }} ${{ matrix.arch }} / ${{ matrix.format }}
-    needs: [plan, build]
-    if: always() && !cancelled() && needs.plan.result == 'success' && needs.build.result == 'success'
-    strategy:
-      fail-fast: false
-      matrix: ${{ fromJSON(needs.plan.outputs.package) }}
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: 30
-    env:
-      RELEASE_TARGET: ${{ matrix.target }}
-      PACKAGE_FORMAT: ${{ matrix.format }}
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
-        with:
-          python-version: '3.12'
-      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
-        with:
-          name: payload-${{ inputs.artifact_prefix || 'build' }}-${{ matrix.target }}
-          path: target/build-input
-      - name: Install Linux packaging tools and runtime libraries
-        if: matrix.platform == 'linux' && matrix.format != 'setup' && matrix.format != 'portable' && matrix.format != 'server'
+      - name: Package every selected format from the local build
         env:
-          PACKAGE_ARCH: ${{ matrix.arch }}
-        run: |
-          suffix=''
-          if [[ "$PACKAGE_ARCH" == x86 ]]; then
-            sudo dpkg --add-architecture i386
-            suffix=':i386'
-          fi
-          sudo apt-get update
-          sudo apt-get install --no-install-recommends -y rpm cpio dpkg-dev patchelf file desktop-file-utils \
-            "libfontconfig1$suffix" "libxkbcommon0$suffix" "libxkbcommon-x11-0$suffix" \
-            "libwayland-client0$suffix" "libwayland-cursor0$suffix" "libwayland-egl1$suffix" \
-            "libgl1$suffix" "libssl3t64$suffix"
-      - name: Package selected format
-        env:
+          PACKAGE_FORMATS: ${{ matrix.formats }}
           GH_TOKEN: ${{ github.token }}
         run: python .github/scripts/package.py
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: contains(fromJSON(matrix.formats), 'setup')
         with:
-          name: ${{ inputs.artifact_prefix || 'build' }}-${{ matrix.target }}-${{ matrix.format }}${{ inputs.include_ffmpeg && '-with-ffmpeg' || '' }}
-          path: target/release-assets/*
+          name: ${{ matrix.platform }}-setup-${{ matrix.arch }}
+          path: target/packages/setup/*
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 14
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: contains(fromJSON(matrix.formats), 'portable')
+        with:
+          name: ${{ matrix.platform }}-portable-${{ matrix.arch }}
+          path: target/packages/portable/*
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 14
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: contains(fromJSON(matrix.formats), 'server')
+        with:
+          name: ${{ matrix.platform }}-server-${{ matrix.arch }}
+          path: target/packages/server/*
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 14
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: contains(fromJSON(matrix.formats), 'appimage')
+        with:
+          name: ${{ matrix.platform }}-appimage-${{ matrix.arch }}
+          path: target/packages/appimage/*
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 14
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: contains(fromJSON(matrix.formats), 'debpackage')
+        with:
+          name: ${{ matrix.platform }}-debpackage-${{ matrix.arch }}
+          path: target/packages/debpackage/*
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 14
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: contains(fromJSON(matrix.formats), 'rpmpackage')
+        with:
+          name: ${{ matrix.platform }}-rpmpackage-${{ matrix.arch }}
+          path: target/packages/rpmpackage/*
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 14
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: contains(fromJSON(matrix.formats), 'aur')
+        with:
+          name: ${{ matrix.platform }}-aur-${{ matrix.arch }}
+          path: target/packages/aur/*
           if-no-files-found: error
           compression-level: 0
           retention-days: 14

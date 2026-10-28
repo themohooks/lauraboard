@@ -74,5 +74,10 @@ runs:
     - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
       with:
         key: ${{ inputs.cache-key }}
-        cache-on-failure: 'false'
+        shared-key: ${{ inputs.cache-key }}-${{ runner.os }}-${{ runner.arch }}-${{ inputs.x86 }}
+        cache-workspace-crates: 'true'
+        workspaces: |
+          . -> target
+          . -> target/server
+        cache-on-failure: 'true'
         save-if: ${{ github.event_name != 'pull_request' }}

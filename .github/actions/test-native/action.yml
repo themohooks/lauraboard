@@ -1,0 +1,42 @@
+name: Test native LauraBoard
+description: Test desktop, server and system WebView on the current runner
+runs:
+  using: composite
+  steps:
+    - name: Test desktop workspace
+      shell: bash
+      run: cargo test --workspace --locked
+    - name: Test server without desktop features
+      shell: bash
+      run: >-
+        cargo test --locked --no-default-features
+        -p lauraboard -p lb-core -p lb-engine -p lb-api -p lb-media -p lb-gfx -p lb-winres -p xtask
+    - name: Test signed Mach-O dependency relocation
+      if: runner.os == 'macOS'
+      shell: bash
+      run: python3 .github/scripts/test_macos.py -v
+    - name: Build native WebView host
+      shell: bash
+      run: cargo build --locked -p lb-webview
+    - name: Prepare offline SWF player
+      shell: bash
+      run: python .github/scripts/fetch_web_runtime.py --output target/debug/runtime
+    - name: Install virtual display
+      if: runner.os == 'Linux'
+      shell: bash
+      run: sudo apt-get install --no-install-recommends -y xvfb xauth
+    - name: Test native HTML and SWF capture
+      if: runner.os != 'Linux'
+      shell: bash
+      run: |
+        cargo test --locked -p lb-webview --test native -- --ignored --test-threads=1
+        cargo test --locked -p lb-gfx web::tests -- --ignored --test-threads=1
+    - name: Test WebKitGTK on virtual display
+      if: runner.os == 'Linux'
+      shell: bash
+      env:
+        LC_ALL: C
+        GDK_BACKEND: x11
+      run: |
+        xvfb-run -a cargo test --locked -p lb-webview --test native -- --ignored --test-threads=1
+        xvfb-run -a cargo test --locked -p lb-gfx web::tests -- --ignored --test-threads=1

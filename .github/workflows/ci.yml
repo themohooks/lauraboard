@@ -5,6 +5,11 @@ on:
   pull_request:
   workflow_dispatch:
   workflow_call:
+    inputs:
+      checks_only:
+        description: Native tests run in the release build jobs instead
+        type: boolean
+        default: false
 permissions:
   contents: read
 concurrency:
@@ -43,29 +48,14 @@ jobs:
           go install github.com/rhysd/actionlint/cmd/actionlint@v1.7.12
           "$(go env GOPATH)/bin/actionlint" -color
   test:
-    name: Tests (${{ matrix.os }}, ${{ matrix.mode }})
+    name: Native tests (${{ matrix.os }})
+    if: ${{ !inputs.checks_only }}
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - os: ubuntu-24.04
-            mode: desktop
-          - os: windows-2022
-            mode: desktop
-          - os: ubuntu-24.04-arm
-            mode: desktop
-          - os: windows-11-arm
-            mode: desktop
-          - os: macos-15-intel
-            mode: desktop
-          - os: macos-15
-            mode: desktop
-          - os: macos-15-intel
-            mode: server
-          - os: macos-15
-            mode: server
+        os: [ubuntu-24.04, ubuntu-24.04-arm, windows-2022, windows-11-arm, macos-15-intel, macos-15]
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 120
+    timeout-minutes: 180
     env:
       CARGO_BUILD_JOBS: 1
       CARGO_PROFILE_TEST_DEBUG: 0
@@ -75,17 +65,8 @@ jobs:
           persist-credentials: false
       - uses: ./.github/actions/setup
         with:
-          cache-key: test-${{ matrix.mode }}
-      - name: Test desktop workspace
-        if: matrix.mode == 'desktop'
-        run: cargo test --workspace --locked
-      - name: Test server without desktop dependencies
-        if: matrix.mode == 'server'
-        run: >-
-          cargo test --locked --no-default-features
-          -p lauraboard -p lb-core -p lb-engine -p lb-api -p lb-media -p lb-gfx -p lb-winres -p xtask
-      - name: Check CLI without GUI
-        run: cargo check --locked -p lauraboard --no-default-features
+          cache-key: native
+      - uses: ./.github/actions/test-native
   msrv:
     name: Minimum Rust 1.92 (server)
     runs-on: ubuntu-24.04
@@ -135,60 +116,24 @@ jobs:
           if-no-files-found: ignore
           compression-level: 0
           retention-days: 7
-  webview:
-    name: Native WebView (${{ matrix.os }})
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [windows-2022, macos-15, ubuntu-24.04]
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: 60
-    env:
-      CARGO_BUILD_JOBS: 1
-      CARGO_PROFILE_TEST_DEBUG: 0
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - uses: ./.github/actions/setup
-        with:
-          cache-key: webview
-      - name: Build native WebView component
-        run: cargo build --locked -p lb-webview
-      - name: Prepare offline SWF player
-        run: python .github/scripts/fetch_web_runtime.py --output target/debug/runtime
-      - name: Install virtual display
-        if: runner.os == 'Linux'
-        run: sudo apt-get install --no-install-recommends -y xvfb xauth
-      - name: Test HTML animation, transparency and SWF
-        if: runner.os != 'Linux'
-        run: |
-          cargo test --locked -p lb-webview --test native -- --ignored --test-threads=1
-          cargo test --locked -p lb-gfx web::tests -- --ignored --test-threads=1
-      - name: Test WebKitGTK on virtual display
-        if: runner.os == 'Linux'
-        env:
-          # Exercise WebKit's POSIX language tags instead of hiding the Ruffle regression.
-          LC_ALL: C
-          GDK_BACKEND: x11
-        run: |
-          xvfb-run -a cargo test --locked -p lb-webview --test native -- --ignored --test-threads=1
-          xvfb-run -a cargo test --locked -p lb-gfx web::tests -- --ignored --test-threads=1
   status:
     name: CI passed
     if: always()
-    needs: [quality, test, msrv, media, webview]
+    needs: [quality, test, msrv, media]
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
       - name: Require every CI job to succeed
         env:
           RESULTS: ${{ toJSON(needs) }}
+          CHECKS_ONLY: ${{ inputs.checks_only }}
         run: |
           python3 - <<'PY'
           import json, os, sys
           results = json.loads(os.environ['RESULTS'])
-          failed = {name: job['result'] for name, job in results.items() if job['result'] != 'success'}
+          failed = {name: job['result'] for name, job in results.items()
+                    if job['result'] != 'success' and not (
+                        name == 'test' and os.environ['CHECKS_ONLY'] == 'true' and job['result'] == 'skipped')}
           for name, result in failed.items():
               print(f'::error::Required CI group "{name}" ended with "{result}". Open that group\'s job logs for the original error.')
           if failed:

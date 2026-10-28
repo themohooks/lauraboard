@@ -6,6 +6,7 @@ import os
 from pathlib import Path
 import shutil
 import subprocess
+import sys
 import tarfile
 import tempfile
 import urllib.request
@@ -38,7 +39,15 @@ def write(path, contents, mode=0o644):
 
 
 def run(*args, **kwargs):
-    return subprocess.run([str(arg) for arg in args], check=True, **kwargs)
+    try:
+        return subprocess.run([str(arg) for arg in args], check=True, **kwargs)
+    except subprocess.CalledProcessError as error:
+        # Commands such as dpkg-shlibdeps capture output for parsing. Keep
+        # their diagnostics visible in CI when dependency discovery fails.
+        for output in (error.stdout, error.stderr):
+            if output:
+                print(output.decode(errors="replace") if isinstance(output, bytes) else output, file=sys.stderr)
+        raise
 
 
 def unpack(archive, destination):
@@ -228,33 +237,58 @@ pkgname = lauraboard-bin
     release.archive(root, destination)
 
 
-def package():
+def package(input_directory=None, output_directory=None):
+    input_directory = Path(input_directory) if input_directory is not None else INPUT
+    output_directory = Path(output_directory) if output_directory is not None else release.ASSETS
     target = os.environ["RELEASE_TARGET"]
     fmt = os.environ["PACKAGE_FORMAT"]
     system, arch = release.TARGETS[target]
     version = release.version()
     prefix = f"lauraboard-{version}"
-    release.ASSETS.mkdir(parents=True, exist_ok=True)
-    if any(release.ASSETS.iterdir()):
+    output_directory.mkdir(parents=True, exist_ok=True)
+    if any(output_directory.iterdir()):
         raise ValueError("Package output must be empty")
     extension = ".zip" if system == "windows" else ".tar.gz"
     if fmt in ("setup", "portable", "server"):
         name = (f"{prefix}-{system}-{arch}-setup" + (".exe" if system == "windows" else "")) if fmt == "setup" else (
             f"{prefix}-{target}-{'desktop' if fmt == 'portable' else 'server'}{extension}")
-        shutil.copy2(INPUT / name, release.ASSETS / name)
+        shutil.copy2(input_directory / name, output_directory / name)
         return
     if system != "linux":
         raise ValueError(f"{fmt} requires Linux")
     extensions = {"appimage": "AppImage", "debpackage": "deb", "rpmpackage": "rpm", "aur": "aur.tar.gz"}
-    destination = release.ASSETS / f"{prefix}-{target}.{extensions[fmt]}"
+    destination = output_directory / f"{prefix}-{target}.{extensions[fmt]}"
     with tempfile.TemporaryDirectory(prefix="lauraboard-package-") as temporary:
         temporary = Path(temporary)
-        stage = unpack(INPUT / f"{prefix}-{target}-desktop.tar.gz", temporary / "unpacked")
+        stage = unpack(input_directory / f"{prefix}-{target}-desktop.tar.gz", temporary / "unpacked")
         {"appimage": appimage, "debpackage": deb, "rpmpackage": rpm, "aur": aur}[fmt](
             stage, destination, version, arch, temporary)
     if not destination.is_file() or not destination.stat().st_size:
         raise ValueError(f"Missing package: {destination}")
 
 
+def package_selected(formats):
+    if not isinstance(formats, list) or not formats or not all(isinstance(fmt, str) for fmt in formats):
+        raise ValueError("PACKAGE_FORMATS must contain distinct selected formats")
+    if len(set(formats)) != len(formats):
+        raise ValueError("PACKAGE_FORMATS must contain distinct selected formats")
+    for fmt in formats:
+        if fmt not in ("setup", "portable", "server", "appimage", "debpackage", "rpmpackage", "aur"):
+            raise ValueError(f"Unknown format: {fmt}")
+    previous = os.environ.get("PACKAGE_FORMAT")
+    try:
+        for fmt in formats:
+            os.environ["PACKAGE_FORMAT"] = fmt
+            package(release.ASSETS, release.ROOT / "target/packages" / fmt)
+    finally:
+        if previous is None:
+            os.environ.pop("PACKAGE_FORMAT", None)
+        else:
+            os.environ["PACKAGE_FORMAT"] = previous
+
+
 if __name__ == "__main__":
-    package()
+    if "PACKAGE_FORMATS" in os.environ:
+        package_selected(json.loads(os.environ["PACKAGE_FORMATS"]))
+    else:
+        package()

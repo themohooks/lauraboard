@@ -28,8 +28,9 @@ def copy_tools(destination, frameworks=None, notices=None):
         copied[source] = target
         shutil.copy2(source, target)
         target.chmod(0o755)
-        # Brew signatures cease to be valid after changing dylib paths.
-        subprocess.run(["codesign", "--remove-signature", str(target)], check=False, capture_output=True)
+        # Keep the original signature allocation while editing load commands.
+        # Removing it first can leave __LINKEDIT padding that install_name_tool
+        # rejects on ARM64. Replace the invalidated signature after all edits.
         load = run("otool", "-l", source, capture_output=True, text=True).stdout
         rpaths = []
         lines = load.splitlines()
@@ -37,6 +38,7 @@ def copy_tools(destination, frameworks=None, notices=None):
             if "cmd LC_RPATH" in line:
                 rpaths.append(lines[i + 2].strip().removeprefix("path ").split(" (offset", 1)[0])
         dependencies = run("otool", "-L", source, capture_output=True, text=True).stdout.splitlines()[1:]
+        edits = []
         for line in dependencies:
             name = line.strip().split(" (", 1)[0]
             if name.startswith(("/System/", "/usr/lib/")):
@@ -50,12 +52,15 @@ def copy_tools(destination, frameworks=None, notices=None):
             if dependency is None:
                 raise ValueError(f"Cannot resolve {name} needed by {source}")
             if dependency == source:
-                run("install_name_tool", "-id", f"@rpath/{target.name}", target)
+                edits.extend(("-id", f"@rpath/{target.name}"))
                 continue
             bundled = install(dependency, frameworks / dependency.name)
-            relative = os.path.relpath(bundled, target.parent)
-            run("install_name_tool", "-change", name, f"@loader_path/{relative}", target)
+            relative = Path(os.path.relpath(bundled, target.parent)).as_posix()
+            edits.extend(("-change", name, f"@loader_path/{relative}"))
+        if edits:
+            run("install_name_tool", *edits, target)
         run("codesign", "--force", "--sign", os.environ.get("MACOS_SIGNING_IDENTITY", "-"), target)
+        run("codesign", "--verify", "--strict", target)
         return target
 
     for tool in ("ffmpeg", "ffprobe"):

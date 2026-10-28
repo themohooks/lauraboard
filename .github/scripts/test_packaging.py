@@ -1,7 +1,10 @@
 import hashlib
 import importlib.util
+import io
+import json
 from pathlib import Path
 import sys
+import subprocess
 import tarfile
 import tempfile
 import unittest
@@ -27,9 +30,9 @@ class MatrixTests(unittest.TestCase):
         for build in builds:
             selected = [job["format"] for job in jobs if job["target"] == build["target"]]
             self.assertCountEqual(selected, build_matrix.FORMATS[build["platform"]])
+            self.assertEqual(json.loads(build["formats"]), selected)
         self.assertEqual(len({(job["target"], job["format"]) for job in jobs}), len(jobs))
-        self.assertEqual(len(matrix["ffmpeg"]["include"]), 1)
-        for section in ("build", "package", "ffmpeg"):
+        for section in ("build", "package"):
             self.assertFalse(any(job["target"] == "i686-pc-windows-msvc" for job in matrix[section]["include"]))
 
     def test_single_selection_and_native_i686_hosts(self):
@@ -47,6 +50,45 @@ class MatrixTests(unittest.TestCase):
 
 
 class PackageTests(unittest.TestCase):
+    def test_selected_formats_reuse_local_build_and_preserve_separate_artifacts(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            assets = root / "target/release-assets"
+            assets.mkdir(parents=True)
+            names = {
+                "setup": "lauraboard-1.2.3-windows-aarch64-setup.exe",
+                "portable": "lauraboard-1.2.3-aarch64-pc-windows-msvc-desktop.zip",
+                "server": "lauraboard-1.2.3-aarch64-pc-windows-msvc-server.zip",
+            }
+            for fmt, name in names.items():
+                (assets / name).write_bytes(fmt.encode())
+            with mock.patch.object(release, "ROOT", root), mock.patch.object(release, "ASSETS", assets), \
+                    mock.patch.object(release, "version", return_value="1.2.3"), \
+                    mock.patch.dict("os.environ", {"RELEASE_TARGET": "aarch64-pc-windows-msvc", "PACKAGE_FORMAT": "unchanged"}):
+                package.package_selected(list(names))
+                self.assertEqual(package.os.environ["PACKAGE_FORMAT"], "unchanged")
+            self.assertCountEqual([p.name for p in assets.iterdir()], names.values())
+            for fmt, name in names.items():
+                directory = root / "target/packages" / fmt
+                self.assertEqual([p.name for p in directory.iterdir()], [name])
+                self.assertEqual((directory / name).read_bytes(), fmt.encode())
+
+    def test_invalid_format_selection_does_not_start_packaging(self):
+        for formats in ([], ["setup", "setup"], ["setup", "bad"], "setup", [{}]):
+            with self.subTest(formats=formats), mock.patch.object(package, "package") as build:
+                with self.assertRaises(ValueError):
+                    package.package_selected(formats)
+                build.assert_not_called()
+
+    def test_dependency_scan_failure_keeps_captured_diagnostics(self):
+        failure = subprocess.CalledProcessError(2, ["dpkg-shlibdeps"], stderr="cannot find libwebkit2gtk-4.1.so.0")
+        diagnostics = io.StringIO()
+        with mock.patch.object(package.subprocess, "run", side_effect=failure), mock.patch.object(sys, "stderr", diagnostics):
+            with self.assertRaises(subprocess.CalledProcessError) as raised:
+                package.run("dpkg-shlibdeps", "-O", capture_output=True, text=True)
+        self.assertIs(raised.exception, failure)
+        self.assertIn("cannot find libwebkit2gtk-4.1.so.0", diagnostics.getvalue())
+
     def stage(self, root):
         stage = root / "stage"
         stage.mkdir()

@@ -1,4 +1,4 @@
-"""One compilation per target, then independent packaging jobs per format."""
+"""One native job per target, with all selected formats packaged locally."""
 
 import json
 import os
@@ -18,7 +18,7 @@ def matrices(platform="all", architecture="all", package_format="all", release_p
         raise ValueError(f"Unknown architecture: {architecture}")
     if package_format not in ("all", *set(sum(FORMATS.values(), []))):
         raise ValueError(f"Unknown format: {package_format}")
-    builds, packages, ffmpeg = [], [], []
+    builds, packages = [], []
     for system, formats in FORMATS.items():
         if platform not in ("all", system):
             continue
@@ -38,16 +38,14 @@ def matrices(platform="all", architecture="all", package_format="all", release_p
             runner = ("windows-11-arm" if label == "arm64" else "windows-2022") if system == "windows" else (
                 "ubuntu-24.04-arm" if label == "arm64" else "ubuntu-24.04")
             builds.append({"platform": system, "arch": label, "target": target, "os": runner,
-                           "toolchain": f"1.96.0-{target}" if label == "x86" else "1.96.0"})
+                           "toolchain": f"1.96.0-{target}" if label == "x86" else "1.96.0",
+                           "formats": json.dumps(selected)})
             # Packaging uses the matching Linux architecture (including i386 ELF tools).
             packages.extend({"target": target, "arch": label, "platform": system,
                              "os": runner, "format": fmt} for fmt in selected)
-            if label == "x86":
-                ffmpeg.append({"platform": system, "target": target})
     if not builds:
         raise ValueError(f"No packages for {platform}/{architecture}/{package_format}")
-    return {"build": {"include": builds}, "package": {"include": packages},
-            "ffmpeg": {"include": ffmpeg}, "has_x86": bool(ffmpeg)}
+    return {"build": {"include": builds}, "package": {"include": packages}}
 
 
 if __name__ == "__main__":
