@@ -83,7 +83,7 @@ fn run() -> Result<(), String> {
         event_loop.set_activation_policy(ActivationPolicy::Accessory);
         event_loop
     };
-    let mut window_builder = WindowBuilder::new()
+    let window_builder = WindowBuilder::new()
         .with_title("LauraBoard — вход в YouTube")
         .with_inner_size(tao::dpi::PhysicalSize::new(width, height))
         .with_visible(login)
@@ -91,10 +91,10 @@ fn run() -> Result<(), String> {
         .with_decorations(login)
         .with_resizable(login);
     #[cfg(windows)]
-    {
+    let window_builder = {
         use tao::platform::windows::WindowBuilderExtWindows;
-        window_builder = window_builder.with_skip_taskbar(!login);
-    }
+        window_builder.with_skip_taskbar(!login)
+    };
     let window = window_builder.build(&event_loop).map_err(|e| e.to_string())?;
     let profile = if login { Some(PathBuf::from(&args[2])) } else { None };
     if let Some(dir) = &profile {

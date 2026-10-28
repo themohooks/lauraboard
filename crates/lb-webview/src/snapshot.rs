@@ -102,12 +102,12 @@ pub fn mute(view: &wry::WebView) {
 pub const READY: &str = "({ready: document.readyState === 'complete' && (typeof window.__lbReady === 'undefined' || window.__lbReady === true), error: window.__lbError || null})";
 
 #[cfg(not(windows))]
-pub fn readiness(view: &wry::WebView, done: impl FnOnce(String) + Send + 'static) -> Result<(), String> {
+pub fn readiness(view: &wry::WebView, done: impl Fn(String) + Send + 'static) -> Result<(), String> {
     view.evaluate_script_with_callback(READY, done).map_err(|e| e.to_string())
 }
 
 #[cfg(windows)]
-pub fn readiness(view: &wry::WebView, done: impl FnOnce(String) + Send + 'static) -> Result<(), String> {
+pub fn readiness(view: &wry::WebView, done: impl Fn(String) + Send + 'static) -> Result<(), String> {
     use windows::core::{HSTRING, w};
     use wry::WebViewExtWindows;
     let params = HSTRING::from(serde_json::json!({"expression":READY,"returnByValue":true}).to_string());
