@@ -73,6 +73,8 @@ export component TextField inherits VerticalLayout {
                 }
             }
             Rectangle {
+                min-width: 0px;
+                clip: true;
                 horizontal-stretch: 1;
                 if root.text == "": Label {
                     width: 100%;

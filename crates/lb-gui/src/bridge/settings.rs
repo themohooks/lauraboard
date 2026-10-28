@@ -170,8 +170,10 @@ fn saved(c: &mut Ctx) {
     };
     let old_mode = t.get_mode();
     let old = if old_mode != mode && c.prefs.animations() && !ui.get_theme_transition() { ui.window().take_snapshot().ok() } else { None };
+    // Capture the resolved palette, not the first frame of each control's
+    // local color animation. Otherwise the reveal contains old label/track colors.
+    t.set_animations(false);
     t.set_mode(mode);
-    t.set_animations(c.prefs.animations());
     crate::notify::set_theme(mode);
     crate::notify::set_animations(c.prefs.animations());
     t.set_compact(c.prefs.compact);
@@ -189,6 +191,7 @@ fn saved(c: &mut Ctx) {
             })
         });
     }
+    t.set_animations(c.prefs.animations());
 }
 
 pub fn opened(c: &mut Ctx) {
