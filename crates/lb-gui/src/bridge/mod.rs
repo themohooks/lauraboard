@@ -15,8 +15,11 @@ pub mod air;
 pub mod archive;
 pub mod avatars;
 pub mod channels;
+pub mod download;
+pub mod editor;
 pub mod encoder;
 pub mod folders;
+mod forms;
 pub mod graphics;
 pub mod jobs;
 pub mod library;
@@ -35,6 +38,7 @@ pub mod sources;
 pub mod stats;
 pub mod system;
 pub mod thumbs;
+pub mod update;
 
 use std::cell::RefCell;
 use std::sync::Arc;
@@ -73,6 +77,9 @@ pub struct Ctx {
     pub air_marks: (Option<String>, Option<String>),
     pub pl: playlists::PlaylistsState,
     pub lib: library::LibraryState,
+    pub download: download::DownloadState,
+    /// Video editor.
+    pub ed: editor::EditorState,
     pub grid: schedule::ScheduleState,
     pub rules: rules::RulesState,
     pub gfx: graphics::GraphicsState,
@@ -86,6 +93,8 @@ pub struct Ctx {
     pub avatars: avatars::Avatars,
     pub system: system::SystemState,
     pub jobs: jobs::JobsState,
+    /// New versions from GitHub.
+    pub upd: update::UpdateState,
     /// The notification-area icon is up (closing hides the window).
     pub has_tray: bool,
     /// Channel configuration (admin only; `None` when not available).
@@ -147,6 +156,8 @@ pub fn start(ui: &AppWindow, opts: &GuiOptions, prefs: UiPrefs) {
         air_marks: (None, None),
         pl: Default::default(),
         lib: Default::default(),
+        download: Default::default(),
+        ed: Default::default(),
         grid: Default::default(),
         rules: Default::default(),
         gfx: Default::default(),
@@ -160,18 +171,22 @@ pub fn start(ui: &AppWindow, opts: &GuiOptions, prefs: UiPrefs) {
         notify: Default::default(),
         system: Default::default(),
         jobs: Default::default(),
+        upd: update::UpdateState::new(opts.embedded_engine),
         has_tray: false,
         channel_config: None,
         last_load: Default::default(),
     };
     ui.global::<App>().set_api_url(api.base.clone().into());
     CTX.with(|c| *c.borrow_mut() = Some(ctx));
+    forms::connect(ui);
     shell::connect(ui);
     channels::connect(ui);
     jobs::connect(ui);
     air::connect(ui);
     playlists::connect(ui);
     library::connect(ui);
+    download::connect(ui);
+    editor::connect(ui);
     media_display::connect(ui);
     folders::connect(ui);
     schedule::connect(ui);
@@ -186,8 +201,11 @@ pub fn start(ui: &AppWindow, opts: &GuiOptions, prefs: UiPrefs) {
     record::connect(ui);
     settings::connect(ui);
     picker::connect(ui);
+    update::connect(ui);
     with(|c| {
+        forms::refresh(c);
         shell::apply_prefs(c);
+        settings::apply_preview_rate(c);
         air::apply_prefs(c);
         playlists::apply_prefs(c);
         library::apply_prefs(c);
@@ -352,17 +370,20 @@ impl Ctx {
             }
             Msg::Schedules(s) => {
                 self.model.schedules = s;
+                forms::refresh(self);
                 air::config_changed(self);
                 schedule::reloaded(self);
             }
             Msg::Rules(r) => {
                 self.model.rules = r;
+                forms::refresh(self);
                 air::config_changed(self);
                 schedule::refresh(self);
                 rules::reloaded(self);
             }
             Msg::Graphics(g) => {
                 self.model.graphics = g;
+                forms::refresh(self);
                 air::status_changed(self);
                 graphics::reloaded(self);
                 scenes::graphics_changed(self);
@@ -512,6 +533,7 @@ impl Ctx {
             let cfg: Option<Value> = api.get(&format!("/channels/{c}/config")).ok();
             Ok(Msg::Apply(Box::new(move |c: &mut Ctx| {
                 c.channel_config = cfg;
+                settings::show(c);
                 if c.section() == "graphics" {
                     graphics::refresh(c);
                 }
@@ -674,6 +696,17 @@ mod tests {
             UiPrefs { persist: false, ..Default::default() },
         );
         with(|c| {
+            let ui = c.window().unwrap();
+            ui.window().set_size(slint::PhysicalSize::new(1400, 860));
+            let original = ui.window().size();
+            let base = c.system_scale;
+            for scale in [1.25, 1.5, 2.0, 1.0, 1.25, 1.0] {
+                c.prefs.scale = scale;
+                shell::apply_scale(c);
+                assert!((ui.window().scale_factor() - base * scale).abs() < 0.001);
+                assert_eq!(ui.window().size(), original, "UI zoom must not resize the native viewport");
+                assert_eq!(c.system_scale, base, "user zoom must never become the OS DPI");
+            }
             c.model.channel = Some("old".into());
             c.channel_selected("old");
             let old_epoch = c.worker.epoch();

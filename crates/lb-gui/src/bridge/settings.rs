@@ -2,6 +2,12 @@
 //! reset, connection and version info.
 
 use std::time::Duration;
+mod preview;
+pub use preview::apply_rate as apply_preview_rate;
+
+pub fn monitor_changed(c: &mut Ctx) {
+    preview::monitor_changed(c);
+}
 
 use slint::{ComponentHandle, SharedString};
 
@@ -16,6 +22,8 @@ const SCALE_DELAY: Duration = Duration::from_millis(400);
 
 #[derive(Default)]
 pub struct SettingsState {
+    preview_initialized: bool,
+    preview_monitor_hz: f64,
     scale_seq: u64,
     server_version: Option<String>,
     theme_timer: slint::Timer,
@@ -23,6 +31,26 @@ pub struct SettingsState {
 
 pub fn connect(ui: &AppWindow) {
     let g = ui.global::<Settings>();
+    g.on_preview_selected(|i| with(move |c| preview::select(c, i)));
+    g.on_preview_save(|| with(preview::save));
+    g.on_hls_save(|| {
+        with(|c| {
+            let Some(ui) = c.window() else { return };
+            let g = ui.global::<Settings>();
+            let Some(mut cfg) = super::sources::config(c) else { return };
+            let Ok(port) = g.get_hls_port().trim().parse::<u16>() else {
+                c.toast("Укажите порт 1024–65535", true);
+                return;
+            };
+            if port < 1024 {
+                c.toast("Укажите порт 1024–65535", true);
+                return;
+            }
+            cfg.local_hls.enabled = g.get_hls_enabled();
+            cfg.local_hls.port = port;
+            c.save_doc("/config", cfg, "Настройки локального HLS сохранены");
+        })
+    });
     g.on_theme_changed(|i| {
         with(move |c| {
             c.prefs.theme = match i {
@@ -116,6 +144,8 @@ pub fn connect(ui: &AppWindow) {
                     let section = c.prefs.section.clone();
                     let persist = c.prefs.persist;
                     c.prefs = UiPrefs { section, persist, ..UiPrefs::default() };
+                    c.settings.preview_initialized = false;
+                    apply_preview_rate(c);
                     reset_layout(c);
                     saved(c);
                     super::shell::apply_scale(c);
@@ -150,35 +180,30 @@ fn saved(c: &mut Ctx) {
         ThemeMode::Light => crate::shell::ThemeMode::Light,
         ThemeMode::Dark => crate::shell::ThemeMode::Dark,
     };
-    let snapshot =
-        if t.get_mode() != mode && c.prefs.animations() && !ui.get_theme_transition() { ui.window().take_snapshot().ok() } else { None };
+    let old_mode = t.get_mode();
+    let old = if old_mode != mode && c.prefs.animations() && !ui.get_theme_transition() { ui.window().take_snapshot().ok() } else { None };
+    // Capture the resolved palette, not the first frame of each control's
+    // local color animation. Otherwise the reveal contains old label/track colors.
+    t.set_animations(false);
     t.set_mode(mode);
-    t.set_animations(c.prefs.animations());
+    crate::notify::set_theme(mode);
+    crate::notify::set_animations(c.prefs.animations());
     t.set_compact(c.prefs.compact);
     show(c);
-    if was_dark != t.get_dark() {
-        if let Some(snapshot) = snapshot {
-            let mut reveal = crate::theme_transition::Reveal::new(snapshot);
-            ui.set_theme_snapshot(reveal.frame(0.0));
-            ui.set_theme_transition(true);
-            let start = std::time::Instant::now();
-            let weak = ui.as_weak();
-            c.settings.theme_timer.start(slint::TimerMode::Repeated, Duration::from_millis(16), move || {
-                let progress = (start.elapsed().as_secs_f32() / 0.48).min(1.0);
-                if let Some(ui) = weak.upgrade() {
-                    if progress < 1.0 {
-                        ui.set_theme_snapshot(reveal.frame(progress * progress * (3.0 - 2.0 * progress)));
-                    } else {
-                        ui.set_theme_transition(false);
-                        ui.set_theme_snapshot(slint::Image::default());
-                    }
+    if was_dark != t.get_dark()
+        && let Some(old) = old
+        && let Ok(new) = ui.window().take_snapshot()
+    {
+        crate::theme_transition::start(&ui, old, new, crate::pointer::last_click());
+        c.settings.theme_timer.start(slint::TimerMode::SingleShot, crate::theme_transition::DURATION, || {
+            with(|c| {
+                if let Some(ui) = c.window() {
+                    crate::theme_transition::finish(&ui);
                 }
-                if progress >= 1.0 {
-                    with(|c| c.settings.theme_timer.stop());
-                }
-            });
-        }
+            })
+        });
     }
+    t.set_animations(c.prefs.animations());
 }
 
 pub fn opened(c: &mut Ctx) {
@@ -204,6 +229,7 @@ pub fn opened(c: &mut Ctx) {
 
 /// Preferences and connection facts into the screen.
 pub fn show(c: &mut Ctx) {
+    preview::show(c);
     let Some(ui) = c.window() else { return };
     let g = ui.global::<Settings>();
     g.set_theme(match c.prefs.theme {
@@ -212,6 +238,17 @@ pub fn show(c: &mut Ctx) {
         ThemeMode::Dark => 2,
     });
     g.set_scale((c.prefs.scale * 100.0).round() as i32);
+    if let Some(cfg) = super::sources::config(c) {
+        g.set_hls_can_edit(true);
+        g.set_hls_enabled(cfg.local_hls.enabled);
+        g.set_hls_port(cfg.local_hls.port.to_string().into());
+        let base = ui.global::<App>().get_api_url();
+        let authority = base.split_once("://").map_or(base.as_str(), |(_, rest)| rest).split('/').next().unwrap_or("127.0.0.1");
+        let host = if authority.starts_with('[') { "127.0.0.1" } else { authority.split(':').next().unwrap_or("127.0.0.1") };
+        g.set_hls_url(format!("http://{host}:{}/index.m3u8", cfg.local_hls.port).into());
+    } else {
+        g.set_hls_can_edit(false);
+    }
     g.set_compact(c.prefs.compact);
     g.set_motion(match c.prefs.motion {
         MotionMode::System => 0,

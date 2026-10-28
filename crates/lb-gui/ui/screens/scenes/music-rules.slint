@@ -1,3 +1,4 @@
+import { CategorySelect, CategoryMultiSelect } from "../../components/category-select.slint";
 // Music of a scene: rules checked top to bottom, the first one that fits
 // the airing's weekday and time plays. A rule takes listed tracks and / or
 // a library folder or category, in order, shuffled or one random track.
@@ -160,7 +161,7 @@ component MusicCard inherits Rectangle {
                     Scenes.music-edited(root.r.index, "folder", i == 0 ? "" : v);
                 }
             }
-            TextField {
+            CategoryMultiSelect {
                 horizontal-stretch: 1;
                 label: "Или категории";
                 text: root.r.category;

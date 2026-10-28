@@ -65,6 +65,7 @@ thread_local! {
     /// Set before the first notice: brings the main window up.
     static ON_OPEN: RefCell<Option<Rc<dyn Fn()>>> = const { RefCell::new(None) };
     static THEME: RefCell<ThemeMode> = const { RefCell::new(ThemeMode::System) };
+    static ANIMATIONS: std::cell::Cell<bool> = const { std::cell::Cell::new(true) };
 }
 
 /// What a click on a card does (show the main window).
@@ -78,6 +79,15 @@ pub fn set_theme(mode: ThemeMode) {
     POPUP.with(|p| {
         if let Some(p) = p.borrow().as_ref() {
             p.win.global::<Theme>().set_mode(mode);
+        }
+    });
+}
+
+pub fn set_animations(enabled: bool) {
+    ANIMATIONS.with(|a| a.set(enabled));
+    POPUP.with(|p| {
+        if let Some(p) = p.borrow().as_ref() {
+            p.win.global::<Theme>().set_animations(enabled);
         }
     });
 }
@@ -125,6 +135,7 @@ pub fn show(n: Notice) {
 fn create() -> Result<Popup, String> {
     let win = place::create().map_err(|e| e.to_string())?;
     win.global::<Theme>().set_mode(THEME.with(|t| *t.borrow()));
+    win.global::<Theme>().set_animations(ANIMATIONS.with(|a| a.get()));
     let model = Rc::new(VecModel::<NoticeRow>::default());
     let g = win.global::<Popups>();
     g.set_items(model.clone().into());

@@ -23,7 +23,7 @@ pub async fn version() -> Json<serde_json::Value> {
     Json(serde_json::json!({ "name": "lauraboard", "version": env!("CARGO_PKG_VERSION"), "api": 1 }))
 }
 
-/// Host metrics: CPU, memory, disks, network, LauraBoard and FFmpeg processes.
+/// Application process-tree metrics and instrumented payload traffic.
 pub async fn system(c: Caller) -> ApiResult<Json<lb_engine::system::SystemInfo>> {
     c.require(Role::Viewer)?;
     let info = tokio::task::spawn_blocking(lb_engine::system::snapshot)

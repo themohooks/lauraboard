@@ -1,3 +1,4 @@
+import { NameIdFields } from "../../components/name-id-fields.slint";
 // "New playlist" dialog with inline id validation.
 
 import { Theme } from "../../theme/tokens.slint";
@@ -17,28 +18,14 @@ export component CreatePlaylistDialog inherits Dialog {
         Pl.create-open = false;
     }
 
-    TextField {
-        label: "Идентификатор";
-        placeholder: "morning-news";
-        mono: true;
-        text <=> Pl.new-id;
+    NameIdFields {
+        name <=> Pl.new-name;
+        identifier <=> Pl.new-id;
         error: Pl.new-id-error;
-        supporting: "Латиница, цифры, «-» и «_»";
-        container-color: Theme.color.surface-container-high;
-        edited(t) => {
-            Pl.validate-new-id(t);
-        }
-    }
-    TextField {
-        label: "Название";
-        placeholder: "Утренние новости";
-        text <=> Pl.new-name;
-        container-color: Theme.color.surface-container-high;
-        accepted => {
-            if Pl.new-id != "" && Pl.new-id-error == "" {
-                Pl.create();
-            }
-        }
+        reset: Pl.create-open;
+
+        id-edited(t) => { Pl.validate-new-id(t); }
+        accepted => { if Pl.new-id != "" && Pl.new-id-error == "" { Pl.create(); } }
     }
     DialogActions {
         Button {

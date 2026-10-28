@@ -1,6 +1,17 @@
 // Data contract of the settings screen (src/bridge/settings.rs).
 
 export global Settings {
+    in property <[string]> preview-options;
+    in-out property <int> preview-preset;
+    in-out property <string> preview-fps: "15";
+    in property <string> preview-info;
+    callback preview-selected(int);
+    callback preview-save();
+    in-out property <bool> hls-enabled;
+    in-out property <string> hls-port: "8788";
+    in property <bool> hls-can-edit;
+    in property <string> hls-url;
+    callback hls-save();
     // 0 system, 1 light, 2 dark
     in-out property <int> theme;
     // 80 … 200 %

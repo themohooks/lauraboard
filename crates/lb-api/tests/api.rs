@@ -370,3 +370,35 @@ async fn channel_export_and_import() {
     assert!(cfg.contains("Восстановленный") && !cfg.contains("rtmp://x/key"), "outputs are not exported by default: {cfg}");
     assert!(!std::fs::read_dir(dir.path().join("channels")).unwrap().flatten().any(|e| e.file_name().to_string_lossy().starts_with('.')));
 }
+
+#[tokio::test]
+async fn downloads_reject_bad_requests() {
+    let dir = project(vec![]);
+    let app = app(&dir).await;
+    let (st, body) = call(&app, "GET", "/api/v1/tools/ytdlp", None, None).await;
+    assert_eq!(st, StatusCode::OK, "{body}");
+    assert!(body.contains("\"available\""), "{body}");
+    // checked before yt-dlp is looked for: no program is ever started with these
+    let (st, _) = call(&app, "POST", "/api/v1/channels/main/media/download", None, Some(r#"{"url":"file:///etc/passwd"}"#)).await;
+    assert_eq!(st, StatusCode::BAD_REQUEST);
+    let (st, _) =
+        call(&app, "POST", "/api/v1/channels/main/media/download", None, Some(r#"{"url":"https://example.com/v","quality":"--exec x"}"#))
+            .await;
+    assert_eq!(st, StatusCode::BAD_REQUEST);
+    let (st, _) = call(&app, "POST", "/api/v1/channels/nope/media/download/probe", None, Some(r#"{"url":"https://example.com/v"}"#)).await;
+    assert_eq!(st, StatusCode::NOT_FOUND);
+}
+
+#[tokio::test]
+async fn editor_checks_the_item() {
+    let dir = project(vec![]);
+    let app = app(&dir).await;
+    let (st, _) = call(&app, "POST", "/api/v1/channels/main/media/nope/edit", None, Some("{}")).await;
+    assert_eq!(st, StatusCode::NOT_FOUND);
+    // "a" was never probed: no video known, nothing is started
+    let (st, body) = call(&app, "POST", "/api/v1/channels/main/media/a/edit", None, Some(r#"{"spec":{"start_ms":1000}}"#)).await;
+    assert_eq!(st, StatusCode::BAD_REQUEST, "{body}");
+    assert!(body.contains("no video"), "{body}");
+    let (st, _) = call(&app, "POST", "/api/v1/channels/main/media/a/edit/frame.jpg?at=5000", None, Some("{}")).await;
+    assert_eq!(st, StatusCode::BAD_REQUEST);
+}

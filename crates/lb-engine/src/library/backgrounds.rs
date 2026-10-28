@@ -27,6 +27,7 @@ use crate::jobs::JobCtl;
 pub const DIR: &str = "backgrounds";
 /// Library folders of the items.
 pub const STILLS_FOLDER: &str = "Фоны/Картинки";
+pub const MAINTENANCE_FOLDER: &str = "Фоны/Картинки/Настроечные таблицы";
 pub const LOOPS_FOLDER: &str = "Фоны/Видео";
 /// Plate textures: `channels/<id>/graphics/backgrounds/`.
 pub const PLATES_DIR: &str = "graphics/backgrounds";
@@ -38,6 +39,8 @@ macro_rules! embed {
 }
 
 /// Embedded files: (stem, bytes).
+const TEST_FILES: Files = embed!("stills/maintenance", "png": "test-color-bars", "test-geometry");
+
 type Files = &'static [(&'static str, &'static [u8])];
 
 const STILL_FILES: Files = embed!("stills", "jpg":
@@ -93,7 +96,10 @@ pub fn spawn(engine: &crate::Engine, h: ChannelHandle) -> u64 {
 
 /// The channel never got its backgrounds (new or older channel).
 pub fn missing(h: &ChannelHandle) -> bool {
-    !h.read(|d| d.dir.join(MEDIA_DIR).join(DIR)).exists()
+    h.read(|d| {
+        TEST_FILES.iter().any(|(stem, _)| !d.dir.join(MEDIA_DIR).join(DIR).join("maintenance").join(format!("{stem}.png")).is_file())
+            || !d.dir.join(MEDIA_DIR).join(DIR).exists()
+    })
 }
 
 /// Job body: copy the backgrounds into channel `h` and add them to its
@@ -103,7 +109,7 @@ pub async fn install(h: ChannelHandle, ffprobe: String, ctl: JobCtl) -> Result<V
     let channel_dir = h.read(|d| d.dir.clone());
     let dir = channel_dir.join(MEDIA_DIR).join(DIR);
     std::fs::create_dir_all(&dir).map_err(|e| format!("{}: {e}", dir.display()))?;
-    let total = (stills::STILLS.len() + LOOPS.len() + 1) as f32;
+    let total = (stills::STILLS.len() + LOOPS.len() + TEST_FILES.len() + 1) as f32;
     let mut step = 0.0;
     let mut added: Vec<String> = Vec::new();
     let mut errors: Vec<String> = Vec::new();
@@ -130,6 +136,26 @@ pub async fn install(h: ChannelHandle, ffprobe: String, ctl: JobCtl) -> Result<V
         if register(&h, item).await? {
             added.push(b.stem.to_string());
         }
+    }
+    std::fs::create_dir_all(dir.join("maintenance")).map_err(|e| e.to_string())?;
+    for (stem, data) in TEST_FILES {
+        ctl.check()?;
+        let path = dir.join("maintenance").join(format!("{stem}.png"));
+        put(&path, data)?;
+        let mut item = MediaItem::new(*stem, paths::to_stored(&root, &path), MediaKind::Image, Dur::secs(60));
+        item.title = if *stem == "test-color-bars" {
+            "Настроечная таблица: цветовые полосы"
+        } else {
+            "Настроечная таблица: геометрия и разрешение"
+        }
+        .into();
+        item.folder = MAINTENANCE_FOLDER.into();
+        item.category = Some("maintenance".into());
+        if register(&h, item).await? {
+            added.push(stem.to_string());
+        }
+        step += 1.0;
+        ctl.progress(step / total, "Настроечные таблицы");
     }
     for l in LOOPS {
         ctl.check()?;

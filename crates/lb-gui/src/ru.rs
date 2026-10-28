@@ -53,6 +53,29 @@ const TABLE: &[(&str, &str)] = &[
     ("unsupported frame size {}", "Неподдерживаемый размер кадра {0}"),
     ("output '{}' unreachable: {}", "Выход «{0}» не подключается ({1}) — повтор каждые 5 с, остальные выходы и предпросмотр работают"),
     ("invalid clock format '{}'", "Неверный формат часов «{0}» (например, %H:%M или %d.%m.%Y)"),
+    // downloads from sites (yt-dlp)
+    ("yt-dlp is not installed", "yt-dlp не установлен на сервере"),
+    ("nothing to download", "Нечего скачивать"),
+    ("not a web link (http:// or https://)", "Это не ссылка на сайт (нужна http:// или https://)"),
+    ("not a web link: {}", "Это не ссылка на сайт: {0}"),
+    ("unknown quality '{}'", "Неизвестное качество «{0}»"),
+    ("the site did not answer in time", "Сайт не ответил вовремя — попробуйте ещё раз"),
+    ("the playlist has no videos", "В плейлисте нет видео"),
+    ("yt-dlp failed", "yt-dlp не смог скачать ролик"),
+    ("yt-dlp did not report the file", "yt-dlp не сообщил, куда сохранил файл"),
+    ("no official yt-dlp build for this platform", "Для этой системы нет готовой сборки yt-dlp — установите его вручную"),
+    ("the downloaded yt-dlp does not start", "Скачанный yt-dlp не запускается"),
+    ("{}: checksum mismatch (download damaged or replaced)", "{0}: контрольная сумма не совпала — файл повреждён или подменён"),
+    ("{}: no checksum in SHA2-256SUMS", "{0}: нет контрольной суммы в SHA2-256SUMS"),
+    // video editor
+    ("only video files can be edited", "Монтаж доступен только для видеофайлов"),
+    (
+        "only copies in the channel's storage can be replaced; save as a new item",
+        "Заменить можно только копию в хранилище канала — сохраните результат новым роликом",
+    ),
+    ("the kept part is too short", "Оставленный фрагмент слишком короткий"),
+    ("too many hidden areas (16 at most)", "Слишком много областей (не больше 16)"),
+    ("ffmpeg: {}", "Ошибка обработки видео (ffmpeg): {0}"),
     // command results
     ("started", "Вещание запущено"),
     ("stopped", "Вещание остановлено"),
@@ -90,7 +113,11 @@ const TABLE: &[(&str, &str)] = &[
 /// Russian version of a server message, or the message itself.
 pub fn server(msg: &str) -> String {
     let msg = msg.trim();
-    TABLE.iter().find_map(|(pat, ru)| capture(pat, msg).map(|caps| fill(ru, &caps))).unwrap_or_else(|| msg.to_string())
+    TABLE
+        .iter()
+        .find_map(|(pat, ru)| capture(pat, msg).map(|caps| fill(ru, &caps)))
+        .unwrap_or_else(|| msg.to_string())
+        .replace("yt-dlp", "компонент загрузки")
 }
 
 /// Text in place of each `{}` of `pat`, if `s` has its shape.

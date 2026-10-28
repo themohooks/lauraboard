@@ -333,5 +333,10 @@ impl Runtime {
 }
 
 fn encoder_settings_changed(a: &ChannelConfig, b: &ChannelConfig) -> bool {
-    a.video != b.video || a.audio != b.audio || a.encoder != b.encoder || a.outputs != b.outputs || a.preview != b.preview
+    a.local_hls.enabled != b.local_hls.enabled
+        || a.video != b.video
+        || a.audio != b.audio
+        || a.encoder != b.encoder
+        || a.outputs != b.outputs
+        || a.preview != b.preview
 }

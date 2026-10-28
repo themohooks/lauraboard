@@ -57,11 +57,18 @@ jobs:
           - os: windows-11-arm
             mode: desktop
           - os: macos-15-intel
+            mode: desktop
+          - os: macos-15
+            mode: desktop
+          - os: macos-15-intel
             mode: server
           - os: macos-15
             mode: server
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 60
+    timeout-minutes: 120
+    env:
+      CARGO_BUILD_JOBS: 1
+      CARGO_PROFILE_TEST_DEBUG: 0
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -128,10 +135,49 @@ jobs:
           if-no-files-found: ignore
           compression-level: 0
           retention-days: 7
+  webview:
+    name: Native WebView (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-2022, macos-15, ubuntu-24.04]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    env:
+      CARGO_BUILD_JOBS: 1
+      CARGO_PROFILE_TEST_DEBUG: 0
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+        with:
+          cache-key: webview
+      - name: Build native WebView component
+        run: cargo build --locked -p lb-webview
+      - name: Prepare offline SWF player
+        run: python .github/scripts/fetch_web_runtime.py --output target/debug/runtime
+      - name: Install virtual display
+        if: runner.os == 'Linux'
+        run: sudo apt-get install --no-install-recommends -y xvfb xauth
+      - name: Test HTML animation, transparency and SWF
+        if: runner.os != 'Linux'
+        run: |
+          cargo test --locked -p lb-webview --test native -- --ignored --test-threads=1
+          cargo test --locked -p lb-gfx web::tests -- --ignored --test-threads=1
+      - name: Test WebKitGTK on virtual display
+        if: runner.os == 'Linux'
+        env:
+          # Exercise WebKit's POSIX language tags instead of hiding the Ruffle regression.
+          LC_ALL: C
+          GDK_BACKEND: x11
+        run: |
+          xvfb-run -a cargo test --locked -p lb-webview --test native -- --ignored --test-threads=1
+          xvfb-run -a cargo test --locked -p lb-gfx web::tests -- --ignored --test-threads=1
   status:
     name: CI passed
     if: always()
-    needs: [quality, test, msrv, media]
+    needs: [quality, test, msrv, media, webview]
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:

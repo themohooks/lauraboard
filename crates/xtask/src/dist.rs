@@ -21,7 +21,8 @@ const EXE: &str = std::env::consts::EXE_SUFFIX;
 
 /// Image for `--linux`; the cargo registry is cached in a named volume.
 const LINUX_IMAGE: &str = "rust:1-bookworm";
-const LINUX_DEPS: &str = "libfontconfig-dev libxkbcommon-dev libxkbcommon-x11-dev libwayland-dev libgl1-mesa-dev pkg-config";
+const LINUX_DEPS: &str =
+    "libfontconfig-dev libxkbcommon-dev libxkbcommon-x11-dev libwayland-dev libgl1-mesa-dev libgtk-3-dev libwebkit2gtk-4.1-dev pkg-config";
 
 pub fn run(args: &[String]) -> Result<(), String> {
     match args.first().map(String::as_str) {
@@ -54,15 +55,43 @@ fn build() -> Result<(), String> {
     let root = crate::root();
     let version = app_version(&root)?;
     let (os, arch) = (std::env::consts::OS, std::env::consts::ARCH);
+    if os == "macos" {
+        let host = Command::new("rustc").args(["-vV"]).output().map_err(|e| e.to_string())?;
+        let text = String::from_utf8_lossy(&host.stdout);
+        let target = text.lines().find_map(|line| line.strip_prefix("host: ")).ok_or("rustc host unavailable")?;
+        let python = std::env::var_os("PYTHON").unwrap_or_else(|| "python3".into());
+        let status = Command::new(python)
+            .arg(root.join(".github/scripts/release.py"))
+            .arg("build")
+            .env("RELEASE_TARGET", target)
+            .status()
+            .map_err(|e| e.to_string())?;
+        return if status.success() { Ok(()) } else { Err("macOS packaging failed".into()) };
+    }
+
     let target = std::env::var_os("CARGO_TARGET_DIR").map(PathBuf::from).unwrap_or_else(|| root.join("target"));
     let release = target.join("release");
     let dist = target.join("dist");
     let stage = dist.join("stage");
 
     step(1, &format!("сборка LauraBoard {version} ({os}/{arch})"));
-    cargo(&root, &["build", "--locked", "--release", "-p", "lauraboard", "-p", "lb-installer"], None)?;
+    cargo(&root, &["build", "--locked", "--release", "-p", "lauraboard", "-p", "lb-installer", "-p", "lb-webview"], None)?;
 
     step(2, "упаковка");
+    let runtime = release.join("runtime");
+    {
+        let python = std::env::var_os("PYTHON").unwrap_or_else(|| if cfg!(windows) { "python" } else { "python3" }.into());
+        let status = Command::new(python)
+            .arg(root.join(".github/scripts/fetch_web_runtime.py"))
+            .arg("--output")
+            .arg(&runtime)
+            .args(["--system", os, "--arch", arch])
+            .status()
+            .map_err(|e| format!("web runtime: {e}"))?;
+        if !status.success() {
+            return Err("не удалось подготовить движок LauraBoard".into());
+        }
+    }
     let _ = std::fs::remove_dir_all(&stage);
     let binary = format!("lauraboard{EXE}");
     let uninstaller = format!("uninstall{EXE}");
@@ -70,14 +99,17 @@ fn build() -> Result<(), String> {
     let gui_assets = root.join("crates/lb-gui/assets");
     let mut files: Vec<(PathBuf, String)> = vec![
         (release.join(&binary), binary.clone()),
+        (release.join(format!("lauraboard-webview{EXE}")), format!("lauraboard-webview{EXE}")),
         (release.join(format!("lauraboard-setup{EXE}")), uninstaller.clone()),
         (assets.join("lauraboard.svg"), "lauraboard.svg".into()),
-        (root.join("README.md"), "README.md".into()),
         (gui_assets.join("fonts/OFL-Roboto.txt"), "licenses/OFL-Roboto.txt".into()),
         (gui_assets.join("fonts/OFL-RobotoMono.txt"), "licenses/OFL-RobotoMono.txt".into()),
         (gui_assets.join("icons/LICENSE"), "licenses/MaterialSymbols-Apache-2.0.txt".into()),
     ];
-    collect_files(&root, &root.join("docs"), &mut files)?;
+    if runtime.is_dir() {
+        collect_files(&release, &runtime, &mut files)?;
+    }
+    // README and docs/ are read on GitHub: the installed app needs neither
     if let Some(bundle) = std::env::var_os("LB_FFMPEG_DIR") {
         let bundle = PathBuf::from(bundle);
         for tool in ["ffmpeg", "ffprobe"] {
@@ -174,26 +206,19 @@ fn pack(stage: &Path, files: &[(PathBuf, String)], manifest: &serde_json::Value,
     let err = |e: zip::result::ZipError| e.to_string();
     zip.start_file("manifest.json", base.unix_permissions(0o644)).map_err(err)?;
     zip.write_all(serde_json::to_string_pretty(manifest).unwrap().as_bytes()).map_err(|e| e.to_string())?;
-    for (_, rel) in files {
+    for (source, rel) in files {
         let mode = if executables.contains(&rel.as_str()) { 0o755 } else { 0o644 };
+        #[cfg(unix)]
+        let mode = {
+            use std::os::unix::fs::PermissionsExt;
+            mode | (std::fs::metadata(source).map_err(|e| e.to_string())?.permissions().mode() & 0o111)
+        };
+        #[cfg(not(unix))]
+        let _ = source;
         zip.start_file(rel.as_str(), base.unix_permissions(mode).large_file(false)).map_err(err)?;
         let mut src = std::fs::File::open(stage.join(rel)).map_err(|e| e.to_string())?;
         std::io::copy(&mut src, &mut zip).map_err(|e| e.to_string())?;
     }
     zip.finish().map_err(err)?;
     Ok(())
-}
-
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn release_documentation_includes_linked_guides_and_screenshots() {
-        let root = crate::root();
-        let mut files = Vec::new();
-        super::collect_files(&root, &root.join("docs"), &mut files).unwrap();
-        for linked in ["docs/guides/first-broadcast.md", "docs/screenshots/interface/clock-properties-light.png"] {
-            assert!(files.iter().any(|(source, name)| name == linked && source.is_file()), "missing offline document: {linked}");
-        }
-        assert!(files.iter().all(|(_, name)| !name.contains('\\')));
-    }
 }

@@ -12,6 +12,7 @@
 //! * [`job`] — rundown item → decoder command line
 //! * [`vars`] — graphics template variables
 
+pub mod assets;
 pub mod avatar;
 pub mod commands;
 pub mod events;

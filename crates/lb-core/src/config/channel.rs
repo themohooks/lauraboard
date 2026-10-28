@@ -330,7 +330,25 @@ impl Default for GraphicsOutput {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct LocalHlsConfig {
+    #[serde(default)]
+    pub enabled: bool,
+    #[serde(default = "hls_port")]
+    pub port: u16,
+}
+fn hls_port() -> u16 {
+    8788
+}
+impl Default for LocalHlsConfig {
+    fn default() -> Self {
+        Self { enabled: false, port: hls_port() }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ChannelConfig {
+    #[serde(default)]
+    pub local_hls: LocalHlsConfig,
     pub id: String,
     #[serde(default)]
     pub name: String,
@@ -362,6 +380,7 @@ pub struct ChannelConfig {
 impl ChannelConfig {
     pub fn new(id: &str) -> Self {
         ChannelConfig {
+            local_hls: LocalHlsConfig::default(),
             id: id.into(),
             name: id.into(),
             enabled: true,

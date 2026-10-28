@@ -10,9 +10,11 @@
 //! * [`record`] — recorder: files from the encoder's local feed
 //! * [`color`] — colour string conversion
 //! * [`loops`] — ready-made seamless background videos
+//! * [`edit`] — video editor: render an edited file, preview frames
 
 pub mod color;
 pub mod decoder;
+pub mod edit;
 pub mod encoder;
 pub mod filters;
 pub mod loops;

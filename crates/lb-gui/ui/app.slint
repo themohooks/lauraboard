@@ -1,3 +1,4 @@
+import { ScrollView } from "std-widgets.slint";
 // Main window of the Material 3 operator GUI: app bar, navigation,
 // section host, global overlays (snackbar, confirmation) and shortcuts.
 
@@ -31,6 +32,8 @@ import { PlaylistsScreen } from "screens/playlists/playlists.slint";
 import { CreatePlaylistDialog } from "screens/playlists/create-dialog.slint";
 import { LibraryScreen } from "screens/library/library.slint";
 import { ImportDialog } from "screens/library/import-dialog.slint";
+import { DownloadDialog } from "screens/library/download-dialog.slint";
+import { EditorDialog } from "screens/editor/editor-dialog.slint";
 import { FolderDialog } from "screens/library/folder-panel.slint";
 import { FontDialog } from "screens/graphics/font-dialog.slint";
 import { TextureDialog } from "screens/graphics/texture-dialog.slint";
@@ -46,11 +49,14 @@ import { SettingsScreen } from "screens/settings/settings.slint";
 import { ScenesScreen } from "screens/scenes/scenes.slint";
 import { WelcomeScreen } from "screens/welcome/welcome.slint";
 
+export { FormChoices } from "components/name-id-fields.slint";
 export { Theme, ThemeMode } from "theme/tokens.slint";
 export { App, StatusInfo } from "state/app-state.slint";
 export { Air, NowInfo, NextInfo, QueueRow, MediaPick, GfxRow, LogRow } from "state/air-state.slint";
 export { Pl, PlaylistItem, EntryRow, EntryProps } from "state/playlists-state.slint";
 export { Lib, MediaRow, TileLine, MediaEdit, FolderRow } from "state/library-state.slint";
+export { Dl } from "state/download-state.slint";
+export { Ved, EditRegion } from "state/editor-state.slint";
 export { Grid, BlockRow, BlockDetails, DayChip } from "state/schedule-state.slint";
 export { TimelineSegment, DayRow } from "components/timeline.slint";
 export { Rules, RuleRow } from "state/rules-state.slint";
@@ -59,6 +65,7 @@ export { Log } from "state/log-state.slint";
 export { Stats, StatRow, Kpi, SysCard, SysDisk, SysProc, SysLine } from "state/stats-state.slint";
 export { Src, SceneRow, OutRow, StreamRow, Fact } from "state/sources-state.slint";
 export { Settings } from "state/settings-state.slint";
+export { Upd } from "state/update-state.slint";
 export { Chan, ChannelRow } from "state/channels-state.slint";
 export { Jobs, JobRow } from "state/jobs-state.slint";
 export { Picker, PickRow } from "state/picker-state.slint";
@@ -70,8 +77,14 @@ export component AppWindow inherits Window {
     // kept for the snapshot tool; mirrors App.section
     in-out property <string> section <=> App.section;
     in-out property <string> gallery-page;
+    // theme change: the old theme's picture, the new one growing over it
+    // in a circle from the clicked point (theme_transition.rs)
     in-out property <image> theme-snapshot;
+    in-out property <image> theme-next;
     in-out property <bool> theme-transition: false;
+    in-out property <length> theme-origin-x;
+    in-out property <length> theme-origin-y;
+    in-out property <length> theme-radius;
 
     // below this width the drawer collapses into a rail; updated on resize
     // (a plain binding would loop through the window's layout constraints)
@@ -85,8 +98,8 @@ export component AppWindow inherits Window {
     icon: @image-url("../assets/app/lauraboard.svg");
     preferred-width: 1400px;
     preferred-height: 860px;
-    min-width: 960px;
-    min-height: 600px;
+    min-width: 640px / App.ui-scale;
+    min-height: 360px / App.ui-scale;
     background: Theme.color.surface;
     default-font-family: Theme.font;
     default-font-size: Theme.body-medium.size;
@@ -95,6 +108,7 @@ export component AppWindow inherits Window {
         App.navigate(id);
     }
 
+    // any layout: keys.rs turns Ctrl+«ы» into Ctrl+S before it gets here
     keys := FocusScope {
         key-pressed(e) => {
             if e.modifiers.control && !e.modifiers.shift && !e.modifiers.alt {
@@ -109,24 +123,24 @@ export component AppWindow inherits Window {
                     root.go(App.nav-items[9].id);
                     return accept;
                 }
-                if e.text == "s" || e.text == "ы" {
+                if e.text == "s" {
                     App.shortcut("save");
                     return accept;
                 }
-                if e.text == "z" || e.text == "я" {
+                if e.text == "z" {
                     App.shortcut("undo");
                     return accept;
                 }
-                if e.text == "y" || e.text == "н" {
+                if e.text == "y" {
                     App.shortcut("redo");
                     return accept;
                 }
-                if e.text == "f" || e.text == "а" {
+                if e.text == "f" {
                     App.shortcut("search");
                     return accept;
                 }
             }
-            if e.modifiers.control && e.modifiers.shift && (e.text == "Z" || e.text == "Я" || e.text == "z") {
+            if e.modifiers.control && e.modifiers.shift && (e.text == "Z" || e.text == "z") {
                 App.shortcut("redo");
                 return accept;
             }
@@ -177,8 +191,11 @@ export component AppWindow inherits Window {
                         App.nav-expanded-changed(v);
                     }
                 }
-                Rectangle {
+                pages := ScrollView {
                     horizontal-stretch: 1;
+                Rectangle {
+                    width: max(pages.visible-width, 960px);
+                    height: max(pages.visible-height, 480px);
                     background: Theme.color.surface;
                     if App.section == "gallery": Gallery {
                         page: root.gallery-page;
@@ -196,6 +213,7 @@ export component AppWindow inherits Window {
                     if App.section == "stats": StatsScreen { }
                     if App.section == "log": LogScreen { }
                     if App.section == "settings": SettingsScreen { }
+                }
                 }
             }
         }
@@ -218,6 +236,10 @@ export component AppWindow inherits Window {
     CreatePlaylistDialog { }
 
     ImportDialog { }
+
+    DownloadDialog { }
+
+    EditorDialog { }
 
     FolderDialog { }
 
@@ -278,10 +300,33 @@ export component AppWindow inherits Window {
         width: root.width;
         height: root.height;
         clip: true;
+        // created when the change starts; driven by the frame clock (an
+        // `animate` would skip a value set while the element is created)
+        property <duration> started;
+        init => {
+            self.started = animation-tick();
+        }
+        property <float> t: clamp((animation-tick() - self.started) / 520ms, 0, 1);
+        property <length> r: root.theme-radius * self.t * self.t * (3 - 2 * self.t);
         Image {
             width: root.width;
             height: root.height;
             source: root.theme-snapshot;
+        }
+        circle := Rectangle {
+            x: root.theme-origin-x - parent.r;
+            y: root.theme-origin-y - parent.r;
+            width: 2 * parent.r;
+            height: 2 * parent.r;
+            border-radius: parent.r;
+            clip: true;
+            Image {
+                x: -circle.x;
+                y: -circle.y;
+                width: root.width;
+                height: root.height;
+                source: root.theme-next;
+            }
         }
         TouchArea { }
     }

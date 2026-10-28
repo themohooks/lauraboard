@@ -157,6 +157,7 @@ fn media_row(c: &Ctx, row: usize, m: &MediaItem) -> MediaRow {
 
 /// Recompute the visible list from filters / sorting.
 pub fn refresh(c: &mut Ctx) {
+    super::forms::refresh(c);
     let Some(ui) = c.window() else { return };
     let g = ui.global::<Lib>();
     c.lib.categories = filter::categories(&c.model.library);
@@ -351,6 +352,7 @@ fn row_action(c: &mut Ctx, row: i32, action: &str) {
     let title = item(c, &id).map(|m| m.title).unwrap_or_else(|| id.clone());
     match action {
         "edit" => open_edit(c, row),
+        "video-edit" => super::editor::open(c, &id),
         "queue" => c.command(json!({ "cmd": "queue", "media": id })),
         "play-now" => c.ask(
             "Показать сейчас?",

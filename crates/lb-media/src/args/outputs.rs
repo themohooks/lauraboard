@@ -50,7 +50,7 @@ pub fn tee_slave(o: &OutputTarget) -> String {
     let fmt = o.format.clone().unwrap_or_else(|| guess_format(&o.url).to_string());
     let mut opts = match fmt.as_str() {
         "flv" => "f=flv".to_string(),
-        "hls" => "f=hls:hls_time=4:hls_list_size=8:hls_flags=delete_segments+independent_segments".to_string(),
+        "hls" => "f=hls:onfail=ignore:hls_time=4:hls_list_size=8:hls_start_number_source=epoch:hls_flags=delete_segments+independent_segments+temp_file+omit_endlist+discont_start".to_string(),
         "mpegts" => "f=mpegts:bsfs/v=dump_extra".to_string(),
         "mp4" => "f=mp4:movflags=+frag_keyframe+empty_moov".to_string(),
         other => format!("f={other}"),

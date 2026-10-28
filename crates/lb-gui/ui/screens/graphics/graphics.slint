@@ -40,6 +40,9 @@ component GfxTabs inherits SegmentedButton {
 }
 
 export component GraphicsScreen inherits Page {
+    // the tabs share the header row only when "Сохранить" still fits there
+    property <bool> tabs-inline: !App.narrow && root.width >= 1300px;
+
     VerticalLayout {
         padding: Theme.sp4;
         spacing: Theme.sp3;
@@ -48,7 +51,7 @@ export component GraphicsScreen inherits Page {
             title: "Экранная графика";
             subtitle: Gfx.scene-scope && root.width >= 1700px ? "своя графика сцены: в эфире только на ней" : "";
             GfxScope { }
-            if !App.narrow: GfxTabs { }
+            if root.tabs-inline: GfxTabs { }
             // the chip does not fit next to the tabs in a narrower window;
             // the enabled "Сохранить" says the same there
             if Gfx.dirty && root.width >= 1300px: VerticalLayout {
@@ -107,7 +110,7 @@ export component GraphicsScreen inherits Page {
             }
         }
 
-        if App.narrow: HorizontalLayout {
+        if !root.tabs-inline: HorizontalLayout {
             GfxTabs { }
             Rectangle {
                 horizontal-stretch: 1;

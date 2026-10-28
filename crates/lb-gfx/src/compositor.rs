@@ -222,6 +222,20 @@ impl Compositor {
         self.canvas.encode_png().ok()
     }
 
+    /// Scale the premultiplied canvas before encoding, avoiding a full-size
+    /// PNG encode/decode round trip for every interactive editor frame.
+    pub fn png_scaled(&self, width: u32) -> Option<Vec<u8>> {
+        if width == 0 || width >= self.width() {
+            return self.png();
+        }
+        let scale = width as f32 / self.width() as f32;
+        let height = (self.height() as f32 * scale).round().max(1.0) as u32;
+        let mut small = Pixmap::new(width, height)?;
+        let paint = PixmapPaint { quality: FilterQuality::Bilinear, ..Default::default() };
+        small.draw_pixmap(0, 0, self.canvas.as_ref(), &paint, Transform::from_scale(scale, scale), None);
+        small.encode_png().ok()
+    }
+
     #[allow(clippy::too_many_arguments)]
     fn draw(
         &mut self,
@@ -393,6 +407,11 @@ mod tests {
         });
         let p = px(&c, 2, 2);
         assert!(p[0].abs_diff(0xC0) <= 1 && p[1].abs_diff(0x18) <= 1 && p[3] == 0x80, "{p:?}");
+        let small = image::load_from_memory(&c.png_scaled(10).unwrap()).unwrap().to_rgba8();
+        assert_eq!(small.dimensions(), (10, 10));
+        let p = small.get_pixel(2, 2).0;
+        assert!(p[0].abs_diff(0xC0) <= 1 && p[1].abs_diff(0x18) <= 1 && p[3] == 0x80, "{p:?}");
+        assert_eq!(small.get_pixel(8, 8).0, [0, 0, 0, 0]);
     }
 
     #[test]

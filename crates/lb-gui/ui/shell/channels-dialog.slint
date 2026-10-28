@@ -1,3 +1,4 @@
+import { NameIdFields } from "../components/name-id-fields.slint";
 // Channel manager: every channel with its state, autostart switch and
 // actions (switch to, rename, duplicate, delete), plus "new channel".
 
@@ -221,22 +222,13 @@ export component ChannelFormDialog inherits Dialog {
             }
         }
     }
-    TextField {
-        label: "Название";
-        text <=> Chan.e-name;
-        container-color: Theme.color.surface-container-high;
-    }
-    TextField {
-        label: "Идентификатор";
-        mono: true;
-        enabled: root.dup || !Chan.form-on-air;
-        text <=> Chan.e-id;
+    NameIdFields {
+        name <=> Chan.e-name;
+        identifier <=> Chan.e-id;
         error: Chan.e-error;
-        supporting: !root.dup && Chan.form-on-air ? "Канал в эфире — остановите его, чтобы сменить идентификатор" : "Латиница, цифры, «-» и «_»";
-        container-color: Theme.color.surface-container-high;
-        edited(t) => {
-            Chan.validate-id(t);
-        }
+        reset: Chan.form != "";
+        id-enabled: root.dup || !Chan.form-on-air;
+        id-edited(t) => { Chan.validate-id(t); }
     }
     DialogActions {
         Button {

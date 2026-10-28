@@ -1,0 +1,305 @@
+// Editor side panels: settings of the selected hidden area; crop, sound
+// and fades.
+
+import { Theme } from "../../theme/tokens.slint";
+import { Icons } from "../../theme/icons.slint";
+import { Label } from "../../components/label.slint";
+import { Icon } from "../../components/icon.slint";
+import { Slider } from "../../components/slider.slint";
+import { Switch } from "../../components/switch.slint";
+import { Button, ButtonVariant } from "../../components/button.slint";
+import { IconButton } from "../../components/icon-button.slint";
+import { Ved, EditRegion } from "../../state/editor-state.slint";
+
+component SectionTitle inherits Label {
+    type-style: Theme.title-small;
+}
+
+// A chip showing a choice made elsewhere (keeps no state of its own).
+component Choice inherits Rectangle {
+    in property <string> text;
+    in property <bool> on;
+    callback picked();
+    height: 32px;
+    min-width: label.preferred-width + 2 * Theme.sp3;
+    border-radius: Theme.radius-s;
+    background: on ? Theme.color.secondary-container : touch.has-hover ? Theme.color.on-surface.with-alpha(0.08) : transparent;
+    border-width: on ? 0 : 1px;
+    border-color: Theme.color.outline-variant;
+    accessible-role: button;
+    accessible-label: text;
+    label := Label {
+        text: root.text;
+        type-style: Theme.label-large;
+        color: root.on ? Theme.color.on-secondary-container : Theme.color.on-surface-variant;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+    }
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            root.picked();
+        }
+    }
+}
+
+// A labelled slider with its value on the right.
+component LabeledSlider inherits VerticalLayout {
+    in property <string> text;
+    in property <string> value-text;
+    in property <float> minimum;
+    in property <float> maximum;
+    in property <float> step;
+    in-out property <float> value;
+    callback changed(float);
+    spacing: 0;
+    HorizontalLayout {
+        Label {
+            horizontal-stretch: 1;
+            text: root.text;
+        }
+        Label {
+            text: root.value-text;
+            color: Theme.color.on-surface-variant;
+            mono: true;
+        }
+    }
+    Slider {
+        minimum: root.minimum;
+        maximum: root.maximum;
+        step: root.step;
+        value <=> root.value;
+        value-text: root.value-text;
+        changed(v) => {
+            root.changed(v);
+        }
+    }
+}
+
+// Controls of one area (made anew for each selection, see Ved.current).
+component RegionDetails inherits VerticalLayout {
+    in property <EditRegion> r;
+    spacing: Theme.sp3;
+
+    // two rows: four chips do not fit the side panel
+    for row[k] in [["Размытие", "Пиксели"], ["Заливка", "Стереть"]]: HorizontalLayout {
+        spacing: Theme.sp1;
+        alignment: start;
+        for m[j] in row: Choice {
+            text: m;
+            on: root.r.mode == k * 2 + j;
+            picked => {
+                Ved.region-set(Ved.selected, "mode", k * 2 + j);
+                Ved.regions-changed();
+            }
+        }
+    }
+    Label {
+        wrap: word-wrap;
+        type-style: Theme.body-small;
+        color: Theme.color.on-surface-variant;
+        text: root.r.mode == 0 ? "Мягкое размытие — лучше всего для логотипа на подвижной картинке."
+            : root.r.mode == 1 ? "Крупные квадраты, как у скрытых лиц и номеров."
+            : root.r.mode == 2 ? "Сплошной цвет: плашка поверх логотипа."
+            : "Заполняет область соседними пикселями — почти незаметно на спокойном фоне.";
+    }
+    if root.r.mode <= 1: LabeledSlider {
+        text: "Сила";
+        minimum: 0;
+        maximum: 1;
+        step: 0.05;
+        value: root.r.strength;
+        value-text: round(self.value * 100) + " %";
+        changed(v) => {
+            Ved.region-set(Ved.selected, "strength", v);
+            Ved.regions-changed();
+        }
+    }
+    if root.r.mode == 2: HorizontalLayout {
+        spacing: Theme.sp2;
+        alignment: start;
+        for c in [#000000, #ffffff, #808080, #1f2937, #c62828, #1565c0]: Rectangle {
+            width: 28px;
+            height: 28px;
+            border-radius: 14px;
+            background: c;
+            border-width: root.r.color == c ? 3px : 1px;
+            border-color: root.r.color == c ? Theme.color.primary : Theme.color.outline-variant;
+            TouchArea {
+                mouse-cursor: pointer;
+                clicked => {
+                    Ved.region-color(Ved.selected, c);
+                    Ved.regions-changed();
+                }
+            }
+        }
+    }
+    HorizontalLayout {
+        spacing: Theme.sp1;
+        alignment: start;
+        Choice {
+            text: "Весь ролик";
+            on: !root.r.timed;
+            picked => {
+                Ved.region-set(Ved.selected, "timed", 0);
+                Ved.regions-changed();
+            }
+        }
+        Choice {
+            text: "Часть ролика";
+            on: root.r.timed;
+            picked => {
+                Ved.region-set(Ved.selected, "timed", 1);
+                Ved.regions-changed();
+            }
+        }
+    }
+    if root.r.timed: VerticalLayout {
+        spacing: Theme.sp1;
+        Label {
+            text: "С " + Ved.clock(root.r.from-ms) + " до " + Ved.clock(root.r.to-ms);
+            mono: true;
+        }
+        HorizontalLayout {
+            spacing: Theme.sp1;
+            alignment: start;
+            Button {
+                text: "С этого кадра";
+                variant: ButtonVariant.outlined;
+                clicked => {
+                    Ved.region-set(Ved.selected, "from", Ved.position-ms);
+                    Ved.regions-changed();
+                }
+            }
+            Button {
+                text: "До этого кадра";
+                variant: ButtonVariant.outlined;
+                clicked => {
+                    Ved.region-set(Ved.selected, "to", Ved.position-ms);
+                    Ved.regions-changed();
+                }
+            }
+        }
+    }
+}
+
+// Hidden areas: the list, the selected one's settings, or how to add one.
+export component RegionPanel inherits VerticalLayout {
+    spacing: Theme.sp3;
+
+    HorizontalLayout {
+        spacing: Theme.sp2;
+        SectionTitle {
+            horizontal-stretch: 1;
+            text: "Скрыть область";
+            vertical-alignment: center;
+        }
+        if Ved.selected >= 0: IconButton {
+            icon: Icons.delete;
+            icon-tint: Theme.color.error;
+            tooltip: "Удалить область";
+            clicked => {
+                Ved.remove-region(Ved.selected);
+            }
+        }
+    }
+
+    if Ved.regions.length > 1: HorizontalLayout {
+        spacing: Theme.sp1;
+        alignment: start;
+        for reg[i] in Ved.regions: Choice {
+            text: i + 1;
+            on: Ved.selected == i;
+            picked => {
+                Ved.select(i);
+            }
+        }
+    }
+
+    if Ved.selected < 0: HorizontalLayout {
+        spacing: Theme.sp2;
+        Icon {
+            source: Icons.branding-watermark;
+            tint: Theme.color.secondary;
+        }
+        Label {
+            horizontal-stretch: 1;
+            wrap: word-wrap;
+            color: Theme.color.on-surface-variant;
+            text: Ved.regions.length == 0
+                ? "Обведите мышью на кадре логотип, номер или лицо — область будет скрыта. Областей может быть несколько."
+                : "Выберите область на кадре или обведите новую.";
+        }
+    }
+
+    for r in Ved.current: RegionDetails {
+        r: r;
+    }
+}
+
+// Crop, sound, fades.
+export component PicturePanel inherits VerticalLayout {
+    spacing: Theme.sp2;
+
+    SectionTitle {
+        text: "Обрезать края";
+    }
+    LabeledSlider {
+        text: "Слева";
+        maximum: 45;
+        step: 0.5;
+        value <=> Ved.crop-left;
+        value-text: round(self.value * 10) / 10 + " %";
+    }
+    LabeledSlider {
+        text: "Сверху";
+        maximum: 45;
+        step: 0.5;
+        value <=> Ved.crop-top;
+        value-text: round(self.value * 10) / 10 + " %";
+    }
+    LabeledSlider {
+        text: "Справа";
+        maximum: 45;
+        step: 0.5;
+        value <=> Ved.crop-right;
+        value-text: round(self.value * 10) / 10 + " %";
+    }
+    LabeledSlider {
+        text: "Снизу";
+        maximum: 45;
+        step: 0.5;
+        value <=> Ved.crop-bottom;
+        value-text: round(self.value * 10) / 10 + " %";
+    }
+
+    SectionTitle {
+        text: "Звук и переходы";
+    }
+    Switch {
+        text: "Убрать звук";
+        checked <=> Ved.mute;
+    }
+    if !Ved.mute: LabeledSlider {
+        text: "Громкость";
+        minimum: -20;
+        maximum: 10;
+        step: 0.5;
+        value <=> Ved.volume-db;
+        value-text: (self.value > 0 ? "+" : "") + round(self.value * 10) / 10 + " дБ";
+    }
+    LabeledSlider {
+        text: "Плавное появление";
+        maximum: 5;
+        step: 0.25;
+        value <=> Ved.fade-in;
+        value-text: self.value == 0 ? "нет" : round(self.value * 100) / 100 + " с";
+    }
+    LabeledSlider {
+        text: "Плавное затухание";
+        maximum: 5;
+        step: 0.25;
+        value <=> Ved.fade-out;
+        value-text: self.value == 0 ? "нет" : round(self.value * 100) / 100 + " с";
+    }
+}

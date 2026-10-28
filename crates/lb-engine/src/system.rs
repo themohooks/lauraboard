@@ -1,4 +1,4 @@
-//! Host metrics for the statistics screen: CPU, memory, disks, network,
+//! Application process-tree metrics for the statistics screen: CPU, memory, I/O,
 //! uptime, and the program's own processes (LauraBoard and its FFmpeg
 //! children). Rates (CPU %, disk and network throughput) are measured
 //! between two snapshots, so the monitor is kept and asked repeatedly.
@@ -8,7 +8,7 @@ use std::sync::Mutex;
 use std::time::{Duration, Instant};
 
 use serde::{Deserialize, Serialize};
-use sysinfo::{Disks, Networks, Pid, ProcessesToUpdate, System};
+use sysinfo::{Disks, Pid, ProcessesToUpdate, System};
 
 /// Snapshots closer together than this reuse the previous one (CPU usage
 /// needs some time between measurements to mean anything).
@@ -37,6 +37,8 @@ pub struct ProcessInfo {
     /// Percent of one core (may exceed 100 on several cores).
     pub cpu: f32,
     pub memory_bytes: u64,
+    pub read_per_s: u64,
+    pub write_per_s: u64,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
@@ -49,7 +51,7 @@ pub struct SystemInfo {
     pub cpu_threads: usize,
     /// MHz of the first core.
     pub cpu_mhz: u64,
-    /// Whole machine, 0…100.
+    /// Application process tree, normalized to the machine capacity, 0…100.
     pub cpu_percent: f32,
     /// Per logical core, 0…100.
     pub cpu_per_core: Vec<f32>,
@@ -59,20 +61,44 @@ pub struct SystemInfo {
     pub swap_used: u64,
     pub uptime_s: u64,
     pub disks: Vec<DiskInfo>,
-    /// All network interfaces together (bytes/s).
+    /// Instrumented application payload traffic (bytes/s), not host interfaces.
     pub net_rx_per_s: u64,
     pub net_tx_per_s: u64,
     /// LauraBoard itself.
     pub app: ProcessInfo,
+    pub components: Vec<ProcessInfo>,
+    pub traffic: Vec<NetworkInfo>,
     /// FFmpeg processes started by LauraBoard (decoders, encoders).
     pub ffmpeg: Vec<ProcessInfo>,
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
+pub struct NetworkInfo {
+    pub name: String,
+    pub rx_per_s: u64,
+    pub tx_per_s: u64,
+}
+
+fn descendants(root: Pid, entries: &[(Pid, Option<Pid>)]) -> std::collections::HashSet<Pid> {
+    let mut owned = std::collections::HashSet::from([root]);
+    loop {
+        let before = owned.len();
+        for (pid, parent) in entries {
+            if parent.is_some_and(|p| owned.contains(&p)) {
+                owned.insert(*pid);
+            }
+        }
+        if owned.len() == before {
+            return owned;
+        }
+    }
 }
 
 pub struct SystemMonitor {
     sys: System,
     disks: Disks,
-    nets: Networks,
     last: Option<(Instant, SystemInfo)>,
+    last_traffic: [(u64, u64); 3],
 }
 
 impl Default for SystemMonitor {
@@ -85,7 +111,7 @@ impl SystemMonitor {
     pub fn new() -> Self {
         let mut sys = System::new();
         sys.refresh_cpu_usage();
-        SystemMonitor { sys, disks: Disks::new_with_refreshed_list(), nets: Networks::new_with_refreshed_list(), last: None }
+        SystemMonitor { sys, disks: Disks::new_with_refreshed_list(), last: None, last_traffic: lb_core::traffic::snapshot() }
     }
 
     /// Current metrics (rates since the previous call).
@@ -101,7 +127,6 @@ impl SystemMonitor {
         self.sys.refresh_memory();
         self.sys.refresh_processes(ProcessesToUpdate::All, true);
         self.disks.refresh(true);
-        self.nets.refresh(true);
 
         let cpus = self.sys.cpus();
         let me = sysinfo::get_current_pid().ok();
@@ -110,19 +135,65 @@ impl SystemMonitor {
             name: p.name().to_string_lossy().into_owned(),
             cpu: p.cpu_usage(),
             memory_bytes: p.memory(),
+            read_per_s: per_s(p.disk_usage().read_bytes),
+            write_per_s: per_s(p.disk_usage().written_bytes),
         };
         let app = me.and_then(|pid| self.sys.process(pid).map(|p| proc_info(pid, p))).unwrap_or_default();
-        // FFmpeg started by us: direct children named ffmpeg
-        let mut ffmpeg: Vec<ProcessInfo> = self
-            .sys
-            .processes()
+        let owned = me
+            .map(|pid| {
+                let root = self
+                    .sys
+                    .process(pid)
+                    .and_then(|p| p.parent())
+                    .filter(|parent| {
+                        self.sys.process(*parent).is_some_and(|p| p.name().to_string_lossy().to_lowercase().contains("lauraboard"))
+                    })
+                    .unwrap_or(pid);
+                descendants(root, &self.sys.processes().iter().map(|(pid, p)| (*pid, p.parent())).collect::<Vec<_>>())
+            })
+            .unwrap_or_default();
+        let mut components = std::collections::BTreeMap::<String, ProcessInfo>::new();
+        let mut ffmpeg = Vec::new();
+        for (pid, process) in self.sys.processes().iter().filter(|(pid, _)| owned.contains(pid)) {
+            let p = proc_info(*pid, process);
+            let name = p.name.to_lowercase();
+            let component = if name.contains("ffprobe") {
+                "Анализ медиа"
+            } else if name.contains("ffmpeg") {
+                ffmpeg.push(p.clone());
+                if process.cmd().iter().any(|s| s == "-progress") {
+                    "Кодирование и запись"
+                } else {
+                    "Декодирование"
+                }
+            } else if ["webview", "webkit", "msedge"].iter().any(|part| name.contains(part)) {
+                "Веб-графика и вход"
+            } else if name.contains("yt-dlp") || name.contains("python") {
+                "Загрузки"
+            } else {
+                "LauraBoard: интерфейс и движок"
+            };
+            let item =
+                components.entry(component.to_string()).or_insert_with(|| ProcessInfo { name: component.into(), ..Default::default() });
+            item.cpu += p.cpu;
+            item.memory_bytes += p.memory_bytes;
+            item.read_per_s += p.read_per_s;
+            item.write_per_s += p.write_per_s;
+        }
+        let components: Vec<_> = components.into_values().collect();
+        let cpu = components.iter().map(|p| p.cpu).sum::<f32>() / cpus.len().max(1) as f32;
+        let memory = components.iter().map(|p| p.memory_bytes).sum();
+        let totals = lb_core::traffic::snapshot();
+        let traffic: Vec<_> = ["API и предпросмотр", "Загрузки", "Локальная сеть HLS"]
             .iter()
-            .filter(|(_, p)| me.is_some() && p.parent() == me)
-            .filter(|(_, p)| p.name().to_string_lossy().to_ascii_lowercase().starts_with("ffmpeg"))
-            .map(|(pid, p)| proc_info(*pid, p))
+            .enumerate()
+            .map(|(i, name)| NetworkInfo {
+                name: name.to_string(),
+                rx_per_s: per_s(totals[i].0.saturating_sub(self.last_traffic[i].0)),
+                tx_per_s: per_s(totals[i].1.saturating_sub(self.last_traffic[i].1)),
+            })
             .collect();
-        ffmpeg.sort_by(|a, b| b.cpu.total_cmp(&a.cpu));
-
+        self.last_traffic = totals;
         let disks = self
             .disks
             .list()
@@ -146,7 +217,6 @@ impl SystemMonitor {
                 }
             })
             .collect();
-        let (rx, tx) = self.nets.iter().fold((0u64, 0u64), |(r, t), (_, n)| (r + n.received(), t + n.transmitted()));
 
         let info = SystemInfo {
             host: System::host_name().unwrap_or_default(),
@@ -156,17 +226,19 @@ impl SystemMonitor {
             cpu_cores: System::physical_core_count().unwrap_or(cpus.len()),
             cpu_threads: cpus.len(),
             cpu_mhz: cpus.first().map(|c| c.frequency()).unwrap_or(0),
-            cpu_percent: self.sys.global_cpu_usage(),
-            cpu_per_core: cpus.iter().map(|c| c.cpu_usage()).collect(),
+            cpu_percent: cpu,
+            cpu_per_core: vec![],
             memory_total: self.sys.total_memory(),
-            memory_used: self.sys.used_memory(),
+            memory_used: memory,
             swap_total: self.sys.total_swap(),
             swap_used: self.sys.used_swap(),
-            uptime_s: System::uptime(),
+            uptime_s: me.and_then(|pid| self.sys.process(pid)).map_or(0, |p| p.run_time()),
             disks,
-            net_rx_per_s: per_s(rx),
-            net_tx_per_s: per_s(tx),
+            net_rx_per_s: traffic.iter().map(|t| t.rx_per_s).sum(),
+            net_tx_per_s: traffic.iter().map(|t| t.tx_per_s).sum(),
             app,
+            components,
+            traffic,
             ffmpeg,
         };
         self.last = Some((Instant::now(), info.clone()));
@@ -198,6 +270,13 @@ pub fn free_space(path: &Path) -> Option<u64> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn collects_grandchildren_but_not_unrelated_processes() {
+        let pid = Pid::from_u32;
+        let tree = [(pid(3), Some(pid(2))), (pid(2), Some(pid(1))), (pid(7), Some(pid(9)))];
+        assert_eq!(descendants(pid(1), &tree), std::collections::HashSet::from([pid(1), pid(2), pid(3)]));
+    }
 
     #[test]
     fn snapshot_has_basics() {

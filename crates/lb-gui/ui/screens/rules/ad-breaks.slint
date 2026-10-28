@@ -1,3 +1,4 @@
+import { CategorySelect, CategoryMultiSelect } from "../../components/category-select.slint";
 // Ad break editor: list of breaks and the selected break's form.
 
 import { ListView, ScrollView } from "std-widgets.slint";
@@ -141,7 +142,7 @@ export component AdBreaksEditor inherits HorizontalLayout {
                 }
                 HorizontalLayout {
                     spacing: Theme.sp3;
-                    TextField {
+                    CategorySelect {
                         horizontal-stretch: 1;
                         label: "Категория";
                         text <=> Rules.b-category;
@@ -184,7 +185,7 @@ export component AdBreaksEditor inherits HorizontalLayout {
                             Rules.break-changed();
                         }
                     }
-                    TextField {
+                    CategorySelect {
                         horizontal-stretch: 1;
                         label: "Добивка (категория)";
                         text <=> Rules.b-fill;

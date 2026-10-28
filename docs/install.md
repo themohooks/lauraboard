@@ -46,7 +46,7 @@ cargo dist
 Как это устроено (крейты `xtask`, `lb-installer`, `lb-winres`):
 
 - `lauraboard-setup` без вложенного архива работает только как деинсталлятор — эта копия кладётся в пакет как `uninstall[.exe]`;
-- программа, деинсталлятор, иконка, README, документация и лицензии упаковываются в zip с `manifest.json` (версия, ОС, размер) и встраиваются в `lauraboard-setup` при сборке (`LB_PAYLOAD`);
+- программа, деинсталлятор, иконка и лицензии упаковываются (README и документация остаются на GitHub) в zip с `manifest.json` (версия, ОС, размер) и встраиваются в `lauraboard-setup` при сборке (`LB_PAYLOAD`);
 - на Windows оба exe получают иконку и манифест (`asInvoker`, DPI) без Windows SDK; иконка `.ico` генерируется из `crates/lb-gui/assets/app/lauraboard.svg` командой `cargo xtask icons`;
 - страницы мастера можно отрисовать в PNG без экрана: `cargo run -p lb-installer --features snapshot -- --snapshot target/snapshots/setup`.
 

@@ -1,0 +1,131 @@
+// Video editor: picture with hidden areas and crop, timeline with trim,
+// settings on the right; the result is rendered by the server in the
+// background (progress in the app bar).
+
+import { Theme } from "../../theme/tokens.slint";
+import { Icons } from "../../theme/icons.slint";
+import { Dialog, DialogActions } from "../../components/dialog.slint";
+import { SegmentedButton } from "../../components/segmented-button.slint";
+import { Radio } from "../../components/checkbox.slint";
+import { TextField } from "../../components/text-field.slint";
+import { Button, ButtonVariant } from "../../components/button.slint";
+import { Label } from "../../components/label.slint";
+import { Ved } from "../../state/editor-state.slint";
+import { EditorCanvas } from "canvas.slint";
+import { EditorTimeline } from "timeline.slint";
+import { RegionPanel, PicturePanel } from "panels.slint";
+
+export component EditorDialog inherits Dialog {
+    property <int> tab: 0;
+    open: Ved.open;
+    title: "Монтаж: " + Ved.media-title;
+    dialog-width: 1120px;
+    dismissed => {
+        Ved.open = false;
+    }
+
+    HorizontalLayout {
+        spacing: Theme.sp4;
+        left := VerticalLayout {
+            horizontal-stretch: 1;
+            spacing: Theme.sp2;
+            EditorCanvas {
+                height: clamp(root.height - 440px, 180px, 520px);
+            }
+            EditorTimeline { }
+        }
+        VerticalLayout {
+            width: 330px;
+            spacing: Theme.sp3;
+            SegmentedButton {
+                segments: [{ text: "Скрыть область" }, { text: "Кадр и звук" }];
+                selected: root.tab;
+                changed(i) => {
+                    root.tab = i;
+                }
+            }
+            Flickable {
+                min-height: 0;
+                preferred-height: 0;
+                vertical-stretch: 1;
+                viewport-height: max(self.height, panel.preferred-height);
+                panel := VerticalLayout {
+                    width: parent.width - 8px;
+                    alignment: start;
+                    if root.tab == 0: RegionPanel { }
+                    if root.tab == 1: PicturePanel { }
+                }
+            }
+        }
+    }
+
+    HorizontalLayout {
+        spacing: Theme.sp4;
+        VerticalLayout {
+            alignment: center;
+            Radio {
+                text: "Сохранить новым роликом";
+                checked: !Ved.replace;
+                clicked => {
+                    Ved.replace = false;
+                }
+            }
+        }
+        VerticalLayout {
+            alignment: center;
+            Radio {
+                text: "Заменить исходный файл";
+                checked: Ved.replace;
+                enabled: Ved.can-replace;
+                clicked => {
+                    Ved.replace = true;
+                }
+            }
+        }
+        if !Ved.replace: TextField {
+            horizontal-stretch: 1;
+            label: "Название нового ролика";
+            text <=> Ved.new-title;
+            container-color: Theme.color.surface-container-high;
+        }
+        if Ved.replace: Label {
+            horizontal-stretch: 1;
+            wrap: word-wrap;
+            vertical-alignment: center;
+            type-style: Theme.body-small;
+            color: Theme.color.on-surface-variant;
+            text: "Ролик останется в плейлистах и расписании, старый файл будет удалён.";
+        }
+    }
+
+    DialogActions {
+        Button {
+            text: "Сбросить";
+            variant: ButtonVariant.text;
+            icon: Icons.undo;
+            has-icon: true;
+            clicked => {
+                Ved.reset();
+            }
+        }
+        Rectangle {
+            horizontal-stretch: 1;
+        }
+        Button {
+            text: "Отмена";
+            variant: ButtonVariant.text;
+            clicked => {
+                Ved.open = false;
+            }
+        }
+        Button {
+            text: Ved.starting ? "Запуск…" : "Сохранить";
+            icon: Icons.save;
+            has-icon: true;
+            enabled: !Ved.starting;
+            clicked => {
+                Ved.render();
+            }
+        }
+    }
+}

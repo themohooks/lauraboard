@@ -1,3 +1,4 @@
+import { NameIdFields } from "../components/name-id-fields.slint";
 // Channel export (choose what goes into the ZIP and where) and import
 // (pick an archive, see what it holds, choose the new id and name). Both
 // run as background jobs on the server.
@@ -182,23 +183,14 @@ export component ChannelImportDialog inherits Dialog {
     }
     if Chan.i-valid: HorizontalLayout {
         spacing: Theme.sp3;
-        TextField {
-            horizontal-stretch: 1;
-            label: "Название";
-            text <=> Chan.e-name;
-            container-color: Theme.color.surface-container-high;
-        }
-        TextField {
-            horizontal-stretch: 1;
-            label: "Идентификатор";
-            mono: true;
-            text <=> Chan.e-id;
-            error: Chan.e-error;
-            container-color: Theme.color.surface-container-high;
-            edited(t) => {
-                Chan.validate-id(t);
-            }
-        }
+        NameIdFields {
+        name <=> Chan.e-name;
+        identifier <=> Chan.e-id;
+        error: Chan.e-error;
+        reset: Chan.form == "import";
+
+        id-edited(t) => { Chan.validate-id(t); }
+    }
     }
     DialogActions {
         Button {

@@ -1,0 +1,89 @@
+// Data contract of the video editor (src/bridge/editor.rs).
+
+// A hidden area; coordinates are fractions of the source picture.
+export struct EditRegion {
+    x: float,
+    y: float,
+    w: float,
+    h: float,
+    // 0 blur, 1 pixelate, 2 fill, 3 delogo
+    mode: int,
+    // 0 … 1
+    strength: float,
+    color: color,
+    // whole clip, or only between from-ms and to-ms of the source
+    timed: bool,
+    from-ms: float,
+    to-ms: float,
+}
+
+export global Ved {
+    in-out property <bool> open;
+    in property <string> media-title;
+    // times in ms (float: they are bound to sliders)
+    in property <float> duration-ms;
+    // width / height of the source picture
+    in property <float> aspect: 16 / 9;
+
+    // the frame under the cursor (hidden areas drawn by the server)
+    in property <image> frame;
+    in property <bool> has-frame;
+    in property <bool> loading-frame;
+    in property <string> frame-error;
+    in-out property <float> position-ms;
+
+    // kept part
+    in-out property <float> start-ms;
+    in-out property <float> end-ms;
+
+    in property <[EditRegion]> regions;
+    in property <int> selected: -1;
+    // the selected area alone (a new model per selection, so its controls
+    // start from its values)
+    in property <[EditRegion]> current;
+    callback select(int);
+    // drag on the picture draws a new area
+    in-out property <bool> drawing;
+
+    // edges cut off, percent
+    in-out property <float> crop-left;
+    in-out property <float> crop-top;
+    in-out property <float> crop-right;
+    in-out property <float> crop-bottom;
+
+    in-out property <bool> mute;
+    in-out property <float> volume-db;
+    in-out property <float> fade-in;
+    in-out property <float> fade-out;
+
+    // the original is the channel's own copy and may be replaced
+    in property <bool> can-replace;
+    in-out property <bool> replace;
+    in-out property <string> new-title;
+    in property <bool> starting;
+
+    // the position moved (frame requested after a short pause)
+    callback seek(float);
+    // x, y, w, h of a new area (selected afterwards)
+    callback add-region(float, float, float, float);
+    // new x, y, w, h of area i (while dragging; regions-changed on release)
+    callback region-move(int, float, float, float, float);
+    // "mode", "strength", "timed" (0 / 1), "from", "to" (ms)
+    callback region-set(int, string, float);
+    callback region-color(int, color);
+    callback remove-region(int);
+    // hidden areas changed: redraw the frame
+    callback regions-changed();
+    callback reset();
+    callback render();
+
+    // 75500 → "1:15.5"
+    public pure function clock(ms: float) -> string {
+        let t = floor(max(ms, 0) / 100);
+        let s = floor(t / 10);
+        let m = floor(s / 60);
+        let ss = mod(s, 60);
+        let d = mod(t, 10);
+        return m + ":" + (ss < 10 ? "0" : "") + ss + "." + d;
+    }
+}

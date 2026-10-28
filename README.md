@@ -87,3 +87,5 @@ cargo test --workspace
 ```
 
 Ключевая логика планирования покрыта модульными тестами в `crates/lb-core/src/planner/tests`.
+
+Поддержка [macOS](docs/macos.md), [статистика приложения и локальная раздача HLS](docs/guides/application-network.md).

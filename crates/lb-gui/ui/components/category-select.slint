@@ -1,0 +1,89 @@
+import { Theme } from "../theme/tokens.slint";
+import { Select } from "select.slint";
+import { TextField } from "text-field.slint";
+import { Label } from "label.slint";
+import { FormChoices } from "name-id-fields.slint";
+
+export component CategorySelect inherits VerticalLayout {
+    in property <string> label: "Категория";
+    in-out property <string> text;
+    in property <string> placeholder;
+    in property <string> supporting;
+    in property <string> error;
+    in property <bool> enabled: true;
+    in property <color> container-color: Theme.color.surface;
+    callback edited(string);
+    spacing: Theme.sp1;
+    property <bool> adding;
+    property <int> matched: FormChoices.category-values.length > 0 ? FormChoices.category-index(root.text) : -1;
+    changed matched => {
+        if !root.adding || root.matched > 0 { pick.current-index = root.matched; }
+        if root.matched > 0 { root.adding = false; }
+    }
+    pick := Select {
+        label: root.label;
+        options: FormChoices.categories;
+        enabled: root.enabled;
+        container-color: root.container-color;
+        current-index: root.matched;
+        placeholder: root.text != "" ? FormChoices.category-labels(root.text) : "Без категории";
+        selected(i, _) => {
+            root.adding = i == FormChoices.categories.length - 1;
+            if root.adding {
+                root.text = "";
+                root.edited(root.text);
+            } else {
+                root.text = FormChoices.category-values[i];
+                root.edited(root.text);
+            }
+        }
+    }
+    if root.adding: TextField {
+        label: "Название новой категории";
+        text <=> root.text;
+        container-color: root.container-color;
+        edited(t) => { root.edited(t); }
+    }
+    if root.error != "": Label { text: root.error; color: Theme.color.error; }
+}
+
+export component CategoryMultiSelect inherits VerticalLayout {
+    in property <string> label;
+    in-out property <string> text;
+    in property <string> placeholder;
+    in property <string> supporting;
+    in property <string> error;
+    in property <color> container-color: Theme.color.surface;
+    callback edited(string);
+    property <bool> adding;
+    property <string> new-name;
+    spacing: Theme.sp1;
+    Select {
+        label: root.label;
+        options: FormChoices.categories;
+        placeholder: "Выбрать категорию";
+        container-color: root.container-color;
+        selected(i, _) => {
+            root.adding = i == FormChoices.category-values.length - 1;
+            if !root.adding {
+                root.text = FormChoices.toggle-category(root.text, FormChoices.category-values[i]);
+                root.edited(root.text);
+            }
+            self.current-index = -1;
+        }
+    }
+    Label { text: FormChoices.category-labels(root.text); wrap: word-wrap; }
+    if root.adding: TextField {
+        label: "Название новой категории";
+        text <=> root.new-name;
+        supporting: "Enter — добавить";
+        accepted => {
+            if root.new-name != "" {
+                root.text = FormChoices.toggle-category(root.text, root.new-name);
+                root.edited(root.text);
+                root.new-name = "";
+                root.adding = false;
+            }
+        }
+    }
+}

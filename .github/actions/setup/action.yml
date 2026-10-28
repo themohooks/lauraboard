@@ -55,7 +55,7 @@ runs:
         apt-get "${apt_options[@]}" update
         apt-get "${apt_options[@]}" install --no-install-recommends -y \
           build-essential pkg-config libfontconfig-dev libxkbcommon-dev \
-          libxkbcommon-x11-dev libwayland-dev libgl1-mesa-dev libssl-dev
+          libxkbcommon-x11-dev libwayland-dev libgl1-mesa-dev libssl-dev libgtk-3-dev libwebkit2gtk-4.1-dev
         APT
     - name: Install Linux x86 build dependencies
       if: runner.os == 'Linux' && inputs.x86 == 'true'
@@ -65,7 +65,7 @@ runs:
         sudo env DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=l apt-get -o Acquire::Retries=2 update
         sudo env DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=l apt-get -o Acquire::Retries=2 install --no-install-recommends -y \
           gcc-multilib g++-multilib libfontconfig-dev:i386 libxkbcommon-dev:i386 \
-          libxkbcommon-x11-dev:i386 libwayland-dev:i386 libgl1-mesa-dev:i386 libssl-dev:i386
+          libxkbcommon-x11-dev:i386 libwayland-dev:i386 libgl1-mesa-dev:i386 libssl-dev:i386 libgtk-3-dev:i386 libwebkit2gtk-4.1-dev:i386
         echo 'PKG_CONFIG_LIBDIR=/usr/lib/i386-linux-gnu/pkgconfig:/usr/share/pkgconfig' >> "$GITHUB_ENV"
     - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable
       with:

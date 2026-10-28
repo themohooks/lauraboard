@@ -4,6 +4,7 @@
 //! scheduling logic can be tested deterministically. File loading lives in
 //! [`project`], everything else is pure.
 
+pub mod browser;
 pub mod config;
 pub mod duration;
 pub mod error;
@@ -44,3 +45,5 @@ pub fn fmt_ms(ms: Ms) -> String {
     let s = ms.abs() / 1000;
     format!("{sign}{:02}:{:02}:{:02}", s / 3600, (s / 60) % 60, s % 60)
 }
+
+pub mod traffic;

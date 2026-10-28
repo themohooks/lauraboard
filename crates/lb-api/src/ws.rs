@@ -54,12 +54,17 @@ async fn stream(sock: WebSocket, chans: Vec<ChannelHandle>) {
     loop {
         tokio::select! {
             Some(msg) = fan_rx.recv() => {
+                let size = msg.len() as u64;
                 if tx.send(Message::Text(msg.into())).await.is_err() { break; }
+                lb_core::traffic::sent(lb_core::traffic::API, size);
             }
             _ = tick.tick() => {
                 for ch in &chans {
                     let j = serde_json::json!({ "type": "status", "channel": ch.id(), "status": ch.status() });
-                    if tx.send(Message::Text(j.to_string().into())).await.is_err() { break; }
+                    let text = j.to_string();
+                    let size = text.len() as u64;
+                    if tx.send(Message::Text(text.into())).await.is_err() { break; }
+                    lb_core::traffic::sent(lb_core::traffic::API, size);
                 }
             }
             incoming = rx.next() => match incoming {

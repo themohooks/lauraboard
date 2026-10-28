@@ -38,8 +38,19 @@ pub fn started(c: &mut Ctx, job: u64) {
 
 fn state_text(j: &JobView) -> String {
     match j.state.as_str() {
-        "running" if j.message.is_empty() => format!("{:.0} %", j.progress * 100.0),
-        "running" => format!("{:.0} % · {}", j.progress * 100.0, j.message),
+        "running" => {
+            let mut parts = vec![format!("{:.0} %", j.progress * 100.0)];
+            if !j.message.is_empty() {
+                parts.push(j.message.clone());
+            }
+            if let Some(s) = j.speed {
+                parts.push(format!("{}/с", crate::fmt::bytes(s as u64)));
+            }
+            if let Some(t) = j.eta_secs {
+                parts.push(format!("осталось {}", crate::fmt::left(t)));
+            }
+            parts.join(" · ")
+        }
         "done" => "Готово".into(),
         "cancelled" => "Отменено".into(),
         _ => format!("Ошибка: {}", crate::ru::server(&j.message)),
@@ -66,7 +77,10 @@ pub fn changed(c: &mut Ctx, list: Vec<JobView>) {
     g.set_summary(
         match running.as_slice() {
             [] => String::new(),
-            [one] => format!("{:.0} % · {}", one.progress * 100.0, one.title),
+            [one] => match one.eta_secs {
+                Some(t) => format!("{:.0} % · {} · {}", one.progress * 100.0, crate::fmt::left(t), one.title),
+                None => format!("{:.0} % · {}", one.progress * 100.0, one.title),
+            },
             many => format!("{:.0} % · задач: {}", progress * 100.0, many.len()),
         }
         .into(),
@@ -103,6 +117,41 @@ fn finished(c: &mut Ctx, j: &JobView) {
                 c.load_all();
             }
         }
+        ("done", "download_media") => {
+            let added = result["added"].as_array().map(|a| a.len()).unwrap_or(0);
+            let errors: Vec<String> = result["errors"]
+                .as_array()
+                .map(|a| a.iter().filter_map(|e| e.as_str().map(crate::ru::server)).collect())
+                .unwrap_or_default();
+            let text = match (added, errors.len()) {
+                (n, 0) => format!("Скачано в медиатеку: {n}"),
+                (n, e) => format!("Скачано: {n}, не получилось {e}: {}", errors.join("; ")),
+            };
+            c.toast(text, !errors.is_empty());
+            if j.channel.as_deref() == c.model.channel.as_deref() {
+                c.load_all();
+            }
+        }
+        ("done", "edit_media") => {
+            let text = if result["replaced"].as_bool() == Some(true) {
+                "Монтаж готов: файл ролика заменён".to_string()
+            } else {
+                "Монтаж готов: новый ролик добавлен в медиатеку".to_string()
+            };
+            c.toast(text, false);
+            if j.channel.as_deref() == c.model.channel.as_deref() {
+                c.load_all();
+            }
+        }
+        ("failed", "download_media") if super::download::needs_login(&j.message) => {
+            c.toast_with("Сайт просит войти в аккаунт, чтобы скачать это видео", "Войти", super::download::open_login);
+        }
+        (state, "install_ytdlp") => {
+            if state != "done" {
+                c.toast(format!("Установка компонента загрузки: {}", crate::ru::server(&j.message)), true);
+            }
+            super::download::tool_installed(c, state == "done");
+        }
         ("done", "backgrounds") => {
             let added = result["added"].as_array().map(|a| a.len()).unwrap_or(0);
             let errors = result["errors"].as_array().map(|a| a.len()).unwrap_or(0);
@@ -129,7 +178,7 @@ fn finished(c: &mut Ctx, j: &JobView) {
         ("done", _) => c.toast(format!("{}: готово", j.title), false),
         ("cancelled", _) => {
             c.toast(format!("{}: отменено", j.title), false);
-            if j.kind == "import_media" {
+            if j.kind == "import_media" || j.kind == "download_media" {
                 c.load_all(); // files finished before the cancel stay
             }
         }

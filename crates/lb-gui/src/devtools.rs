@@ -103,7 +103,11 @@ pub fn snapshot(out: &Path, section: &str, width: u32, height: u32, scale: f32, 
         let n: Vec<f32> = p.split(',').filter_map(|v| v.trim().parse().ok()).collect();
         let [x, y, rest @ ..] = n.as_slice() else { continue };
         let position = slint::LogicalPosition::new(*x, *y);
-        let button = slint::platform::PointerEventButton::Left;
+        let button = if p.split(',').nth(2) == Some("right") {
+            slint::platform::PointerEventButton::Right
+        } else {
+            slint::platform::PointerEventButton::Left
+        };
         window.dispatch_event(WindowEvent::PointerMoved { position });
         for _ in 0..rest.first().map_or(1, |c| *c as usize) {
             window.dispatch_event(WindowEvent::PointerPressed { position, button });
@@ -115,10 +119,15 @@ pub fn snapshot(out: &Path, section: &str, width: u32, height: u32, scale: f32, 
         ui.global::<Theme>().set_mode(ThemeMode::Light);
         let old = ui.window().take_snapshot().map_err(|e| e.to_string())?;
         ui.global::<Theme>().set_mode(ThemeMode::Dark);
-        let mut reveal = crate::theme_transition::Reveal::new(old);
-        ui.set_theme_snapshot(reveal.frame(0.65));
-        ui.set_theme_transition(true);
+        let new = ui.window().take_snapshot().map_err(|e| e.to_string())?;
+        // the software renderer clips to a square; the GPU draws a circle
+        crate::theme_transition::start(&ui, old, new, Some((width as f32 - 60.0, 40.0)));
         let mut buf = vec![Rgb8Pixel::default(); (width * height) as usize];
+        // the first frame creates the overlay (its clock starts there)
+        window.draw_if_needed(|r| {
+            r.render(&mut buf, width as usize);
+        });
+        pump_for(&jobs, Duration::from_millis(200));
         window.request_redraw();
         window.draw_if_needed(|r| {
             r.render(&mut buf, width as usize);
@@ -311,6 +320,69 @@ fn demo_overlay(ui: &AppWindow, name: &str) {
             c.set_e_id("main-2".into());
             c.set_e_name("Основной канал".into());
             c.set_form("import".into());
+        }
+        // Settings with a new version found (and its mark in the app bar)
+        "update" => {
+            let u = ui.global::<crate::shell::Upd>();
+            u.set_current("0.1.0".into());
+            u.set_phase("available".into());
+            u.set_latest("0.2.0".into());
+            u.set_notes(
+                "— Скачивание роликов с сайтов в медиатеку\n— Монтаж: обрезка, скрытие логотипа, кадрирование\n— Обновления из программы"
+                    .into(),
+            );
+            u.set_status("проверено 27.10 09:12".into());
+            u.set_install_hint(crate::update::local::install_hint(&crate::update::release::Kind::Setup).into());
+            u.set_install_label("Скачать и установить".into());
+            u.set_badge(true);
+            ui.set_section("settings".into());
+            return;
+        }
+        // download dialog: YouTube asks to sign in
+        "download-login" => {
+            let d = ui.global::<crate::shell::Dl>();
+            d.set_tool_checking(false);
+            d.set_tool_ok(true);
+            d.set_tool_version("2026.09.30".into());
+            d.set_url("https://www.youtube.com/watch?v=abc".into());
+            d.set_error("[youtube] abc: Sign in to confirm your age. This video may be inappropriate for some users.".into());
+            d.set_step("error".into());
+            d.set_login_needed(true);
+            d.set_login_cookies(true);
+            d.set_open(true);
+            ui.set_section("library".into());
+            return;
+        }
+        // the video editor over the library
+        "editor" => {
+            use crate::shell::{EditRegion, Ved};
+            let v = ui.global::<Ved>();
+            v.set_media_title("Утренний эфир — выпуск 12".into());
+            v.set_duration_ms(754_000.0);
+            v.set_position_ms(81_500.0);
+            v.set_start_ms(12_000.0);
+            v.set_end_ms(700_000.0);
+            v.set_crop_bottom(6.0);
+            let r = EditRegion {
+                x: 0.82,
+                y: 0.05,
+                w: 0.14,
+                h: 0.1,
+                mode: 0,
+                strength: 0.5,
+                color: slint::Color::from_rgb_u8(0, 0, 0),
+                timed: false,
+                from_ms: 0.0,
+                to_ms: 754_000.0,
+            };
+            v.set_regions(model(vec![r.clone(), EditRegion { x: 0.04, y: 0.84, w: 0.3, h: 0.08, mode: 2, ..r.clone() }]));
+            v.set_selected(0);
+            v.set_current(model(vec![r]));
+            v.set_can_replace(true);
+            v.set_new_title("Утренний эфир — выпуск 12 (ред.)".into());
+            v.set_open(true);
+            ui.set_section("library".into());
+            return;
         }
         // start screen of a project without channels
         "welcome" => {

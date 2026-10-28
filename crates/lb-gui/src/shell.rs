@@ -23,6 +23,7 @@ pub fn run(opts: GuiOptions) -> Result<(), String> {
     crate::notify::set_on_open(show_window);
     let prefs = UiPrefs::load();
     let window = AppWindow::new().map_err(|e| e.to_string())?;
+    crate::keys::install(window.window());
     bridge::start(&window, &opts, prefs);
     let port = single::listen(opts.base_url.clone(), show_window);
 

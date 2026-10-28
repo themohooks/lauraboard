@@ -1038,17 +1038,16 @@ pub fn render(c: &mut Ctx) {
     g.set_rendering(true);
     let ch = c.model.ch();
     let vars = cfg.vars.clone();
+    let width = if c.gfx.drag.is_some() { 640 } else { 1280 };
     c.worker.spawn(move |api| {
-        let r = api.post_bytes(&format!("/channels/{ch}/graphics/render"), &json!({ "config": cfg, "vars": vars, "width": 1280 }));
+        let r = api.post_bytes(&format!("/channels/{ch}/graphics/render"), &json!({ "config": cfg, "vars": vars, "width": width }));
         let frame = r.as_ref().ok().and_then(|b| png_image(b));
         let err = r.err();
         Ok(Msg::Apply(Box::new(move |c: &mut Ctx| {
             c.gfx.rendering = false;
-            if std::mem::take(&mut c.gfx.render_again) && c.section() == "graphics" {
-                // the draft changed while rendering: this frame is already stale
-                render(c);
-                return;
-            }
+            // Publish completed work even when another move is queued. Dropping
+            // every intermediate frame starves the canvas until pointer release.
+            let again = std::mem::take(&mut c.gfx.render_again) && c.section() == "graphics";
             let Some(ui) = c.window() else { return };
             let g = ui.global::<Gfx>();
             g.set_rendering(false);
@@ -1065,6 +1064,9 @@ pub fn render(c: &mut Ctx) {
                     )));
                     live_background(c);
                 }
+            }
+            if again {
+                render(c);
             }
         })))
     });

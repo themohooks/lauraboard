@@ -1,3 +1,4 @@
+import { CategorySelect, CategoryMultiSelect } from "../../components/category-select.slint";
 // General settings of a scene (name, type, category, length) and its
 // background: a colour or a picture / video from the library.
 
@@ -38,7 +39,7 @@ export component SceneGeneral inherits FormSection {
                 Scenes.form-changed();
             }
         }
-        TextField {
+        CategorySelect {
             horizontal-stretch: 1;
             label: "Категория";
             text <=> Scenes.f-category;

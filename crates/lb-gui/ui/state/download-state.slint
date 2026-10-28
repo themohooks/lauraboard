@@ -1,0 +1,52 @@
+// Data contract of the "download from a site" dialog (src/bridge/download.rs).
+
+export global Dl {
+    in-out property <bool> open;
+    in-out property <string> url;
+
+    // yt-dlp on the server
+    in property <bool> tool-checking: true;
+    in property <bool> tool-ok;
+    in property <string> tool-version;
+    in property <bool> can-install;
+    in property <bool> installing;
+
+    // reading the link: "" nothing yet, "probing", "ready", "error"
+    in property <string> step;
+    in property <string> error;
+
+    // what the link offers
+    in property <string> title;
+    // author · site · duration (or the number of videos of a playlist)
+    in property <string> details;
+    in property <image> thumb;
+    in property <bool> has-thumb;
+    in property <[string]> qualities;
+    in-out property <int> quality;
+
+    // where the videos go: 0 = auto, then kinds (as in the import dialog)
+    in-out property <int> kind;
+    in-out property <string> category;
+    // index in Lib.folder-options
+    in-out property <int> folder;
+    in property <bool> starting;
+
+    // signing in to the site (yt-dlp uses browser cookies or a cookies.txt)
+    // the last error asks for it (YouTube: "Sign in to confirm your age")
+    in property <bool> login-needed;
+    // the panel was opened by hand
+    in-out property <bool> login-open;
+    in property <bool> login-cookies;
+    in property <bool> login-saving;
+    // our own browser window for signing in is open
+    in property <bool> login-web-running;
+
+    callback opened();
+    callback probe();
+    callback start();
+    callback install-tool();
+    callback login-cookies-pick();
+    callback login-cookies-clear();
+    callback login-web();
+    callback login-web-done();
+}

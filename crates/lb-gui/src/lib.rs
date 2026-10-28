@@ -9,16 +9,21 @@
 //! * [`net`] — background requests, polling and the event stream
 //! * [`model`] — client-side cache of server data
 //! * [`fmt`] — shared formatting
+//! * [`update`] — new versions from GitHub releases
 //! * [`prefs`] / [`sysprefs`] — persisted UI preferences, OS accessibility hints
 
 mod bridge;
 #[cfg(feature = "snapshot")]
 pub mod devtools;
 mod fmt;
+#[cfg(test)]
+mod input_tests;
+mod keys;
 mod logic;
 mod model;
 mod net;
 mod notify;
+mod pointer;
 mod prefs;
 mod ru;
 mod shell;
@@ -26,6 +31,8 @@ mod single;
 mod sysprefs;
 mod theme_transition;
 mod tray;
+mod update;
+mod weblogin;
 
 /// How to reach the API.
 #[derive(Debug, Clone)]

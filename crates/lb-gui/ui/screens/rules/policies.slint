@@ -1,3 +1,4 @@
+import { CategorySelect, CategoryMultiSelect } from "../../components/category-select.slint";
 // Ad / promo / filler policies and transitions.
 
 import { ScrollView } from "std-widgets.slint";
@@ -72,8 +73,8 @@ export component PoliciesEditor inherits ScrollView {
         FormSection {
             title: "Заполнение пустот";
             icon: Icons.queue-music;
-            TextField {
-                label: "Категории заполнения (через запятую)";
+            CategoryMultiSelect {
+                label: "Категории заполнения";
                 text <=> Rules.p-filler-cats;
                 edited => {
                     Rules.policy-changed();

@@ -1,3 +1,4 @@
+import { CategorySelect, CategoryMultiSelect } from "../../components/category-select.slint";
 // Import dialog: path / folder / URL on the server, kind, category.
 
 import { Theme } from "../../theme/tokens.slint";
@@ -69,7 +70,7 @@ export component ImportDialog inherits Dialog {
             current-index <=> Lib.import-kind;
             container-color: Theme.color.surface-container-high;
         }
-        TextField {
+        CategorySelect {
             horizontal-stretch: 1;
             label: "Категория";
             text <=> Lib.import-category;

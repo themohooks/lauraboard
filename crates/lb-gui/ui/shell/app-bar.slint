@@ -12,6 +12,7 @@ import { TimeDisplay } from "../components/monitor.slint";
 import { App } from "../state/app-state.slint";
 import { Chan } from "../state/channels-state.slint";
 import { Jobs } from "../state/jobs-state.slint";
+import { Upd } from "../state/update-state.slint";
 import { JobsIndicator } from "jobs-dialog.slint";
 import { Avatar } from "../components/avatar.slint";
 
@@ -120,6 +121,18 @@ export component AppBar inherits TopAppBar {
             type-style: Theme.title-large;
             mono: true;
             min-width: self.preferred-width;
+        }
+    }
+    // a new version is out: a quiet mark, details in Settings
+    if Upd.badge: VerticalLayout {
+        alignment: center;
+        IconButton {
+            icon: Icons.upgrade;
+            icon-tint: Theme.color.primary;
+            tooltip: "Вышла версия " + Upd.latest + " — подробности в настройках";
+            clicked => {
+                Upd.show();
+            }
         }
     }
     VerticalLayout {

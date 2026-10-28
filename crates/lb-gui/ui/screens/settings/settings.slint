@@ -1,3 +1,5 @@
+import { Select } from "../../components/select.slint";
+import { TextField } from "../../components/text-field.slint";
 // Settings: appearance (theme, scale, density, motion, navigation), layout
 // reset, connection info, keyboard shortcuts, about.
 
@@ -14,6 +16,8 @@ import { Button, ButtonVariant } from "../../components/button.slint";
 import { StatusChip, StatusTone } from "../../components/indicators.slint";
 import { Page, PageHeader } from "../../shell/page.slint";
 import { Settings } from "../../state/settings-state.slint";
+import { Upd } from "../../state/update-state.slint";
+import { LinearProgress } from "../../components/feedback.slint";
 
 component Setting inherits HorizontalLayout {
     in property <string> title;
@@ -112,9 +116,125 @@ export component SettingsScreen inherits Page {
 
                 PageHeader {
                     title: "Настройки";
-                    subtitle: "Интерфейс этого компьютера — на эфир не влияют";
+                    subtitle: "Интерфейс и параметры предпросмотра выбранного канала";
                 }
 
+                Card {
+                    card-style: CardStyle.low;
+                    CardHeader {
+                        title: "Обновления";
+                        subtitle: "Версия " + Upd.current + (Upd.status != "" ? " · " + Upd.status : "");
+                        if Upd.phase != "checking" && Upd.phase != "downloading": Button {
+                            text: "Проверить";
+                            variant: ButtonVariant.text;
+                            icon: Icons.refresh;
+                            has-icon: true;
+                            clicked => {
+                                Upd.check();
+                            }
+                        }
+                    }
+                    if Upd.phase == "checking": LinearProgress {
+                        indeterminate: true;
+                    }
+                    if Upd.phase == "available" || Upd.phase == "downloading" || Upd.phase == "ready": VerticalLayout {
+                        spacing: Theme.sp2;
+                        HorizontalLayout {
+                            spacing: Theme.sp2;
+                            Icon {
+                                source: Icons.upgrade;
+                                tint: Theme.color.primary;
+                            }
+                            Label {
+                                horizontal-stretch: 1;
+                                text: "Доступна версия " + Upd.latest + (Upd.skipped ? " (пропущена)" : "");
+                                type-style: Theme.title-small;
+                                vertical-alignment: center;
+                            }
+                        }
+                        if Upd.notes != "": Label {
+                            text: Upd.notes;
+                            type-style: Theme.body-small;
+                            color: Theme.color.on-surface-variant;
+                            wrap: word-wrap;
+                        }
+                        if Upd.phase == "downloading": LinearProgress {
+                            progress: Upd.progress;
+                        }
+                        Label {
+                            text: Upd.install-hint;
+                            type-style: Theme.body-small;
+                            color: Theme.color.on-surface-variant;
+                            wrap: word-wrap;
+                        }
+                        HorizontalLayout {
+                            spacing: Theme.sp2;
+                            alignment: start;
+                            Button {
+                                text: Upd.install-label;
+                                icon: Icons.upgrade;
+                                has-icon: true;
+                                variant: ButtonVariant.filled;
+                                enabled: Upd.phase != "downloading";
+                                clicked => {
+                                    Upd.install();
+                                }
+                            }
+                            Button {
+                                text: "Что нового";
+                                variant: ButtonVariant.text;
+                                clicked => {
+                                    Upd.open-page();
+                                }
+                            }
+                            if !Upd.skipped && Upd.phase == "available": Button {
+                                text: "Пропустить эту версию";
+                                variant: ButtonVariant.text;
+                                clicked => {
+                                    Upd.skip();
+                                }
+                            }
+                        }
+                    }
+                    Setting {
+                        title: "Проверять автоматически";
+                        hint: "Раз в день, тихо: только значок в верхней панели. Без вашего согласия ничего не скачивается";
+                        VerticalLayout {
+                            horizontal-stretch: 1;
+                            alignment: center;
+                            Switch {
+                                text: "Искать новые версии на GitHub";
+                                checked: Upd.auto;
+                                toggled(v) => {
+                                    Upd.auto-changed(v);
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Card {
+                    card-style: CardStyle.low;
+                    CardHeader { title: "Частота кадров предпросмотра"; subtitle: "Пресеты и синхронизация с монитором. Частота выходного видео сохраняется."; }
+                    Select { label: "Режим"; options: Settings.preview-options; current-index <=> Settings.preview-preset;
+                        selected(i, _) => { Settings.preview-selected(i); }
+                    }
+                    TextField { label: "FPS (10–360)"; text <=> Settings.preview-fps;
+                        enabled: Settings.preview-preset == Settings.preview-options.length - 1;
+                    }
+                    Label { text: Settings.preview-info; wrap: word-wrap; color: Theme.color.on-surface-variant; }
+                    Label { text: "Изменение частоты источника перезапускает кодировщик. Режимы монитора автоматически учитывают экран, на котором находится окно."; wrap: word-wrap; color: Theme.color.on-surface-variant; }
+                    Button { text: "Применить"; clicked => { Settings.preview-save(); } }
+                }
+                Card {
+                    card-style: CardStyle.low;
+                    CardHeader { title: "Ретрансляция в локальную сеть"; subtitle: "Эфир выбранного канала в HLS (m3u8). У каждого канала должен быть свой свободный порт."; }
+                    Switch { text: "Раздавать эфир по локальной сети"; checked <=> Settings.hls-enabled; enabled: Settings.hls-can-edit; }
+                    TextField { label: "Порт HTTP"; text <=> Settings.hls-port; enabled: Settings.hls-can-edit; }
+                    TextField { label: "Адрес плейлиста"; text: Settings.hls-url; read-only: true; }
+                    Label { text: "На другом устройстве замените адрес на IP компьютера вещания. Поток доступен без пароля всем устройствам, имеющим доступ к этому порту."; wrap: word-wrap; color: Theme.color.on-surface-variant; }
+                    Button { text: "Применить"; enabled: Settings.hls-can-edit; clicked => { Settings.hls-save(); } }
+                }
                 Card {
                     card-style: CardStyle.low;
                     gap: Theme.sp4;

@@ -75,6 +75,7 @@ impl Engine {
         config.enabled = true;
         config.autostart = false;
         config.outputs.clear();
+        config.local_hls.enabled = false;
         let data = ChannelData::new(dir, config);
         data.save()?;
         self.edit_channel_list(|l| {

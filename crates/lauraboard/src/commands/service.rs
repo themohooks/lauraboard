@@ -33,7 +33,11 @@ pub fn systemd_unit(exe: &std::path::Path, root: &std::path::Path) -> String {
     )
 }
 
-#[cfg(not(windows))]
+#[cfg(target_os = "macos")]
+#[path = "service_macos.rs"]
+mod platform;
+
+#[cfg(all(not(windows), not(target_os = "macos")))]
 mod platform {
     use std::path::Path;
 

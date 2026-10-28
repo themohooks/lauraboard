@@ -1,0 +1,17 @@
+// Single-line editing viewport, matching Slint's standard LineEdit behavior.
+// The parent clips; the editable text itself stays wide enough to scroll.
+export component ScrollingInput inherits TextInput {
+    in property <length> viewport-width;
+    property <length> scroll-x;
+    single-line: true;
+    x: min(0px, max(root.viewport-width - self.width - self.text-cursor-width, self.scroll-x));
+    width: max(root.viewport-width - self.text-cursor-width, self.preferred-width);
+    height: 100%;
+    cursor-position-changed(position) => {
+        if position.x + self.scroll-x < 4px {
+            self.scroll-x = 4px - position.x;
+        } else if position.x + self.scroll-x > root.viewport-width - 4px - self.text-cursor-width {
+            self.scroll-x = root.viewport-width - 4px - self.text-cursor-width - position.x;
+        }
+    }
+}

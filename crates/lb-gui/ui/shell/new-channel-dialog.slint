@@ -1,3 +1,4 @@
+import { NameIdFields } from "../components/name-id-fields.slint";
 // "New channel" dialog: id (inline validation), name, copy settings of
 // the current channel (video, encoder, … — never its outputs).
 
@@ -19,28 +20,14 @@ export component NewChannelDialog inherits Dialog {
         App.new-channel-open = false;
     }
 
-    TextField {
-        label: "Идентификатор";
-        placeholder: "news";
-        mono: true;
-        text <=> App.new-channel-id;
+    NameIdFields {
+        name <=> App.new-channel-name;
+        identifier <=> App.new-channel-id;
         error: App.new-channel-error;
-        supporting: "Латиница, цифры, «-» и «_»; это имя папки канала";
-        container-color: Theme.color.surface-container-high;
-        edited(t) => {
-            App.validate-new-channel(t);
-        }
-    }
-    TextField {
-        label: "Название";
-        placeholder: "Новости 24";
-        text <=> App.new-channel-name;
-        container-color: Theme.color.surface-container-high;
-        accepted => {
-            if App.new-channel-id != "" && App.new-channel-error == "" {
-                App.create-channel();
-            }
-        }
+        reset: App.new-channel-open;
+
+        id-edited(t) => { App.validate-new-channel(t); }
+        accepted => { if App.new-channel-id != "" && App.new-channel-error == "" { App.create-channel(); } }
     }
     if App.channel-index >= 0: Checkbox {
         text: "Скопировать настройки текущего канала (кроме выходов)";

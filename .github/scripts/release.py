@@ -72,7 +72,10 @@ def expected_assets(release_version):
                     result.add(f"{prefix}-{target}.{extension}")
             continue
         result.add(f"{prefix}-{target}-server{extension}")
-        if system != "macos":
+        if system == "macos":
+            result.add(f"{prefix}-{target}-desktop{extension}")
+            result.add(f"{prefix}-{target}.dmg")
+        else:
             result.add(f"{prefix}-{target}-desktop{extension}")
             result.add(f"{prefix}-{system}-{arch}-setup" + (".exe" if system == "windows" else ""))
     return result
@@ -99,7 +102,7 @@ def download_table(repository, release_version, server_url="https://github.com")
     for system, title in (("windows", "Windows"), ("macos", "macOS"), ("linux", "Linux")):
         formats = [("setup", "Setup", "1684c7"), ("desktop", "Portable", "269ca8")]
         if system == "macos":
-            formats = []
+            formats = [("dmg", "DMG", "1684c7"), ("desktop", "AppBundle", "269ca8")]
         elif system == "linux":
             formats = [("AppImage", "AppImage", "e05d2f"), ("deb", "DebPackage", "d36b8c"),
                        ("rpm", "RpmPackage", "d6a22a")]
@@ -137,13 +140,47 @@ def download_table(repository, release_version, server_url="https://github.com")
             f"[SHA256SUMS — контрольные суммы файлов]({checksum})\n\n---\n\n")
 
 
+def previous_tag(release_version):
+    """Newest release tag before this one that is an ancestor of HEAD."""
+    tags = run("git", "tag", "--merged", "HEAD", "--sort=-v:refname", "v[0-9]*",
+               capture_output=True, text=True).stdout.split()
+    return next((t for t in tags if t != f"v{release_version}" and VERSION.fullmatch(t[1:])), None)
+
+
+def commits(since):
+    """`(sha, subject, author)` of every commit since the tag, newest first.
+    Commits of merged pull requests are included; the merge commits
+    themselves are skipped (they change nothing of their own)."""
+    span = f"{since}..HEAD" if since else "HEAD"
+    out = run("git", "log", "--no-merges", "--format=%H%x1f%s%x1f%an%x1e", span,
+              capture_output=True, text=True, encoding="utf-8").stdout
+    return [tuple(entry.strip().split("\x1f")) for entry in out.split("\x1e") if entry.strip()]
+
+
+def changelog(entries, repository, since, release_version, server_url="https://github.com"):
+    """Markdown list of the commits with links to them."""
+    base = f"{server_url.rstrip('/')}/{repository}"
+    lines = ["## Изменения\n"]
+    for sha, subject, author in entries:
+        lines.append(f"- {subject.replace('<', '&lt;')} ([`{sha[:7]}`]({base}/commit/{sha})) — {author}")
+    if not entries:
+        lines.append("- Без изменений в коде.")
+    if since:
+        lines.append(f"\n[Все изменения {since}…v{release_version}]({base}/compare/{since}...v{release_version})")
+    return "\n".join(lines) + "\n"
+
+
 def notes():
     path = ROOT / "target/release-notes.md"
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(download_table(os.environ["GH_REPO"], version(),
-                                  os.environ.get("GITHUB_SERVER_URL", "https://github.com")),
+    repository = os.environ["GH_REPO"]
+    server = os.environ.get("GITHUB_SERVER_URL", "https://github.com")
+    release_version = version()
+    since = previous_tag(release_version)
+    path.write_text(download_table(repository, release_version, server)
+                    + changelog(commits(since), repository, since, release_version, server),
                     encoding="utf-8", newline="\n")
-    print(f"Generated download table: {path}")
+    print(f"Generated release notes since {since or 'the first commit'}: {path}")
 
 
 def archive(source, destination):
@@ -158,7 +195,7 @@ def archive(source, destination):
         def permissions(entry):
             # Apply POSIX modes explicitly, including when packaging is tested
             # on Windows where chmod cannot set executable bits.
-            entry.mode = 0o755 if entry.isdir() or Path(entry.name).name in {"lauraboard", "uninstall", "ffmpeg", "ffprobe"} else 0o644
+            entry.mode = 0o755 if entry.isdir() or entry.mode & 0o111 or Path(entry.name).name in {"lauraboard", "uninstall", "ffmpeg", "ffprobe"} else 0o644
             entry.uid = entry.gid = 0
             entry.uname = entry.gname = "root"
             return entry
@@ -220,6 +257,14 @@ def build():
         build_info(stage, release_version, target, "desktop")
         archive(stage, ASSETS / f"{prefix}-{target}-desktop{extension}")
 
+    else:
+        import macos
+        stage = macos.desktop(ROOT, ASSETS, release_version, target)
+        smoke(stage / "LauraBoard.app/Contents/MacOS/lauraboard", release_version)
+        build_info(stage, release_version, target, "desktop")
+        archive(stage, ASSETS / f"{prefix}-{target}-desktop{extension}")
+        macos.dmg(stage, ASSETS / f"{prefix}-{target}.dmg")
+
     # A separate target directory keeps the desktop binary and embedded
     # installer payload from being overwritten by the headless build.
     run("cargo", "build", "--release", "--locked", "-p", "lauraboard",
@@ -231,10 +276,18 @@ def build():
     with tempfile.TemporaryDirectory(prefix="lauraboard-server-") as temporary:
         stage = Path(temporary)
         shutil.copy2(binary, stage / binary.name)
+        shutil.copy2(ROOT / f"target/release/lauraboard-webview{suffix}", stage / f"lauraboard-webview{suffix}")
         shutil.copy2(ROOT / "README.md", stage / "README.md")
         shutil.copytree(ROOT / "docs", stage / "docs", ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
         shutil.copytree(ROOT / "examples", stage / "examples")
-        bundle_ffmpeg(stage)
+        if system == "macos":
+            import macos
+            macos.copy_tools(stage, stage / "Frameworks", stage / "licenses/ffmpeg")
+        else:
+            bundle_ffmpeg(stage)
+        runtime = ROOT / ("target/debug/runtime" if system == "macos" else "target/release/runtime")
+        run(sys.executable, ROOT / ".github/scripts/fetch_web_runtime.py", "--output", runtime, "--system", system, "--arch", arch)
+        shutil.copytree(runtime, stage / "runtime", symlinks=True)
         build_info(stage, release_version, target, "server")
         archive(stage, ASSETS / f"{prefix}-{target}-server{extension}")
     print("Release assets:", *(p.name for p in sorted(ASSETS.iterdir())), sep="\n")

@@ -5,6 +5,8 @@
 //! | channels, status, rundown, preview | [`status`] |
 //! | playback / graphics commands | [`control`] |
 //! | media library | [`library`] |
+//! | downloads from sites (yt-dlp) | [`download`] |
+//! | video editor (frames, render job) | [`edit`] |
 //! | playlists | [`playlists`] |
 //! | schedules, rules, graphics, channel config | [`config`] |
 //! | graphics render (draft preview) | [`render`] |
@@ -18,6 +20,8 @@ pub mod avatar;
 pub mod backgrounds;
 pub mod config;
 pub mod control;
+pub mod download;
+pub mod edit;
 pub mod fonts;
 pub mod jobs;
 pub mod library;
@@ -63,9 +67,13 @@ pub fn router(state: AppState) -> Router {
         .route("/media", get(library::list).post(library::add))
         .route("/media/import", post(library::import))
         .route("/media/check", post(library::check))
+        .route("/media/download", post(download::download))
+        .route("/media/download/probe", post(download::probe))
         .route("/media/folders", get(library::folders).post(library::folder_op))
         .route("/media/{media}/thumb.jpg", get(thumbs::thumb))
         .route("/media/{media}/preview.jpg", post(thumbs::preview))
+        .route("/media/{media}/edit", post(edit::render))
+        .route("/media/{media}/edit/frame.jpg", post(edit::frame))
         .route("/media/{media}", get(library::get_one).put(library::update).delete(library::remove))
         .route("/playlists", get(playlists::list).post(playlists::create))
         .route("/playlists/{pl}", get(playlists::get_one).put(playlists::replace).delete(playlists::remove))
@@ -94,8 +102,38 @@ pub fn router(state: AppState) -> Router {
         .route("/archives/inspect", post(transfer::inspect))
         .route("/archives/import", post(transfer::import))
         .route("/jobs", get(jobs::list))
+        .route("/tools/ytdlp", get(download::status))
+        .route("/tools/ytdlp/install", post(download::install))
+        .route(
+            "/tools/ytdlp/login",
+            get(download::get_login)
+                .put(download::put_login)
+                .layer(axum::extract::DefaultBodyLimit::max(lb_engine::download::login::MAX_COOKIES * 2)),
+        )
         .route("/jobs/{job}", get(jobs::get_one).delete(jobs::cancel))
         .nest("/channels/{id}", ch.route("/events", get(crate::ws::events_channel)))
         .route("/channels/{id}/var/{key}", put(control::set_var));
-    Router::new().nest("/api/v1", api).layer(CorsLayer::permissive()).with_state(state)
+    Router::new().nest("/api/v1", api).layer(axum::middleware::from_fn(measure)).layer(CorsLayer::permissive()).with_state(state)
+}
+
+async fn measure(request: axum::extract::Request, next: axum::middleware::Next) -> axum::response::Response {
+    use axum::body::Body;
+    use futures_util::StreamExt;
+    let (parts, body) = request.into_parts();
+    let stream = body.into_data_stream().inspect(|chunk| {
+        if let Ok(bytes) = chunk {
+            lb_core::traffic::received(lb_core::traffic::API, bytes.len() as u64);
+        }
+    });
+    let response = next.run(axum::extract::Request::from_parts(parts, Body::from_stream(stream))).await;
+    if response.status() == axum::http::StatusCode::SWITCHING_PROTOCOLS {
+        return response;
+    }
+    response.map(|body| {
+        Body::from_stream(body.into_data_stream().inspect(|chunk| {
+            if let Ok(bytes) = chunk {
+                lb_core::traffic::sent(lb_core::traffic::API, bytes.len() as u64);
+            }
+        }))
+    })
 }

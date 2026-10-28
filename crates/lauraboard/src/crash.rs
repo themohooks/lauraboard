@@ -25,7 +25,10 @@ pub fn supervise(root: &Path, desktop: bool) -> i32 {
         }
         let stderr = std::fs::OpenOptions::new().append(true).open(&path)?;
         let stdout = stderr.try_clone()?;
-        let status = cmd.stdout(stdout).stderr(stderr).status()?;
+        // After `detach_console` the inherited stdin is a dead console
+        // handle and Windows refuses to start the child (os error 6).
+        let stdin = if desktop { std::process::Stdio::null() } else { std::process::Stdio::inherit() };
+        let status = cmd.stdin(stdin).stdout(stdout).stderr(stderr).status()?;
         let code = status.code().unwrap_or(1);
         if !status.success() && code != crate::exit::Code::Cancelled as i32 {
             let mut file = std::fs::OpenOptions::new().append(true).open(&path)?;
