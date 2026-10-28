@@ -83,7 +83,7 @@ def info(version):
 
 
 def desktop(root, assets, version, target):
-    run("cargo", "build", "--release", "--locked", "-p", "lauraboard")
+    run("cargo", "build", "--release", "--locked", "-p", "lauraboard", "-p", "lb-webview")
     stage = root / "target/macos-desktop"
     if stage.exists():
         shutil.rmtree(stage)
@@ -91,6 +91,7 @@ def desktop(root, assets, version, target):
     binary_dir = app / "Contents/MacOS"
     binary_dir.mkdir(parents=True)
     shutil.copy2(root / "target/release/lauraboard", binary_dir / "lauraboard")
+    shutil.copy2(root / "target/release/lauraboard-webview", binary_dir / "lauraboard-webview")
     with (app / "Contents/Info.plist").open("wb") as output:
         plistlib.dump(info(version), output)
     (app / "Contents/PkgInfo").write_bytes(b"APPL????")
@@ -109,19 +110,16 @@ def desktop(root, assets, version, target):
     import fetch_web_runtime
     runtime = root / "target/debug/runtime"
     fetch_web_runtime.prepare(runtime, "macos", "aarch64" if target.startswith("aarch64") else "x86_64")
-    browser = app / "Contents/Frameworks/Google Chrome for Testing.app"
-    browser.parent.mkdir(parents=True, exist_ok=True)
-    shutil.copytree(runtime / "browser/Google Chrome for Testing.app", browser, symlinks=True)
     shutil.copytree(runtime / "ruffle", resources / "ruffle")
-    run("codesign", "--verify", "--deep", "--strict", browser)
     licenses = resources / "licenses"
     licenses.mkdir(exist_ok=True)
     gui_assets = root / "crates/lb-gui/assets"
     for source, name in ((gui_assets / "fonts/OFL-Roboto.txt", "OFL-Roboto.txt"), (gui_assets / "fonts/OFL-RobotoMono.txt", "OFL-RobotoMono.txt"), (gui_assets / "icons/LICENSE", "MaterialSymbols-Apache-2.0.txt")):
         shutil.copy2(source, licenses / name)
     copy_tools(binary_dir)
-    # FFmpeg libraries were signed inside out; retain Chromium's vendor signature.
+    # Sign the helper before its outer app bundle.
     identity = os.environ.get("MACOS_SIGNING_IDENTITY", "-")
+    run("codesign", "--force", "--sign", identity, binary_dir / "lauraboard-webview")
     run("codesign", "--force", "--sign", identity, app)
     run("codesign", "--verify", "--deep", "--strict", app)
     return stage

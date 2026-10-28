@@ -67,10 +67,14 @@ jobs:
         run: brew install ffmpeg
       - name: Test native macOS build
         run: cargo test --workspace --locked
-      - name: Prepare private web runtime
+      - name: Build native WebView host
+        run: cargo build --locked -p lb-webview
+      - name: Prepare offline SWF player
         run: python .github/scripts/fetch_web_runtime.py --output target/debug/runtime
       - name: Test native HTML and SWF capture
-        run: cargo test --locked -p lb-gfx web::tests -- --ignored --test-threads=1
+        run: |
+          cargo test --locked -p lb-webview --test native -- --ignored --test-threads=1
+          cargo test --locked -p lb-gfx web::tests -- --ignored --test-threads=1
       - name: Build installers and portable archives
         env:
           RELEASE_TARGET: ${{ matrix.target }}

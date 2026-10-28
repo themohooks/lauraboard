@@ -166,7 +166,7 @@ impl SystemMonitor {
                 } else {
                     "Декодирование"
                 }
-            } else if name.contains("chrome") || name.contains("chromium") {
+            } else if ["webview", "webkit", "msedge"].iter().any(|part| name.contains(part)) {
                 "Веб-графика и вход"
             } else if name.contains("yt-dlp") || name.contains("python") {
                 "Загрузки"

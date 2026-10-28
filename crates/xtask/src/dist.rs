@@ -21,7 +21,8 @@ const EXE: &str = std::env::consts::EXE_SUFFIX;
 
 /// Image for `--linux`; the cargo registry is cached in a named volume.
 const LINUX_IMAGE: &str = "rust:1-bookworm";
-const LINUX_DEPS: &str = "libfontconfig-dev libxkbcommon-dev libxkbcommon-x11-dev libwayland-dev libgl1-mesa-dev pkg-config";
+const LINUX_DEPS: &str =
+    "libfontconfig-dev libxkbcommon-dev libxkbcommon-x11-dev libwayland-dev libgl1-mesa-dev libgtk-3-dev libwebkit2gtk-4.1-dev pkg-config";
 
 pub fn run(args: &[String]) -> Result<(), String> {
     match args.first().map(String::as_str) {
@@ -74,11 +75,11 @@ fn build() -> Result<(), String> {
     let stage = dist.join("stage");
 
     step(1, &format!("сборка LauraBoard {version} ({os}/{arch})"));
-    cargo(&root, &["build", "--locked", "--release", "-p", "lauraboard", "-p", "lb-installer"], None)?;
+    cargo(&root, &["build", "--locked", "--release", "-p", "lauraboard", "-p", "lb-installer", "-p", "lb-webview"], None)?;
 
     step(2, "упаковка");
     let runtime = release.join("runtime");
-    if !(os == "linux" && arch == "x86") {
+    {
         let python = std::env::var_os("PYTHON").unwrap_or_else(|| if cfg!(windows) { "python" } else { "python3" }.into());
         let status = Command::new(python)
             .arg(root.join(".github/scripts/fetch_web_runtime.py"))
@@ -98,6 +99,7 @@ fn build() -> Result<(), String> {
     let gui_assets = root.join("crates/lb-gui/assets");
     let mut files: Vec<(PathBuf, String)> = vec![
         (release.join(&binary), binary.clone()),
+        (release.join(format!("lauraboard-webview{EXE}")), format!("lauraboard-webview{EXE}")),
         (release.join(format!("lauraboard-setup{EXE}")), uninstaller.clone()),
         (assets.join("lauraboard.svg"), "lauraboard.svg".into()),
         (gui_assets.join("fonts/OFL-Roboto.txt"), "licenses/OFL-Roboto.txt".into()),

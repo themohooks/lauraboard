@@ -64,10 +64,10 @@ def deb(stage, destination, version, arch, temporary):
     installed_tree(stage, root)
     # Let dpkg derive versioned ELF dependencies, then include dlopen libraries.
     write(temporary / "debian/control", "Source: lauraboard\n\nPackage: lauraboard\nArchitecture: any\nDescription: TV playout\n")
-    binaries = [stage / "lauraboard", *(stage / tool for tool in ("ffmpeg", "ffprobe") if (stage / tool).exists())]
+    binaries = [stage / "lauraboard", *(stage / tool for tool in ("ffmpeg", "ffprobe", "lauraboard-webview") if (stage / tool).exists())]
     dependencies = run("dpkg-shlibdeps", "-O", *(f"-e{binary}" for binary in binaries),
                        cwd=temporary, capture_output=True, text=True).stdout.strip().removeprefix("shlibs:Depends=")
-    dependencies += ", libfontconfig1, libxkbcommon0, libxkbcommon-x11-0, libwayland-client0, libwayland-cursor0, libwayland-egl1, libgl1"
+    dependencies += ", libfontconfig1, libxkbcommon0, libxkbcommon-x11-0, libwayland-client0, libwayland-cursor0, libwayland-egl1, libgl1, libgtk-3-0, libwebkit2gtk-4.1-0"
     write(root / "DEBIAN/control", f"""Package: lauraboard
 Version: {version.replace('-', '~', 1)}
 Section: video
@@ -91,7 +91,7 @@ def rpm(stage, destination, version, arch, temporary):
     top.mkdir()
     spec = temporary / "lauraboard.spec"
     library_suffix = "" if arch == "x86" else "()(64bit)"
-    dependencies = ", ".join(library + library_suffix for library in (*RUNTIME_LIBRARIES, "libGL.so.1"))
+    dependencies = ", ".join(library + library_suffix for library in (*RUNTIME_LIBRARIES, "libGL.so.1", "libgtk-3.so.0", "libwebkit2gtk-4.1.so.0"))
     write(spec, f"""%global __os_install_post %{{nil}}
 %global _build_id_links none
 Name: lauraboard
@@ -184,7 +184,7 @@ def aur(stage, destination, version, arch, temporary):
         digest = hashlib.file_digest(stream, "sha256").hexdigest()
     aur_arch = RPM_ARCH[arch]
     pkgver = version.replace("-", "_")
-    dependencies = ["glibc", "gcc-libs", "fontconfig", "libxkbcommon", "libxkbcommon-x11", "wayland", "libglvnd", "openssl", "dbus"]
+    dependencies = ["glibc", "gcc-libs", "fontconfig", "libxkbcommon", "libxkbcommon-x11", "wayland", "libglvnd", "openssl", "dbus", "gtk3", "webkit2gtk-4.1"]
     write(root / "lauraboard.desktop", DESKTOP)
     desktop_digest = hashlib.sha256(DESKTOP.encode()).hexdigest()
     write(root / "PKGBUILD", f"""pkgname=lauraboard-bin

@@ -41,7 +41,7 @@ pub fn connect(ui: &AppWindow) {
     });
 }
 
-/// Sign in in our own browser window; its cookies go to the server.
+/// Sign in in our native WebView window; its cookies go to the server.
 fn login_web(c: &mut Ctx) {
     if c.download.web_done.is_some() {
         return;

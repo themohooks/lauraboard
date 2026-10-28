@@ -119,9 +119,9 @@ class ReleaseTests(unittest.TestCase):
             (source / "lauraboard").chmod(0o755)
             (source / "ffmpeg").write_bytes(b"ffmpeg")
             (source / "ffprobe").write_bytes(b"ffprobe")
-            browser = source / "runtime/browser/chrome"
-            browser.parent.mkdir(parents=True)
-            browser.write_bytes(b"browser")
+            browser = source / "lauraboard-webview"
+            browser.parent.mkdir(parents=True, exist_ok=True)
+            browser.write_bytes(b"native webview host")
             browser.chmod(0o755)
             release.archive(source, directory / "portable.zip")
             with zipfile.ZipFile(directory / "portable.zip") as archive:
@@ -134,7 +134,7 @@ class ReleaseTests(unittest.TestCase):
                     self.assertEqual(archive.getmember(f"portable/{tool}").mode, 0o755)
                 # Windows chmod cannot set POSIX executable bits.
                 if release.os.name != "nt":
-                    self.assertEqual(archive.getmember("portable/runtime/browser/chrome").mode, 0o755)
+                    self.assertEqual(archive.getmember("portable/lauraboard-webview").mode, 0o755)
 
     def test_server_bundle_copies_both_tools_and_notices(self):
         with tempfile.TemporaryDirectory() as temp:

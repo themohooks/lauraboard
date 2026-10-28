@@ -276,6 +276,7 @@ def build():
     with tempfile.TemporaryDirectory(prefix="lauraboard-server-") as temporary:
         stage = Path(temporary)
         shutil.copy2(binary, stage / binary.name)
+        shutil.copy2(ROOT / f"target/release/lauraboard-webview{suffix}", stage / f"lauraboard-webview{suffix}")
         shutil.copy2(ROOT / "README.md", stage / "README.md")
         shutil.copytree(ROOT / "docs", stage / "docs", ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
         shutil.copytree(ROOT / "examples", stage / "examples")
@@ -284,10 +285,9 @@ def build():
             macos.copy_tools(stage, stage / "Frameworks", stage / "licenses/ffmpeg")
         else:
             bundle_ffmpeg(stage)
-        if not (system == "linux" and arch == "x86"):
-            runtime = ROOT / ("target/debug/runtime" if system == "macos" else "target/release/runtime")
-            run(sys.executable, ROOT / ".github/scripts/fetch_web_runtime.py", "--output", runtime, "--system", system, "--arch", arch)
-            shutil.copytree(runtime, stage / "runtime", symlinks=True)
+        runtime = ROOT / ("target/debug/runtime" if system == "macos" else "target/release/runtime")
+        run(sys.executable, ROOT / ".github/scripts/fetch_web_runtime.py", "--output", runtime, "--system", system, "--arch", arch)
+        shutil.copytree(runtime, stage / "runtime", symlinks=True)
         build_info(stage, release_version, target, "server")
         archive(stage, ASSETS / f"{prefix}-{target}-server{extension}")
     print("Release assets:", *(p.name for p in sorted(ASSETS.iterdir())), sep="\n")

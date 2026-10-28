@@ -1,16 +1,18 @@
-//! Signing in with the bundled web runtime and a private
+//! Signing in with the system WebView and a private
 //! LauraBoard profile: the user signs in as
 //! usual, closes the window, and the cookies of that profile become the
 //! `cookies.txt` yt-dlp downloads with. The user's own browser and its
 //! profile are not touched.
 
 use std::path::PathBuf;
-use std::process::{Child, Command, Stdio};
+use std::process::{Command, Stdio};
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::{Duration, Instant};
 
-use serde_json::{Value, json};
+use serde_json::Value;
+#[cfg(test)]
+use serde_json::json;
 
 /// Where the sign-in starts (YouTube, after Google's sign-in page).
 pub const YOUTUBE: &str = "https://accounts.google.com/ServiceLogin?service=youtube&continue=https%3A%2F%2Fwww.youtube.com%2F";
@@ -26,101 +28,73 @@ fn profile() -> PathBuf {
 pub fn run(start: &str, done: Arc<AtomicBool>) -> Result<(String, bool), String> {
     let exe = lb_core::browser::path().ok_or(lb_core::browser::MISSING)?;
     let dir = profile();
-    std::fs::create_dir_all(&dir).map_err(|e| format!("{}: {e}", dir.display()))?;
-    let _ = std::fs::remove_file(dir.join("DevToolsActivePort"));
     let mut command = Command::new(exe);
-    command
-        .arg(format!("--user-data-dir={}", dir.display()))
-        .args(["--no-first-run", "--no-default-browser-check", "--disable-background-mode", "--remote-debugging-port=0"])
-        .arg(format!("--app={start}"))
-        .stdin(Stdio::null())
-        .stdout(Stdio::null())
-        .stderr(Stdio::null());
+    command.arg("login").arg(start).arg(&dir).arg("-").stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::null());
     #[cfg(windows)]
     {
         use std::os::windows::process::CommandExt;
         command.creation_flags(0x08000000);
     }
-    let mut child = command.spawn().map_err(|e| format!("браузер не запустился: {e}"))?;
-    let result = watch(&mut child, &dir, &done);
-    // "Готово" with the window still open: close it ourselves
-    if child.try_wait().ok().flatten().is_none() {
-        let _ = child.kill();
-    }
-    let _ = child.wait();
-    let cookies = result?;
-    if cookies.is_empty() {
-        return Err("окно закрыто до входа — cookies нет".into());
-    }
-    let signed_in = cookies.iter().any(|c| {
-        c["domain"].as_str().is_some_and(|d| d.ends_with("youtube.com"))
-            && matches!(c["name"].as_str(), Some("LOGIN_INFO" | "SAPISID" | "__Secure-3PAPISID"))
-    });
-    Ok((netscape(&cookies), signed_in))
-}
-
-/// Snapshot the cookies every two seconds until the browser exits (the
-/// last snapshot wins: a closed browser can no longer be asked).
-fn watch(child: &mut Child, dir: &std::path::Path, done: &AtomicBool) -> Result<Vec<Value>, String> {
-    let started = Instant::now();
-    let url = loop {
-        if let Ok(text) = std::fs::read_to_string(dir.join("DevToolsActivePort")) {
-            let mut lines = text.lines();
-            if let (Some(port), Some(path)) = (lines.next(), lines.next()) {
-                break format!("ws://127.0.0.1:{}{path}", port.trim());
+    let mut child = command.spawn().map_err(|e| format!("WebView: {e}"))?;
+    let output = child.stdout.take().ok_or("WebView output pipe unavailable")?;
+    let (tx, rx) = std::sync::mpsc::channel();
+    std::thread::spawn(move || {
+        use std::io::BufRead;
+        for line in std::io::BufReader::new(output).lines().map_while(Result::ok) {
+            if let Ok(v) = serde_json::from_str::<Value>(&line) {
+                let _ = tx.send(v);
             }
         }
-        if child.try_wait().ok().flatten().is_some() {
-            return Err("браузер закрылся сразу — возможно, окно входа уже открыто".into());
+    });
+    let mut last = Vec::new();
+    let mut error = None;
+    let mut closing = None;
+    loop {
+        while let Ok(v) = rx.try_recv() {
+            if let Some(cookies) = v["cookies"].as_array() {
+                last = cookies.clone();
+            }
+            if let Some(message) = v["error"].as_str() {
+                error = Some(message.to_string());
+            }
         }
-        if started.elapsed() > Duration::from_secs(20) || done.load(Ordering::Relaxed) {
-            return Err("браузер не ответил".into());
+        if child.try_wait().map_err(|e| e.to_string())?.is_some() {
+            break;
+        }
+        if done.load(Ordering::Relaxed) && closing.is_none() {
+            use std::io::Write;
+            if let Some(input) = child.stdin.as_mut() {
+                let _ = input.write_all(b"done\n");
+            }
+            closing = Some(Instant::now());
+        }
+        if closing.is_some_and(|t| t.elapsed() > Duration::from_secs(5)) {
+            let _ = child.kill();
+            break;
         }
         std::thread::sleep(Duration::from_millis(100));
-    };
-    let (mut socket, _) = tungstenite::connect(url.as_str()).map_err(|e| format!("браузер: {e}"))?;
-    if let tungstenite::stream::MaybeTlsStream::Plain(stream) = socket.get_ref() {
-        stream.set_read_timeout(Some(Duration::from_secs(5))).map_err(|e| e.to_string())?;
-        stream.set_write_timeout(Some(Duration::from_secs(5))).map_err(|e| e.to_string())?;
     }
-    let mut id = 0u64;
-    let mut last = Vec::new();
-    loop {
-        id += 1;
-        match call(&mut socket, id, "Storage.getCookies") {
-            Ok(v) => last = v["cookies"].as_array().cloned().unwrap_or_default(),
-            Err(_) => return Ok(last), // the browser is gone
+    let _ = child.wait();
+    // Drain the final cookie snapshot emitted while the window closes.
+    while let Ok(v) = rx.recv_timeout(Duration::from_millis(100)) {
+        if let Some(cookies) = v["cookies"].as_array() {
+            last = cookies.clone();
         }
-        if done.load(Ordering::Relaxed) {
-            return Ok(last);
-        }
-        for _ in 0..20 {
-            if done.load(Ordering::Relaxed) || child.try_wait().ok().flatten().is_some() {
-                break;
-            }
-            std::thread::sleep(Duration::from_millis(100));
-        }
-        if child.try_wait().ok().flatten().is_some() {
-            return Ok(last);
+        if let Some(message) = v["error"].as_str() {
+            error = Some(message.to_string());
         }
     }
+    if last.is_empty() {
+        return Err(error.unwrap_or_else(|| "окно закрыто до входа — cookies нет".into()));
+    }
+    let signed_in = last.iter().any(|c| {
+        c["domain"].as_str().is_some_and(|d| d == "youtube.com" || d.ends_with(".youtube.com"))
+            && matches!(c["name"].as_str(), Some("LOGIN_INFO" | "SAPISID" | "__Secure-3PAPISID"))
+    });
+    Ok((netscape(&last), signed_in))
 }
 
-type Socket = tungstenite::WebSocket<tungstenite::stream::MaybeTlsStream<std::net::TcpStream>>;
-
-fn call(socket: &mut Socket, id: u64, method: &str) -> Result<Value, String> {
-    socket.send(tungstenite::Message::Text(json!({ "id": id, "method": method }).to_string().into())).map_err(|e| e.to_string())?;
-    loop {
-        if let tungstenite::Message::Text(text) = socket.read().map_err(|e| e.to_string())? {
-            let v: Value = serde_json::from_str(&text).map_err(|e| e.to_string())?;
-            if v["id"] == id {
-                return if v["error"].is_null() { Ok(v["result"].clone()) } else { Err(v["error"].to_string()) };
-            }
-        }
-    }
-}
-
-/// DevTools cookies → `cookies.txt` (what yt-dlp reads with `--cookies`).
+/// WebView cookies → `cookies.txt` (what yt-dlp reads with `--cookies`).
 fn netscape(cookies: &[Value]) -> String {
     let mut out = String::from("# Netscape HTTP Cookie File\n# Signed in with LauraBoard\n\n");
     for c in cookies {

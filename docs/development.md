@@ -8,7 +8,7 @@
 - Clippy проверяет весь workspace, все targets Cargo и все features. Предупреждения видны в журнале; ошибки останавливают проверку.
 - Модульные и интеграционные тесты выполняются нативно на Windows и Linux под x86-64 и ARM64. В релизном macOS job под Intel и Apple Silicon запускаются тесты workspace с GUI и собираются нативные пакеты.
 - Отдельная проверка собирает CLI без GUI на минимальной заявленной версии Rust 1.92.
-- FFmpeg-тесты на Ubuntu 24.04 и 26.04 выполняют обычно пропускаемые регрессии синхронизации аудио/видео и начала/конца эфира. Таким образом проверяются поставляемые этими ОС версии FFmpeg 6.1 и 8.0. Браузерные тесты автоматически не запускаются: сначала выполните `python .github/scripts/fetch_web_runtime.py --output target/debug/runtime`, затем `cargo test -p lb-gfx web::tests -- --ignored --test-threads=1`. Для проверки своего SWF задайте `LB_TEST_SWF` с путём к файлу.
+- FFmpeg-тесты на Ubuntu 24.04 и 26.04 выполняют обычно пропускаемые регрессии синхронизации аудио/видео и начала/конца эфира. Таким образом проверяются поставляемые этими ОС версии FFmpeg 6.1 и 8.0. Нативные WebView-тесты запускаются в отдельном CI на Windows, macOS и Linux (Xvfb). Для локального запуска сначала выполните `cargo build -p lb-webview`, затем `python .github/scripts/fetch_web_runtime.py --output target/debug/runtime`, затем `cargo test -p lb-gfx web::tests -- --ignored --test-threads=1`. Для проверки своего SWF задайте `LB_TEST_SWF` с путём к файлу.
 - Actionlint проверяет workflows; Python-тесты проверяют архивы, версии и полноту релизных файлов.
 - На небольшом ELF-файле дополнительно проверяются настоящие DEB, RPM и AppImage, их распаковка и запуск, а также выполнение `package()` из AUR PKGBUILD.
 

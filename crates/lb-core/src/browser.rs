@@ -1,28 +1,13 @@
-//! The private web runtime shipped with LauraBoard. Never searches installed
-//! browsers, PATH or system WebView runtimes.
-
+//! Locate the small native WebView host and offline SWF player.
 use std::path::PathBuf;
 
-pub const MISSING: &str = "Не найден движок LauraBoard в runtime/browser. Переустановите полную версию приложения.";
+pub const MISSING: &str = "Не найден lauraboard-webview. Переустановите приложение вместе с компонентом WebView.";
 
 pub fn path() -> Option<PathBuf> {
     let exe = std::env::current_exe().ok()?;
-    if cfg!(target_os = "macos") {
-        let bundled = exe.parent()?.parent()?.join("Frameworks/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing");
-        if bundled.is_file() {
-            return Some(bundled);
-        }
-    }
-    let name = if cfg!(windows) {
-        "chrome.exe"
-    } else if cfg!(target_os = "macos") {
-        "Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing"
-    } else {
-        "chrome"
-    };
     let parent = exe.parent()?;
     let parent = if parent.file_name().is_some_and(|p| p == "deps") { parent.parent()? } else { parent };
-    let path = parent.join("runtime/browser").join(name);
+    let path = parent.join(if cfg!(windows) { "lauraboard-webview.exe" } else { "lauraboard-webview" });
     path.is_file().then_some(path)
 }
 
