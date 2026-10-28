@@ -212,3 +212,38 @@ fn exports_http_only_cookies_and_closes_on_done() {
     assert!(closed, "WebView did not close after the parent sent done");
     assert!(pending_resource.load(Ordering::Relaxed), "Slow subresource was not requested");
 }
+
+// Ruffle waits for animation frames before it can produce its first snapshot.
+// A timer-only HTML test cannot detect WKWebView suspending rAF while hidden.
+#[test]
+#[ignore = "requires a native system WebView runtime"]
+fn hidden_capture_runs_animation_frames() {
+    struct Host(std::process::Child);
+    impl Drop for Host {
+        fn drop(&mut self) {
+            let _ = self.0.kill();
+            let _ = self.0.wait();
+        }
+    }
+    let html = "data:text/html,<script>window.__lbReady=false;let n=0;const cancelled=requestAnimationFrame(()=>window.__lbError='cancelled callback ran');cancelAnimationFrame(cancelled);function tick(){if(++n===5)window.__lbReady=true;else requestAnimationFrame(tick)}requestAnimationFrame(tick)</script>";
+    let mut command = Command::new(env!("CARGO_BIN_EXE_lauraboard-webview"));
+    command.args(["capture", html, "64", "48"]).stdin(Stdio::piped()).stdout(Stdio::piped());
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        command.creation_flags(0x08000000);
+    }
+    let mut host = Host(command.spawn().unwrap());
+    let output = host.0.stdout.take().unwrap();
+    let (tx, rx) = std::sync::mpsc::channel();
+    std::thread::spawn(move || {
+        for line in std::io::BufReader::new(output).lines().map_while(Result::ok) {
+            let _ = tx.send(line);
+        }
+    });
+    let line = rx.recv_timeout(Duration::from_secs(40)).expect("Hidden animation did not produce a snapshot");
+    let value: serde_json::Value = serde_json::from_str(&line).unwrap();
+    assert!(value["error"].is_null(), "{value}");
+    assert!(value["png"].is_string(), "{value}");
+    host.0.stdin.as_mut().unwrap().write_all(b"done\n").unwrap();
+}

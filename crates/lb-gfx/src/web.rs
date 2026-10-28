@@ -214,7 +214,7 @@ impl FileServer {
         let movie_json = serde_json::to_string(movie.as_str()).unwrap().replace('<', "\\u003c");
         let init = include_str!("ruffle_init.js");
         let wrapper = format!(
-            r#"<!doctype html><meta charset="utf-8"><style>html,body{{margin:0;width:100%;height:100%;overflow:hidden;background:transparent}}ruffle-player{{display:block;width:100%;height:100%}}</style><script>{init}window.__lbReady=false;window.RufflePlayer={{config:{{autoplay:"on",volume:0,unmuteOverlay:"hidden",wmode:"transparent",allowScriptAccess:false}}}};</script><script src="{script}"></script><script>addEventListener('load',async()=>{{try{{const p=RufflePlayer.newest().createPlayer();document.body.appendChild(p);const loaded=new Promise(resolve=>p.addEventListener('loadeddata',resolve,{{once:true}}));await p.ruffle().load({{url:{movie_json},autoplay:"on",wmode:"transparent"}});await loaded;await new Promise(requestAnimationFrame);await new Promise(requestAnimationFrame);window.__lbReady=true;}}catch(e){{window.__lbError=String(e);console.error(e)}}}});</script><body></body>"#
+            r#"<!doctype html><meta charset="utf-8"><style>html,body{{margin:0;width:100%;height:100%;overflow:hidden;background:transparent}}ruffle-player{{display:block;width:100%;height:100%}}</style><script>{init}window.__lbReady=false;window.__lbStage="loading Ruffle script";window.RufflePlayer={{config:{{autoplay:"on",volume:0,unmuteOverlay:"hidden",wmode:"transparent",allowScriptAccess:false}}}};</script><script src="{script}"></script><script>addEventListener('load',async()=>{{try{{window.__lbStage="creating Ruffle player";const p=RufflePlayer.newest().createPlayer();document.body.appendChild(p);const loaded=new Promise(resolve=>p.addEventListener('loadeddata',resolve,{{once:true}}));window.__lbStage="loading SWF";await p.ruffle().load({{url:{movie_json},autoplay:"on",wmode:"transparent"}});await loaded;window.__lbStage="waiting for animation frames";await new Promise(requestAnimationFrame);await new Promise(requestAnimationFrame);window.__lbReady=true;}}catch(e){{window.__lbError=String(e);console.error(e)}}}});</script><body></body>"#
         );
         let stop = Arc::new(AtomicBool::new(false));
         let ended = stop.clone();
@@ -334,7 +334,7 @@ mod tests {
         std::fs::write(&path, swf).unwrap();
         let external = std::env::var_os("LB_TEST_SWF").map(PathBuf::from);
         let source = WebSource::get(external.as_deref().unwrap_or(&path), 64, 48);
-        source.wait(Duration::from_secs(30)).unwrap();
+        source.wait(Duration::from_secs(40)).unwrap();
         std::thread::sleep(Duration::from_millis(500));
         let frame = source.frame().unwrap();
         assert_eq!((frame.width(), frame.height()), (64, 48));

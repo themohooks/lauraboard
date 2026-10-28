@@ -123,6 +123,16 @@ fn run() -> Result<(), String> {
             wry::NewWindowResponse::Deny
         });
     #[cfg(target_os = "macos")]
+    let builder = if login {
+        builder
+    } else {
+        // Capture views deliberately have no visible window. Keep their page
+        // tasks alive; WKWebView otherwise suspends inactive content.
+        builder
+            .with_background_throttling(wry::BackgroundThrottlingPolicy::Disabled)
+            .with_initialization_script(include_str!("capture_macos.js"))
+    };
+    #[cfg(target_os = "macos")]
     let builder = {
         use wry::WebViewBuilderExtDarwin;
         // Stable app-specific sign-in store; capture views remain ephemeral.
@@ -201,6 +211,7 @@ fn run() -> Result<(), String> {
     let start = Instant::now();
     let mut next = Instant::now();
     let mut ready = login;
+    let mut loading_stage = String::from("waiting for page load");
     let mut loaded = false;
     let mut pending = false;
     let mut cookie_pending = false;
@@ -246,6 +257,9 @@ fn run() -> Result<(), String> {
                     if let Some(error) = v["error"].as_str() {
                         output(json!({"error": error}));
                         *control = ControlFlow::Exit;
+                    }
+                    if let Some(stage) = v["stage"].as_str() {
+                        loading_stage = stage.to_owned();
                     }
                     ready = v["ready"] == true;
                 }
@@ -293,7 +307,7 @@ fn run() -> Result<(), String> {
                     }
                 }
                 if !login && !ready && start.elapsed() > Duration::from_secs(30) {
-                    output(json!({"error":"HTML / Ruffle loading timed out"}));
+                    output(json!({"error":format!("HTML / Ruffle loading timed out: {loading_stage}")}));
                     *control = ControlFlow::Exit;
                 }
                 if closing.is_some_and(|t| t.elapsed() > Duration::from_secs(3)) {

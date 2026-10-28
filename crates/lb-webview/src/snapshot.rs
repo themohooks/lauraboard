@@ -99,7 +99,7 @@ pub fn mute(view: &wry::WebView) {
         let _ = view.evaluate_script("(()=>{const mute=()=>document.querySelectorAll('audio,video').forEach(e=>{e.muted=true});mute();new MutationObserver(mute).observe(document,{childList:true,subtree:true})})()");
     }
 }
-pub const READY: &str = "({ready: document.readyState === 'complete' && (typeof window.__lbReady === 'undefined' || window.__lbReady === true), error: window.__lbError || null})";
+pub const READY: &str = "({ready: document.readyState === 'complete' && (typeof window.__lbReady === 'undefined' || window.__lbReady === true), error: window.__lbError || null, stage: window.__lbStage || document.readyState})";
 
 #[cfg(not(windows))]
 pub fn readiness(view: &wry::WebView, done: impl Fn(String) + Send + 'static) -> Result<(), String> {
