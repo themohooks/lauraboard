@@ -18,7 +18,16 @@ thread_local! {
 /// inactive and without a taskbar button. Call before any window exists;
 /// fails quietly when another platform is already set (snapshots).
 pub fn select_backend() {
-    let r = slint::BackendSelector::new()
+    let selector = slint::BackendSelector::new();
+    // Slint's built-in fallback skips OpenGL when WGPU is compiled in.
+    #[cfg(any(windows, target_os = "linux"))]
+    let selector = if std::env::var_os("SLINT_BACKEND").is_none() && !has_vulkan() {
+        eprintln!("No Vulkan adapter; using OpenGL");
+        selector.renderer_name("femtovg".into())
+    } else {
+        selector
+    };
+    let r = selector
         .with_winit_window_attributes_hook(|a| {
             if !NEXT_IS_POPUP.with(|n| n.replace(false)) {
                 return a;
@@ -31,6 +40,17 @@ pub fn select_backend() {
     if let Err(e) = r {
         eprintln!("window backend: {e}");
     }
+}
+
+#[cfg(any(windows, target_os = "linux"))]
+fn has_vulkan() -> bool {
+    let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
+        backends: wgpu::Backends::VULKAN,
+        ..wgpu::InstanceDescriptor::new_without_display_handle()
+    });
+    pollster::block_on(instance.enumerate_adapters(wgpu::Backends::VULKAN))
+        .iter()
+        .any(|a| a.get_info().device_type != wgpu::DeviceType::Cpu)
 }
 
 /// Create the popup window (marks it for the backend hook).

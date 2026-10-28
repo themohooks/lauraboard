@@ -11,6 +11,15 @@ use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
 
+/// A GUI-subsystem executable never allocates a console. Reuse the invoking
+/// terminal for CLI commands, if there is one.
+#[cfg(windows)]
+pub fn attach_parent_console() {
+    unsafe {
+        windows_sys::Win32::System::Console::AttachConsole(windows_sys::Win32::System::Console::ATTACH_PARENT_PROCESS);
+    }
+}
+
 /// `true` when no terminal is attached to the process.
 ///
 /// Windows: a console program started from Explorer gets a console of its

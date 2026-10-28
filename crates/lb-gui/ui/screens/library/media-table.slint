@@ -75,7 +75,9 @@ component MediaRowView inherits ListRow {
     }
     right-clicked(p) => {
         Lib.focused = item.row;
-        menu.open-at(p.x, p.y);
+        // ListRow places its children in a HorizontalLayout: the menu's
+        // origin is at the end of that layout, while p is row-local.
+        menu.open-at(p.x - menu.x, p.y - menu.y);
     }
 
     Checkbox {
@@ -170,7 +172,7 @@ component Tile inherits Interactive {
     }
     right-clicked(p) => {
         Lib.focused = root.item.row;
-        menu.open-at(p.x, p.y);
+        menu.open-at(p.x - menu.x, p.y - menu.y);
     }
     VerticalLayout {
         padding: Theme.sp2;

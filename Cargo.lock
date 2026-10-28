@@ -3281,6 +3281,7 @@ dependencies = [
  "image",
  "ksni",
  "lb-core",
+ "pollster",
  "rfd",
  "serde",
  "serde_json",
@@ -3290,6 +3291,7 @@ dependencies = [
  "tray-icon",
  "tungstenite 0.30.0",
  "ureq",
+ "wgpu",
  "windows-sys 0.61.2",
 ]
 

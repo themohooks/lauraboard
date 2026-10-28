@@ -180,6 +180,7 @@ pub fn apply_prefs(c: &mut Ctx) {
     };
     t.set_mode(mode);
     crate::notify::set_theme(mode);
+    crate::notify::set_animations(c.prefs.animations());
     t.set_animations(c.prefs.animations());
     t.set_compact(c.prefs.compact);
     let g = ui.global::<App>();

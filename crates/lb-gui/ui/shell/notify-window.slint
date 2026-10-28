@@ -38,6 +38,10 @@ export global Popups {
 
 component NoticeCard inherits Rectangle {
     in property <NoticeRow> notice;
+    out property <bool> appeared;
+    init => { self.appeared = true; }
+    opacity: appeared ? 1 : 0;
+    animate opacity { duration: Theme.motion-medium; easing: ease-out; }
     property <color> accent: notice.urgency == 2 ? Theme.color.error : notice.urgency == 1 ? Theme.status.warning : Theme.color.primary;
 
     border-radius: Theme.radius-m;
@@ -164,7 +168,8 @@ export component NotifyWindow inherits Window {
 
     for row[i] in Popups.items: NoticeCard {
         notice: row;
-        x: Popups.margin;
+        x: Popups.margin + (self.appeared ? 0px : 32px);
+        animate x { duration: Theme.motion-long; easing: ease-out; }
         width: root.width - 2 * Popups.margin;
         height: Popups.card-height;
         y: root.height - Popups.margin - (Popups.items.length - i) * (Popups.card-height + Popups.gap) + Popups.gap;

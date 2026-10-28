@@ -17,8 +17,10 @@ sha2 = "0.10.9"
 # winit access: the popup window is shown without taking the focus.
 # femtovg over wgpu (Direct3D 12 / Vulkan on Windows, Metal on macOS,
 # Vulkan / GL on Linux): over OpenGL animations stuttered on Windows.
-# Slint prefers it and falls back to the software renderer.
-slint = { version = "1.18.1", features = ["unstable-winit-030", "renderer-femtovg-wgpu"] }
+# Keep OpenGL available for machines without a Vulkan adapter.
+slint = { version = "1.18.1", features = ["unstable-winit-030", "renderer-femtovg-wgpu", "renderer-femtovg"] }
+pollster = "0.4.0"
+wgpu = { version = "30.0.1", default-features = false, features = ["std", "vulkan"] }
 tungstenite = "0.30.0"
 ureq = "3.4.2"
 

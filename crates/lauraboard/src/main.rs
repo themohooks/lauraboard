@@ -6,6 +6,8 @@
 //! Started without arguments outside a terminal (double click, shortcut)
 //! it opens the GUI instead, see [`desktop`].
 
+#![cfg_attr(all(windows, feature = "gui"), windows_subsystem = "windows")]
+
 mod api_client;
 mod cli;
 mod commands;
@@ -24,6 +26,8 @@ use clap::Parser;
 use cli::{Cli, Cmd};
 
 fn main() {
+    #[cfg(all(windows, feature = "gui"))]
+    desktop::attach_parent_console();
     let (cli, desktop) = parse();
     #[cfg(feature = "gui")]
     if is_gui(&cli.cmd) && std::env::var_os(crash::LOG_ENV).is_none() {

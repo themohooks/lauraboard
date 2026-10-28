@@ -154,6 +154,8 @@ fn saved(c: &mut Ctx) {
     let old = if old_mode != mode && c.prefs.animations() && !ui.get_theme_transition() { ui.window().take_snapshot().ok() } else { None };
     t.set_mode(mode);
     t.set_animations(c.prefs.animations());
+    crate::notify::set_theme(mode);
+    crate::notify::set_animations(c.prefs.animations());
     t.set_compact(c.prefs.compact);
     show(c);
     if was_dark != t.get_dark()

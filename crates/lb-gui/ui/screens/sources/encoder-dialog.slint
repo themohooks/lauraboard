@@ -205,6 +205,26 @@ export component EncoderDialog inherits Dialog {
             Section {
                 title: "Формат кадра";
                 hint: "Все ролики приводятся к этому размеру и частоте кадров. Ширина и высота — чётные числа.";
+                Choice {
+                    label: "Разрешение и соотношение сторон";
+                    options: ["Свой размер", "16:9 · 1920 × 1080", "16:9 · 1280 × 720", "16:9 · 3840 × 2160", "14:9 · 1120 × 720", "4:3 · 1440 × 1080", "4:3 · 960 × 720", "4:3 · 768 × 576", "1:1 · 1080 × 1080", "9:16 · 1080 × 1920", "21:9 · 2520 × 1080"];
+                    current-index: Src.k-width == "1920" && Src.k-height == "1080" ? 1
+                        : Src.k-width == "1280" && Src.k-height == "720" ? 2
+                        : Src.k-width == "3840" && Src.k-height == "2160" ? 3
+                        : Src.k-width == "1120" && Src.k-height == "720" ? 4
+                        : Src.k-width == "1440" && Src.k-height == "1080" ? 5
+                        : Src.k-width == "960" && Src.k-height == "720" ? 6
+                        : Src.k-width == "768" && Src.k-height == "576" ? 7
+                        : Src.k-width == "1080" && Src.k-height == "1080" ? 8
+                        : Src.k-width == "1080" && Src.k-height == "1920" ? 9
+                        : Src.k-width == "2520" && Src.k-height == "1080" ? 10 : 0;
+                    selected(i, _) => {
+                        if i > 0 {
+                            Src.k-width = ["", "1920", "1280", "3840", "1120", "1440", "960", "768", "1080", "1080", "2520"][i];
+                            Src.k-height = ["", "1080", "720", "2160", "720", "1080", "720", "576", "1080", "1920", "1080"][i];
+                        }
+                    }
+                }
                 HorizontalLayout {
                     spacing: Theme.sp3;
                     Field {
