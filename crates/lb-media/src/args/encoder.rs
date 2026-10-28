@@ -11,6 +11,7 @@ use super::{base_args, fps_str, sv};
 #[derive(Debug, Clone, PartialEq)]
 pub struct GfxInput {
     pub port: u16,
+    pub audio_port: u16,
     pub fps: f64,
 }
 
@@ -65,6 +66,20 @@ pub fn encoder_args(j: &EncodeJob) -> Vec<String> {
             &format!("tcp://127.0.0.1:{}", g.port),
         ]));
     }
+    if let Some(g) = &j.gfx {
+        args.extend(sv(&[
+            "-thread_queue_size",
+            "512",
+            "-f",
+            "f32le",
+            "-ar",
+            "48000",
+            "-ac",
+            "2",
+            "-i",
+            &format!("tcp://127.0.0.1:{}", g.audio_port),
+        ]));
+    }
     args.extend(sv(&["-filter_complex", &filter_graph(j)]));
     args.extend(sv(&["-map", "[vout]", "-map", "[aout]"]));
     args.extend(video_codec_args(j));
@@ -113,7 +128,13 @@ fn filter_graph(j: &EncodeJob) -> String {
     let gain = if j.audio.volume_db.abs() > 0.01 { format!("volume={:.2}dB,", j.audio.volume_db) } else { String::new() };
     // Resample against timestamps BEFORE any sample-count timestamp reset.
     // Fill/trim gaps and gently compensate clock drift on long broadcasts.
-    parts.push(format!("[0:a]{},{gain}anull[aout]", sync_resample(j.audio.sample_rate)));
+    if j.gfx.is_some() {
+        parts.push(format!("[0:a]{}[amain]", sync_resample(j.audio.sample_rate)));
+        parts.push(format!("[2:a]aresample={}[agfx]", j.audio.sample_rate));
+        parts.push(format!("[amain][agfx]amix=inputs=2:duration=first:dropout_transition=0:normalize=0,{gain}anull[aout]"));
+    } else {
+        parts.push(format!("[0:a]{},{gain}anull[aout]", sync_resample(j.audio.sample_rate)));
+    }
     parts.join(";")
 }
 
@@ -257,7 +278,7 @@ mod tests {
             video_codec: &e.video_codec,
             outputs: outs,
             record_feed: None,
-            gfx: Some(GfxInput { port: 40000, fps: 10.0 }),
+            gfx: Some(GfxInput { port: 40000, fps: 10.0, audio_port: 12346 }),
             preview: Some(PreviewOut { width: 480, fps: 5.0 }),
             loglevel: "warning",
         }
@@ -283,6 +304,8 @@ mod tests {
         assert!(!s.contains("-re "));
         assert!(s.contains("-i tcp://127.0.0.1:40000"));
         assert!(s.contains("overlay=x=0:y=0"));
+        assert!(s.contains("-f f32le -ar 48000 -ac 2 -i tcp://127.0.0.1:12346"));
+        assert!(s.contains("amix=inputs=2:duration=first:dropout_transition=0:normalize=0"));
         assert!(s.contains("[vprev]fps=5,scale=480:-2[pv]"));
         assert!(s.contains("-c:v libx264 -preset veryfast -tune zerolatency -b:v 3000k -maxrate 3000k -bufsize 6000k -g 50"));
         assert!(s.contains("-f tee [f=flv:onfail=ignore:use_fifo=1:") && s.contains("]rtmp://x/live/key"));

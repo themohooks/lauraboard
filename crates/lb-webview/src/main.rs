@@ -104,6 +104,16 @@ fn run() -> Result<(), String> {
     let nav = event_loop.create_proxy();
     let loaded = event_loop.create_proxy();
     let builder = WebViewBuilder::new_with_web_context(&mut context)
+        .with_initialization_script(if login { "" } else { include_str!("capture_audio.js") })
+        .with_ipc_handler(move |request| {
+            if !login {
+                if let Ok(value) = serde_json::from_str::<serde_json::Value>(request.body()) {
+                    if value["pcm"].is_string() {
+                        output(value);
+                    }
+                }
+            }
+        })
         .with_url(&url)
         .with_incognito(!login)
         .with_bounds(wry::Rect {

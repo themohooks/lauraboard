@@ -48,6 +48,7 @@ pub type SharedGfx = Arc<Mutex<GfxState>>;
 
 pub struct GfxThread {
     pub port: u16,
+    pub audio_port: u16,
     /// Frames the connected encoder has processed (from its progress
     /// reports); reset when an encoder starts.
     pub consumed: Arc<AtomicU64>,
@@ -102,6 +103,38 @@ impl GfxThread {
         let port = listener.local_addr()?.port();
         let stop = Arc::new(AtomicBool::new(false));
         let stop2 = stop.clone();
+        let audio_listener = TcpListener::bind("127.0.0.1:0")?;
+        audio_listener.set_nonblocking(true)?;
+        let audio_port = audio_listener.local_addr()?.port();
+        let audio = Arc::new(Mutex::new(std::collections::VecDeque::<f32>::new()));
+        let audio_out = audio.clone();
+        let audio_stop = stop.clone();
+        std::thread::Builder::new().name(format!("gfx-audio-{channel}")).spawn(move || {
+            while !audio_stop.load(Ordering::Relaxed) {
+                let Ok((mut stream, _)) = audio_listener.accept() else {
+                    std::thread::sleep(Duration::from_millis(10));
+                    continue;
+                };
+                let _ = stream.set_write_timeout(Some(Duration::from_secs(1)));
+                audio_out.lock().unwrap_or_else(|e| e.into_inner()).clear();
+                let start = std::time::Instant::now();
+                let mut blocks = 0;
+                while !audio_stop.load(Ordering::Relaxed) {
+                    let mut bytes = Vec::with_capacity(3840);
+                    {
+                        let mut queue = audio_out.lock().unwrap_or_else(|e| e.into_inner());
+                        for _ in 0..960 {
+                            bytes.extend(queue.pop_front().unwrap_or(0.0).clamp(-1.0, 1.0).to_le_bytes());
+                        }
+                    }
+                    if stream.write_all(&bytes).is_err() {
+                        break;
+                    }
+                    blocks += 1;
+                    std::thread::sleep((start + Duration::from_millis(blocks * 10)).saturating_duration_since(std::time::Instant::now()));
+                }
+            }
+        })?;
         let consumed = Arc::new(AtomicU64::new(0));
         let consumed2 = consumed.clone();
         let handle = std::thread::Builder::new().name(format!("gfx-{channel}")).spawn(move || {
@@ -114,10 +147,10 @@ impl GfxThread {
                 }
                 let Ok(stream) = conn else { continue };
                 tracing::debug!(channel = %channel, "graphics consumer connected");
-                serve(&shared, &mut comp, &mut version, stream, fps, &stop2, &consumed2, &channel);
+                serve(&shared, &mut comp, &mut version, stream, fps, &stop2, &consumed2, &channel, &audio);
             }
         })?;
-        Ok(GfxThread { port, consumed, stop, handle: Some(handle) })
+        Ok(GfxThread { port, audio_port, consumed, stop, handle: Some(handle) })
     }
 
     /// The thread ended unexpectedly (it must be respawned).
@@ -147,6 +180,7 @@ fn serve(
     stop: &AtomicBool,
     consumed: &AtomicU64,
     channel: &str,
+    audio: &Mutex<std::collections::VecDeque<f32>>,
 ) {
     let _ = stream.set_nodelay(true);
     let frame_ms = 1000.0 / fps.max(1.0);
@@ -197,6 +231,16 @@ fn serve(
         if let Err(e) = stream.write_all(frame) {
             tracing::warn!(channel = %channel, "graphics consumer gone: {e}");
             return;
+        }
+        let samples = (((sent as f64 * 48000.0 / fps).round() - ((sent - 1) as f64 * 48000.0 / fps).round()) as usize) * 2;
+        let mut mixed = vec![0.0; samples];
+        if !failing {
+            comp.mix_audio(&mut mixed);
+        }
+        let mut queue = audio.lock().unwrap_or_else(|e| e.into_inner());
+        queue.extend(mixed);
+        while queue.len() > 48000 {
+            queue.pop_front();
         }
     }
 }

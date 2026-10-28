@@ -8,18 +8,42 @@ use tiny_skia::{IntSize, Pixmap, PixmapPaint, Transform};
 
 pub struct ImageCache {
     root: PathBuf,
+    web_cursors: std::cell::RefCell<HashMap<usize, u64>>,
+    web_active: std::cell::RefCell<Vec<Arc<crate::web::WebSource>>>,
     originals: HashMap<String, Option<Arc<Pixmap>>>,
     scaled: HashMap<(String, u32, u32), Arc<Pixmap>>,
 }
 
 impl ImageCache {
     pub fn web(&self, path: &str, w: u32, h: u32) -> Arc<crate::web::WebSource> {
-        crate::web::WebSource::get(&lb_core::project::paths::resolve(&self.root, path), w, h)
+        let source = crate::web::WebSource::get(&lb_core::project::paths::resolve(&self.root, path), w, h);
+        let mut active = self.web_active.borrow_mut();
+        if !active.iter().any(|s| Arc::ptr_eq(s, &source)) {
+            active.push(source.clone());
+        }
+        source
     }
     pub fn new(root: &Path) -> Self {
-        ImageCache { root: root.to_path_buf(), originals: HashMap::new(), scaled: HashMap::new() }
+        ImageCache {
+            web_cursors: Default::default(),
+            web_active: Default::default(),
+            root: root.to_path_buf(),
+            originals: HashMap::new(),
+            scaled: HashMap::new(),
+        }
     }
 
+    pub fn begin_frame(&self) {
+        self.web_active.borrow_mut().clear();
+    }
+    pub fn mix_audio(&self, out: &mut [f32]) {
+        let active = self.web_active.borrow();
+        let mut cursors = self.web_cursors.borrow_mut();
+        cursors.retain(|key, _| active.iter().any(|s| Arc::as_ptr(s) as usize == *key));
+        for source in active.iter() {
+            source.mix_audio(cursors.entry(Arc::as_ptr(source) as usize).or_default(), out);
+        }
+    }
     /// Original image (cached; failures are cached too and logged once).
     pub fn original(&mut self, path: &str) -> Option<Arc<Pixmap>> {
         if let Some(p) = self.originals.get(path) {

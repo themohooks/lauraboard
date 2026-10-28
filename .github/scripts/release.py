@@ -19,7 +19,6 @@ ROOT = Path(__file__).resolve().parents[2]
 ASSETS = ROOT / "target/release-assets"
 TARGETS = {
     "x86_64-pc-windows-msvc": ("windows", "x86_64"),
-    "i686-pc-windows-msvc": ("windows", "x86"),
     "aarch64-pc-windows-msvc": ("windows", "aarch64"),
     "x86_64-unknown-linux-gnu": ("linux", "x86_64"),
     "i686-unknown-linux-gnu": ("linux", "x86"),

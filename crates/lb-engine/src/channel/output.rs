@@ -71,7 +71,7 @@ impl Output {
         ff: &FfmpegConfig,
         data: &ChannelData,
         root: &Path,
-        gfx: Option<(u16, Arc<AtomicU64>)>,
+        gfx: Option<(u16, Arc<AtomicU64>, u16)>,
     ) -> Result<(), String> {
         let gfx_port = gfx.as_ref().map(|g| g.0);
         let cfg = &data.config;
@@ -136,7 +136,7 @@ impl Output {
             outputs: &outputs,
             record_feed,
             // overlay at the video rate: anything slower makes motion stutter
-            gfx: gfx_port.map(|port| GfxInput { port, fps: cfg.video.fps }),
+            gfx: gfx_port.map(|port| GfxInput { port, fps: cfg.video.fps, audio_port: gfx.as_ref().unwrap().2 }),
             preview: cfg.preview.enabled.then_some(PreviewOut { width: cfg.preview.width, fps: cfg.preview.effective_fps(cfg.video.fps) }),
             loglevel: &ff.loglevel,
         };
@@ -145,7 +145,7 @@ impl Output {
         match Encoder::spawn(&ff.ffmpeg, &args) {
             Ok(mut enc) => {
                 *self.stdin.lock().await = enc.stdin.take();
-                if let Some((_, consumed)) = gfx {
+                if let Some((_, consumed, _)) = gfx {
                     consumed.store(0, Ordering::Relaxed);
                     let mut stats = enc.stats.clone();
                     tokio::spawn(async move {

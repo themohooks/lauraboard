@@ -57,7 +57,7 @@ impl Runtime {
 
     pub(super) async fn start_encoder(&mut self) {
         let data = self.shared.data.read().unwrap_or_else(|e| e.into_inner()).clone();
-        let gfx = self.gfx_thread.as_ref().map(|g| (g.port, g.consumed.clone()));
+        let gfx = self.gfx_thread.as_ref().map(|g| (g.port, g.consumed.clone(), g.audio_port));
         self.encoder_config = Some(data.config.clone());
         match self.output.start(&self.shared.app.ffmpeg, &data, &self.shared.root, gfx).await {
             Ok(()) => {

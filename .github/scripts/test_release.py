@@ -34,8 +34,8 @@ class ReleaseTests(unittest.TestCase):
                 text = release.download_table("example/lauraboard", version)
                 buttons = Buttons()
                 buttons.feed(text)
-                self.assertEqual(len(buttons.links), 21)
-                self.assertEqual(len(set(buttons.links)), 21)
+                self.assertEqual(len(buttons.links), 18)
+                self.assertEqual(len(set(buttons.links)), 18)
                 base = f"https://github.com/example/lauraboard/releases/download/v{version}/"
                 self.assertTrue(all(url.startswith(base) for url in buttons.links))
                 self.assertEqual({unquote(url.removeprefix(base)) for url in buttons.links}, release.expected_assets(version))
@@ -84,7 +84,7 @@ class ReleaseTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp:
             directory = Path(temp)
             expected = release.expected_assets("1.2.3-rc.1")
-            self.assertEqual(len(expected), 21)
+            self.assertEqual(len(expected), 18)
             for name in expected:
                 (directory / name).write_bytes(name.encode())
             release.finalize(directory, "1.2.3-rc.1")

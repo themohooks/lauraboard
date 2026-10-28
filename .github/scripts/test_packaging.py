@@ -22,13 +22,15 @@ class MatrixTests(unittest.TestCase):
         matrix = build_matrix.matrices()
         builds = matrix["build"]["include"]
         jobs = matrix["package"]["include"]
-        self.assertEqual(len(builds), 6)
-        self.assertEqual(len(jobs), 30)
+        self.assertEqual(len(builds), 5)
+        self.assertEqual(len(jobs), 27)
         for build in builds:
             selected = [job["format"] for job in jobs if job["target"] == build["target"]]
             self.assertCountEqual(selected, build_matrix.FORMATS[build["platform"]])
         self.assertEqual(len({(job["target"], job["format"]) for job in jobs}), len(jobs))
-        self.assertEqual(len(matrix["ffmpeg"]["include"]), 2)
+        self.assertEqual(len(matrix["ffmpeg"]["include"]), 1)
+        for section in ("build", "package", "ffmpeg"):
+            self.assertFalse(any(job["target"] == "i686-pc-windows-msvc" for job in matrix[section]["include"]))
 
     def test_single_selection_and_native_i686_hosts(self):
         matrix = build_matrix.matrices("linux", "x86", "debpackage")
@@ -39,7 +41,7 @@ class MatrixTests(unittest.TestCase):
         self.assertEqual(job["target"], "i686-unknown-linux-gnu")
 
     def test_incompatible_and_unknown_selections_are_rejected(self):
-        for args in [("windows", "all", "appimage"), ("linux", "arm", "all"), ("bad", "all", "all")]:
+        for args in [("windows", "x86", "all"), ("windows", "all", "appimage"), ("linux", "arm", "all"), ("bad", "all", "all")]:
             with self.assertRaises(ValueError):
                 build_matrix.matrices(*args)
 

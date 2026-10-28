@@ -93,7 +93,7 @@ pub fn mute(view: &wry::WebView) {
         view.webview().set_is_muted(true);
     }
     // WKWebView has no public per-view mute API. Mute media elements on
-    // insertion; Ruffle's own mixer is muted by the source wrapper as well.
+    // insertion. The Web Audio capture tap outputs silence to the device.
     #[cfg(target_os = "macos")]
     {
         let _ = view.evaluate_script("(()=>{const mute=()=>document.querySelectorAll('audio,video').forEach(e=>{e.muted=true});mute();new MutationObserver(mute).observe(document,{childList:true,subtree:true})})()");

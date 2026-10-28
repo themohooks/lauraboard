@@ -1,7 +1,7 @@
 //! HTML / SWF sources captured by the native system WebView host.
 //! The compositor reads the latest transparent frame without waiting for IO.
 
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 use std::io::{BufRead, BufReader, Read, Write};
 use std::net::{TcpListener, TcpStream};
 use std::path::{Path, PathBuf};
@@ -17,6 +17,12 @@ use serde_json::Value;
 use tiny_skia::Pixmap;
 
 type Result<T> = std::result::Result<T, String>;
+#[derive(Default)]
+struct AudioBuffer {
+    samples: VecDeque<f32>,
+    end: u64,
+}
+
 type Frame = Arc<Mutex<Option<Arc<Pixmap>>>>;
 
 pub fn is_web(path: &str) -> bool {
@@ -25,6 +31,7 @@ pub fn is_web(path: &str) -> bool {
 
 pub struct WebSource {
     frame: Frame,
+    audio: Arc<Mutex<AudioBuffer>>,
     error: Arc<Mutex<Option<String>>>,
     used: Arc<Mutex<Instant>>,
     stop: Arc<AtomicBool>,
@@ -55,6 +62,7 @@ impl WebSource {
         }
         let source = Arc::new(Self {
             frame: Arc::new(Mutex::new(None)),
+            audio: Arc::new(Mutex::new(AudioBuffer::default())),
             error: Arc::new(Mutex::new(None)),
             used: Arc::new(Mutex::new(Instant::now())),
             stop: Arc::new(AtomicBool::new(false)),
@@ -64,8 +72,9 @@ impl WebSource {
         let (frame, error, used, stop) = (source.frame.clone(), source.error.clone(), source.used.clone(), source.stop.clone());
         let (path, w, h) = key.clone();
         let finished = source.finished.clone();
+        let audio = source.audio.clone();
         std::thread::spawn(move || {
-            if let Err(message) = capture(&path, w, h, &frame, &used, &stop) {
+            if let Err(message) = capture(&path, w, h, &frame, &used, &stop, &audio) {
                 tracing::warn!(path = %path.display(), %message, "browser graphics failed");
                 *error.lock().unwrap_or_else(|e| e.into_inner()) = Some(message);
             }
@@ -74,6 +83,18 @@ impl WebSource {
         });
         sources.insert(key, source.clone());
         source
+    }
+
+    pub fn mix_audio(&self, cursor: &mut u64, out: &mut [f32]) {
+        let queue = self.audio.lock().unwrap_or_else(|e| e.into_inner());
+        let start = queue.end - queue.samples.len() as u64;
+        *cursor = (*cursor).clamp(start, queue.end);
+        for sample in out {
+            if let Some(value) = queue.samples.get((*cursor - start) as usize) {
+                *sample += value;
+                *cursor += 1;
+            }
+        }
     }
 
     pub fn frame(&self) -> Option<Arc<Pixmap>> {
@@ -128,7 +149,7 @@ impl Drop for Host {
     }
 }
 
-fn capture(path: &Path, w: u32, h: u32, frame: &Frame, used: &Mutex<Instant>, stop: &AtomicBool) -> Result<()> {
+fn capture(path: &Path, w: u32, h: u32, frame: &Frame, used: &Mutex<Instant>, stop: &AtomicBool, audio: &Mutex<AudioBuffer>) -> Result<()> {
     let executable = lb_core::browser::path().ok_or(lb_core::browser::MISSING)?;
     let server = FileServer::start(path)?;
     let mut command = Command::new(executable);
@@ -161,6 +182,15 @@ fn capture(path: &Path, w: u32, h: u32, frame: &Frame, used: &Mutex<Instant>, st
                 let value: Value = serde_json::from_str(&line.map_err(|e| e.to_string())?).map_err(|e| e.to_string())?;
                 if let Some(error) = value["error"].as_str() {
                     return Err(format!("WebView: {error}"));
+                }
+                if let Some(pcm) = value["pcm"].as_str() {
+                    let bytes = base64::engine::general_purpose::STANDARD.decode(pcm).map_err(|e| e.to_string())?;
+                    let mut queue = audio.lock().unwrap_or_else(|e| e.into_inner());
+                    queue.end += (bytes.len() / 4) as u64;
+                    queue.samples.extend(bytes.chunks_exact(4).map(|b| f32::from_le_bytes(b.try_into().unwrap())));
+                    while queue.samples.len() > 19200 {
+                        queue.samples.pop_front();
+                    }
                 }
                 if let Some(png) = value["png"].as_str() {
                     let bytes = base64::engine::general_purpose::STANDARD.decode(png).map_err(|e| e.to_string())?;
@@ -214,7 +244,7 @@ impl FileServer {
         let movie_json = serde_json::to_string(movie.as_str()).unwrap().replace('<', "\\u003c");
         let init = include_str!("ruffle_init.js");
         let wrapper = format!(
-            r#"<!doctype html><meta charset="utf-8"><style>html,body{{margin:0;width:100%;height:100%;overflow:hidden;background:transparent}}ruffle-player{{display:block;width:100%;height:100%}}</style><script>{init}window.__lbReady=false;window.__lbStage="loading Ruffle script";window.RufflePlayer={{config:{{autoplay:"on",volume:0,unmuteOverlay:"hidden",wmode:"transparent",allowScriptAccess:false}}}};</script><script src="{script}"></script><script>addEventListener('load',async()=>{{try{{window.__lbStage="creating Ruffle player";const p=RufflePlayer.newest().createPlayer();document.body.appendChild(p);const loaded=new Promise(resolve=>p.addEventListener('loadeddata',resolve,{{once:true}}));window.__lbStage="loading SWF";await p.ruffle().load({{url:{movie_json},autoplay:"on",wmode:"transparent"}});await loaded;window.__lbStage="waiting for animation frames";await new Promise(requestAnimationFrame);await new Promise(requestAnimationFrame);window.__lbReady=true;}}catch(e){{window.__lbError=String(e);console.error(e)}}}});</script><body></body>"#
+            r#"<!doctype html><meta charset="utf-8"><style>html,body{{margin:0;width:100%;height:100%;overflow:hidden;background:transparent}}ruffle-player{{display:block;width:100%;height:100%}}</style><script>{init}window.__lbReady=false;window.__lbStage="loading Ruffle script";window.RufflePlayer={{config:{{autoplay:"on",volume:1,unmuteOverlay:"hidden",wmode:"transparent",allowScriptAccess:false}}}};</script><script src="{script}"></script><script>addEventListener('load',async()=>{{try{{window.__lbStage="creating Ruffle player";const p=RufflePlayer.newest().createPlayer();document.body.appendChild(p);const loaded=new Promise(resolve=>p.addEventListener('loadeddata',resolve,{{once:true}}));window.__lbStage="loading SWF";await p.ruffle().load({{url:{movie_json},autoplay:"on",wmode:"transparent"}});await loaded;window.__lbStage="waiting for animation frames";await new Promise(requestAnimationFrame);await new Promise(requestAnimationFrame);window.__lbReady=true;}}catch(e){{window.__lbError=String(e);console.error(e)}}}});</script><body></body>"#
         );
         let stop = Arc::new(AtomicBool::new(false));
         let ended = stop.clone();
@@ -295,6 +325,54 @@ mod tests {
     use super::*;
 
     #[test]
+    fn audio_readers_are_independent_and_underruns_are_silent() {
+        let source = WebSource {
+            frame: Default::default(),
+            audio: Arc::new(Mutex::new(AudioBuffer { samples: VecDeque::from([0.25, -0.25]), end: 12 })),
+            error: Default::default(),
+            used: Arc::new(Mutex::new(Instant::now())),
+            stop: Default::default(),
+            created: Instant::now(),
+            finished: Default::default(),
+        };
+        for _ in 0..2 {
+            let mut cursor = 0;
+            let mut out = [0.0; 4];
+            source.mix_audio(&mut cursor, &mut out);
+            assert_eq!(out, [0.25, -0.25, 0.0, 0.0]);
+            assert_eq!(cursor, 12);
+        }
+    }
+
+    #[test]
+    #[ignore = "requires lauraboard-webview and a system WebView runtime"]
+    fn web_audio_is_captured_without_desktop_playback() {
+        let dir = std::env::temp_dir().join(format!("lb-audio-test-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("tone.html");
+        std::fs::write(
+            &path,
+            "<script>const ctx=new AudioContext();const tone=ctx.createOscillator();tone.connect(ctx.destination);tone.start();</script>",
+        )
+        .unwrap();
+        let source = WebSource::get(&path, 64, 48);
+        source.wait(Duration::from_secs(35)).unwrap();
+        let mut cursor = 0;
+        let start = Instant::now();
+        loop {
+            let mut samples = [0.0; 4096];
+            source.mix_audio(&mut cursor, &mut samples);
+            if samples.iter().any(|s| s.abs() > 0.01) {
+                break;
+            }
+            assert!(start.elapsed() < Duration::from_secs(10), "Web Audio never reached the capture pipe");
+            std::thread::sleep(Duration::from_millis(50));
+        }
+        source.shutdown();
+        let _ = std::fs::remove_dir_all(dir);
+    }
+
+    #[test]
     #[ignore = "requires lauraboard-webview and a system WebView runtime"]
     fn html_animation_preserves_alpha_and_updates_frames() {
         let dir = std::env::temp_dir().join(format!("lb-web-test-{}", std::process::id()));
@@ -327,7 +405,22 @@ mod tests {
         let padded = format!("{bits}000");
         let mut body: Vec<u8> =
             padded.as_bytes().chunks(8).map(|chunk| u8::from_str_radix(std::str::from_utf8(chunk).unwrap(), 2).unwrap()).collect();
-        body.extend([0, 24, 1, 0, 0x43, 0x02, 255, 0, 0, 0x40, 0, 0, 0]);
+        body.extend([0, 24, 1, 0, 0x43, 0x02, 255, 0, 0]);
+        // One second of 440 Hz, 44.1 kHz mono PCM, started on frame one.
+        let mut sound = vec![1, 0, 0x3e];
+        sound.extend(44100u32.to_le_bytes());
+        for i in 0..44100 {
+            let sample = ((i as f32 * 440.0 * std::f32::consts::TAU / 44100.0).sin() * 8000.0) as i16;
+            sound.extend(sample.to_le_bytes());
+        }
+        body.extend(((14u16 << 6) | 63).to_le_bytes());
+        body.extend((sound.len() as u32).to_le_bytes());
+        body.extend(sound);
+        body.extend(((15u16 << 6) | 3).to_le_bytes());
+        body.extend([1, 0, 0]); // StartSound, default SOUNDINFO
+        body.extend(((12u16 << 6) | 2).to_le_bytes());
+        body.extend([0x07, 0]); // Stop timeline, keep sound playing
+        body.extend([0x40, 0, 0, 0]);
         let mut swf = b"FWS\x09".to_vec();
         swf.extend(((body.len() + 8) as u32).to_le_bytes());
         swf.extend(body);
@@ -335,7 +428,19 @@ mod tests {
         let external = std::env::var_os("LB_TEST_SWF").map(PathBuf::from);
         let source = WebSource::get(external.as_deref().unwrap_or(&path), 64, 48);
         source.wait(Duration::from_secs(40)).unwrap();
-        std::thread::sleep(Duration::from_millis(500));
+        if external.is_none() {
+            let mut cursor = 0;
+            let start = Instant::now();
+            loop {
+                let mut samples = [0.0; 4096];
+                source.mix_audio(&mut cursor, &mut samples);
+                if samples.iter().any(|s| s.abs() > 0.01) {
+                    break;
+                }
+                assert!(start.elapsed() < Duration::from_secs(5), "SWF soundtrack was not captured");
+                std::thread::sleep(Duration::from_millis(10));
+            }
+        }
         let frame = source.frame().unwrap();
         assert_eq!((frame.width(), frame.height()), (64, 48));
         if external.is_none() {

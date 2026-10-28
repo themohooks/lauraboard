@@ -5,7 +5,7 @@ on:
       architecture:
         description: Architecture (arm64 is 64-bit ARM)
         type: choice
-        options: [all, x64, x86, arm64]
+        options: [all, x64, arm64]
         default: all
       package_format:
         description: Package format

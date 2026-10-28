@@ -87,6 +87,10 @@ impl Compositor {
         &self.out
     }
 
+    pub fn mix_audio(&self, out: &mut [f32]) {
+        self.sprites.images.mix_audio(out);
+    }
+
     pub fn width(&self) -> u32 {
         self.canvas.width()
     }
@@ -124,6 +128,7 @@ impl Compositor {
     /// Render a frame; returns straight (non-premultiplied) RGBA bytes, as
     /// expected by ffmpeg's `overlay` filter on YUV video.
     pub fn render(&mut self, ctx: &FrameContext) -> &[u8] {
+        self.sprites.images.begin_frame();
         let was_empty = self.empty;
         self.render_premultiplied(ctx);
         if self.empty {

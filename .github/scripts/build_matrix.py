@@ -28,6 +28,8 @@ def matrices(platform="all", architecture="all", package_format="all", release_p
         if not selected:
             continue
         for label, arch in ARCHES.items():
+            if system == "windows" and label == "x86":
+                continue
             if release_profile and system == "linux" and label == "x86":
                 continue
             if architecture not in ("all", label):
