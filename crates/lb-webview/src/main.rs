@@ -16,6 +16,26 @@ use tao::{
 };
 use wry::{WebContext, WebViewBuilder};
 
+const LOGIN_HINT: &str = "Если вход в YouTube прошёл успешно, это окно можно закрыть.";
+#[cfg(not(target_os = "linux"))]
+const FOOTER_HEIGHT: f64 = 56.0;
+
+#[cfg(not(target_os = "linux"))]
+fn login_bounds(window: &tao::window::Window) -> (wry::Rect, wry::Rect) {
+    let size = window.inner_size().to_logical::<f64>(window.scale_factor());
+    let height = (size.height - FOOTER_HEIGHT).max(1.0);
+    (
+        wry::Rect {
+            position: wry::dpi::LogicalPosition::new(0.0, 0.0).into(),
+            size: wry::dpi::LogicalSize::new(size.width, height).into(),
+        },
+        wry::Rect {
+            position: wry::dpi::LogicalPosition::new(0.0, height).into(),
+            size: wry::dpi::LogicalSize::new(size.width, FOOTER_HEIGHT).into(),
+        },
+    )
+}
+
 #[derive(Debug)]
 enum Message {
     Stop,
@@ -66,17 +86,10 @@ fn run() -> Result<(), String> {
     let mut window_builder = WindowBuilder::new()
         .with_title("LauraBoard — вход в YouTube")
         .with_inner_size(tao::dpi::PhysicalSize::new(width, height))
-        .with_visible(true)
+        .with_visible(login)
         .with_focused(login)
         .with_decorations(login)
         .with_resizable(login);
-    #[cfg(target_os = "linux")]
-    {
-        window_builder = window_builder.with_visible(login);
-    }
-    if !login {
-        window_builder = window_builder.with_position(tao::dpi::PhysicalPosition::new(-30000, -30000));
-    }
     #[cfg(windows)]
     {
         use tao::platform::windows::WindowBuilderExtWindows;
@@ -116,7 +129,27 @@ fn run() -> Result<(), String> {
         builder.with_data_store_identifier(*b"LauraBoard-login")
     };
     #[cfg(not(target_os = "linux"))]
-    let view = if login { builder.build(&window) } else { builder.build_as_child(&window) }.map_err(|e| format!("System WebView: {e}"))?;
+    let view = builder.build_as_child(&window).map_err(|e| format!("System WebView: {e}"))?;
+    #[cfg(not(target_os = "linux"))]
+    let footer = if login {
+        let (content, footer) = login_bounds(&window);
+        view.set_bounds(content).map_err(|e| e.to_string())?;
+        // Separate app-owned content: the hint survives redirects and never
+        // modifies Google's document or covers its sign-in controls.
+        let html = format!(
+            "<!doctype html><meta charset=utf-8><style>:root{{color-scheme:light dark}}body{{margin:0;padding:12px 16px;font:14px system-ui;background:Canvas;color:CanvasText;border-top:1px solid GrayText}}</style>{LOGIN_HINT}"
+        );
+        Some(
+            WebViewBuilder::new()
+                .with_html(html)
+                .with_incognito(true)
+                .with_bounds(footer)
+                .build_as_child(&window)
+                .map_err(|e| e.to_string())?,
+        )
+    } else {
+        None
+    };
     #[cfg(target_os = "linux")]
     let offscreen = if login {
         None
@@ -137,7 +170,19 @@ fn run() -> Result<(), String> {
             surface.show_all();
             result
         } else {
-            builder.build_gtk(window.gtk_window())
+            let content = gtk::Box::new(gtk::Orientation::Vertical, 0);
+            let layout = window.default_vbox().unwrap();
+            layout.pack_start(&content, true, true, 0);
+            let hint = gtk::Label::new(Some(LOGIN_HINT));
+            hint.set_line_wrap(true);
+            hint.set_margin_start(16);
+            hint.set_margin_end(16);
+            hint.set_margin_top(12);
+            hint.set_margin_bottom(12);
+            layout.pack_start(&hint, false, false, 0);
+            content.show();
+            hint.show();
+            builder.build_gtk(&content)
         };
         result.map_err(|e| format!("WebKitGTK: {e}"))?
     };
@@ -163,6 +208,14 @@ fn run() -> Result<(), String> {
     event_loop.run(move |event, _, control| {
         *control = ControlFlow::WaitUntil(next);
         match event {
+            #[cfg(not(target_os = "linux"))]
+            Event::WindowEvent { event: WindowEvent::Resized(_), .. } if login => {
+                let (content, bounds) = login_bounds(&window);
+                let _ = view.set_bounds(content);
+                if let Some(footer) = &footer {
+                    let _ = footer.set_bounds(bounds);
+                }
+            }
             Event::UserEvent(Message::Stop) | Event::WindowEvent { event: WindowEvent::CloseRequested, .. } => {
                 if login {
                     closing = Some(Instant::now());

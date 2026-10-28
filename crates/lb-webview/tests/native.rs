@@ -7,6 +7,75 @@ use std::sync::{
 };
 use std::time::{Duration, Instant};
 
+#[cfg(windows)]
+#[test]
+#[ignore = "requires Windows WebView2"]
+fn capture_never_shows_a_native_window() {
+    use windows::Win32::{
+        Foundation::{HWND, LPARAM},
+        UI::WindowsAndMessaging::{EnumWindows, GetWindowThreadProcessId, IsWindowVisible},
+    };
+    use windows::core::BOOL;
+    unsafe extern "system" fn inspect(hwnd: HWND, data: LPARAM) -> BOOL {
+        // EnumWindows calls synchronously while this stack-owned state lives.
+        let state = unsafe { &mut *(data.0 as *mut (u32, bool)) };
+        let mut pid = 0;
+        unsafe {
+            GetWindowThreadProcessId(hwnd, Some(&mut pid));
+        }
+        if pid == state.0 && unsafe { IsWindowVisible(hwnd) }.as_bool() {
+            use windows::Win32::UI::WindowsAndMessaging::{
+                GWL_EXSTYLE, GetWindowLongPtrW, GetWindowTextLengthW, WS_EX_LAYERED, WS_EX_TRANSPARENT,
+            };
+            let style = unsafe { GetWindowLongPtrW(hwnd, GWL_EXSTYLE) } as u32;
+            // Tao's untitled transparent layered message target sets WS_VISIBLE
+            // for event delivery, but has no painted user-facing surface.
+            if style & WS_EX_LAYERED.0 != 0 && style & WS_EX_TRANSPARENT.0 != 0 && unsafe { GetWindowTextLengthW(hwnd) } == 0 {
+                return BOOL(1);
+            }
+            state.1 = true;
+        }
+        BOOL(1)
+    }
+    struct Host(std::process::Child);
+    impl Drop for Host {
+        fn drop(&mut self) {
+            let _ = self.0.kill();
+            let _ = self.0.wait();
+        }
+    }
+    let mut command = Command::new(env!("CARGO_BIN_EXE_lauraboard-webview"));
+    command.args(["capture", "data:text/html,<body>capture</body>", "96", "64"]).stdin(Stdio::piped()).stdout(Stdio::piped());
+    use std::os::windows::process::CommandExt;
+    command.creation_flags(0x08000000);
+    let mut host = Host(command.spawn().unwrap());
+    let output = host.0.stdout.take().unwrap();
+    let (tx, rx) = std::sync::mpsc::channel();
+    std::thread::spawn(move || {
+        for line in std::io::BufReader::new(output).lines().map_while(Result::ok) {
+            let _ = tx.send(line);
+        }
+    });
+    let mut state = (host.0.id(), false);
+    let start = Instant::now();
+    let mut frame = false;
+    while start.elapsed() < Duration::from_secs(15) {
+        unsafe {
+            EnumWindows(Some(inspect), LPARAM(&mut state as *mut _ as isize)).unwrap();
+        }
+        if let Ok(line) = rx.recv_timeout(Duration::from_millis(10)) {
+            let value: serde_json::Value = serde_json::from_str(&line).unwrap();
+            assert!(value["error"].is_null(), "{value}");
+            if value["png"].is_string() {
+                frame = true;
+                break;
+            }
+        }
+    }
+    assert!(frame, "Hidden WebView did not produce a frame");
+    assert!(!state.1, "Capture exposed a visible native window");
+}
+
 #[test]
 #[ignore = "requires a native system WebView and display"]
 fn exports_http_only_cookies_and_closes_on_done() {
