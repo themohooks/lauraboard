@@ -179,8 +179,8 @@ export component GfxCanvas inherits Rectangle {
             x: 0px; y: 0px; width: frame.width; height: frame.height; clip: true;
             Image { x: 0px; y: 0px; width: frame.width; height: frame.height; source: Gfx.edit-planes[0]; image-fit: fill; }
             Image {
-                property <float> sx: Gfx.edit-w / max(Gfx.edit-base-w, 1);
-                property <float> sy: Gfx.edit-h / max(Gfx.edit-base-h, 1);
+                property <float> sx: Gfx.edit-stretch ? Gfx.edit-w / max(Gfx.edit-base-w, 1) : 1;
+                property <float> sy: Gfx.edit-stretch ? Gfx.edit-h / max(Gfx.edit-base-h, 1) : 1;
                 x: (Gfx.edit-x - Gfx.edit-base-x * self.sx) * root.scale * 1px;
                 y: (Gfx.edit-y - Gfx.edit-base-y * self.sy) * root.scale * 1px;
                 width: frame.width * self.sx; height: frame.height * self.sy;

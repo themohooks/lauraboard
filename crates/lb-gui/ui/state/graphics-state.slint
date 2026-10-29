@@ -139,6 +139,8 @@ export global Gfx {
     in property <[image]> edit-planes;
     in property <bool> edit-layered;
     // Snapshot geometry and current geometry, in source-frame pixels.
+    // false: the selection plane keeps its size while the box is resized (text)
+    in property <bool> edit-stretch: true;
     in property <float> edit-base-x;
     in property <float> edit-base-y;
     in property <float> edit-base-w: 1;

@@ -1196,6 +1196,13 @@ pub fn render(c: &mut Ctx) {
                             g.set_edit_base_y(rect.y);
                             g.set_edit_base_w(rect.w);
                             g.set_edit_base_h(rect.h);
+                            // text is drawn at its own size whatever box it is given
+                            g.set_edit_stretch(!c.gfx.draft.as_ref().is_some_and(|d| {
+                                d.elements.iter().any(|e| {
+                                    &e.id == id
+                                        && matches!(e.kind, ElementKind::Text { .. } | ElementKind::Clock { .. } | ElementKind::Countdown { .. })
+                                })
+                            }));
                             c.gfx.preview_layer = Some(id.clone());
                             update_preview_target(c);
                             g.set_edit_layered(true);
