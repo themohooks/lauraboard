@@ -30,9 +30,9 @@ export component EditorDialog inherits Dialog {
             horizontal-stretch: 1;
             spacing: Theme.sp2;
             EditorCanvas {
-                height: clamp(root.height - 440px, 180px, 520px);
+                height: clamp(root.height - 540px, 180px, 520px);
             }
-            EditorTimeline { }
+
         }
         VerticalLayout {
             width: 330px;
@@ -58,6 +58,8 @@ export component EditorDialog inherits Dialog {
             }
         }
     }
+
+    EditorTimeline { }
 
     HorizontalLayout {
         spacing: Theme.sp4;

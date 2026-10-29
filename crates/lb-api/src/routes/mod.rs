@@ -74,6 +74,7 @@ pub fn router(state: AppState) -> Router {
         .route("/media/{media}/preview.jpg", post(thumbs::preview))
         .route("/media/{media}/edit", post(edit::render))
         .route("/media/{media}/edit/frame.jpg", post(edit::frame))
+        .route("/media/{media}/edit/waveform.png", get(edit::waveform))
         .route("/media/{media}", get(library::get_one).put(library::update).delete(library::remove))
         .route("/playlists", get(playlists::list).post(playlists::create))
         .route("/playlists/{pl}", get(playlists::get_one).put(playlists::replace).delete(playlists::remove))

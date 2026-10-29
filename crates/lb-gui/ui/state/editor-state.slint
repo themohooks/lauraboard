@@ -26,6 +26,10 @@ export global Ved {
     in property <float> aspect: 16 / 9;
 
     // the frame under the cursor (hidden areas drawn by the server)
+    in property <[image]> thumbnails;
+    in property <image> waveform;
+    in property <bool> has-waveform;
+    in property <string> audio-status: "Загрузка звуковой волны…";
     in property <image> frame;
     in property <bool> has-frame;
     in property <bool> loading-frame;

@@ -1,46 +1,103 @@
-// Editor timeline: the position slider over the kept part (trim), frame
-// stepping and "start here" / "end here".
-
+// Video and audio share one source-time coordinate system.
 import { Theme } from "../../theme/tokens.slint";
 import { Icons } from "../../theme/icons.slint";
 import { Label } from "../../components/label.slint";
-import { Slider } from "../../components/slider.slint";
 import { Button, ButtonVariant } from "../../components/button.slint";
 import { IconButton } from "../../components/icon-button.slint";
 import { Ved } from "../../state/editor-state.slint";
 
 export component EditorTimeline inherits VerticalLayout {
     spacing: Theme.sp1;
-
     function go(ms: float) {
         Ved.position-ms = clamp(ms, 0, Ved.duration-ms);
         Ved.seek(Ved.position-ms);
     }
-
-    Rectangle {
-        height: Theme.touch-target;
-        // kept part under the slider track
-        property <length> pad: 10px;
-        property <float> span: max(Ved.duration-ms, 1);
-        Rectangle {
-            x: parent.pad + (parent.width - 2 * parent.pad) * Ved.start-ms / parent.span;
-            width: (parent.width - 2 * parent.pad) * (Ved.end-ms - Ved.start-ms) / parent.span;
-            height: 14px;
-            border-radius: 4px;
-            background: Theme.color.tertiary-container;
+    board := Rectangle {
+        height: 192px;
+        background: #24272e;
+        border-width: 1px; border-color: #444a57;
+        clip: true;
+        property <length> usable: max(1px, self.width - 60px);
+        property <float> span: max(1, Ved.duration-ms);
+        property <int> ticks: max(2, floor(self.usable / 110px));
+        keys := FocusScope {
+            key-pressed(e) => {
+                if e.text == Key.LeftArrow { root.go(Ved.position-ms - 1000); return accept; }
+                if e.text == Key.RightArrow { root.go(Ved.position-ms + 1000); return accept; }
+                if e.text == Key.Home { root.go(0); return accept; }
+                if e.text == Key.End { root.go(Ved.duration-ms); return accept; }
+                return reject;
+            }
         }
-        Slider {
-            width: parent.width;
-            minimum: 0;
-            maximum: Ved.duration-ms;
-            value <=> Ved.position-ms;
-            value-text: Ved.clock(self.value);
-            changed(v) => {
-                Ved.seek(v);
+        Label { x: 6px; y: 32px; width: 40px; height: 70px; text: "V1"; mono: true; color: #b9cfff; }
+        Label { x: 6px; y: 110px; width: 40px; height: 70px; text: "A1"; mono: true; color: #ffc0c8; }
+        lanes := Rectangle {
+            x: 48px; width: board.usable; height: 192px; clip: true;
+            Rectangle { y: 30px; height: 76px; background: #3e5785;
+                Rectangle { x: 0px; y: 0px; height: 24px; background: #536fa1;
+                    Label { x: 8px; width: parent.width - 16px; height: 24px; text: Ved.media-title; color: #eef3ff; type-style: Theme.label-small; }
+                }
+                for thumb[i] in Ved.thumbnails: Image {
+                    x: i * lanes.width / 8; y: 25px; width: lanes.width / 8; height: 50px;
+                    source: thumb; image-fit: cover;
+                }
+                if Ved.thumbnails.length == 0: Label { x: 8px; y: 25px; height: 50px; text: "Загрузка кадров…"; color: #cbd8f0; type-style: Theme.label-small; }
+            }
+            Rectangle { y: 110px; height: 76px; background: #743b49;
+                Rectangle { x: 0px; y: 0px; height: 24px; background: #914453;
+                    Label { x: 8px; width: parent.width - 16px; height: 24px; text: Ved.mute ? "Звук выключен" : "Звук · " + Ved.media-title; color: #ffe6eb; type-style: Theme.label-small; }
+                }
+                if Ved.has-waveform: Image { y: 26px; height: 48px; width: lanes.width; source: Ved.waveform; image-fit: fill; opacity: Ved.mute ? 0.25 : 1; }
+                if !Ved.has-waveform: Label { x: 8px; y: 26px; height: 48px; text: Ved.audio-status; color: #edbbc4; type-style: Theme.label-small; }
+            }
+            for i in (board.ticks * 5 + 1): Rectangle {
+                x: lanes.width * i / (board.ticks * 5);
+                y: mod(i, 5) == 0 ? 22px : 26px;
+                width: 1px; height: mod(i, 5) == 0 ? 164px : 4px; background: #ffffff18;
+            }
+            for i in (board.ticks + 1): Label {
+                x: clamp(lanes.width * i / board.ticks - 32px, 0px, lanes.width - 68px);
+                y: 0px; width: 68px; height: 22px;
+                text: Ved.clock(board.span * i / board.ticks);
+                mono: true; type-style: Theme.label-small; color: #bfc5d1;
+            }
+            Rectangle { x: 0px; y: 30px; width: lanes.width * Ved.start-ms / board.span; height: 156px; background: #11141dcc; }
+            Rectangle { x: lanes.width * Ved.end-ms / board.span; y: 30px; width: lanes.width - self.x; height: 156px; background: #11141dcc; }
+            TouchArea {
+                mouse-cursor: crosshair;
+                pointer-event(e) => { if e.kind == PointerEventKind.down { keys.focus(); root.go(self.mouse-x / self.width * board.span); } }
+                moved => { if self.pressed { root.go(self.mouse-x / self.width * board.span); } }
+            }
+            Rectangle {
+                x: clamp(lanes.width * Ved.position-ms / board.span, 0px, lanes.width - 2px);
+                y: 0px; width: 2px; height: 186px; background: #f5f7ff;
+                Rectangle { x: -4px; y: 0px; width: 10px; height: 12px; background: #f5f7ff; border-radius: 2px; }
+            }
+            for edge in [0, 1]: Rectangle {
+                x: clamp(lanes.width * (edge == 0 ? Ved.start-ms : Ved.end-ms) / board.span - 5px, 0px, lanes.width - 10px);
+                y: 30px; width: 10px; height: 156px; background: #f1cb5a;
+                Rectangle { x: 4px; y: 65px; width: 2px; height: 24px; background: #54451a; }
+                TouchArea {
+                    property <float> initial;
+                    property <length> anchor;
+                    mouse-cursor: ew-resize;
+                    pointer-event(e) => {
+                        if e.kind == PointerEventKind.down {
+                            self.initial = edge == 0 ? Ved.start-ms : Ved.end-ms;
+                            self.anchor = self.mouse-x + parent.x;
+                        }
+                    }
+                    moved => {
+                        if self.pressed {
+                            let ms = self.initial + (self.mouse-x + parent.x - self.anchor) / lanes.width * board.span;
+                            if edge == 0 { Ved.start-ms = clamp(ms, 0, max(0, Ved.end-ms - min(500, Ved.duration-ms))); }
+                            else { Ved.end-ms = clamp(ms, min(Ved.duration-ms, Ved.start-ms + min(500, Ved.duration-ms)), Ved.duration-ms); }
+                        }
+                    }
+                }
             }
         }
     }
-
     HorizontalLayout {
         spacing: Theme.sp1;
         alignment: space-between;
@@ -53,7 +110,7 @@ export component EditorTimeline inherits VerticalLayout {
                     variant: ButtonVariant.text;
                     tooltip: "Отрезать всё до текущего кадра";
                     clicked => {
-                        Ved.start-ms = min(Ved.position-ms, Ved.end-ms - 500);
+                        Ved.start-ms = max(0, min(Ved.position-ms, Ved.end-ms - min(500, Ved.duration-ms)));
                     }
                 }
             }
@@ -99,7 +156,7 @@ export component EditorTimeline inherits VerticalLayout {
                     variant: ButtonVariant.text;
                     tooltip: "Отрезать всё после текущего кадра";
                     clicked => {
-                        Ved.end-ms = max(Ved.position-ms, Ved.start-ms + 500);
+                        Ved.end-ms = min(Ved.duration-ms, max(Ved.position-ms, Ved.start-ms + min(500, Ved.duration-ms)));
                     }
                 }
             }
