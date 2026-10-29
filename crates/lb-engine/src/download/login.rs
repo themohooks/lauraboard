@@ -84,11 +84,10 @@ fn check_cookies(text: &str) -> Result<(), String> {
 /// Arguments for yt-dlp.
 pub fn args(root: &Path) -> Vec<OsString> {
     let l = load(root);
-    let mut args = super::javascript::args(root);
     if l.cookies {
-        args.extend(["--cookies".into(), cookies_path(root).into()]);
+        return vec!["--cookies".into(), cookies_path(root).into()];
     }
-    args
+    Vec::new()
 }
 
 /// The site wants a signed-in user (age check, members-only, "not a bot").
@@ -108,18 +107,18 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let root = dir.path();
         assert_eq!(load(root), Login::default());
-        assert!(!args(root).contains(&OsString::from("--cookies")));
+        assert!(args(root).is_empty());
         assert!(save(root, Some("firefox"), None).is_err());
         // Previously saved browser settings must no longer read system profiles.
         std::fs::create_dir_all(root.join(TOOLS_DIR)).unwrap();
         std::fs::write(settings_path(root), r#"{"browser":"firefox"}"#).unwrap();
-        assert!(!args(root).contains(&OsString::from("--cookies")));
+        assert!(args(root).is_empty());
         let file = "# Netscape HTTP Cookie File\n.youtube.com\tTRUE\t/\tTRUE\t0\tSID\tx\n";
         let l = save(root, None, Some(file)).unwrap();
         assert!(l.cookies);
-        assert!(args(root).contains(&OsString::from("--cookies")));
+        assert_eq!(args(root)[0], OsString::from("--cookies"));
         save(root, None, Some("")).unwrap();
-        assert!(!args(root).contains(&OsString::from("--cookies")));
+        assert!(args(root).is_empty());
         assert!(save(root, Some("netscape"), None).is_err());
         assert!(save(root, None, Some("hello")).is_err());
     }

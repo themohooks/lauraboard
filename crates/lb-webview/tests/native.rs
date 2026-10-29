@@ -7,48 +7,6 @@ use std::sync::{
 };
 use std::time::{Duration, Instant};
 
-#[test]
-#[ignore = "requires a native system WebView"]
-fn javascript_solver_runs_offline_and_reports_exceptions() {
-    fn evaluate(source: &str) -> serde_json::Value {
-        struct Host(std::process::Child);
-        impl Drop for Host {
-            fn drop(&mut self) {
-                let _ = self.0.kill();
-                let _ = self.0.wait();
-            }
-        }
-        let mut command = Command::new(env!("CARGO_BIN_EXE_lauraboard-webview"));
-        command.arg("javascript").stdin(Stdio::piped()).stdout(Stdio::piped());
-        #[cfg(windows)]
-        {
-            use std::os::windows::process::CommandExt;
-            command.creation_flags(0x08000000);
-        }
-        let mut host = Host(command.spawn().unwrap());
-        host.0.stdin.take().unwrap().write_all(source.as_bytes()).unwrap();
-        let output = host.0.stdout.take().unwrap();
-        let (tx, rx) = std::sync::mpsc::channel();
-        std::thread::spawn(move || {
-            let line = std::io::BufReader::new(output).lines().next().unwrap().unwrap();
-            let _ = tx.send(line);
-        });
-        let line = rx.recv_timeout(Duration::from_secs(70)).expect("JavaScript helper did not reply");
-        serde_json::from_str(&line).unwrap()
-    }
-    let result = evaluate(
-        r#"fetch('https://example.invalid/').then(
-        () => console.log(JSON.stringify({blocked:false})),
-        () => console.log(JSON.stringify({blocked:true, answer:6*7}))
-    );"#,
-    );
-    let value: serde_json::Value = serde_json::from_str(result["result"].as_str().unwrap()).unwrap();
-    assert_eq!(value["answer"], 42);
-    assert_eq!(value["blocked"], true);
-    let error = evaluate("throw new Error('fixture exception');");
-    assert!(error["error"].as_str().unwrap().contains("fixture exception"));
-}
-
 #[cfg(windows)]
 #[test]
 #[ignore = "requires Windows WebView2"]

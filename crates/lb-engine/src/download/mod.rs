@@ -7,7 +7,6 @@
 //! * [`job`] — reading a link and the download job
 
 pub mod info;
-pub mod javascript;
 pub mod job;
 pub mod login;
 pub mod tool;

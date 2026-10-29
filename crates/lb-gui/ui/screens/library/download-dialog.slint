@@ -209,24 +209,6 @@ export component DownloadDialog inherits Dialog {
         indeterminate: true;
     }
     if !Dl.tool-checking && !Dl.tool-ok: ToolMissing { }
-    if !Dl.tool-checking && Dl.tool-ok && Dl.can-install: HorizontalLayout {
-        spacing: Theme.sp3;
-        Label {
-            horizontal-stretch: 1;
-            vertical-alignment: center;
-            text: Dl.installing ? "Обновляется компонент загрузки…" : "Компонент загрузки: " + Dl.tool-version;
-            type-style: Theme.body-small;
-            color: Theme.color.on-surface-variant;
-        }
-        Button {
-            text: "Обновить компонент";
-            icon: Icons.refresh;
-            has-icon: true;
-            variant: ButtonVariant.tonal;
-            enabled: !Dl.installing && Dl.step != "probing";
-            clicked => { Dl.install-tool(); }
-        }
-    }
 
     HorizontalLayout {
         spacing: Theme.sp2;

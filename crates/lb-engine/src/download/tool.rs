@@ -1,7 +1,7 @@
 //! Finding, checking and installing yt-dlp.
 //!
-//! Lookup order for the default name: the updated copy in `<project>/tools`,
-//! a copy shipped next to the program, then `PATH`. An explicit path in
+//! Lookup order for the default name: a copy shipped next to the program,
+//! one installed into `<project>/tools`, then `PATH`. An explicit path in
 //! `lauraboard.toml` (`[tools] ytdlp = "…"`) is used as it is.
 //!
 //! Installing downloads the official single-file build for this platform
@@ -53,10 +53,11 @@ fn candidates(configured: &str, project_root: &Path) -> Vec<PathBuf> {
     if !is_default {
         return vec![PathBuf::from(name)];
     }
-    let mut out = vec![installed_path(project_root)];
+    let mut out = Vec::new();
     if let Some(dir) = std::env::current_exe().ok().and_then(|e| e.parent().map(Path::to_path_buf)) {
         out.push(dir.join(exe_name()));
     }
+    out.push(installed_path(project_root));
     out.push(PathBuf::from(DEFAULT_NAME));
     out
 }
@@ -65,9 +66,6 @@ fn candidates(configured: &str, project_root: &Path) -> Vec<PathBuf> {
 pub fn command(program: &Path) -> tokio::process::Command {
     let mut c = tokio::process::Command::new(program);
     c.kill_on_drop(true).stdin(std::process::Stdio::null());
-    if let Some(helper) = lb_core::browser::path() {
-        c.env("LAURABOARD_WEBVIEW", helper);
-    }
     #[cfg(windows)]
     {
         const CREATE_NO_WINDOW: u32 = 0x0800_0000;
@@ -189,7 +187,6 @@ pub async fn install(project_root: PathBuf, ctl: JobCtl) -> Result<Value, String
     let _ = std::fs::remove_file(&dest);
     std::fs::rename(&tmp, &dest).map_err(|e| format!("{}: {e}", dest.display()))?;
     tracing::info!(version, path = %dest.display(), "yt-dlp installed");
-    super::javascript::prepare(&project_root)?;
     Ok(json!({ "version": version, "path": dest.display().to_string() }))
 }
 
@@ -256,7 +253,6 @@ mod tests {
         let root = Path::new("/p");
         assert_eq!(candidates("/opt/yt/yt-dlp", root), vec![PathBuf::from("/opt/yt/yt-dlp")]);
         let c = candidates("yt-dlp", root);
-        assert_eq!(c.first(), Some(&installed_path(root)));
         assert_eq!(c.last(), Some(&PathBuf::from("yt-dlp")));
         assert!(c.contains(&installed_path(root)));
     }

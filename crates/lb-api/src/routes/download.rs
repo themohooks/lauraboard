@@ -18,7 +18,6 @@ use crate::auth::Caller;
 use crate::error::{ApiError, ApiResult};
 
 async fn ytdlp(s: &AppState) -> ApiResult<std::path::PathBuf> {
-    lb_engine::download::javascript::prepare(&s.engine.project_root).map_err(ApiError::bad_request)?;
     tool::locate(&s.engine.app.tools.ytdlp, &s.engine.project_root)
         .await
         .map(|f| f.0)
