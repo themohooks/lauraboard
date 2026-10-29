@@ -153,7 +153,7 @@ fn export(c: &mut Ctx) {
     }
     let server = c.window().is_some_and(|ui| ui.global::<Log>().get_tab() == 1);
     let name = format!("{}-{}.txt", if server { "server-log" } else { "events" }, Local::now().format("%Y%m%d-%H%M"));
-    let Some(path) = rfd::FileDialog::new().set_file_name(name).add_filter("Текст", &["txt", "log"]).save_file() else { return };
+    let Some(path) = crate::file_dialog::FileDialog::new().set_file_name(name).add_filter("Текст", &["txt", "log"]).save_file() else { return };
     // oldest first in the file, like a regular log
     let text: String = c.log.shown.iter().rev().map(|l| format!("{}\t{}\t{}\n", l.at, l.level, l.text)).collect();
     match std::fs::write(&path, text) {

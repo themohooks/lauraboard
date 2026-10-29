@@ -683,7 +683,7 @@ fn pick_image(c: &mut Ctx) {
     let Some(ui) = c.window() else { return };
     let g = ui.global::<Gfx>();
     let current = PathBuf::from(g.get_p_path().trim());
-    let mut dlg = rfd::FileDialog::new()
+    let mut dlg = crate::file_dialog::FileDialog::new()
         .set_title("Файл графики")
         .add_filter("Графика и анимации", &["png", "jpg", "jpeg", "webp", "html", "htm", "swf"]);
     if let Some(dir) = current.parent().filter(|d| d.is_absolute() && d.is_dir()) {

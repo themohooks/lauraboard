@@ -1,4 +1,4 @@
-import { ScrollView } from "std-widgets.slint";
+import { ScrollView, LineEdit, Button } from "std-widgets.slint";
 // Main window of the Material 3 operator GUI: app bar, navigation,
 // section host, global overlays (snackbar, confirmation) and shortcuts.
 
@@ -98,8 +98,15 @@ export component AppWindow inherits Window {
     icon: @image-url("../assets/app/lauraboard.svg");
     preferred-width: 1400px;
     preferred-height: 860px;
-    min-width: 640px / App.ui-scale;
-    min-height: 360px / App.ui-scale;
+    in property <bool> mobile: false;
+    in-out property <bool> connection-visible: false;
+    in-out property <string> connection-url;
+    in-out property <string> connection-token;
+    in-out property <string> connection-error;
+    in-out property <bool> connection-busy: false;
+    callback connect-server();
+    min-width: root.mobile ? 0px : 640px / App.ui-scale;
+    min-height: root.mobile ? 0px : 360px / App.ui-scale;
     background: Theme.color.surface;
     default-font-family: Theme.font;
     default-font-size: Theme.body-medium.size;
@@ -329,6 +336,21 @@ export component AppWindow inherits Window {
             }
         }
         TouchArea { }
+    }
+
+    if root.connection-visible: Rectangle {
+        background: Theme.color.surface;
+        TouchArea { }
+        VerticalLayout {
+            padding: 20px;
+            spacing: 10px;
+            Text { text: "LauraBoard · Android"; color: Theme.color.on-surface; font-size: 24px; }
+            Text { text: "Подключение к удалённому серверу"; color: Theme.color.on-surface; }
+            LineEdit { text <=> root.connection-url; placeholder-text: "http://192.168.1.10:8787"; enabled: !root.connection-busy; }
+            LineEdit { text <=> root.connection-token; placeholder-text: "Токен (необязательно, не сохраняется)"; input-type: password; enabled: !root.connection-busy; }
+            Button { text: root.connection-busy ? "Подключение…" : "Подключиться"; enabled: !root.connection-busy; clicked => { root.connect-server(); } }
+            Text { text: root.connection-error; color: Theme.color.on-surface; wrap: word-wrap; }
+        }
     }
 
     init => {

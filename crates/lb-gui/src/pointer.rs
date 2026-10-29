@@ -4,6 +4,7 @@
 
 use std::cell::Cell;
 
+#[cfg(not(target_os = "android"))]
 use slint::winit_030::winit::event::{ElementState, WindowEvent};
 
 thread_local! {
@@ -12,6 +13,7 @@ thread_local! {
 }
 
 /// Called from the window's winit hook ([`crate::keys::install`]).
+#[cfg(not(target_os = "android"))]
 pub fn track(e: &WindowEvent) {
     match e {
         WindowEvent::CursorMoved { position, .. } => CURSOR.set(Some((position.x as f32, position.y as f32))),

@@ -73,6 +73,7 @@ pub fn install_hint(kind: &Kind) -> &'static str {
 }
 
 /// Install a verified download. `Ok(true)`: the program must quit now.
+#[cfg(not(target_os = "android"))]
 pub fn install(kind: &Kind, file: &Path) -> Result<bool, String> {
     match kind {
         Kind::Setup => {
@@ -105,6 +106,7 @@ fn executable(file: &Path) -> Result<(), String> {
 }
 
 /// Open a file or a web page with the system's default application.
+#[cfg(not(target_os = "android"))]
 pub fn open(target: impl AsRef<std::ffi::OsStr>) -> Result<(), String> {
     let program = if cfg!(windows) {
         "explorer"
@@ -117,6 +119,7 @@ pub fn open(target: impl AsRef<std::ffi::OsStr>) -> Result<(), String> {
 }
 
 /// Show a file selected in the file manager.
+#[cfg(not(target_os = "android"))]
 pub fn reveal(file: &Path) -> Result<(), String> {
     if cfg!(windows) {
         let mut arg = std::ffi::OsString::from("/select,");
@@ -125,4 +128,17 @@ pub fn reveal(file: &Path) -> Result<(), String> {
     } else {
         open(file.parent().unwrap_or(file))
     }
+}
+
+#[cfg(target_os = "android")]
+pub fn install(_: &Kind, _: &Path) -> Result<bool, String> {
+    Err("Установите новый Android APK вручную".into())
+}
+#[cfg(target_os = "android")]
+pub fn open(_: impl AsRef<std::ffi::OsStr>) -> Result<(), String> {
+    Err("Открытие внешних программ пока недоступно на Android".into())
+}
+#[cfg(target_os = "android")]
+pub fn reveal(_: &Path) -> Result<(), String> {
+    Err("Файловый менеджер пока недоступен на Android".into())
 }

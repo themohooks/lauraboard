@@ -108,7 +108,7 @@ fn refresh_login(c: &mut Ctx) {
 }
 
 fn login_cookies_pick(c: &mut Ctx) {
-    let Some(path) = rfd::FileDialog::new().set_title("Файл cookies.txt").add_filter("cookies.txt", &["txt"]).pick_file() else {
+    let Some(path) = crate::file_dialog::FileDialog::new().set_title("Файл cookies.txt").add_filter("cookies.txt", &["txt"]).pick_file() else {
         return;
     };
     match std::fs::read_to_string(&path) {

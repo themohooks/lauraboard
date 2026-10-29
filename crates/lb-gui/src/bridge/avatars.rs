@@ -81,7 +81,7 @@ pub fn pick(c: &mut Ctx) {
         return;
     }
     let Some(path) =
-        rfd::FileDialog::new().set_title("Аватар канала").add_filter("Изображения", &["png", "jpg", "jpeg", "webp"]).pick_file()
+        crate::file_dialog::FileDialog::new().set_title("Аватар канала").add_filter("Изображения", &["png", "jpg", "jpeg", "webp"]).pick_file()
     else {
         return;
     };

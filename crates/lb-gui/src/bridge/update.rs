@@ -85,6 +85,18 @@ pub fn connect(ui: &AppWindow) {
     });
 }
 
+#[cfg(target_os = "android")]
+pub fn connect_android(ui: &AppWindow) {
+    let g = ui.global::<Upd>();
+    let unavailable = || with(|c| c.toast("Обновление Android APK выполняется вручную. Установите новую debug-сборку.", true));
+    g.on_check(unavailable);
+    g.on_install(unavailable);
+    g.on_open_page(unavailable);
+    g.set_current(upd::current().into());
+    g.set_status("Экспериментальная Android-сборка · обновление вручную".into());
+    g.set_auto(false);
+}
+
 fn now() -> i64 {
     chrono::Utc::now().timestamp()
 }

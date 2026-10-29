@@ -4,6 +4,7 @@
 use std::cell::RefCell;
 use std::time::Duration;
 
+#[cfg(not(target_os = "android"))]
 use slint::platform::WindowEvent;
 use slint::{ComponentHandle, Image, Rgba8Pixel, SharedPixelBuffer};
 
@@ -191,6 +192,7 @@ pub fn apply_prefs(c: &mut Ctx) {
 }
 
 /// UI scale = OS scale × user scale.
+#[cfg(not(target_os = "android"))]
 pub fn apply_scale(c: &mut Ctx) {
     let Some(ui) = c.window() else { return };
     use slint::winit_030::WinitWindowAccessor;
@@ -206,6 +208,12 @@ pub fn apply_scale(c: &mut Ctx) {
             size: slint::LogicalSize::new(physical.width as f32 / target, physical.height as f32 / target),
         });
     }
+}
+
+#[cfg(target_os = "android")]
+pub fn apply_scale(c: &mut Ctx) {
+    // The NativeActivity owns the surface dimensions and display scale.
+    if let Some(ui) = c.window() { ui.global::<App>().set_ui_scale(1.0); }
 }
 
 /// Native DPI is independent of the application's synthetic scale factor.

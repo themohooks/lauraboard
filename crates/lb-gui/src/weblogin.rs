@@ -25,6 +25,7 @@ fn profile() -> PathBuf {
 /// Open the window and wait until it is closed or `done` is set; returns
 /// the cookies in the Netscape `cookies.txt` format and whether YouTube
 /// sees a signed-in user.
+#[cfg(not(target_os = "android"))]
 pub fn run(start: &str, done: Arc<AtomicBool>) -> Result<(String, bool), String> {
     let exe = lb_core::browser::path().ok_or(lb_core::browser::MISSING)?;
     let dir = profile();
@@ -150,4 +151,9 @@ mod tests {
         println!("{} cookie lines, signed in: {signed_in}", text.lines().filter(|l| !l.starts_with("# ") && !l.is_empty()).count());
         assert!(text.contains("youtube.com"));
     }
+}
+
+#[cfg(target_os = "android")]
+pub fn run(_: &str, _: Arc<AtomicBool>) -> Result<(String, bool), String> {
+    Err("Вход через настольный WebView недоступен на Android. Используйте настольный клиент.".into())
 }

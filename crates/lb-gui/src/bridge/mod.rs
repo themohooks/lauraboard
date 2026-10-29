@@ -201,7 +201,10 @@ pub fn start(ui: &AppWindow, opts: &GuiOptions, prefs: UiPrefs) {
     record::connect(ui);
     settings::connect(ui);
     picker::connect(ui);
+    #[cfg(not(target_os = "android"))]
     update::connect(ui);
+    #[cfg(target_os = "android")]
+    update::connect_android(ui);
     with(|c| {
         forms::refresh(c);
         shell::apply_prefs(c);

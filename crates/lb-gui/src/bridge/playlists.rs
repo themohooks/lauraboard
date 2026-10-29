@@ -467,7 +467,7 @@ fn menu_action(c: &mut Ctx, action: &str) {
             );
         }
         "export" => {
-            let Some(path) = rfd::FileDialog::new().set_file_name(format!("{id}.m3u")).add_filter("M3U", &["m3u", "m3u8"]).save_file()
+            let Some(path) = crate::file_dialog::FileDialog::new().set_file_name(format!("{id}.m3u")).add_filter("M3U", &["m3u", "m3u8"]).save_file()
             else {
                 return;
             };

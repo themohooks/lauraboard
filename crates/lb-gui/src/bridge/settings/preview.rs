@@ -1,11 +1,13 @@
 //! Preview cadence: monitor-aware client polling and the channel's frame source.
 use crate::bridge::{Ctx, vec_model};
 use crate::shell::Settings;
+#[cfg(not(target_os = "android"))]
 use slint::winit_030::WinitWindowAccessor;
 use slint::{ComponentHandle, SharedString};
 
 const PRESETS: &[f64] = &[10.0, 15.0, 24.0, 25.0, 30.0, 50.0, 60.0, 75.0, 90.0, 100.0, 120.0, 144.0, 165.0, 180.0, 240.0, 360.0];
 
+#[cfg(not(target_os = "android"))]
 fn monitor_hz(c: &Ctx) -> f64 {
     c.window()
         .and_then(|ui| ui.window().with_winit_window(|w| w.current_monitor().and_then(|m| m.refresh_rate_millihertz())))
@@ -13,6 +15,9 @@ fn monitor_hz(c: &Ctx) -> f64 {
         .filter(|mhz| *mhz > 0)
         .map_or(60.0, |mhz| f64::from(mhz) / 1000.0)
 }
+
+#[cfg(target_os = "android")]
+fn monitor_hz(_: &Ctx) -> f64 { 60.0 }
 
 pub fn monitor_changed(c: &mut Ctx) {
     if (monitor_hz(c) - c.settings.preview_monitor_hz).abs() > 0.001 {

@@ -49,7 +49,7 @@ pub fn connect(ui: &AppWindow) {
     g.on_record_browse(|| {
         with(|c| {
             let Some(ui) = c.window() else { return };
-            if let Some(dir) = rfd::FileDialog::new().set_title("Папка для записей").pick_folder() {
+            if let Some(dir) = crate::file_dialog::FileDialog::new().set_title("Папка для записей").pick_folder() {
                 ui.global::<Src>().set_r_dir(dir.display().to_string().into());
             }
         })

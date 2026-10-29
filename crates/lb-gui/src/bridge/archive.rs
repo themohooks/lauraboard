@@ -39,7 +39,7 @@ fn browse_export(c: &mut Ctx) {
     let Some(ui) = c.window() else { return };
     let g = ui.global::<Chan>();
     let current = std::path::PathBuf::from(g.get_x_path().as_str());
-    let mut d = rfd::FileDialog::new().set_title("Куда сохранить архив канала").add_filter("Архив ZIP", &["zip"]);
+    let mut d = crate::file_dialog::FileDialog::new().set_title("Куда сохранить архив канала").add_filter("Архив ZIP", &["zip"]);
     if let Some(dir) = current.parent().filter(|p| p.is_dir()) {
         d = d.set_directory(dir);
     }
@@ -103,7 +103,7 @@ fn open_import(c: &mut Ctx) {
 fn browse_import(c: &mut Ctx) {
     let Some(ui) = c.window() else { return };
     let picked =
-        rfd::FileDialog::new().set_title("Архив канала").add_filter("Архив ZIP", &["zip"]).set_directory(default_dir()).pick_file();
+        crate::file_dialog::FileDialog::new().set_title("Архив канала").add_filter("Архив ZIP", &["zip"]).set_directory(default_dir()).pick_file();
     if let Some(p) = picked {
         ui.global::<Chan>().set_i_path(p.to_string_lossy().replace('\\', "/").into());
         inspect(c);

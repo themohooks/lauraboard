@@ -89,7 +89,7 @@ fn upload(c: &mut Ctx) {
         c.toast("Файл шрифта можно добавить только на компьютере с сервером вещания", true);
         return;
     }
-    let Some(path) = rfd::FileDialog::new().set_title("Файл шрифта").add_filter("Шрифты", &["ttf", "otf", "ttc"]).pick_file()
+    let Some(path) = crate::file_dialog::FileDialog::new().set_title("Файл шрифта").add_filter("Шрифты", &["ttf", "otf", "ttc"]).pick_file()
     else {
         return;
     };

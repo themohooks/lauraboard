@@ -7,6 +7,7 @@ use slint::{CloseRequestResponse, ComponentHandle};
 use crate::GuiOptions;
 use crate::bridge;
 use crate::prefs::UiPrefs;
+#[cfg(not(target_os = "android"))]
 use crate::single;
 use crate::tray::{self, TrayAction};
 
@@ -14,6 +15,7 @@ slint::include_modules!();
 
 /// Open the main window; returns when the user quits (tray menu, or the
 /// close button when there is no tray or hiding is switched off).
+#[cfg(not(target_os = "android"))]
 pub fn run(opts: GuiOptions) -> Result<(), String> {
     // already open (maybe hidden in the tray): bring that window back
     if single::activate_running(&opts.base_url) {

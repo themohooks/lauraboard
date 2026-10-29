@@ -1,0 +1,21 @@
+android:
+  gradle: false
+  manifest:
+    package: org.lauraboard.android.experimental
+    compile_sdk_version: 35
+    sdk:
+      min_sdk_version: 26
+      # xbuild's manifest model has no usesCleartextTraffic attribute.
+      # API 27 keeps LAN HTTP enabled for this experimental debug client.
+      target_sdk_version: 27
+    uses_permission:
+      - name: android.permission.INTERNET
+    application:
+      label: LauraBoard Experimental
+      has_code: false
+      activities:
+        - name: android.app.NativeActivity
+          exported: true
+          orientation: landscape
+          config_changes: orientation|keyboardHidden|screenSize
+          window_soft_input_mode: adjustResize

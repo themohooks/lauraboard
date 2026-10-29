@@ -84,7 +84,7 @@ pub fn connect(ui: &AppWindow) {
     g.on_bulk(|a, arg| with(move |c| bulk(c, a.as_str(), arg)));
     g.on_browse_import(|folder| {
         with(move |c| {
-            let d = rfd::FileDialog::new();
+            let d = crate::file_dialog::FileDialog::new();
             let picked: Vec<std::path::PathBuf> = if folder {
                 d.pick_folder().into_iter().collect()
             } else {

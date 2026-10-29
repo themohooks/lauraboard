@@ -12,7 +12,7 @@ pub fn reduce_motion() -> bool {
 
 /// `true` when the OS asks applications to minimise animations
 /// (GNOME / GTK-based desktops via `gsettings`).
-#[cfg(not(windows))]
+#[cfg(not(any(windows, target_os = "android")))]
 pub fn reduce_motion() -> bool {
     std::process::Command::new("gsettings")
         .args(["get", "org.gnome.desktop.interface", "enable-animations"])
@@ -21,3 +21,6 @@ pub fn reduce_motion() -> bool {
         .filter(|o| o.status.success())
         .is_some_and(|o| String::from_utf8_lossy(&o.stdout).trim() == "false")
 }
+
+#[cfg(target_os = "android")]
+pub fn reduce_motion() -> bool { true }

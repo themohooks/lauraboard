@@ -133,6 +133,9 @@ impl Default for UiPrefs {
 
 impl UiPrefs {
     pub fn path() -> Option<PathBuf> {
+        #[cfg(target_os = "android")]
+        return Some(crate::android::data_dir().join("gui.json"));
+        #[cfg(not(target_os = "android"))]
         Some(dirs::config_dir()?.join("lauraboard").join("gui.json"))
     }
 

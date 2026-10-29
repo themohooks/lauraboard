@@ -253,7 +253,7 @@ fn export(c: &mut Ctx, kind: &str) {
     let Some((from, to)) = validate(c) else { return };
     let ch = c.model.ch();
     let name = format!("{kind}-{ch}-{from}-{to}.csv");
-    let Some(path) = rfd::FileDialog::new().set_file_name(name).add_filter("CSV", &["csv"]).save_file() else { return };
+    let Some(path) = crate::file_dialog::FileDialog::new().set_file_name(name).add_filter("CSV", &["csv"]).save_file() else { return };
     let kind = kind.to_string();
     c.worker.spawn(move |api| {
         let bytes = api.get_bytes(&format!("/channels/{ch}/{kind}?from={from}&to={to}&format=csv"))?;
