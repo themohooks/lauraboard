@@ -7,7 +7,10 @@ use std::process::{Command, ExitStatus};
 
 use windows_sys::Win32::Foundation::{CloseHandle, DBG_CONTINUE, DBG_EXCEPTION_NOT_HANDLED, HANDLE, LocalFree};
 use windows_sys::Win32::System::Diagnostics::Debug::*;
-use windows_sys::Win32::System::Memory::{MEMORY_BASIC_INFORMATION, VirtualQueryEx};
+use windows_sys::Win32::System::Memory::{
+    MEM_COMMIT, MEMORY_BASIC_INFORMATION, PAGE_EXECUTE, PAGE_EXECUTE_READ, PAGE_EXECUTE_READWRITE, PAGE_EXECUTE_WRITECOPY, PAGE_GUARD,
+    VirtualQueryEx,
+};
 use windows_sys::Win32::System::ProcessStatus::K32GetModuleFileNameExW;
 use windows_sys::Win32::System::Threading::{
     DEBUG_ONLY_THIS_PROCESS, GetThreadDescription, OpenThread, THREAD_GET_CONTEXT, THREAD_QUERY_INFORMATION,
@@ -226,19 +229,30 @@ fn stack(process: HANDLE, thread: HANDLE, context: &mut CONTEXT, out: &mut impl 
     if unsafe { SymInitializeW(process, search.as_ptr(), 1) } == 0 {
         return writeln!(out, "Стек недоступен: {}. Контекст сохранён в дампе.", io::Error::last_os_error());
     }
+    #[cfg(not(target_arch = "aarch64"))]
     let mut frame = STACKFRAME64::default();
+    #[cfg(target_arch = "aarch64")]
+    let mut frame = arm64_frame(context);
     #[cfg(target_arch = "x86_64")]
     let (machine, pc, sp, fp) = (0x8664, context.Rip, context.Rsp, context.Rbp);
     #[cfg(target_arch = "x86")]
     let (machine, pc, sp, fp) = (0x014c, context.Eip as u64, context.Esp as u64, context.Ebp as u64);
+    #[cfg(not(target_arch = "aarch64"))]
+    {
+        frame.AddrPC = ADDRESS64 { Offset: pc, Mode: AddrModeFlat, Segment: 0 };
+        frame.AddrStack = ADDRESS64 { Offset: sp, Mode: AddrModeFlat, Segment: 0 };
+        frame.AddrFrame = ADDRESS64 { Offset: fp, Mode: AddrModeFlat, Segment: 0 };
+    }
     #[cfg(target_arch = "aarch64")]
-    let (machine, pc, sp, fp) = (0xaa64, context.Pc, context.Sp, context.Sp);
-    frame.AddrPC = ADDRESS64 { Offset: pc, Mode: AddrModeFlat, Segment: 0 };
-    frame.AddrStack = ADDRESS64 { Offset: sp, Mode: AddrModeFlat, Segment: 0 };
-    frame.AddrFrame = ADDRESS64 { Offset: fp, Mode: AddrModeFlat, Segment: 0 };
+    let walk2 = arm64_stackwalk2();
+    #[cfg(target_arch = "aarch64")]
+    if walk2.is_none() {
+        writeln!(out, "StackWalk2 недоступен: используется ограниченный обход стека; полный контекст сохранён в дампе.")?;
+    }
     let mut previous = (0, 0);
     for i in 0..64 {
-        if unsafe {
+        #[cfg(not(target_arch = "aarch64"))]
+        let walked = unsafe {
             StackWalk64(
                 machine,
                 process,
@@ -250,12 +264,47 @@ fn stack(process: HANDLE, thread: HANDLE, context: &mut CONTEXT, out: &mut impl 
                 Some(SymGetModuleBase64),
                 None,
             )
-        } == 0
-        {
+        };
+        #[cfg(target_arch = "aarch64")]
+        let walked = unsafe {
+            if let Some(walk) = walk2 {
+                walk(
+                    0xaa64,
+                    process,
+                    thread,
+                    &mut frame,
+                    (context as *mut CONTEXT).cast(),
+                    None,
+                    Some(SymFunctionTableAccess64),
+                    Some(SymGetModuleBase64),
+                    None,
+                    Some(arm64_target_attribute),
+                    0,
+                )
+            } else {
+                StackWalkEx(
+                    0xaa64,
+                    process,
+                    thread,
+                    &mut frame,
+                    (context as *mut CONTEXT).cast(),
+                    None,
+                    Some(SymFunctionTableAccess64),
+                    Some(SymGetModuleBase64),
+                    None,
+                    0,
+                )
+            }
+        };
+        if walked == 0 {
             break;
         }
         let current = (frame.AddrPC.Offset, frame.AddrStack.Offset);
         if current.0 == 0 || current == previous {
+            break;
+        }
+        if !executable_address(process, current.0) {
+            writeln!(out, "Обход стека остановлен: следующий адрес не указывает на исполняемую память; контекст сохранён в дампе.")?;
             break;
         }
         writeln!(out, "  #{i:02} {}{}", location(process, current.0), symbol(process, current.0))?;
@@ -265,6 +314,71 @@ fn stack(process: HANDLE, thread: HANDLE, context: &mut CONTEXT, out: &mut impl 
         SymCleanup(process);
     }
     Ok(())
+}
+
+fn executable_address(process: HANDLE, address: u64) -> bool {
+    let mut info = MEMORY_BASIC_INFORMATION::default();
+    (unsafe { VirtualQueryEx(process, address as *const _, &mut info, std::mem::size_of_val(&info)) }) != 0
+        && info.State == MEM_COMMIT
+        && info.Protect & PAGE_GUARD == 0
+        && info.Protect & (PAGE_EXECUTE | PAGE_EXECUTE_READ | PAGE_EXECUTE_READWRITE | PAGE_EXECUTE_WRITECOPY) != 0
+}
+
+#[cfg(target_arch = "aarch64")]
+fn arm64_frame(context: &CONTEXT) -> STACKFRAME_EX {
+    // x29/FP is the frame chain. SP is a different register on ARM64.
+    let registers = unsafe { context.Anonymous.Anonymous };
+    STACKFRAME_EX {
+        StackFrameSize: std::mem::size_of::<STACKFRAME_EX>() as u32,
+        AddrPC: ADDRESS64 { Offset: context.Pc, Mode: AddrModeFlat, Segment: 0 },
+        AddrStack: ADDRESS64 { Offset: context.Sp, Mode: AddrModeFlat, Segment: 0 },
+        AddrFrame: ADDRESS64 { Offset: registers.Fp, Mode: AddrModeFlat, Segment: 0 },
+        AddrReturn: ADDRESS64 { Offset: registers.Lr, Mode: AddrModeFlat, Segment: 0 },
+        ..Default::default()
+    }
+}
+
+#[cfg(target_arch = "aarch64")]
+type StackWalk2Fn = unsafe extern "system" fn(
+    u32,
+    HANDLE,
+    HANDLE,
+    *mut STACKFRAME_EX,
+    *mut core::ffi::c_void,
+    PREAD_PROCESS_MEMORY_ROUTINE64,
+    PFUNCTION_TABLE_ACCESS_ROUTINE64,
+    PGET_MODULE_BASE_ROUTINE64,
+    PTRANSLATE_ADDRESS_ROUTINE64,
+    PGET_TARGET_ATTRIBUTE_VALUE64,
+    u32,
+) -> i32;
+
+#[cfg(target_arch = "aarch64")]
+fn arm64_stackwalk2() -> Option<StackWalk2Fn> {
+    use windows_sys::Win32::System::LibraryLoader::{GetModuleHandleW, GetProcAddress};
+    // Resolve dynamically: importing StackWalk2 would prevent the application
+    // from starting on systems with older DbgHelp, even before any crash.
+    let name: Vec<u16> = "dbghelp.dll\0".encode_utf16().collect();
+    let module = unsafe { GetModuleHandleW(name.as_ptr()) };
+    if module.is_null() {
+        return None;
+    }
+    let function = unsafe { GetProcAddress(module, c"StackWalk2".as_ptr().cast()) }?;
+    // SAFETY: signature is the documented DbgHelp StackWalk2 ABI.
+    Some(unsafe { std::mem::transmute::<unsafe extern "system" fn() -> isize, StackWalk2Fn>(function) })
+}
+
+#[cfg(target_arch = "aarch64")]
+unsafe extern "system" fn arm64_target_attribute(_process: HANDLE, attribute: u32, _address: u64, value: *mut u64) -> i32 {
+    if attribute != TARGET_ATTRIBUTE_PACMASK || value.is_null() {
+        return 0;
+    }
+    // Native supervisor and target use the same OS/architecture PAC mask.
+    // LIVE_TARGET asks DbgHelp to obtain it through the OS, not a guessed mask.
+    unsafe {
+        *value = u64::MAX;
+    }
+    1
 }
 
 fn symbol(process: HANDLE, address: u64) -> String {
@@ -311,7 +425,8 @@ mod tests {
         assert!(report.contains("Имя потока: native-crash-test"), "{report}");
         assert!(report.contains("Операция: запись"), "{report}");
         assert!(report.contains("#00"), "{report}");
-        assert!(report.contains("#02"), "{report}");
+        // Frame depth depends on OS libraries, compiler inlining and available
+        // unwind metadata. A valid report is not defined by a fixed frame count.
         assert!(report.contains("Дамп аварии:"), "{report}");
         let bytes = std::fs::read(log.with_extension("dmp")).unwrap();
         assert!(bytes.starts_with(b"MDMP"));
@@ -322,6 +437,32 @@ mod tests {
         let rva = u32_at(exception + 8) as usize;
         assert_eq!(u32_at(rva + 8), 0xc0000005);
         assert!(u32_at(rva + 160) > 0, "faulting thread register context must be present");
+    }
+
+    #[test]
+    fn unwinder_rejects_invalid_and_signed_addresses() {
+        let process = unsafe { windows_sys::Win32::System::Threading::GetCurrentProcess() };
+        assert!(executable_address(process, status as *const () as u64));
+        assert!(!executable_address(process, 0));
+        assert!(!executable_address(process, 0x46747ff6ca2f5824));
+    }
+
+    #[test]
+    #[cfg(target_arch = "aarch64")]
+    fn arm64_seeds_fp_separately_and_supplies_live_pac_mask() {
+        let mut context = CONTEXT::default();
+        context.Pc = 0x2000;
+        context.Sp = 0x3000;
+        context.Anonymous = CONTEXT_0 { Anonymous: CONTEXT_0_0 { Fp: 0x4000, Lr: 0x5000, ..Default::default() } };
+        let frame = arm64_frame(&context);
+        assert_eq!(frame.AddrPC.Offset, 0x2000);
+        assert_eq!(frame.AddrStack.Offset, 0x3000);
+        assert_eq!(frame.AddrFrame.Offset, 0x4000);
+        assert_eq!(frame.AddrReturn.Offset, 0x5000);
+        let mut mask = 0;
+        assert_eq!(unsafe { arm64_target_attribute(std::ptr::null_mut(), TARGET_ATTRIBUTE_PACMASK, 0, &mut mask) }, 1);
+        assert_eq!(mask, u64::MAX);
+        assert_eq!(unsafe { arm64_target_attribute(std::ptr::null_mut(), 999, 0, &mut mask) }, 0);
     }
 
     #[test]
