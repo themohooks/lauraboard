@@ -67,18 +67,9 @@ pub fn encoder_args(j: &EncodeJob) -> Vec<String> {
         ]));
     }
     if let Some(g) = &j.gfx {
-        args.extend(sv(&[
-            "-thread_queue_size",
-            "512",
-            "-f",
-            "f32le",
-            "-ar",
-            "48000",
-            "-ac",
-            "2",
-            "-i",
-            &format!("tcp://127.0.0.1:{}", g.audio_port),
-        ]));
+        // Keep the demuxer's default queue. Some distributed FFmpeg builds
+        // reject thread_queue_size on inputs, preventing the encoder starting.
+        args.extend(sv(&["-f", "f32le", "-ar", "48000", "-ac", "2", "-i", &format!("tcp://127.0.0.1:{}", g.audio_port)]));
     }
     args.extend(sv(&["-filter_complex", &filter_graph(j)]));
     args.extend(sv(&["-map", "[vout]", "-map", "[aout]"]));
@@ -283,6 +274,53 @@ mod tests {
 
     #[tokio::test]
     #[ignore = "requires FFmpeg with libx264"]
+    async fn graphics_and_pcm_inputs_encode_with_preview() {
+        struct Files(std::path::PathBuf);
+        impl Drop for Files {
+            fn drop(&mut self) {
+                let _ = std::fs::remove_dir_all(&self.0);
+            }
+        }
+        let files = Files(std::env::temp_dir().join(format!("lb-encoder-gfx-{}", std::process::id())));
+        std::fs::create_dir_all(&files.0).unwrap();
+        let rgba = files.0.join("overlay.rgba");
+        let pcm = files.0.join("overlay.f32le");
+        std::fs::write(&rgba, vec![0_u8; 160 * 90 * 4 * 10]).unwrap();
+        std::fs::write(&pcm, vec![0_u8; 48000 * 2 * 4]).unwrap();
+        let e = EncoderConfig::default();
+        let v = VideoFormat { width: 160, height: 90, fps: 10.0, ..Default::default() };
+        let a = AudioFormat::default();
+        let mut j = job(&e, &v, &a, &[]);
+        j.preview = Some(PreviewOut { width: 80, fps: 5.0 });
+        let mut args = encoder_args(&j);
+        let first = args.iter().position(|s| s == "-fflags").unwrap();
+        let last = args.iter().position(|s| s == "pipe:0").unwrap() + 1;
+        args.splice(
+            first..last,
+            ["-t", "1", "-f", "lavfi", "-i", "testsrc2=size=160x90:rate=10[out0];sine=sample_rate=48000[out1]"].map(str::to_string),
+        );
+        for arg in &mut args {
+            if arg == "tcp://127.0.0.1:40000" {
+                *arg = rgba.to_str().unwrap().to_owned();
+            } else if arg == "tcp://127.0.0.1:12346" {
+                *arg = pcm.to_str().unwrap().to_owned();
+            }
+        }
+        let output = tokio::time::timeout(
+            std::time::Duration::from_secs(20),
+            crate::process::command("ffmpeg").args(args).kill_on_drop(true).output(),
+        )
+        .await
+        .expect("graphics encoder stalled")
+        .unwrap();
+        let log = String::from_utf8_lossy(&output.stderr);
+        assert!(output.status.success(), "{log}");
+        assert!(log.contains("LB_PACKET"), "no encoded broadcast packets: {log}");
+        assert!(output.stdout.starts_with(&[0xff, 0xd8]), "no JPEG preview: {log}");
+    }
+
+    #[tokio::test]
+    #[ignore = "requires FFmpeg with libx264"]
     async fn live_telemetry_counts_filter_drops_and_excludes_preview_packets() {
         let e = EncoderConfig::default();
         let v = VideoFormat { width: 160, height: 90, fps: 10.0, ..Default::default() };
@@ -351,6 +389,7 @@ mod tests {
         assert!(s.contains("-i tcp://127.0.0.1:40000"));
         assert!(s.contains("overlay=x=0:y=0"));
         assert!(s.contains("-f f32le -ar 48000 -ac 2 -i tcp://127.0.0.1:12346"));
+        assert!(!s.contains("-thread_queue_size"));
         assert!(s.contains("amix=inputs=2:duration=first:dropout_transition=0:normalize=0"));
         assert!(s.contains("[vprev]fps=5,scale=480:-2[pv]"));
         assert!(s.contains("-c:v libx264 -preset veryfast -tune zerolatency -b:v 3000k -maxrate 3000k -bufsize 6000k -g 50"));
