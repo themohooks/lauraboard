@@ -224,7 +224,7 @@ export component GfxCanvas inherits Rectangle {
     }
 
     Timer {
-        interval: 80ms;
+        interval: Gfx.anim-interval * 1ms;
         running: Gfx.anim-playing && Gfx.anim-frames.length > 0;
         triggered => {
             Gfx.anim-index = mod(Gfx.anim-index + 1, Gfx.anim-frames.length);

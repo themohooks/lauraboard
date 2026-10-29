@@ -2,7 +2,7 @@
 //! reset, connection and version info.
 
 use std::time::Duration;
-mod preview;
+pub mod preview;
 pub use preview::apply_rate as apply_preview_rate;
 
 pub fn monitor_changed(c: &mut Ctx) {

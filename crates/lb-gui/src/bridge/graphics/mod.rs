@@ -1256,6 +1256,11 @@ pub fn preview_changed(c: &mut Ctx) {
     }
 }
 
+/// Frames needed to show `dur_ms` at `fps` (at least 2, at most 150).
+fn anim_steps(dur_ms: i64, fps: f64) -> i64 {
+    ((dur_ms as f64 * fps / 1000.0).ceil() as i64).clamp(2, 150)
+}
+
 /// In-animation of the selected element as a short frame sequence.
 fn preview_animation(c: &mut Ctx) {
     let Some(i) = c.gfx.selected else { return };
@@ -1266,11 +1271,16 @@ fn preview_animation(c: &mut Ctx) {
     solo.elements = vec![e];
     solo.rules.clear();
     let ch = c.model.ch();
+    // honours the preview frame rate setting
+    let fps = crate::bridge::settings::preview::rate(c).clamp(1.0, 120.0);
+    let steps = anim_steps(dur, fps);
+    let interval = (1000.0 / fps).round().max(8.0) as i32;
     if let Some(ui) = c.window() {
-        ui.global::<Gfx>().set_rendering(true);
+        let g = ui.global::<Gfx>();
+        g.set_rendering(true);
+        g.set_anim_interval(interval);
     }
     c.worker.spawn(move |api| {
-        let steps = 10;
         let mut frames = Vec::new();
         let mut err = None;
         for k in 0..=steps {
@@ -1297,7 +1307,7 @@ fn preview_animation(c: &mut Ctx) {
             let mut imgs: Vec<Image> = frames.iter().filter_map(to_image).collect();
             // hold the final frame for a moment before looping
             if let Some(last) = imgs.last().cloned() {
-                imgs.extend(std::iter::repeat_n(last, 8));
+                imgs.extend(std::iter::repeat_n(last, (fps / 2.0).ceil() as usize));
             }
             g.set_anim_frames(vec_model(imgs));
             g.set_anim_index(0);
@@ -1674,5 +1684,18 @@ mod tests {
         assert_eq!(super::append_var("", "{title}"), "{title}");
         assert_eq!(super::append_var("Далее:", "{title}"), "Далее: {title}");
         assert_eq!(super::append_var("Далее: ", "{title}"), "Далее: {title}");
+    }
+}
+
+#[cfg(test)]
+mod anim_tests {
+    use super::anim_steps;
+
+    #[test]
+    fn frame_count_follows_rate() {
+        assert_eq!(anim_steps(1000, 30.0), 30);
+        assert_eq!(anim_steps(1000, 60.0), 60);
+        assert_eq!(anim_steps(100, 10.0), 2);
+        assert_eq!(anim_steps(60_000, 120.0), 150);
     }
 }

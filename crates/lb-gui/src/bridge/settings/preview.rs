@@ -24,12 +24,17 @@ fn number(fps: f64) -> String {
     format!("{fps:.2}").trim_end_matches('0').trim_end_matches('.').to_string()
 }
 
-pub fn apply_rate(c: &Ctx) {
+/// Preview rate in frames per second: the preview setting, capped by the channel's frame source.
+pub fn rate(c: &Ctx) -> f64 {
     let mut fps = c.prefs.effective_preview_fps(monitor_hz(c));
     if let Some(cfg) = super::super::sources::config(c) {
         fps = fps.min(cfg.preview.effective_fps(cfg.video.fps));
     }
-    c.poller.set_fps(fps);
+    fps
+}
+
+pub fn apply_rate(c: &Ctx) {
+    c.poller.set_fps(rate(c));
 }
 
 pub fn show(c: &mut Ctx) {
