@@ -1,15 +1,17 @@
 [package]
 name = "xtask"
-version = "0.2.1"
+version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
 publish = false
 description = "Project automation: `cargo dist` (installer), `cargo xtask icons`, `cargo xtask backgrounds`"
 
 [dependencies]
 image = { version = "0.25.10", default-features = false, features = ["jpeg", "png"] }
-lb-gfx = { version = "0.2.1", path = "../lb-gfx" }
-lb-media = { version = "0.2.1", path = "../lb-media" }
+lb-gfx = { workspace = true }
+lb-media = { workspace = true }
 resvg = "0.48.1"
 serde_json = "1.0.154"
 toml = "1.1.8"

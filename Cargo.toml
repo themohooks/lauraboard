@@ -9,6 +9,17 @@ license = "MIT"
 authors = ["LauraBoard contributors"]
 rust-version = "1.92"
 
+[workspace.dependencies]
+lb-api = { path = "crates/lb-api" }
+lb-core = { path = "crates/lb-core" }
+lb-engine = { path = "crates/lb-engine" }
+lb-gfx = { path = "crates/lb-gfx" }
+lb-gui = { path = "crates/lb-gui" }
+lb-installer = { path = "crates/lb-installer" }
+lb-media = { path = "crates/lb-media" }
+lb-webview = { path = "crates/lb-webview" }
+lb-winres = { path = "crates/lb-winres" }
+
 [profile.release]
 lto = "thin"
 codegen-units = 4

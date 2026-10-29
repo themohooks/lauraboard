@@ -175,16 +175,25 @@ fn mb(bytes: u64) -> String {
     format!("{:.1} МБ", bytes as f64 / (1024.0 * 1024.0))
 }
 
-/// Version of the `lauraboard` package.
+/// Shared release version of every workspace package.
 fn app_version(root: &Path) -> Result<String, String> {
-    let manifest = root.join("crates/lauraboard/Cargo.toml");
+    let manifest = root.join("Cargo.toml");
     let text = std::fs::read_to_string(&manifest).map_err(|e| format!("{}: {e}", manifest.display()))?;
     let doc: toml::Table = text.parse().map_err(|e| format!("{}: {e}", manifest.display()))?;
-    doc.get("package")
+    doc.get("workspace")
+        .and_then(|w| w.get("package"))
         .and_then(|p| p.get("version"))
         .and_then(|v| v.as_str())
         .map(str::to_string)
-        .ok_or_else(|| "нет package.version".into())
+        .ok_or_else(|| "нет workspace.package.version".into())
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn packaging_reads_the_shared_workspace_version() {
+        assert_eq!(super::app_version(&crate::root()).unwrap(), env!("CARGO_PKG_VERSION"));
+    }
 }
 
 fn cargo(root: &Path, args: &[&str], payload: Option<&Path>) -> Result<(), String> {
