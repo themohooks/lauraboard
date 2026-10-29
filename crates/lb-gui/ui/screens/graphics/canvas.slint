@@ -1,6 +1,8 @@
 // Frame canvas: background (exact render / live air / none), safe area,
 // element boxes with move / resize handles, snapping guides. Arrow keys
-// nudge the selection (Shift = 10 px).
+// nudge the selection (Shift = 10 px, Ctrl = 100 px). Drag: Shift locks the
+// axis (move) / keeps the ratio (resize), Ctrl turns snapping off (move) /
+// resizes around the centre (resize).
 
 import { Theme } from "../../theme/tokens.slint";
 import { Label } from "../../components/label.slint";
@@ -21,12 +23,17 @@ component Handle inherits Rectangle {
     // with the drag, so offsets relative to it would feed back and jitter
     property <length> start-x;
     property <length> start-y;
+    // modifier keys, refreshed by every pointer event
+    property <bool> shift;
+    property <bool> ctrl;
     TouchArea {
         mouse-cursor: root.handle == 0 || root.handle == 4 ? MouseCursor.nwse-resize
             : root.handle == 2 || root.handle == 6 ? MouseCursor.nesw-resize
             : root.handle == 1 || root.handle == 5 ? MouseCursor.ns-resize
             : MouseCursor.ew-resize;
         pointer-event(e) => {
+            root.shift = e.modifiers.shift;
+            root.ctrl = e.modifiers.control;
             if e.kind == PointerEventKind.down {
                 root.start-x = self.absolute-position.x + self.mouse-x;
                 root.start-y = self.absolute-position.y + self.mouse-y;
@@ -40,7 +47,8 @@ component Handle inherits Rectangle {
             if self.pressed {
                 Gfx.drag-move(root.element, root.handle,
                     (self.absolute-position.x + self.mouse-x - root.start-x) / 1px / root.scale,
-                    (self.absolute-position.y + self.mouse-y - root.start-y) / 1px / root.scale);
+                    (self.absolute-position.y + self.mouse-y - root.start-y) / 1px / root.scale,
+                    root.shift, root.ctrl);
             }
         }
     }
@@ -61,6 +69,9 @@ component ItemBox inherits Rectangle {
     // see Handle: drag offsets are measured in window coordinates
     property <length> start-x;
     property <length> start-y;
+    // Shift: move along one axis, Ctrl: no snapping
+    property <bool> shift;
+    property <bool> ctrl;
 
     if !root.sel && root.width > 50px: Rectangle {
         x: 0;
@@ -79,6 +90,8 @@ component ItemBox inherits Rectangle {
     TouchArea {
         mouse-cursor: root.item.locked ? MouseCursor.not-allowed : MouseCursor.move;
         pointer-event(e) => {
+            root.shift = e.modifiers.shift;
+            root.ctrl = e.modifiers.control;
             if e.kind == PointerEventKind.down {
                 Gfx.select(root.item.index);
                 focus.focus();
@@ -96,7 +109,8 @@ component ItemBox inherits Rectangle {
             if self.pressed && !root.item.locked {
                 Gfx.drag-move(root.item.index, -1,
                     (self.absolute-position.x + self.mouse-x - root.start-x) / 1px / root.scale,
-                    (self.absolute-position.y + self.mouse-y - root.start-y) / 1px / root.scale);
+                    (self.absolute-position.y + self.mouse-y - root.start-y) / 1px / root.scale,
+                    root.shift, root.ctrl);
             }
         }
     }
@@ -105,7 +119,7 @@ component ItemBox inherits Rectangle {
         width: 0;
         height: 0;
         key-pressed(e) => {
-            let step = e.modifiers.shift ? 10 : 1;
+            let step = e.modifiers.control ? 100 : (e.modifiers.shift ? 10 : 1);
             if e.text == Key.LeftArrow {
                 Gfx.nudge(-step, 0);
                 return accept;

@@ -186,7 +186,7 @@ pub fn connect(ui: &AppWindow) {
         })
     });
     g.on_drag_start(|i, h| with(move |c| drag_start(c, i as usize, h)));
-    g.on_drag_move(|i, h, dx, dy| with(move |c| drag_move(c, i as usize, h, dx, dy)));
+    g.on_drag_move(|i, h, dx, dy, shift, ctrl| with(move |c| drag_move(c, i as usize, h, dx, dy, shift, ctrl)));
     g.on_drag_end(|| with(drag_end));
     g.on_nudge(|dx, dy| with(move |c| nudge(c, dx, dy)));
     g.on_props_changed(|| with(props_changed));
@@ -757,7 +757,9 @@ fn drag_start(c: &mut Ctx, i: usize, handle: i32) {
     props(c);
 }
 
-fn drag_move(c: &mut Ctx, i: usize, handle: i32, dx: f32, dy: f32) {
+/// `shift`: keep the aspect ratio when resizing, lock the axis when moving;
+/// `ctrl`: resize around the centre, move without snapping.
+fn drag_move(c: &mut Ctx, i: usize, handle: i32, dx: f32, dy: f32, shift: bool, ctrl: bool) {
     let Some(d) = c.gfx.drag.as_ref() else { return };
     if d.index != i || d.handle != handle {
         return;
@@ -766,10 +768,16 @@ fn drag_move(c: &mut Ctx, i: usize, handle: i32, dx: f32, dy: f32) {
     let Some(ui) = c.window() else { return };
     let g = ui.global::<Gfx>();
     let snap = g.get_snap();
+    // Shift moves along the dominant axis only
+    let (dx, dy) = match (shift && handle < 0, dx.abs() >= dy.abs()) {
+        (true, true) => (dx, 0.0),
+        (true, false) => (0.0, dy),
+        _ => (dx, dy),
+    };
     let (mut r, mut vg, mut hg) = (Rect { x: d.start.x + dx, y: d.start.y + dy, ..d.start }, vec![], vec![]);
     if handle >= 0 {
-        r = placement::resize(d.start, handle, dx, dy, 8.0);
-    } else if snap {
+        r = placement::resize_with(d.start, handle, dx, dy, 8.0, shift, ctrl);
+    } else if snap && !ctrl {
         let s = placement::snap(r, fw, fh, 8.0);
         r = s.rect;
         vg = s.vguides;

@@ -205,6 +205,60 @@ pub fn resize(r: Rect, handle: i32, dx: f32, dy: f32, min: f32) -> Rect {
     Rect { x: l, y: t, w: rr - l, h: b - t }
 }
 
+/// [`resize`] with modifier keys: `keep_aspect` (Shift) holds the ratio of
+/// the box, `from_center` (Ctrl) resizes it symmetrically around its centre.
+pub fn resize_with(r: Rect, handle: i32, dx: f32, dy: f32, min: f32, keep_aspect: bool, from_center: bool) -> Rect {
+    let base = resize(r, handle, dx, dy, min);
+    if (!keep_aspect && !from_center) || r.w <= 0.0 || r.h <= 0.0 {
+        return base;
+    }
+    let (left, right) = (matches!(handle, 0 | 6 | 7), matches!(handle, 2..=4));
+    let (top, bottom) = (matches!(handle, 0..=2), matches!(handle, 4..=6));
+    let (horizontal, vertical) = (left || right, top || bottom);
+    let (mut w, mut h) = (base.w, base.h);
+    if from_center {
+        if horizontal {
+            w = (r.w + 2.0 * (w - r.w)).max(min);
+        }
+        if vertical {
+            h = (r.h + 2.0 * (h - r.h)).max(min);
+        }
+    }
+    if keep_aspect {
+        let ratio = r.w / r.h;
+        if horizontal && vertical {
+            let (sw, sh) = (w / r.w, h / r.h);
+            let s = if (sw - 1.0).abs() >= (sh - 1.0).abs() { sw } else { sh };
+            w = (r.w * s).max(min);
+            h = w / ratio;
+            if h < min {
+                h = min;
+                w = h * ratio;
+            }
+        } else if horizontal {
+            h = (w / ratio).max(min);
+        } else {
+            w = (h * ratio).max(min);
+        }
+    }
+    let (cx, cy) = (r.x + r.w / 2.0, r.y + r.h / 2.0);
+    let x = if from_center || !(left || right) {
+        cx - w / 2.0
+    } else if left {
+        r.x + r.w - w
+    } else {
+        r.x
+    };
+    let y = if from_center || !(top || bottom) {
+        cy - h / 2.0
+    } else if top {
+        r.y + r.h - h
+    } else {
+        r.y
+    };
+    Rect { x, y, w, h }
+}
+
 /// `#RRGGBB` / `#RRGGBBAA` check for colour fields.
 pub fn valid_color(s: &str) -> bool {
     let h = s.trim().trim_start_matches('#');
@@ -265,6 +319,10 @@ mod tests {
         }
     }
 
+    fn close(a: Rect, b: Rect) -> bool {
+        [(a.x, b.x), (a.y, b.y), (a.w, b.w), (a.h, b.h)].iter().all(|(p, q)| (p - q).abs() < 0.01)
+    }
+
     #[test]
     fn snapping_and_resizing() {
         let s = snap(Rect { x: 5.0, y: 537.0, w: 100.0, h: 10.0 }, 1920.0, 1080.0, 8.0);
@@ -273,6 +331,17 @@ mod tests {
         assert_eq!(s.hguides, vec![540.0]);
         let r = resize(Rect { x: 10.0, y: 10.0, w: 100.0, h: 100.0 }, 0, 200.0, 0.0, 20.0);
         assert_eq!((r.x, r.w), (90.0, 20.0));
+        // Shift keeps the ratio, Ctrl grows around the centre
+        let sq = Rect { x: 100.0, y: 100.0, w: 200.0, h: 100.0 };
+        let a = resize_with(sq, 4, 100.0, 5.0, 8.0, true, false);
+        assert!(close(a, Rect { x: 100.0, y: 100.0, w: 300.0, h: 150.0 }), "{a:?}");
+        let l = resize_with(sq, 0, -40.0, 0.0, 8.0, true, false);
+        assert!(close(l, Rect { x: 60.0, y: 80.0, w: 240.0, h: 120.0 }), "{l:?}");
+        let c = resize_with(sq, 3, 20.0, 0.0, 8.0, false, true);
+        assert!(close(c, Rect { x: 80.0, y: 100.0, w: 240.0, h: 100.0 }), "{c:?}");
+        let e = resize_with(sq, 3, 20.0, 0.0, 8.0, true, true);
+        assert!(close(e, Rect { x: 80.0, y: 90.0, w: 240.0, h: 120.0 }), "{e:?}");
+        assert_eq!(resize_with(sq, 4, 7.0, 9.0, 8.0, false, false), resize(sq, 4, 7.0, 9.0, 8.0));
         assert!(valid_color("#FF00aa80") && !valid_color("red"));
     }
 

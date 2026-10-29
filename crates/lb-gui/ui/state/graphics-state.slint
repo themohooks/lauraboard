@@ -362,7 +362,8 @@ export global Gfx {
     callback select(int);
     callback drag-start(int, int);
     // element, handle (-1 = move), dx, dy in frame px
-    callback drag-move(int, int, float, float);
+    // (element, handle, dx, dy, shift, ctrl)
+    callback drag-move(int, int, float, float, bool, bool);
     callback drag-end();
     callback nudge(float, float);
     callback props-changed();
