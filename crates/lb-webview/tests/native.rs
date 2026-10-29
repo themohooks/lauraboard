@@ -168,6 +168,8 @@ fn exports_http_only_cookies_and_closes_on_done() {
     let start = Instant::now();
     let mut found = false;
     let mut last_cookie_count = None;
+    let mut last_cookie_request = None;
+    let mut last_cookie_timeout = None;
     let mut premature_exit = None;
     // Cold WebKit/Xvfb initialization can take ~16 s even after receiving
     // the HTTP response. Keep startup budget separate from the 5 s close
@@ -179,6 +181,12 @@ fn exports_http_only_cookies_and_closes_on_done() {
         }
         if let Ok(value) = rx.recv_timeout(Duration::from_millis(100)) {
             assert!(value["error"].is_null(), "{value}");
+            if let Some(request) = value["cookie_request_started"].as_u64() {
+                last_cookie_request = Some(request);
+            }
+            if let Some(request) = value["cookie_request_timeout"].as_u64() {
+                last_cookie_timeout = Some(request);
+            }
             if let Some(cookies) = value["cookies"].as_array() {
                 last_cookie_count = Some(cookies.len());
                 found = cookies.iter().any(|c| c["name"] == "lb-test" && c["value"] == "session" && c["httpOnly"] == true);
@@ -206,7 +214,7 @@ fn exports_http_only_cookies_and_closes_on_done() {
     let _ = std::fs::remove_dir_all(profile);
     assert!(
         found,
-        "HttpOnly cookie was not exported: requests={}, last_cookie_count={last_cookie_count:?}, premature_exit={premature_exit:?}, closed={closed}",
+        "HttpOnly cookie was not exported: requests={}, last_cookie_count={last_cookie_count:?}, last_cookie_request={last_cookie_request:?}, last_cookie_timeout={last_cookie_timeout:?}, premature_exit={premature_exit:?}, closed={closed}",
         requests.load(Ordering::Relaxed)
     );
     assert!(closed, "WebView did not close after the parent sent done");
