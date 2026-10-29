@@ -56,7 +56,7 @@ export component MediaPickerDialog inherits Dialog {
         }
         if Picker.rows.length > 0: ListView {
             for r[i] in Picker.rows: ListRow {
-                height: Theme.compact ? 44px : 52px;
+                height: Theme.dense(44px, 52px);
                 selected: r.checked;
                 focusable: false;
                 accessible-label: r.title;

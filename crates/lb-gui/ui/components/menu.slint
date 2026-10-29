@@ -26,7 +26,7 @@ export component Menu {
 
     property <length> px;
     property <length> py;
-    property <length> item-height: Theme.compact ? 36px : 44px;
+    property <length> item-height: Theme.dense(36px, 44px);
 
     public function open-at(x: length, y: length) {
         root.px = x;

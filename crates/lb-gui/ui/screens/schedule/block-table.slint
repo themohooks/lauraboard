@@ -19,7 +19,7 @@ component BlockRowView inherits ListRow {
     in property <BlockRow> b;
     // narrow: late policy / truncation are edited in the side sheet
     in property <bool> narrow;
-    height: Theme.compact ? 60px : 68px;
+    height: Theme.dense(60px, 68px);
     selected: Grid.selected-block == b.index;
     focusable: false;
     clicked => {

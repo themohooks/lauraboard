@@ -63,7 +63,7 @@ component RowMenu inherits Menu {
 
 component MediaRowView inherits ListRow {
     in property <MediaRow> item;
-    height: Theme.compact ? 44px : 52px;
+    height: Theme.dense(44px, 52px);
     selected: Lib.focused == item.row;
     opacity: item.enabled ? 1 : 0.55;
     accessible-label: item.title;

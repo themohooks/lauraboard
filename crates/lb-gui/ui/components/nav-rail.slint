@@ -32,7 +32,7 @@ export component NavRail inherits Rectangle {
     pure callback unsaved(string) -> bool;
 
     property <int> cursor: -1;
-    property <length> item-height: Theme.compact ? 36px : 40px;
+    property <length> item-height: Theme.dense(36px, 40px);
 
     width: expanded ? 232px : 72px;
     animate width { duration: Theme.motion-medium; easing: ease-in-out; }

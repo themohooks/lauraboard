@@ -75,6 +75,11 @@ pub fn snapshot(out: &Path, section: &str, width: u32, height: u32, scale: f32, 
     ui.set_gallery_page(page.into());
     // No time passes between frames here, so animated properties would keep stale values.
     ui.global::<Theme>().set_animations(false);
+    // `LB_SNAPSHOT_COMPACT=1`: the compact density
+    if std::env::var("LB_SNAPSHOT_COMPACT").is_ok() {
+        ui.global::<Theme>().set_compact(true);
+        ui.global::<Theme>().set_density(1.0);
+    }
     ui.show().map_err(|e| e.to_string())?;
     match live {
         Some(url) => {

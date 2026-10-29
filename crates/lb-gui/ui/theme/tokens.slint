@@ -262,12 +262,18 @@ export global Theme {
     out property <length> radius-full: 999px;
 
     // ---- sizes (density-aware)
+    // 0 = comfortable, 1 = compact. A global cannot animate, so the window
+    // (app.slint) eases it towards `compact` when the setting changes.
+    in-out property <float> density: 0;
+    pure public function dense(compact-size: length, normal-size: length) -> length {
+        return normal-size + (compact-size - normal-size) * density;
+    }
     out property <length> icon-size: 24px;
     out property <length> icon-small: 18px;
-    out property <length> control-height: compact ? 32px : 40px;
-    out property <length> row-height: compact ? 32px : 40px;
-    out property <length> row-height-tall: compact ? 48px : 56px;
-    out property <length> touch-target: compact ? 36px : 40px;
+    out property <length> control-height: dense(32px, 40px);
+    out property <length> row-height: dense(32px, 40px);
+    out property <length> row-height-tall: dense(48px, 56px);
+    out property <length> touch-target: dense(36px, 40px);
     out property <length> focus-ring: 2px;
 
     // ---- motion (0 when animations are disabled / reduce-motion)

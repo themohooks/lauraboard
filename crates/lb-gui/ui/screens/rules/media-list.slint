@@ -21,7 +21,7 @@ export component MediaPickList inherits Rectangle {
     clip: true;
     VerticalLayout {
         for m[i] in root.items: ListRow {
-            height: Theme.compact ? 40px : 48px;
+            height: Theme.dense(40px, 48px);
             divider: i < root.items.length - 1;
             focusable: false;
             Label {

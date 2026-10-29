@@ -92,7 +92,7 @@ component Num inherits Label {
 
 component StatRowView inherits ListRow {
     in property <StatRow> item;
-    height: Theme.compact ? 40px : 48px;
+    height: Theme.dense(40px, 48px);
     divider: true;
     accessible-label: item.title + ": показов " + item.plays + ", в эфире " + item.airtime;
     VerticalLayout {

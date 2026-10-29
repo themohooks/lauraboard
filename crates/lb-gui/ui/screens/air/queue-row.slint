@@ -12,7 +12,7 @@ import { QueueRow } from "../../state/air-state.slint";
 export component QueueRowView inherits ListRow {
     in property <QueueRow> item;
     in property <bool> show-block: true;
-    height: Theme.compact ? 52px : 72px;
+    height: Theme.dense(52px, 72px);
 
     current: item.current;
     accent: Theme.status.live;

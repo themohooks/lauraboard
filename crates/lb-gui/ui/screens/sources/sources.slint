@@ -55,7 +55,7 @@ component AdminNote inherits HorizontalLayout {
 
 component SceneView inherits ListRow {
     in property <SceneRow> item;
-    height: Theme.compact ? 48px : 56px;
+    height: Theme.dense(48px, 56px);
     current: item.active;
     accent: Theme.color.primary;
     divider: true;
@@ -106,7 +106,7 @@ component SceneView inherits ListRow {
 component OutputView inherits ListRow {
     in property <OutRow> item;
     in property <bool> live;
-    height: Theme.compact ? 48px : 56px;
+    height: Theme.dense(48px, 56px);
     divider: true;
     opacity: item.enabled ? 1 : 0.6;
     VerticalLayout {
@@ -171,7 +171,7 @@ component OutputView inherits ListRow {
 
 component StreamView inherits ListRow {
     in property <StreamRow> item;
-    height: Theme.compact ? 44px : 52px;
+    height: Theme.dense(44px, 52px);
     divider: true;
     opacity: item.enabled ? 1 : 0.6;
     VerticalLayout {

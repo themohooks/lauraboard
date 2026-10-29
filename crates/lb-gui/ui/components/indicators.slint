@@ -55,7 +55,7 @@ export component StatusChip inherits Rectangle {
 
     property <color> fg: strong ? (tone == StatusTone.live ? Theme.status.on-live : Theme.color.surface) : Tone.on-container(tone);
 
-    height: Theme.compact ? 24px : 28px;
+    height: Theme.dense(24px, 28px);
     border-radius: Theme.radius-s;
     background: strong ? Tone.strong(tone) : Tone.container(tone);
     accessible-role: AccessibleRole.text;

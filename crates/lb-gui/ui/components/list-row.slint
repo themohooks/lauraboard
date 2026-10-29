@@ -48,7 +48,7 @@ export component ListRow inherits Interactive {
 export component ListHeader inherits Rectangle {
     in property <length> padding-x: Theme.sp3;
     in property <length> gap: Theme.sp3;
-    height: Theme.compact ? 28px : 32px;
+    height: Theme.dense(28px, 32px);
     background: Theme.color.surface-container;
     HorizontalLayout {
         padding-left: root.padding-x;

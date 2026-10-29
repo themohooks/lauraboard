@@ -38,7 +38,7 @@ export component TextField inherits VerticalLayout {
     min-width: 96px;
 
     box := Rectangle {
-        height: Theme.control-height + (Theme.compact ? 0 : 8px);
+        height: Theme.control-height + Theme.dense(0px, 8px);
         border-radius: Theme.radius-xs;
         border-width: (root.has-focus || root.invalid) && root.enabled ? 2px : 1px;
         border-color: !root.enabled ? Theme.color.on-surface.with-alpha(Theme.disabled-container)

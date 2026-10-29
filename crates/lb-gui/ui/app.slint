@@ -75,6 +75,12 @@ export { NotifyWindow, Popups, NoticeRow } from "shell/notify-window.slint";
 export { CrashWindow } from "shell/crash-window.slint";
 
 export component AppWindow inherits Window {
+    // eases the interface density between comfortable and compact
+    property <float> density: Theme.compact ? 1 : 0;
+    animate density { duration: Theme.motion-medium; easing: ease-in-out; }
+    changed density => {
+        Theme.density = self.density;
+    }
     // kept for the snapshot tool; mirrors App.section
     in-out property <string> section <=> App.section;
     in-out property <string> gallery-page;
@@ -337,6 +343,7 @@ export component AppWindow inherits Window {
     init => {
         self.narrow = self.width < 1200px;
         App.narrow = self.narrow;
+        Theme.density = self.density;
         keys.focus();
     }
 }

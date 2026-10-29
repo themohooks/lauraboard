@@ -20,7 +20,7 @@ export component EntryRowView inherits ListRow {
     property <bool> drop-above: Pl.drag-from >= 0 && Pl.drag-to == entry.index && Pl.drag-to < Pl.drag-from;
     property <bool> drop-below: Pl.drag-from >= 0 && Pl.drag-to == entry.index && Pl.drag-to > Pl.drag-from;
 
-    height: Theme.compact ? 40px : 48px;
+    height: Theme.dense(40px, 48px);
     selected: Pl.selected == entry.index;
     opacity: entry.disabled ? 0.55 : (Pl.drag-from == entry.index ? 0.6 : 1);
     accessible-label: (entry.index + 1) + ". " + entry.title;

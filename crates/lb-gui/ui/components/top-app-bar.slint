@@ -7,7 +7,7 @@ import { Label } from "label.slint";
 export component TopAppBar inherits Rectangle {
     in property <string> title;
     in property <string> subtitle;
-    height: Theme.compact ? 52px : 60px;
+    height: Theme.dense(52px, 60px);
     background: Theme.color.surface-container-low;
 
     HorizontalLayout {
