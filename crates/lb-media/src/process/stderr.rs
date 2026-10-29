@@ -4,7 +4,7 @@
 //! Stream keys are masked in everything that leaves the reader.
 
 use std::sync::{Arc, Mutex};
-use std::time::Instant;
+use std::time::{Duration, Instant};
 
 use tokio::io::{AsyncBufReadExt, AsyncRead, BufReader};
 use tokio::sync::watch;
@@ -31,10 +31,35 @@ pub fn spawn_reader<R>(
     tokio::spawn(async move {
         let mut lines = BufReader::new(stderr).lines();
         let mut parser = ProgressParser::default();
-        while let Ok(Some(line)) = lines.next_line().await {
+        let started = Instant::now();
+        let mut previous = started;
+        let mut tick = tokio::time::interval_at(tokio::time::Instant::now() + Duration::from_secs(1), Duration::from_secs(1));
+        tick.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
+        loop {
+            let line = tokio::select! {
+                line = lines.next_line() => match line { Ok(Some(line)) => line, _ => break },
+                _ = tick.tick(), if stats.is_some() => {
+                    let now = Instant::now();
+                    let sample = parser.sample(started.elapsed(), now.duration_since(previous));
+                    previous = now;
+                    if let Some(tx) = &stats { let _ = tx.send(sample); }
+                    continue;
+                }
+            };
+            if stats.is_some() && ProgressParser::is_telemetry_line(&line) {
+                parser.feed(&line);
+                continue;
+            }
             if stats.is_some() && ProgressParser::is_progress_line(&line) {
-                if let (Some(s), Some(tx)) = (parser.feed(&line), &stats) {
-                    let _ = tx.send(s);
+                // Rates are published by the clock above, even if progress
+                // stops. A terminal block is still delivered before EOF.
+                if line.trim() == "progress=end" {
+                    parser.feed(&line);
+                    if let Some(tx) = &stats {
+                        let _ = tx.send(parser.sample(started.elapsed(), previous.elapsed()));
+                    }
+                } else {
+                    parser.feed(&line);
                 }
                 continue;
             }
@@ -111,6 +136,23 @@ fn is_output_problem(l: &str) -> bool {
 
 #[cfg(test)]
 mod tests {
+    #[tokio::test]
+    async fn publishes_zero_rates_even_when_ffmpeg_stops_reporting() {
+        use super::*;
+        use tokio::io::AsyncWriteExt;
+        let (mut input, output) = tokio::io::duplex(4096);
+        let (tx, mut rx) = watch::channel(EncoderStats::default());
+        spawn_reader(output, "test".into(), Some(tx), Arc::new(Mutex::new(None)), None);
+        input.write_all(b"LB_PACKET 0 1000\nLB_FRAME 0\nframe=1\nout_time_us=40000\nprogress=continue\n").await.unwrap();
+        tokio::time::timeout(Duration::from_secs(3), rx.changed()).await.unwrap().unwrap();
+        assert!(rx.borrow().bitrate_kbps > 0.0);
+        tokio::time::timeout(Duration::from_secs(3), rx.changed()).await.unwrap().unwrap();
+        let stalled = rx.borrow().clone();
+        assert_eq!(stalled.bitrate_kbps, 0.0);
+        assert_eq!(stalled.fps, 0.0);
+        assert!(stalled.lag_ms >= 900);
+    }
+
     #[test]
     fn benign_patterns() {
         assert!(super::is_benign("[in#0/mpegts] timestamp discontinuity (stream id=257)"));

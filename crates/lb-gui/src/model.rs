@@ -35,6 +35,14 @@ pub struct EncoderStatsView {
     pub speed: f64,
     #[serde(default)]
     pub drop_frames: u64,
+    #[serde(default)]
+    pub sync_drop_frames: u64,
+    #[serde(default)]
+    pub sync_dup_frames: u64,
+    #[serde(default)]
+    pub lag_ms: u64,
+    #[serde(default)]
+    pub packet_telemetry: bool,
 }
 
 #[derive(Debug, Clone, Deserialize, Default)]

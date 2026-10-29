@@ -40,6 +40,30 @@ pub struct Output {
     pub preview: tokio::sync::watch::Sender<PreviewFrame>,
     recordings: Recordings,
     recorder: RecorderSup,
+    /// Frame losses remain visible across automatic encoder restarts.
+    previous_frames: EncoderStats,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn frame_losses_survive_encoder_restarts_but_reset_for_new_broadcast() {
+        let (preview, _) = tokio::sync::watch::channel(None);
+        let mut output = Output::new(preview);
+        output.remember_frames(&EncoderStats { sync_drop_frames: 3, sync_dup_frames: 2, drop_frames: 1, ..Default::default() });
+        output.remember_frames(&EncoderStats { sync_drop_frames: 4, sync_dup_frames: 1, drop_frames: 2, ..Default::default() });
+        let between_encoders = output.stats();
+        assert_eq!(between_encoders.sync_drop_frames, 7);
+        assert_eq!(between_encoders.sync_dup_frames, 3);
+        assert_eq!(between_encoders.drop_frames, 3);
+        assert_eq!(between_encoders.fps, 0.0);
+        assert_eq!(between_encoders.bitrate_kbps, 0.0);
+        output.reset_session_stats();
+        assert_eq!(output.stats().sync_drop_frames, 0);
+        assert_eq!(output.stats().sync_dup_frames, 0);
+    }
 }
 
 impl Output {
@@ -57,6 +81,7 @@ impl Output {
             preview,
             recordings: Recordings::default(),
             recorder: RecorderSup::default(),
+            previous_frames: EncoderStats::default(),
         }
     }
 
@@ -202,6 +227,8 @@ impl Output {
         let enc = self.encoder.as_mut()?;
         let exited = enc.try_exited()?;
         let err = enc.error_text().unwrap_or_else(|| if exited { "encoder exited".into() } else { "encoder failed".into() });
+        let final_stats = enc.stats.borrow().clone();
+        self.remember_frames(&final_stats);
         self.encoder = None;
         *self.stdin.lock().await = None;
         self.on_failure(err.clone());
@@ -250,6 +277,7 @@ impl Output {
         *self.stdin.lock().await = None;
         if let Some(mut e) = self.encoder.take() {
             e.shutdown(Duration::from_secs(5)).await;
+            self.remember_frames(&e.stats.borrow());
         }
         // after the encoder: the end of the feed closes the file
         self.recorder.stop().await;
@@ -258,7 +286,23 @@ impl Output {
     }
 
     pub fn stats(&self) -> EncoderStats {
-        self.encoder.as_ref().map(|e| e.stats.borrow().clone()).unwrap_or_default()
+        let mut stats = self.encoder.as_ref().map(|e| e.stats.borrow().clone()).unwrap_or_default();
+        stats.drop_frames += self.previous_frames.drop_frames;
+        stats.dup_frames += self.previous_frames.dup_frames;
+        stats.sync_drop_frames += self.previous_frames.sync_drop_frames;
+        stats.sync_dup_frames += self.previous_frames.sync_dup_frames;
+        stats
+    }
+
+    pub fn reset_session_stats(&mut self) {
+        self.previous_frames = EncoderStats::default();
+    }
+
+    fn remember_frames(&mut self, stats: &EncoderStats) {
+        self.previous_frames.drop_frames += stats.drop_frames;
+        self.previous_frames.dup_frames += stats.dup_frames;
+        self.previous_frames.sync_drop_frames += stats.sync_drop_frames;
+        self.previous_frames.sync_dup_frames += stats.sync_dup_frames;
     }
 
     pub fn status(&self) -> OutputStatus {

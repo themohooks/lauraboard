@@ -83,6 +83,18 @@ pub fn encoder_args(j: &EncodeJob) -> Vec<String> {
     args.extend(sv(&["-filter_complex", &filter_graph(j)]));
     args.extend(sv(&["-map", "[vout]", "-map", "[aout]"]));
     args.extend(video_codec_args(j));
+    // Main output only: the preview has its own frame rate and must never
+    // contribute bytes or synchronization losses to broadcast statistics.
+    args.extend(sv(&[
+        "-stats_enc_pre:v:0",
+        "pipe:2",
+        "-stats_enc_pre_fmt:v:0",
+        "LB_FRAME {ni}",
+        "-stats_enc_post",
+        "pipe:2",
+        "-stats_enc_post_fmt",
+        "LB_PACKET {sidx} {size}",
+    ]));
     args.extend(sv(&[
         "-c:a",
         &j.encoder.audio_codec,
@@ -268,6 +280,40 @@ fn tee_spec(j: &EncodeJob) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[tokio::test]
+    #[ignore = "requires FFmpeg with libx264"]
+    async fn live_telemetry_counts_filter_drops_and_excludes_preview_packets() {
+        let e = EncoderConfig::default();
+        let v = VideoFormat { width: 160, height: 90, fps: 10.0, ..Default::default() };
+        let a = AudioFormat::default();
+        let mut j = job(&e, &v, &a, &[]);
+        j.gfx = None;
+        j.preview = Some(PreviewOut { width: 80, fps: 5.0 });
+        let mut args = encoder_args(&j);
+        let first = args.iter().position(|s| s == "-fflags").unwrap();
+        let last = args.iter().position(|s| s == "pipe:0").unwrap() + 1;
+        // Deliberately reduce 25 input fps to 10 before encoding. These
+        // losses are invisible to FFmpeg's aggregate drop_frames counter.
+        args.splice(
+            first..last,
+            ["-t", "2", "-f", "lavfi", "-i", "testsrc2=size=160x90:rate=25[out0];sine=sample_rate=48000[out1]"].map(str::to_string),
+        );
+        let output = crate::process::command("ffmpeg").args(args).output().await.unwrap();
+        let log = String::from_utf8_lossy(&output.stderr);
+        assert!(output.status.success(), "{log}");
+        assert!(log.contains("bitrate=N/A"), "tee progress should reproduce the missing bitrate: {log}");
+        let mut p = crate::progress::ProgressParser::default();
+        for line in log.lines() {
+            p.feed(line);
+        }
+        let stats = p.sample(std::time::Duration::from_secs(2), std::time::Duration::from_secs(2));
+        assert!(stats.bitrate_kbps > 0.0);
+        assert_eq!(stats.fps, 10.0, "preview packets must not add 5 fps to broadcast statistics");
+        assert!(stats.sync_drop_frames >= 25, "fps filter losses were not counted: {stats:?}");
+        assert_eq!(stats.sync_dup_frames, 0);
+        assert_eq!(stats.drop_frames, 0, "this case must reproduce hidden filter drops");
+    }
 
     fn job<'a>(e: &'a EncoderConfig, v: &'a VideoFormat, a: &'a AudioFormat, outs: &'a [OutputTarget]) -> EncodeJob<'a> {
         EncodeJob {

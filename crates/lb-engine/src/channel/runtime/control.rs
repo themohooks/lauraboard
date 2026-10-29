@@ -244,6 +244,7 @@ impl Runtime {
         }
         let lock = InstanceLock::acquire(&dir, &self.shared.id).map_err(|e| e.to_string())?;
         self.lock = Some(lock);
+        self.output.reset_session_stats();
         self.ensure_graphics();
         self.running = true;
         self.emit(Level::Info, EventKind::Started);
