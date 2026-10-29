@@ -80,12 +80,19 @@ impl Api {
 
     /// POST returning the raw body (images).
     pub fn post_bytes<B: Serialize>(&self, path: &str, body: &B) -> Result<Vec<u8>, String> {
+        self.post_bytes_header(path, body, "content-type").map(|(bytes, _)| bytes)
+    }
+
+    /// Image preview metadata without a second HTTP request.
+    pub fn post_bytes_header<B: Serialize>(&self, path: &str, body: &B, header: &str) -> Result<(Vec<u8>, Option<String>), String> {
         let json = serde_json::to_string(body).map_err(|e| e.to_string())?;
         let mut r = self.agent.post(self.url(path)).header("content-type", "application/json");
         if let Some(t) = &self.token {
             r = r.header("Authorization", format!("Bearer {t}"));
         }
-        Self::finish(r.send(json.as_str()))
+        let response = r.send(json.as_str());
+        let value = response.as_ref().ok().and_then(|r| r.headers().get(header)).and_then(|v| v.to_str().ok()).map(str::to_string);
+        Self::finish(response).map(|bytes| (bytes, value))
     }
 
     /// PUT of raw bytes (pictures).

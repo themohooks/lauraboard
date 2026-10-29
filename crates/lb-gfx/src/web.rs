@@ -102,6 +102,12 @@ impl WebSource {
         self.frame.lock().unwrap_or_else(|e| e.into_inner()).clone()
     }
 
+    pub fn is_pending(&self) -> bool {
+        self.created.elapsed() < Duration::from_secs(15)
+            && self.frame.lock().unwrap_or_else(|e| e.into_inner()).is_none()
+            && self.error.lock().unwrap_or_else(|e| e.into_inner()).is_none()
+    }
+
     /// The editor can wait for its first frame; live playout never waits.
     pub fn wait(&self, timeout: Duration) -> Result<()> {
         let start = Instant::now();
@@ -345,6 +351,28 @@ mod tests {
             assert_eq!(out, [0.25, -0.25, 0.0, 0.0]);
             assert_eq!(cursor, 12);
         }
+    }
+
+    #[test]
+    fn only_loading_web_sources_request_preview_retries() {
+        let mut source = WebSource {
+            frame: Default::default(),
+            audio: Default::default(),
+            error: Default::default(),
+            used: Arc::new(Mutex::new(Instant::now())),
+            stop: Default::default(),
+            created: Instant::now(),
+            finished: Default::default(),
+        };
+        assert!(source.is_pending());
+        *source.error.lock().unwrap() = Some("failed".into());
+        assert!(!source.is_pending());
+        *source.error.lock().unwrap() = None;
+        *source.frame.lock().unwrap() = Some(Arc::new(Pixmap::new(2, 2).unwrap()));
+        assert!(!source.is_pending());
+        *source.frame.lock().unwrap() = None;
+        source.created = Instant::now() - Duration::from_secs(16);
+        assert!(!source.is_pending(), "an expired source must not trigger an endless request loop");
     }
 
     #[test]

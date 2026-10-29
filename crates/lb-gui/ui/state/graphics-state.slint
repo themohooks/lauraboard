@@ -136,6 +136,17 @@ export global Gfx {
     in property <[float]> vguides;
     in property <[float]> hguides;
     in property <image> background;
+    in property <[image]> edit-planes;
+    in property <bool> edit-layered;
+    // Snapshot geometry and current geometry, in source-frame pixels.
+    in property <float> edit-base-x;
+    in property <float> edit-base-y;
+    in property <float> edit-base-w: 1;
+    in property <float> edit-base-h: 1;
+    in property <float> edit-x;
+    in property <float> edit-y;
+    in property <float> edit-w: 1;
+    in property <float> edit-h: 1;
     in property <bool> has-background;
     // 0 exact render, 1 live air, 2 none
     in-out property <int> bg-mode;

@@ -87,6 +87,13 @@ impl ImageCache {
         self.originals.clear();
         self.scaled.clear();
     }
+
+    pub fn invalidate(&mut self, path: &str, original: bool) {
+        if original {
+            self.originals.remove(path);
+        }
+        self.scaled.retain(|(p, _, _), _| p != path);
+    }
 }
 
 fn load(path: &Path) -> Option<Pixmap> {

@@ -63,6 +63,27 @@ impl SpriteFactory {
         self.images.clear();
     }
 
+    /// Invalidate changed elements only. Editing a caption must not reload
+    /// unrelated logos, backgrounds or pre-rendered plates.
+    pub fn update_elements(&mut self, old: &[Element], new: &[Element]) {
+        for before in old {
+            let after = new.iter().find(|e| e.id == before.id);
+            let unchanged = after.is_some_and(|e| {
+                e.kind == before.kind && e.placement.width == before.placement.width && e.placement.height == before.placement.height
+            });
+            if unchanged {
+                continue;
+            }
+            self.cache.retain(|key, _| {
+                !["text", "rect", "plate", "progress"].iter().any(|kind| key.starts_with(&format!("{kind}|{}|", before.id)))
+            });
+            if let ElementKind::Image { path } = &before.kind {
+                let same_path = after.is_some_and(|e| matches!(&e.kind, ElementKind::Image { path: next } if next == path));
+                self.images.invalidate(path, !same_path);
+            }
+        }
+    }
+
     /// Sprite for non-ticker, non-group elements.
     pub fn sprite(&mut self, el: &Element, ctx: &FrameContext) -> Option<Sprite> {
         match &el.kind {

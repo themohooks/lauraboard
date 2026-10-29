@@ -68,10 +68,15 @@ impl Compositor {
         }
     }
 
-    /// Replace the graphics configuration (clears caches).
+    /// Replace the graphics configuration, retaining sprites for placement-only edits.
     pub fn set_config(&mut self, cfg: GraphicsConfig) {
+        if *self.cfg == cfg {
+            return;
+        }
+        // Position, layer, opacity and animation are applied when drawing,
+        // not baked into sprites. Dragging must not reload images/fonts.
+        self.sprites.update_elements(&self.cfg.elements, &cfg.elements);
         self.cfg = Arc::new(cfg);
-        self.sprites.clear();
     }
 
     /// The last rendered frame (straight-alpha RGBA).
@@ -93,6 +98,10 @@ impl Compositor {
 
     pub fn audio_sources(&self) -> Vec<Arc<crate::web::WebSource>> {
         self.sprites.images.audio_sources()
+    }
+
+    pub fn pending_web(&self) -> bool {
+        self.sprites.images.audio_sources().iter().any(|s| s.is_pending())
     }
 
     pub fn width(&self) -> u32 {
@@ -243,6 +252,30 @@ impl Compositor {
         let paint = PixmapPaint { quality: FilterQuality::Bilinear, ..Default::default() };
         small.draw_pixmap(0, 0, self.canvas.as_ref(), &paint, Transform::from_scale(scale, scale), None);
         small.encode_png().ok()
+    }
+
+    /// One PNG atlas: below selection, selection, above selection. The editor
+    /// transforms the middle plane locally while preserving occlusion.
+    /// Nested children fall back to a normal exact render.
+    pub fn png_edit_layers(&mut self, ctx: &FrameContext, selected: &str, width: u32) -> Option<Vec<u8>> {
+        let index = ctx.active.iter().position(|a| a.element == selected)?;
+        let width = width.clamp(1, self.width());
+        let scale = width as f32 / self.width() as f32;
+        let height = (self.height() as f32 * scale).round().max(1.0) as u32;
+        let mut atlas = Pixmap::new(width, height * 3)?;
+        self.sprites.images.begin_frame();
+        for (plane, active) in [&ctx.active[..index], &ctx.active[index..index + 1], &ctx.active[index + 1..]].iter().enumerate() {
+            self.render_premultiplied(&FrameContext { active, ..*ctx });
+            atlas.draw_pixmap(
+                0,
+                0,
+                self.canvas.as_ref(),
+                &PixmapPaint { quality: FilterQuality::Bilinear, ..Default::default() },
+                Transform::from_translate(0.0, (height * plane as u32) as f32).pre_scale(scale, scale),
+                None,
+            );
+        }
+        atlas.encode_png().ok()
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -421,6 +454,54 @@ mod tests {
         let p = small.get_pixel(2, 2).0;
         assert!(p[0].abs_diff(0xC0) <= 1 && p[1].abs_diff(0x18) <= 1 && p[3] == 0x80, "{p:?}");
         assert_eq!(small.get_pixel(8, 8).0, [0, 0, 0, 0]);
+    }
+
+    #[test]
+    fn edit_atlas_keeps_lower_selected_upper_planes_separate_after_scaling() {
+        let cfg = GraphicsConfig {
+            elements: vec![
+                rect("low", "#FF0000", Anchor::TopLeft),
+                rect("selected", "#00FF00", Anchor::TopLeft),
+                rect("high", "#0000FF", Anchor::TopLeft),
+            ],
+            ..Default::default()
+        };
+        let mut c = Compositor::new(40, 40, cfg, Path::new("."));
+        let vars = HashMap::new();
+        let active = [active("low"), active("selected"), active("high")];
+        let ctx = FrameContext { now: now(), active: &active, vars: &vars, item_remaining_ms: 0, next_program_ms: None, program: None };
+        let atlas = image::load_from_memory(&c.png_edit_layers(&ctx, "selected", 20).unwrap()).unwrap().to_rgba8();
+        assert_eq!(atlas.dimensions(), (20, 60));
+        assert_eq!(atlas.get_pixel(2, 2).0, [255, 0, 0, 255]);
+        assert_eq!(atlas.get_pixel(2, 22).0, [0, 255, 0, 255]);
+        assert_eq!(atlas.get_pixel(2, 42).0, [0, 0, 255, 255]);
+        for y in [15, 35, 55] {
+            assert_eq!(atlas.get_pixel(15, y).0, [0, 0, 0, 0]);
+        }
+        assert!(c.png_edit_layers(&ctx, "unknown", 20).is_none());
+    }
+
+    #[test]
+    fn moving_retains_sprite_cache_but_changing_style_invalidates_it() {
+        let cfg = GraphicsConfig { elements: vec![rect("a", "#FF0000", Anchor::TopLeft)], ..Default::default() };
+        let mut c = Compositor::new(50, 50, cfg.clone(), Path::new("."));
+        let vars = HashMap::new();
+        let active = [active("a")];
+        let ctx = FrameContext { now: now(), active: &active, vars: &vars, item_remaining_ms: 0, next_program_ms: None, program: None };
+        let sprite = c.sprites.sprite(&cfg.elements[0], &ctx).unwrap();
+        let mut moved = cfg;
+        moved.elements[0].placement.x = 20.0;
+        c.set_config(moved.clone());
+        let reused = c.sprites.sprite(&moved.elements[0], &ctx).unwrap();
+        assert!(Arc::ptr_eq(&sprite.pixmap, &reused.pixmap));
+        if let ElementKind::Rect { color, .. } = &mut moved.elements[0].kind {
+            *color = "#00FF00".into();
+        }
+        c.set_config(moved.clone());
+        let changed = c.sprites.sprite(&moved.elements[0], &ctx).unwrap();
+        assert!(!Arc::ptr_eq(&sprite.pixmap, &changed.pixmap));
+        c.render(&ctx);
+        assert_eq!(px(&c, 22, 2), [0, 255, 0, 255]);
     }
 
     #[test]
