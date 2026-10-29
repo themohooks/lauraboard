@@ -91,6 +91,10 @@ impl Compositor {
         self.sprites.images.mix_audio(out);
     }
 
+    pub fn audio_sources(&self) -> Vec<Arc<crate::web::WebSource>> {
+        self.sprites.images.audio_sources()
+    }
+
     pub fn width(&self) -> u32 {
         self.canvas.width()
     }
