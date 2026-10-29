@@ -181,6 +181,18 @@ export component ChannelImportDialog inherits Dialog {
             }
         }
     }
+    PathRow {
+        label: "Папка для канала";
+        placeholder: "По умолчанию — папка channels проекта";
+        path <=> Chan.i-directory;
+        browse => { Chan.browse-directory(); }
+    }
+    Label {
+        text: "В выбранной папке будет создана подпапка «" + Chan.e-id + "». Пустое поле — расположение по умолчанию.";
+        wrap: word-wrap;
+        type-style: Theme.body-small;
+        color: Theme.color.on-surface-variant;
+    }
     if Chan.i-valid: HorizontalLayout {
         spacing: Theme.sp3;
         NameIdFields {

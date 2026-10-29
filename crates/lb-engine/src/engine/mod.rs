@@ -65,7 +65,11 @@ impl Engine {
     /// given, without its outputs (they may hold stream keys of another
     /// channel). New channels do not start airing on their own.
     pub fn create_channel(&self, id: &str, name: &str, template: Option<&str>) -> Result<ChannelHandle> {
-        let dir = self.check_new_id(id)?;
+        self.create_channel_at(id, name, template, None)
+    }
+
+    pub fn create_channel_at(&self, id: &str, name: &str, template: Option<&str>, directory: Option<&Path>) -> Result<ChannelHandle> {
+        let dir = self.new_channel_dir(id, directory)?;
         let mut config = match template {
             Some(t) => self.channel(t)?.read(|d| d.config.clone()),
             None => ChannelConfig::new(id),
@@ -78,6 +82,7 @@ impl Engine {
         config.local_hls.enabled = false;
         let data = ChannelData::new(dir, config);
         data.save()?;
+        self.save_channel_location(id, &data.dir)?;
         self.edit_channel_list(|l| {
             if !l.iter().any(|c| c == id) {
                 l.push(id.to_string());
@@ -86,6 +91,30 @@ impl Engine {
         let handle = self.register(data);
         tracing::info!(channel = %id, "channel created");
         Ok(handle)
+    }
+
+    /// The selected directory is a parent; each channel gets its own folder.
+    pub(crate) fn new_channel_dir(&self, id: &str, directory: Option<&Path>) -> Result<std::path::PathBuf> {
+        let default = self.check_new_id(id)?;
+        let Some(parent) = directory else { return Ok(default) };
+        if !parent.is_absolute() || !parent.is_dir() {
+            return Err(EngineError::InvalidConfig("channel directory must be an existing absolute directory".into()));
+        }
+        let target = parent.join(id);
+        if target.exists() {
+            return Err(EngineError::InvalidConfig(format!("{} already exists", target.display())));
+        }
+        Ok(target)
+    }
+
+    pub(crate) fn save_channel_location(&self, id: &str, dir: &Path) -> Result<()> {
+        let entry = self.project_root.join(CHANNELS_DIR).join(id);
+        let same = entry == dir || std::fs::canonicalize(&entry).ok().zip(std::fs::canonicalize(dir).ok()).is_some_and(|(a, b)| a == b);
+        if !same {
+            std::fs::create_dir_all(&entry)?;
+            std::fs::write(entry.join(lb_core::project::LOCATION_FILE), dir.to_string_lossy().as_bytes())?;
+        }
+        Ok(())
     }
 
     /// A valid, unused channel id; returns its future directory.

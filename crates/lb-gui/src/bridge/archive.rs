@@ -18,6 +18,16 @@ pub fn connect(ui: &AppWindow) {
     g.on_browse_import(|| with(browse_import));
     g.on_inspect_import(|| with(inspect));
     g.on_start_import(|| with(start_import));
+    g.on_browse_directory(|| {
+        with(|c| {
+            if c.server_is_local()
+                && let Some(path) = rfd::FileDialog::new().set_title("Папка для импортированного канала").pick_folder()
+                && let Some(ui) = c.window()
+            {
+                ui.global::<Chan>().set_i_directory(path.to_string_lossy().as_ref().into());
+            }
+        })
+    });
 }
 
 fn default_dir() -> std::path::PathBuf {
@@ -88,6 +98,7 @@ fn open_import(c: &mut Ctx) {
     let Some(ui) = c.window() else { return };
     let g = ui.global::<Chan>();
     g.set_i_path(SharedString::new());
+    g.set_i_directory(SharedString::new());
     g.set_i_info(SharedString::new());
     g.set_i_valid(false);
     g.set_e_id(SharedString::new());
@@ -191,7 +202,8 @@ fn start_import(c: &mut Ctx) {
     if !g.get_e_error().is_empty() {
         return;
     }
-    let body = json!({ "path": g.get_i_path().trim(), "id": id, "name": g.get_e_name().trim() });
+    let body = json!({ "path": g.get_i_path().trim(), "id": id, "name": g.get_e_name().trim(),
+        "directory": if g.get_i_directory().trim().is_empty() { None } else { Some(g.get_i_directory().trim().to_string()) } });
     g.set_form(SharedString::new());
     c.worker.spawn(move |api| {
         let r = api.post("/archives/import", &body)?;

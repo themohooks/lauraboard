@@ -30,6 +30,16 @@ use crate::schedule::ScheduleSet;
 
 pub const APP_FILE: &str = "lauraboard.toml";
 pub const CHANNELS_DIR: &str = "channels";
+/// A project entry pointing at a channel stored on another disk.
+pub const LOCATION_FILE: &str = "location.txt";
+
+pub fn channel_location(entry: &Path) -> PathBuf {
+    fs::read_to_string(entry.join(LOCATION_FILE))
+        .ok()
+        .map(|p| PathBuf::from(p.trim()))
+        .filter(|p| p.is_absolute())
+        .unwrap_or_else(|| entry.to_path_buf())
+}
 
 /// Everything a channel needs for planning and playout.
 #[derive(Debug, Clone)]
@@ -159,7 +169,9 @@ impl Project {
                 .map(|rd| {
                     rd.flatten()
                         // `.import-…`: an unfinished import, not a channel
-                        .filter(|e| !e.file_name().to_string_lossy().starts_with('.') && e.path().join("channel.toml").exists())
+                        .filter(|e| {
+                            !e.file_name().to_string_lossy().starts_with('.') && channel_location(&e.path()).join("channel.toml").exists()
+                        })
                         .map(|e| e.file_name().to_string_lossy().into_owned())
                         .collect()
                 })
@@ -171,7 +183,7 @@ impl Project {
         };
         let mut channels = Vec::new();
         for id in ids {
-            channels.push(ChannelData::load(&ch_root.join(&id))?);
+            channels.push(ChannelData::load(&channel_location(&ch_root.join(&id)))?);
         }
         Ok(Project { root: root.to_path_buf(), app, channels })
     }

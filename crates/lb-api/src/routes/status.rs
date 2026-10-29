@@ -45,12 +45,14 @@ pub struct NewChannel {
     /// Copy settings (video, encoder, …; not outputs) from this channel.
     #[serde(default)]
     pub copy_from: Option<String>,
+    #[serde(default)]
+    pub directory: Option<std::path::PathBuf>,
 }
 
 /// Create a channel while running (admin).
 pub async fn create_channel(State(s): State<AppState>, c: Caller, Json(v): Json<NewChannel>) -> ApiResult<Json<ChannelStatus>> {
     c.require(Role::Admin)?;
-    let h = s.engine.create_channel(v.id.trim(), &v.name, v.copy_from.as_deref().filter(|x| !x.is_empty()))?;
+    let h = s.engine.create_channel_at(v.id.trim(), &v.name, v.copy_from.as_deref().filter(|x| !x.is_empty()), v.directory.as_deref())?;
     // every channel comes with ready-made backgrounds (copied in the background)
     lb_engine::library::backgrounds::spawn(&s.engine, h.clone());
     Ok(Json(h.status()))

@@ -9,7 +9,7 @@ use std::sync::Arc;
 
 use serde_json::{Value, json};
 
-use lb_core::project::{CHANNELS_DIR, ChannelData};
+use lb_core::project::ChannelData;
 
 use super::{CHANNEL_DIR, read_manifest};
 use crate::engine::Engine;
@@ -30,7 +30,8 @@ fn unpack(zip_path: &Path, dest: &Path, ctl: &JobCtl) -> Result<super::Manifest,
         let Some(rel) = entry.enclosed_name() else { continue };
         let rel = rel.to_string_lossy().replace('\\', "/");
         let Some(inner) = rel.strip_prefix(CHANNEL_DIR) else { continue };
-        if inner.is_empty() || entry.is_dir() {
+        // Location entries belong to this project, never to an imported archive.
+        if inner.is_empty() || inner.eq_ignore_ascii_case(lb_core::project::LOCATION_FILE) || entry.is_dir() {
             continue;
         }
         let target: PathBuf = dest.join(inner);
@@ -61,10 +62,21 @@ impl Engine {
         name: Option<String>,
         ctl: JobCtl,
     ) -> Result<Value, String> {
+        self.import_channel_at(zip_path, id, name, None, ctl).await
+    }
+
+    pub async fn import_channel_at(
+        self: Arc<Self>,
+        zip_path: PathBuf,
+        id: Option<String>,
+        name: Option<String>,
+        directory: Option<PathBuf>,
+        ctl: JobCtl,
+    ) -> Result<Value, String> {
         let manifest = super::inspect(&zip_path)?;
         let id = id.map(|s| s.trim().to_string()).filter(|s| !s.is_empty()).unwrap_or_else(|| manifest.channel.clone());
-        let final_dir = self.check_new_id(&id).map_err(|e| e.to_string())?;
-        let staging = self.project_root.join(CHANNELS_DIR).join(format!(".import-{id}-{}", uuid::Uuid::new_v4().simple()));
+        let final_dir = self.new_channel_dir(&id, directory.as_deref()).map_err(|e| e.to_string())?;
+        let staging = final_dir.parent().unwrap().join(format!(".import-{id}-{}", uuid::Uuid::new_v4().simple()));
         let (zp, st, c2) = (zip_path.clone(), staging.clone(), ctl.clone());
         let unpacked = tokio::task::spawn_blocking(move || unpack(&zp, &st, &c2)).await.map_err(|e| e.to_string())?;
         let finish = || -> Result<ChannelData, String> {
@@ -93,6 +105,7 @@ impl Engine {
             }
         };
         let items = data.library.items.len();
+        self.save_channel_location(&id, &final_dir).map_err(|e| e.to_string())?;
         self.edit_channel_list(|l| l.push(id.clone())).map_err(|e| e.to_string())?;
         self.register(data);
         tracing::info!(channel = %id, archive = %zip_path.display(), "channel imported");

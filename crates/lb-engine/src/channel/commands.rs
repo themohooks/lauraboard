@@ -16,6 +16,8 @@ pub enum Command {
     Skip,
     /// Play the current item again from the beginning.
     Restart,
+    /// Restart the encoder, resuming the current item at its current position.
+    RestartEncoder,
     /// Jump inside the current item: to `to_ms` from its start, or by
     /// `by_ms` (negative: back) from the current position.
     Seek {

@@ -56,6 +56,8 @@ export global Chan {
 
     // import: archive, what it holds, new id / name
     in-out property <string> i-path;
+    in-out property <string> i-directory;
+    callback browse-directory();
     in property <string> i-info;
     in property <bool> i-valid;
     callback open-import();

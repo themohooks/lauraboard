@@ -73,6 +73,15 @@ pub struct EditSpec {
     /// End of the kept part; `None` = to the end.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub end_ms: Option<Ms>,
+    /// Independent source-time audio window. None follows the video trim.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub audio_start_ms: Option<Ms>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub audio_end_ms: Option<Ms>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub audio_fade_in_ms: Option<Ms>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub audio_fade_out_ms: Option<Ms>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub regions: Vec<Region>,
     /// Edges cut off, percent of the source (applied after the regions).

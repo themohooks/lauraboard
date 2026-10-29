@@ -8,6 +8,13 @@ import { Ved } from "../../state/editor-state.slint";
 
 export component EditorTimeline inherits VerticalLayout {
     spacing: Theme.sp1;
+    property <float> trim-start: Ved.audio-track ? Ved.audio-start-ms : Ved.start-ms;
+    property <float> trim-end: Ved.audio-track ? Ved.audio-end-ms : Ved.end-ms;
+    HorizontalLayout {
+        spacing: Theme.sp2;
+        Button { text: "V1 · Видео"; variant: Ved.audio-track ? ButtonVariant.text : ButtonVariant.tonal; clicked => { Ved.audio-track = false; } }
+        Button { text: "A1 · Звук"; enabled: Ved.has-audio; variant: Ved.audio-track ? ButtonVariant.tonal : ButtonVariant.text; clicked => { Ved.audio-track = true; } }
+    }
     function go(ms: float) {
         Ved.position-ms = clamp(ms, 0, Ved.duration-ms);
         Ved.seek(Ved.position-ms);
@@ -61,8 +68,11 @@ export component EditorTimeline inherits VerticalLayout {
                 text: Ved.clock(board.span * i / board.ticks);
                 mono: true; type-style: Theme.label-small; color: #bfc5d1;
             }
-            Rectangle { x: 0px; y: 30px; width: lanes.width * Ved.start-ms / board.span; height: 156px; background: #11141dcc; }
-            Rectangle { x: lanes.width * Ved.end-ms / board.span; y: 30px; width: lanes.width - self.x; height: 156px; background: #11141dcc; }
+            for track in [0, 1]: Rectangle {
+                y: track == 0 ? 30px : 110px; height: 76px;
+                Rectangle { width: lanes.width * (track == 0 ? Ved.start-ms : Ved.audio-start-ms) / board.span; height: 76px; background: #11141dcc; }
+                Rectangle { x: lanes.width * (track == 0 ? Ved.end-ms : Ved.audio-end-ms) / board.span; width: lanes.width - self.x; height: 76px; background: #11141dcc; }
+            }
             TouchArea {
                 mouse-cursor: crosshair;
                 pointer-event(e) => { if e.kind == PointerEventKind.down { keys.focus(); root.go(self.mouse-x / self.width * board.span); } }
@@ -73,25 +83,36 @@ export component EditorTimeline inherits VerticalLayout {
                 y: 0px; width: 2px; height: 186px; background: #f5f7ff;
                 Rectangle { x: -4px; y: 0px; width: 10px; height: 12px; background: #f5f7ff; border-radius: 2px; }
             }
-            for edge in [0, 1]: Rectangle {
-                x: clamp(lanes.width * (edge == 0 ? Ved.start-ms : Ved.end-ms) / board.span - 5px, 0px, lanes.width - 10px);
-                y: 30px; width: 10px; height: 156px; background: #f1cb5a;
-                Rectangle { x: 4px; y: 65px; width: 2px; height: 24px; background: #54451a; }
+            for handle in [0, 1, 2, 3]: Rectangle {
+                property <bool> audio: handle >= 2;
+                property <bool> first: mod(handle, 2) == 0;
+                property <float> start: audio ? Ved.audio-start-ms : Ved.start-ms;
+                property <float> end: audio ? Ved.audio-end-ms : Ved.end-ms;
+                x: clamp(lanes.width * (first ? start : end) / board.span - 5px, 0px, lanes.width - 10px);
+                y: audio ? 110px : 30px; width: 10px; height: 76px; background: audio ? #ff9eac : #f1cb5a;
+                visible: !audio || Ved.has-audio;
+                Rectangle { x: 4px; y: 26px; width: 2px; height: 24px; background: #54451a; }
                 TouchArea {
                     property <float> initial;
                     property <length> anchor;
                     mouse-cursor: ew-resize;
                     pointer-event(e) => {
                         if e.kind == PointerEventKind.down {
-                            self.initial = edge == 0 ? Ved.start-ms : Ved.end-ms;
+                            Ved.audio-track = parent.audio;
+                            self.initial = parent.first ? parent.start : parent.end;
                             self.anchor = self.mouse-x + parent.x;
                         }
                     }
                     moved => {
                         if self.pressed {
                             let ms = self.initial + (self.mouse-x + parent.x - self.anchor) / lanes.width * board.span;
-                            if edge == 0 { Ved.start-ms = clamp(ms, 0, max(0, Ved.end-ms - min(500, Ved.duration-ms))); }
-                            else { Ved.end-ms = clamp(ms, min(Ved.duration-ms, Ved.start-ms + min(500, Ved.duration-ms)), Ved.duration-ms); }
+                            if parent.first {
+                                let value = clamp(ms, 0, max(0, parent.end - min(500, Ved.duration-ms)));
+                                if parent.audio { Ved.audio-start-ms = value; } else { Ved.start-ms = value; }
+                            } else {
+                                let value = clamp(ms, min(Ved.duration-ms, parent.start + min(500, Ved.duration-ms)), Ved.duration-ms);
+                                if parent.audio { Ved.audio-end-ms = value; } else { Ved.end-ms = value; }
+                            }
                         }
                     }
                 }
@@ -110,12 +131,13 @@ export component EditorTimeline inherits VerticalLayout {
                     variant: ButtonVariant.text;
                     tooltip: "Отрезать всё до текущего кадра";
                     clicked => {
-                        Ved.start-ms = max(0, min(Ved.position-ms, Ved.end-ms - min(500, Ved.duration-ms)));
+                        let value = max(0, min(Ved.position-ms, root.trim-end - min(500, Ved.duration-ms)));
+                        if Ved.audio-track { Ved.audio-start-ms = value; } else { Ved.start-ms = value; }
                     }
                 }
             }
             Label {
-                text: Ved.clock(Ved.start-ms);
+                text: Ved.clock(root.trim-start);
                 mono: true;
                 vertical-alignment: center;
             }
@@ -145,7 +167,7 @@ export component EditorTimeline inherits VerticalLayout {
         HorizontalLayout {
             spacing: Theme.sp1;
             Label {
-                text: Ved.clock(Ved.end-ms);
+                text: Ved.clock(root.trim-end);
                 mono: true;
                 vertical-alignment: center;
             }
@@ -156,14 +178,15 @@ export component EditorTimeline inherits VerticalLayout {
                     variant: ButtonVariant.text;
                     tooltip: "Отрезать всё после текущего кадра";
                     clicked => {
-                        Ved.end-ms = min(Ved.duration-ms, max(Ved.position-ms, Ved.start-ms + min(500, Ved.duration-ms)));
+                        let value = min(Ved.duration-ms, max(Ved.position-ms, root.trim-start + min(500, Ved.duration-ms)));
+                        if Ved.audio-track { Ved.audio-end-ms = value; } else { Ved.end-ms = value; }
                     }
                 }
             }
         }
     }
     Label {
-        text: "Останется " + Ved.clock(Ved.end-ms - Ved.start-ms) + (Ved.start-ms > 0 || Ved.end-ms < Ved.duration-ms ? " из " + Ved.clock(Ved.duration-ms) : "");
+        text: (Ved.audio-track ? "Звук: " : "Видео: ") + Ved.clock(root.trim-end - root.trim-start) + " · длительность ролика " + Ved.clock(Ved.end-ms - Ved.start-ms);
         type-style: Theme.body-small;
         color: Theme.color.on-surface-variant;
         horizontal-alignment: center;

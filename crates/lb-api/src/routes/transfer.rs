@@ -63,6 +63,8 @@ pub struct ImportBody {
     pub id: Option<String>,
     #[serde(default)]
     pub name: Option<String>,
+    #[serde(default)]
+    pub directory: Option<PathBuf>,
 }
 
 /// Start importing a channel from an archive (admin).
@@ -80,6 +82,9 @@ pub async fn import(State(s): State<AppState>, c: Caller, Json(b): Json<ImportBo
     }
     let engine = s.engine.clone();
     let title = format!("Импорт канала «{}»", if manifest.name.is_empty() { &manifest.channel } else { &manifest.name });
-    let job = s.engine.jobs.spawn("import_channel", &title, Some(&target), move |ctl| engine.import_channel(path, b.id, b.name, ctl));
+    let job = s
+        .engine
+        .jobs
+        .spawn("import_channel", &title, Some(&target), move |ctl| engine.import_channel_at(path, b.id, b.name, b.directory, ctl));
     Ok(Json(json!({ "job": job, "channel": target })))
 }

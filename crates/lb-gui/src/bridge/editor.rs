@@ -96,6 +96,12 @@ fn fill(c: &mut Ctx, m: &MediaItem) {
     let end = m.out_point.map(|d| d.ms()).filter(|e| *e > start).unwrap_or(dur).min(dur);
     g.set_start_ms(start as f32);
     g.set_end_ms(end as f32);
+    g.set_audio_start_ms(start as f32);
+    g.set_audio_end_ms(end as f32);
+    g.set_has_audio(m.probe.has_audio);
+    g.set_audio_track(false);
+    g.set_audio_fade_in(0.0);
+    g.set_audio_fade_out(0.0);
     g.set_position_ms((start + (end - start) / 10) as f32);
     g.set_crop_left(0.0);
     g.set_crop_top(0.0);
@@ -288,6 +294,10 @@ fn spec(c: &Ctx) -> Option<EditSpec> {
     Some(EditSpec {
         start_ms: ms(g.get_start_ms()),
         end_ms: (end < c.ed.duration).then_some(end),
+        audio_start_ms: (ms(g.get_audio_start_ms()) != ms(g.get_start_ms())).then(|| ms(g.get_audio_start_ms())),
+        audio_end_ms: (ms(g.get_audio_end_ms()) != end).then(|| ms(g.get_audio_end_ms())),
+        audio_fade_in_ms: (g.get_audio_fade_in() != g.get_fade_in()).then(|| ms(g.get_audio_fade_in() * 1000.0)),
+        audio_fade_out_ms: (g.get_audio_fade_out() != g.get_fade_out()).then(|| ms(g.get_audio_fade_out() * 1000.0)),
         regions: c.ed.regions.clone(),
         crop: Crop { left: g.get_crop_left(), top: g.get_crop_top(), right: g.get_crop_right(), bottom: g.get_crop_bottom() },
         mute: g.get_mute(),
@@ -321,10 +331,7 @@ fn frame(c: &mut Ctx) {
             if c.ed.media.as_deref() != Some(media.as_str()) {
                 return;
             }
-            if std::mem::take(&mut c.ed.load_again) {
-                frame(c);
-                return;
-            }
+            let again = std::mem::take(&mut c.ed.load_again);
             let Some(ui) = c.window() else { return };
             let g = ui.global::<Ved>();
             g.set_loading_frame(false);
@@ -339,6 +346,9 @@ fn frame(c: &mut Ctx) {
                     let e = err.map(|e| crate::ru::server(&e)).unwrap_or_else(|| "пустой ответ".into());
                     g.set_frame_error(format!("Кадр недоступен: {e}").into());
                 }
+            }
+            if again {
+                frame(c);
             }
         })))
     });

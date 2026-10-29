@@ -17,6 +17,7 @@ import { Rules } from "state/rules-state.slint";
 import { Scenes } from "state/scenes-state.slint";
 import { AppBar } from "shell/app-bar.slint";
 import { NewChannelDialog } from "shell/new-channel-dialog.slint";
+import { EncoderErrorDialog } from "shell/encoder-error-dialog.slint";
 import { ChannelsDialog, ChannelFormDialog } from "shell/channels-dialog.slint";
 import { ChannelExportDialog, ChannelImportDialog } from "shell/channel-archive-dialog.slint";
 import { JobsDialog } from "shell/jobs-dialog.slint";
@@ -290,6 +291,8 @@ export component AppWindow inherits Window {
             keys.focus();
         }
     }
+
+    EncoderErrorDialog { }
 
     TooltipLayer {
         bound-width: root.width;

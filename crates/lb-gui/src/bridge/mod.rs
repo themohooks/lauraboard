@@ -330,7 +330,13 @@ impl Ctx {
             }
             Msg::Status(s) => {
                 let schedule_changed = self.model.status.force_schedule != s.force_schedule;
+                let old_error = self.model.status.last_error.as_ref().or(self.model.status.output.last_error.as_ref());
+                let new_error = s.last_error.as_ref().or(s.output.last_error.as_ref());
+                let failure = new_error.filter(|e| Some(*e) != old_error).cloned();
                 self.model.status = *s;
+                if let Some(error) = failure {
+                    shell::encoder_failed(self, &self.model.ch(), &error);
+                }
                 shell::status_changed(self);
                 air::status_changed(self);
                 sources::refresh(self);
@@ -736,6 +742,20 @@ mod tests {
             assert!(c.window().unwrap().global::<Air>().get_graphics().row_data(0).unwrap().on);
             c.apply(Msg::Status(Box::default()));
             assert!(!c.window().unwrap().global::<Air>().get_graphics().row_data(0).unwrap().on);
+            let failed = crate::model::StatusView {
+                state: "reconnecting".into(),
+                last_error: Some("encoder startup failed".into()),
+                ..Default::default()
+            };
+            c.apply(Msg::Status(Box::new(failed.clone())));
+            let ui = c.window().unwrap();
+            let app = ui.global::<App>();
+            assert!(app.get_encoder_error_open());
+            assert_eq!(app.get_encoder_error_channel(), "new");
+            assert_eq!(app.get_encoder_error_message(), "encoder startup failed");
+            app.set_encoder_error_open(false);
+            c.apply(Msg::Status(Box::new(failed)));
+            assert!(!c.window().unwrap().global::<App>().get_encoder_error_open(), "Repeated polling must not reopen a dismissed error");
         });
         stop();
     }

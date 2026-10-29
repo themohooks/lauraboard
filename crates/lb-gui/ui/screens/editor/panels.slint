@@ -273,9 +273,22 @@ export component PicturePanel inherits VerticalLayout {
         value-text: round(self.value * 10) / 10 + " %";
     }
 
-    SectionTitle {
-        text: "Звук и переходы";
+    SectionTitle { text: "Переходы видео"; }
+    LabeledSlider {
+        text: "Плавное появление"; maximum: 5; step: 0.25;
+        value <=> Ved.fade-in;
+        value-text: round(self.value * 100) / 100 + " с";
     }
+    LabeledSlider {
+        text: "Плавное затухание"; maximum: 5; step: 0.25;
+        value <=> Ved.fade-out;
+        value-text: round(self.value * 100) / 100 + " с";
+    }
+}
+
+export component AudioPanel inherits VerticalLayout {
+    spacing: Theme.sp2;
+    SectionTitle { text: "Звуковая дорожка A1"; }
     Switch {
         text: "Убрать звук";
         checked <=> Ved.mute;
@@ -292,14 +305,14 @@ export component PicturePanel inherits VerticalLayout {
         text: "Плавное появление";
         maximum: 5;
         step: 0.25;
-        value <=> Ved.fade-in;
+        value <=> Ved.audio-fade-in;
         value-text: self.value == 0 ? "нет" : round(self.value * 100) / 100 + " с";
     }
     LabeledSlider {
         text: "Плавное затухание";
         maximum: 5;
         step: 0.25;
-        value <=> Ved.fade-out;
+        value <=> Ved.audio-fade-out;
         value-text: self.value == 0 ? "нет" : round(self.value * 100) / 100 + " с";
     }
 }

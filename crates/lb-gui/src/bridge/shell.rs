@@ -42,6 +42,25 @@ pub fn connect(ui: &AppWindow) {
     });
     g.on_validate_new_channel(|id| with(move |c| validate_new_channel(c, id.as_str())));
     g.on_create_channel(|| with(create_channel));
+    g.on_retry_encoder(|| {
+        with(|c| {
+            let Some(ui) = c.window() else { return };
+            let g = ui.global::<App>();
+            let ch = g.get_encoder_error_channel().to_string();
+            g.set_encoder_error_open(false);
+            encoder_command(c, ch, "restart_encoder");
+        })
+    });
+    g.on_browse_channel_directory(|| {
+        with(|c| {
+            if c.server_is_local()
+                && let Some(path) = rfd::FileDialog::new().set_title("Папка для нового канала").pick_folder()
+                && let Some(ui) = c.window()
+            {
+                ui.global::<App>().set_new_channel_directory(path.to_string_lossy().as_ref().into());
+            }
+        })
+    });
     g.on_refresh(|| {
         with(|c| {
             c.load_channels();
@@ -87,6 +106,56 @@ pub fn connect(ui: &AppWindow) {
     CLOCK.with(|t| *t.borrow_mut() = Some(timer));
 }
 
+/// Start/restart failures can arrive either as an HTTP error or a later status.
+pub fn encoder_command(c: &Ctx, ch: String, action: &str) {
+    let action = action.to_string();
+    c.worker.spawn(move |api| {
+        let result = api.post(&format!("/channels/{ch}/command"), &serde_json::json!({ "cmd": action }));
+        let status = api.get(&format!("/channels/{ch}/status"));
+        Ok(crate::net::Msg::Apply(Box::new(move |c| {
+            let mut failure = result.err().map(|e| crate::ru::server(&e));
+            if let Ok(status) = status {
+                let status: crate::model::StatusView = status;
+                if !status.output.running {
+                    failure = failure.or_else(|| status.last_error.clone().or(status.output.last_error.clone()));
+                }
+                if c.model.ch() == ch {
+                    c.apply(crate::net::Msg::Status(Box::new(status)));
+                }
+            }
+            if let Some(error) = failure {
+                encoder_failed(c, &ch, &error);
+            }
+        })))
+    });
+}
+
+pub fn encoder_failed(c: &mut Ctx, ch: &str, error: &str) {
+    let Some(ui) = c.window() else { return };
+    let g = ui.global::<App>();
+    g.set_encoder_error_channel(ch.into());
+    g.set_encoder_error_message(error.into());
+    g.set_encoder_error_logs("Загрузка последних логов…".into());
+    g.set_encoder_error_open(true);
+    let ch = ch.to_string();
+    let fallback = c.model.log.iter().take(40).map(|l| format!("{} [{}] {}", l.at, l.level, l.text)).collect::<Vec<_>>().join("\n");
+    c.worker.spawn(move |api| {
+        let logs = api.get_bytes("/logs?lines=80").map(|b| String::from_utf8_lossy(&b).into_owned()).unwrap_or(fallback);
+        Ok(crate::net::Msg::Apply(Box::new(move |c| {
+            if let Some(ui) = c.window() {
+                let g = ui.global::<App>();
+                if g.get_encoder_error_channel() == ch.as_str() {
+                    g.set_encoder_error_logs(if logs.trim().is_empty() {
+                        "Последние логи отсутствуют".into()
+                    } else {
+                        logs.into()
+                    });
+                }
+            }
+        })))
+    });
+}
+
 /// Inline validation of the new channel id.
 fn validate_new_channel(c: &mut Ctx, id: &str) {
     let Some(ui) = c.window() else { return };
@@ -112,6 +181,7 @@ fn create_channel(c: &mut Ctx) {
     let body = serde_json::json!({
         "id": id,
         "name": g.get_new_channel_name().trim(),
+        "directory": if g.get_new_channel_directory().trim().is_empty() { None } else { Some(g.get_new_channel_directory().trim().to_string()) },
         "copy_from": if g.get_new_channel_copy() { c.model.channel.clone() } else { None },
     });
     g.set_new_channel_open(false);

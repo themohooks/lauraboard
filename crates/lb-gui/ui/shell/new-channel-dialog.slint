@@ -9,6 +9,8 @@ import { TextField } from "../components/text-field.slint";
 import { Checkbox } from "../components/checkbox.slint";
 import { Button, ButtonVariant } from "../components/button.slint";
 import { App } from "../state/app-state.slint";
+import { Chan } from "../state/channels-state.slint";
+import { Label } from "../components/label.slint";
 
 export component NewChannelDialog inherits Dialog {
     open: App.new-channel-open;
@@ -32,6 +34,22 @@ export component NewChannelDialog inherits Dialog {
     if App.channel-index >= 0: Checkbox {
         text: "Скопировать настройки текущего канала (кроме выходов)";
         checked <=> App.new-channel-copy;
+    }
+    HorizontalLayout {
+        spacing: Theme.sp2;
+        TextField {
+            horizontal-stretch: 1;
+            label: "Папка для канала";
+            placeholder: "По умолчанию — папка channels проекта";
+            text <=> App.new-channel-directory;
+        }
+        if Chan.can-browse: Button { text: "Обзор…"; variant: ButtonVariant.tonal; clicked => { App.browse-channel-directory(); } }
+    }
+    Label {
+        text: "В выбранной папке будет создана подпапка «" + App.new-channel-id + "». Пустое поле — расположение по умолчанию.";
+        wrap: word-wrap;
+        type-style: Theme.body-small;
+        color: Theme.color.on-surface-variant;
     }
     DialogActions {
         Button {

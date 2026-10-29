@@ -1,0 +1,27 @@
+import { Dialog, DialogActions } from "../components/dialog.slint";
+import { Button, ButtonVariant } from "../components/button.slint";
+import { Label } from "../components/label.slint";
+import { App } from "../state/app-state.slint";
+import { ScrollView } from "std-widgets.slint";
+
+export component EncoderErrorDialog inherits Dialog {
+    open: App.encoder-error-open;
+    dialog-width: 820px;
+    title: "Ошибка запуска кодировщика · " + App.encoder-error-channel;
+    text: App.encoder-error-message;
+    dismissed => { App.encoder-error-open = false; }
+    logs := ScrollView {
+        height: min(320px, max(120px, root.height - 400px));
+        horizontal-scrollbar-policy: always-off;
+        Label {
+            width: logs.visible-width;
+            text: App.encoder-error-logs;
+            mono: true;
+            wrap: word-wrap;
+        }
+    }
+    DialogActions {
+        Button { text: "Закрыть"; variant: ButtonVariant.text; clicked => { App.encoder-error-open = false; } }
+        Button { text: "Перезапустить кодировщик"; clicked => { App.retry-encoder(); } }
+    }
+}

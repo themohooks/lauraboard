@@ -100,6 +100,7 @@ fn short_notes(body: &str) -> String {
         .lines()
         .map(str::trim_end)
         .filter(|l| !l.trim_start().starts_with('<') && !l.starts_with("[Все изменения"))
+        .map(|l| l.rsplit_once(" ([`").map_or(l, |(subject, _)| subject))
         .collect::<Vec<_>>()
         .join("\n");
     let text = text.trim();
@@ -187,7 +188,11 @@ mod tests {
 
 [Все изменения v1…v2](u)
 ";
-        assert_eq!(short_notes(notes), "- Fix ([`abc`](u)) — Ann");
+        assert_eq!(short_notes(notes), "- Fix");
+        assert_eq!(
+            short_notes("## Изменения\n- Исправить монтаж (звук) ([`abcdef0`](https://example.test)) — Author\n- Без ссылки"),
+            "- Исправить монтаж (звук)\n- Без ссылки"
+        );
         assert_eq!(r.assets.len(), 8);
         assert!(parse(&json!({"tag_name": "v2.0.0-rc.1"})).is_none());
         assert!(parse(&json!({"tag_name": "v2.0.0", "prerelease": true})).is_none());

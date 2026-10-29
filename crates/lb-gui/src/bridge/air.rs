@@ -92,7 +92,7 @@ pub fn connect(ui: &AppWindow) {
 
 pub fn transport(c: &mut Ctx, action: &str) {
     match action {
-        "start" => c.command(cmd("start")),
+        "start" => super::shell::encoder_command(c, c.model.ch(), "start"),
         "stop" => c.ask(
             "Остановить вещание?",
             "Зрители увидят обрыв трансляции. Состояние эфира будет сохранено, продолжить можно кнопкой «Начать вещание».",

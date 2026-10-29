@@ -38,15 +38,17 @@ impl Engine {
             return Err(EngineError::Other("stop the broadcast before changing the channel id".into()));
         }
         let old_dir = h.read(|d| d.dir.clone());
+        let old_entry = self.project_root.join(lb_core::project::CHANNELS_DIR).join(id);
+        let external = old_entry.join(lb_core::project::LOCATION_FILE).is_file();
         self.retire(&h).await;
-        if let Err(e) = rename_dir(&old_dir, &new_dir) {
+        if let Err(e) = rename_dir(if external { &old_entry } else { &old_dir }, &new_dir) {
             // put the channel back as it was
             if let Ok(data) = ChannelData::load(&old_dir) {
                 self.register(data);
             }
             return Err(e.into());
         }
-        let mut data = ChannelData::load(&new_dir)?;
+        let mut data = ChannelData::load(&lb_core::project::channel_location(&new_dir))?;
         data.config.id = new_id.to_string();
         if !name.is_empty() {
             data.config.name = name;
@@ -82,6 +84,12 @@ impl Engine {
         data.config.autostart = false;
         data.config.outputs.clear();
         data.config.local_hls.enabled = false;
+        // Older/external libraries may contain absolute paths to own files.
+        data.for_each_path_mut(|path| {
+            if let Ok(relative) = Path::new(path).strip_prefix(&src_dir) {
+                *path = format!("channels/{new_id}/{}", relative.to_string_lossy().replace('\\', "/"));
+            }
+        });
         data.rebase_paths(src, new_id);
         data.save()?;
         self.edit_channel_list(|l| l.push(new_id.to_string()))?;
@@ -94,6 +102,8 @@ impl Engine {
     pub async fn delete_channel(&self, id: &str, purge: bool) -> Result<Option<PathBuf>> {
         let h = self.channel(id)?;
         let dir = h.read(|d| d.dir.clone());
+        let entry = self.project_root.join(lb_core::project::CHANNELS_DIR).join(id);
+        let external = entry.join(lb_core::project::LOCATION_FILE).is_file();
         self.retire(&h).await;
         self.edit_channel_list(|l| l.retain(|c| c != id))?;
         let moved = if purge {
@@ -101,12 +111,17 @@ impl Engine {
             None
         } else {
             let stamp = chrono::Local::now().format("%Y%m%d-%H%M%S");
-            let bin = self.project_root.join(DELETED_DIR);
+            let bin =
+                if external { dir.parent().unwrap_or(&self.project_root).join(DELETED_DIR) } else { self.project_root.join(DELETED_DIR) };
             std::fs::create_dir_all(&bin)?;
             let target = bin.join(format!("{id}-{stamp}"));
             rename_dir(&dir, &target)?;
             Some(target)
         };
+        if external {
+            std::fs::remove_file(entry.join(lb_core::project::LOCATION_FILE))?;
+            std::fs::remove_dir(&entry)?;
+        }
         tracing::info!(channel = %id, purge, "channel deleted");
         Ok(moved)
     }
@@ -169,6 +184,68 @@ pub fn copy_dir(from: &Path, to: &Path, skip: &[PathBuf]) -> std::io::Result<()>
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[tokio::test]
+    async fn encoder_retry_on_a_stopped_channel_attempts_startup() {
+        let dir = tempfile::tempdir().unwrap();
+        let mut project = lb_core::project::Project::init(dir.path(), "main").unwrap();
+        let channel = project.channel_mut("main").unwrap();
+        channel.config.autostart = false;
+        channel.config.video.width = 0;
+        channel.save().unwrap();
+        let engine = Engine::start(dir.path()).unwrap();
+        let error = engine.channel("main").unwrap().send(Command::RestartEncoder).await.unwrap_err();
+        assert!(error.to_string().contains("validation failed"), "{error}");
+        engine.shutdown().await;
+    }
+
+    #[tokio::test]
+    async fn external_channel_survives_reload_rename_and_delete() {
+        use lb_core::project::{Project, paths};
+        let project = tempfile::tempdir().unwrap();
+        let storage = tempfile::tempdir().unwrap();
+        let mut p = Project::init(project.path(), "main").unwrap();
+        p.channel_mut("main").unwrap().config.autostart = false;
+        p.channel("main").unwrap().save().unwrap();
+        let engine = std::sync::Arc::new(Engine::start(project.path()).unwrap());
+        assert!(engine.create_channel_at("missing", "", None, Some(&storage.path().join("missing-parent"))).is_err());
+        std::fs::create_dir(storage.path().join("occupied")).unwrap();
+        std::fs::write(storage.path().join("occupied/keep.txt"), b"keep").unwrap();
+        assert!(engine.create_channel_at("occupied", "", None, Some(storage.path())).is_err());
+        assert!(storage.path().join("occupied/keep.txt").exists());
+        let channel = engine.create_channel_at("external", "External", None, Some(storage.path())).unwrap();
+        let media = storage.path().join("external/media/a.mp4");
+        std::fs::create_dir_all(media.parent().unwrap()).unwrap();
+        std::fs::write(&media, b"media").unwrap();
+        assert_eq!(channel.read(|d| d.dir.clone()), storage.path().join("external"));
+        assert_eq!(paths::resolve(project.path(), "channels/external/media/a.mp4"), media);
+        assert_eq!(paths::to_stored(project.path(), &media), "channels/external/media/a.mp4");
+        assert!(Project::load(project.path()).unwrap().channel("external").is_some());
+        engine.rename_channel("external", "renamed", "").await.unwrap();
+        assert!(Project::load(project.path()).unwrap().channel("renamed").is_some());
+        assert_eq!(paths::resolve(project.path(), "channels/renamed/media/a.mp4"), media);
+        let bin = engine.delete_channel("renamed", false).await.unwrap().unwrap();
+        assert!(bin.join("media/a.mp4").exists());
+        assert!(!project.path().join("channels/renamed").exists());
+        assert!(Project::load(project.path()).unwrap().channel("main").is_some());
+        let (tx, rx) = tokio::sync::oneshot::channel();
+        let work = engine.clone();
+        let archive = project.path().join("channel.zip");
+        let destination = storage.path().to_path_buf();
+        engine.jobs.spawn("test", "external import", None, move |ctl| async move {
+            let result = async {
+                work.clone().export_channel("main".into(), archive.clone(), Default::default(), ctl.clone()).await?;
+                work.import_channel_at(archive, Some("imported".into()), None, Some(destination), ctl).await
+            }
+            .await;
+            let _ = tx.send(result.clone());
+            result
+        });
+        rx.await.unwrap().unwrap();
+        assert!(storage.path().join("imported/channel.toml").is_file());
+        assert!(Project::load(project.path()).unwrap().channel("imported").is_some());
+        engine.shutdown().await;
+    }
 
     #[test]
     fn copy_skips_runtime_folders() {

@@ -39,6 +39,12 @@ export global Ved {
     // kept part
     in-out property <float> start-ms;
     in-out property <float> end-ms;
+    in-out property <float> audio-start-ms;
+    in-out property <float> audio-end-ms;
+    in-out property <bool> audio-track;
+    in property <bool> has-audio;
+    in-out property <float> audio-fade-in;
+    in-out property <float> audio-fade-out;
 
     in property <[EditRegion]> regions;
     in property <int> selected: -1;

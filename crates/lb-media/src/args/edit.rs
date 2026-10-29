@@ -66,16 +66,32 @@ pub fn audio_chain(e: &EditSpec, src: &Source) -> Option<String> {
         return None;
     }
     let (start, end) = e.range(src.duration_ms);
-    let dur = end - start;
+    let audio_start = e.audio_start_ms.unwrap_or(start).clamp(start, end);
+    let audio_end = e.audio_end_ms.unwrap_or(end).clamp(audio_start, end);
+    let dur = audio_end - audio_start;
+    if dur <= 0 {
+        return Some("volume=0".into());
+    }
     let mut f: Vec<String> = Vec::new();
+    if e.audio_start_ms.is_some() || e.audio_end_ms.is_some() {
+        f.push(format!("atrim=start={}:end={},asetpts=PTS-STARTPTS", secs(audio_start - start), secs(audio_end - start)));
+    }
     if e.volume_db.abs() > 0.01 {
         f.push(format!("volume={:.2}dB", e.volume_db.clamp(-40.0, 20.0)));
     }
-    if e.fade_in_ms > 0 {
-        f.push(format!("afade=t=in:st=0:d={}", secs(e.fade_in_ms.min(dur))));
+    let fade_in = e.audio_fade_in_ms.unwrap_or(e.fade_in_ms).max(0);
+    let fade_out = e.audio_fade_out_ms.unwrap_or(e.fade_out_ms).max(0);
+    if fade_in > 0 {
+        f.push(format!("afade=t=in:st=0:d={}", secs(fade_in.min(dur))));
     }
-    if e.fade_out_ms > 0 && dur > e.fade_out_ms {
-        f.push(format!("afade=t=out:st={}:d={}", secs(dur - e.fade_out_ms), secs(e.fade_out_ms)));
+    if fade_out > 0 && dur > fade_out {
+        f.push(format!("afade=t=out:st={}:d={}", secs(dur - fade_out), secs(fade_out)));
+    }
+    if audio_start > start {
+        f.push(format!("adelay={}:all=1", audio_start - start));
+    }
+    if e.audio_start_ms.is_some() || e.audio_end_ms.is_some() {
+        f.push(format!("apad=whole_dur={}", secs(end - start)));
     }
     Some(f.join(","))
 }
@@ -191,6 +207,28 @@ fn region_filter(r: &Region, n: usize, src: &Source, window: Option<&str>) -> St
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn independent_audio_trim_preserves_sync_and_video_fades() {
+        let e = EditSpec {
+            start_ms: 10_000,
+            end_ms: Some(40_000),
+            audio_start_ms: Some(12_000),
+            audio_end_ms: Some(35_000),
+            fade_in_ms: 1_000,
+            audio_fade_in_ms: Some(0),
+            audio_fade_out_ms: Some(500),
+            ..Default::default()
+        };
+        let audio = audio_chain(&e, &src()).unwrap();
+        assert!(audio.contains("atrim=start=2.000:end=25.000,asetpts=PTS-STARTPTS"), "{audio}");
+        assert!(!audio.contains("afade=t=in"));
+        assert!(audio.contains("afade=t=out:st=22.500:d=0.500"));
+        assert!(audio.contains("adelay=2000:all=1,apad=whole_dur=30.000"));
+        assert!(video_graph(&e, &src(), None).contains("fade=t=in:st=0:d=1.000"));
+        let silent = EditSpec { audio_start_ms: Some(45_000), ..e };
+        assert_eq!(audio_chain(&silent, &src()).as_deref(), Some("volume=0"));
+    }
     use lb_core::media::display::Crop;
 
     fn src() -> Source {

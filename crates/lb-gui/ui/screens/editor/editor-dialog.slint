@@ -13,7 +13,7 @@ import { Label } from "../../components/label.slint";
 import { Ved } from "../../state/editor-state.slint";
 import { EditorCanvas } from "canvas.slint";
 import { EditorTimeline } from "timeline.slint";
-import { RegionPanel, PicturePanel } from "panels.slint";
+import { RegionPanel, PicturePanel, AudioPanel } from "panels.slint";
 
 export component EditorDialog inherits Dialog {
     property <int> tab: 0;
@@ -38,22 +38,24 @@ export component EditorDialog inherits Dialog {
             width: 330px;
             spacing: Theme.sp3;
             SegmentedButton {
-                segments: [{ text: "Скрыть область" }, { text: "Кадр и звук" }];
+                segments: [{ text: "Области" }, { text: "Видео" }, { text: "Звук" }];
                 selected: root.tab;
                 changed(i) => {
                     root.tab = i;
+                    Ved.audio-track = i == 2;
                 }
             }
             Flickable {
                 min-height: 0;
                 preferred-height: 0;
                 vertical-stretch: 1;
-                viewport-height: max(self.height, panel.preferred-height);
+                content-height: max(self.height, panel.preferred-height);
                 panel := VerticalLayout {
                     width: parent.width - 8px;
                     alignment: start;
                     if root.tab == 0: RegionPanel { }
                     if root.tab == 1: PicturePanel { }
+                    if root.tab == 2: AudioPanel { }
                 }
             }
         }

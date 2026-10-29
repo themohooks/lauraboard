@@ -21,6 +21,19 @@ impl Runtime {
     async fn execute(&mut self, cmd: Command) -> Reply {
         match cmd {
             Command::Start => self.start(false).await.map(|_| "started".into()),
+            Command::RestartEncoder => {
+                if self.running {
+                    self.output.reset_codec();
+                    self.restart_encoder().await;
+                } else {
+                    self.start(false).await?;
+                }
+                if !self.output.running() {
+                    return Err(self.last_error.clone().unwrap_or_else(|| "encoder did not start".into()));
+                }
+                self.last_error = None;
+                Ok("encoder restarted".into())
+            }
             Command::Stop => {
                 self.request_stop().await;
                 Ok(if self.closing.is_some() { "closing broadcast" } else { "stopped" }.into())

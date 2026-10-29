@@ -70,6 +70,13 @@ export global App {
     in-out property <bool> new-channel-open;
     in-out property <string> new-channel-id;
     in-out property <string> new-channel-name;
+    in-out property <string> new-channel-directory;
+    callback browse-channel-directory();
+    in-out property <bool> encoder-error-open;
+    in property <string> encoder-error-channel;
+    in property <string> encoder-error-message;
+    in property <string> encoder-error-logs;
+    callback retry-encoder();
     in-out property <bool> new-channel-copy: true;
     in property <string> new-channel-error;
     callback validate-new-channel(string);

@@ -365,6 +365,9 @@ fn demo_overlay(ui: &AppWindow, name: &str) {
             v.set_position_ms(81_500.0);
             v.set_start_ms(12_000.0);
             v.set_end_ms(700_000.0);
+            v.set_has_audio(true);
+            v.set_audio_start_ms(24_000.0);
+            v.set_audio_end_ms(680_000.0);
             v.set_crop_bottom(6.0);
             let r = EditRegion {
                 x: 0.82,
