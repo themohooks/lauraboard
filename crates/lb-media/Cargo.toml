@@ -1,11 +1,11 @@
 [package]
 name = "lb-media"
-version = "0.2.0"
+version = "0.2.1"
 edition.workspace = true
 rust-version.workspace = true
 
 [dependencies]
-lb-core = { version = "0.2.0", path = "../lb-core" }
+lb-core = { version = "0.2.1", path = "../lb-core" }
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.154"
 thiserror = "2.0.21"

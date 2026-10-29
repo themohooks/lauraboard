@@ -329,7 +329,7 @@ fn demo_overlay(ui: &AppWindow, name: &str) {
             let u = ui.global::<crate::shell::Upd>();
             u.set_current("0.1.0".into());
             u.set_phase("available".into());
-            u.set_latest("0.2.0".into());
+            u.set_latest("0.2.1".into());
             u.set_notes(
                 "— Скачивание роликов с сайтов в медиатеку\n— Монтаж: обрезка, скрытие логотипа, кадрирование\n— Обновления из программы"
                     .into(),
