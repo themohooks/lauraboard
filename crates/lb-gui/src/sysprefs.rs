@@ -23,4 +23,6 @@ pub fn reduce_motion() -> bool {
 }
 
 #[cfg(target_os = "android")]
-pub fn reduce_motion() -> bool { true }
+pub fn reduce_motion() -> bool {
+    true
+}

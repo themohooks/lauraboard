@@ -1,8 +1,8 @@
 //! One native window: connection form first, then the existing operator UI.
+use crate::{bridge, prefs::UiPrefs, shell::AppWindow};
+use slint::ComponentHandle;
 use std::path::{Path, PathBuf};
 use std::sync::OnceLock;
-use slint::ComponentHandle;
-use crate::{bridge, prefs::UiPrefs, shell::AppWindow};
 
 static DATA: OnceLock<PathBuf> = OnceLock::new();
 pub(crate) fn data_dir() -> &'static Path {
@@ -10,7 +10,8 @@ pub(crate) fn data_dir() -> &'static Path {
 }
 
 pub fn run(data: PathBuf) -> Result<(), String> {
-    DATA.set(data).map_err(|_| "Android UI already initialized")?;
+    // NativeActivity may be recreated in the same process after destruction.
+    DATA.get_or_init(|| data);
     let window = AppWindow::new().map_err(|e| e.to_string())?;
     window.set_mobile(true);
     window.set_connection_visible(true);
@@ -18,18 +19,22 @@ pub fn run(data: PathBuf) -> Result<(), String> {
     let weak = window.as_weak();
     window.on_connect_server(move || {
         let Some(ui) = weak.upgrade() else { return };
-        if ui.get_connection_busy() { return; }
+        if ui.get_connection_busy() {
+            return;
+        }
         let opts = match crate::connection::options(&ui.get_connection_url(), &ui.get_connection_token()) {
             Ok(opts) => opts,
-            Err(e) => { ui.set_connection_error(e.into()); return; }
+            Err(e) => {
+                ui.set_connection_error(e.into());
+                return;
+            }
         };
         ui.set_connection_busy(true);
         ui.set_connection_error("Подключение…".into());
         let weak = ui.as_weak();
         std::thread::spawn(move || {
             // Authenticate and validate the API before creating the bridge workers.
-            let result = crate::net::api::Api::new(&opts.base_url, opts.token.clone())
-                .get::<Vec<serde_json::Value>>("/channels");
+            let result = crate::net::api::Api::new(&opts.base_url, opts.token.clone()).get::<Vec<serde_json::Value>>("/channels");
             let _ = slint::invoke_from_event_loop(move || {
                 let Some(ui) = weak.upgrade() else { return };
                 ui.set_connection_busy(false);

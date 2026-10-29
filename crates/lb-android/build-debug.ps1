@@ -3,6 +3,7 @@ $ErrorActionPreference = 'Stop'
 $repo = (Resolve-Path (Join-Path $PSScriptRoot '../..')).Path
 if (!$Sdk) { $Sdk = Join-Path $env:LOCALAPPDATA 'Android/Sdk' }
 if (!(Test-Path -LiteralPath $Sdk)) { throw "Android SDK not found: $Sdk" }
+if (!(Test-Path (Join-Path $Sdk 'platforms/android-35/android.jar'))) { throw 'Install Android SDK platform 35.' }
 if (!$Ndk) {
     $Ndk = Get-ChildItem (Join-Path $Sdk 'ndk') -Directory |
         Where-Object { $_.Name -match '^\d+\.\d+\.\d+$' -and [int]($_.Name.Split('.')[0]) -le 28 } |
@@ -35,6 +36,9 @@ try {
     try {
         & $x build --manifest-path crates/lb-android/Cargo.toml --platform android --arch arm64 --format apk --debug
         if ($LASTEXITCODE) { throw 'Android debug build failed' }
+        $apk = Join-Path $repo 'target/x/debug/android/lb-android.apk'
+        if (!(Test-Path -LiteralPath $apk)) { throw "APK not produced: $apk" }
+        Write-Host "APK: $apk"
     } finally { Pop-Location }
 } finally {
     foreach ($name in $names) { [Environment]::SetEnvironmentVariable($name, $previous[$name], 'Process') }

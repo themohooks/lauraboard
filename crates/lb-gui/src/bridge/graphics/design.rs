@@ -294,8 +294,10 @@ fn move_field(c: &mut Ctx, i: usize, d: i32) {
 fn pick_image(c: &mut Ctx) {
     let Some(ui) = c.window() else { return };
     let g = ui.global::<Gfx>();
-    let Some(path) =
-        crate::file_dialog::FileDialog::new().set_title("Картинка-фон").add_filter("Изображения", &["png", "jpg", "jpeg", "webp"]).pick_file()
+    let Some(path) = crate::file_dialog::FileDialog::new()
+        .set_title("Картинка-фон")
+        .add_filter("Изображения", &["png", "jpg", "jpeg", "webp"])
+        .pick_file()
     else {
         return;
     };

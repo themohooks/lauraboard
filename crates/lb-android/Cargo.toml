@@ -9,5 +9,6 @@ crate-type = ["cdylib"]
 
 [target.'cfg(target_os = "android")'.dependencies]
 lb-gui = { path = "../lb-gui" }
-slint = { version = "1.18.1", default-features = false, features = ["backend-android-activity-06", "renderer-femtovg", "compat-1-2"] }
+slint = { version = "1.18.1", default-features = false, features = ["backend-android-activity-06", "compat-1-2"] }
+stacker = "0.1"
 

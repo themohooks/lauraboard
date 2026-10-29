@@ -213,7 +213,9 @@ pub fn apply_scale(c: &mut Ctx) {
 #[cfg(target_os = "android")]
 pub fn apply_scale(c: &mut Ctx) {
     // The NativeActivity owns the surface dimensions and display scale.
-    if let Some(ui) = c.window() { ui.global::<App>().set_ui_scale(1.0); }
+    if let Some(ui) = c.window() {
+        ui.global::<App>().set_ui_scale(1.0);
+    }
 }
 
 /// Native DPI is independent of the application's synthetic scale factor.

@@ -17,7 +17,9 @@ fn monitor_hz(c: &Ctx) -> f64 {
 }
 
 #[cfg(target_os = "android")]
-fn monitor_hz(_: &Ctx) -> f64 { 60.0 }
+fn monitor_hz(_: &Ctx) -> f64 {
+    60.0
+}
 
 pub fn monitor_changed(c: &mut Ctx) {
     if (monitor_hz(c) - c.settings.preview_monitor_hz).abs() > 0.001 {

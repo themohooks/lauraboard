@@ -3,11 +3,16 @@ use crate::GuiOptions;
 
 pub fn options(url: &str, token: &str) -> Result<GuiOptions, String> {
     let base = url.trim().trim_end_matches('/');
-    let valid = !base.contains('#') && ureq::http::Uri::try_from(base).ok().is_some_and(|u| {
-        matches!(u.scheme_str(), Some("http" | "https")) && u.host().is_some()
-            && u.authority().is_some_and(|a| !a.as_str().contains('@')) && u.query().is_none()
-    });
-    if !valid { return Err("Укажите URL сервера: http://192.168.1.10:8787".into()); }
+    let valid = !base.contains('#')
+        && ureq::http::Uri::try_from(base).ok().is_some_and(|u| {
+            matches!(u.scheme_str(), Some("http" | "https"))
+                && u.host().is_some()
+                && u.authority().is_some_and(|a| !a.as_str().contains('@'))
+                && u.query().is_none()
+        });
+    if !valid {
+        return Err("Укажите URL сервера: http://192.168.1.10:8787".into());
+    }
     let token = token.trim();
     Ok(GuiOptions { base_url: base.into(), token: (!token.is_empty()).then(|| token.into()), channel: None, embedded_engine: false })
 }
@@ -23,7 +28,15 @@ mod tests {
         assert!(!opts.embedded_engine);
         assert!(options("https://server.example", " ").unwrap().token.is_none());
         assert!(options("http://[::1]:8787", "").is_ok());
-        for invalid in ["", "server:8787", "ftp://server", "http://", "http://user:pass@server", "http://server?token=secret", "http://server#fragment"] {
+        for invalid in [
+            "",
+            "server:8787",
+            "ftp://server",
+            "http://",
+            "http://user:pass@server",
+            "http://server?token=secret",
+            "http://server#fragment",
+        ] {
             assert!(options(invalid, "").is_err(), "accepted {invalid}");
         }
     }
@@ -39,7 +52,10 @@ mod tests {
                 stream.set_read_timeout(Some(std::time::Duration::from_secs(5))).unwrap();
                 let mut request = Vec::new();
                 let mut byte = [0];
-                while !request.ends_with(b"\r\n\r\n") { stream.read_exact(&mut byte).unwrap(); request.push(byte[0]); }
+                while !request.ends_with(b"\r\n\r\n") {
+                    stream.read_exact(&mut byte).unwrap();
+                    request.push(byte[0]);
+                }
                 let request = String::from_utf8(request).unwrap().to_lowercase();
                 assert!(request.starts_with("get /api/v1/channels "));
                 assert!(request.contains("authorization: bearer secret"));

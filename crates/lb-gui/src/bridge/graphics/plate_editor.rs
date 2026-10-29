@@ -183,8 +183,10 @@ fn crop_to_content(png: &[u8]) -> Option<(u32, u32, Vec<u8>)> {
 fn pick_icon(c: &mut Ctx) {
     let Some(ui) = c.window() else { return };
     let g = ui.global::<Gfx>();
-    let Some(path) =
-        crate::file_dialog::FileDialog::new().set_title("Картинка в плашке").add_filter("Изображения", &["png", "jpg", "jpeg", "webp"]).pick_file()
+    let Some(path) = crate::file_dialog::FileDialog::new()
+        .set_title("Картинка в плашке")
+        .add_filter("Изображения", &["png", "jpg", "jpeg", "webp"])
+        .pick_file()
     else {
         return;
     };

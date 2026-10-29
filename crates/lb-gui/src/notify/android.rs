@@ -2,7 +2,11 @@
 use crate::shell::ThemeMode;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Urgency { Info, Warning, Critical }
+pub enum Urgency {
+    Info,
+    Warning,
+    Critical,
+}
 
 pub struct Notice {
     pub title: String,

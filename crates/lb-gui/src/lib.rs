@@ -12,15 +12,15 @@
 //! * [`update`] — new versions from GitHub releases
 //! * [`prefs`] / [`sysprefs`] — persisted UI preferences, OS accessibility hints
 
-mod bridge;
-#[cfg(feature = "snapshot")]
-pub mod devtools;
-mod fmt;
-mod file_dialog;
-#[cfg(any(target_os = "android", test))]
-mod connection;
 #[cfg(target_os = "android")]
 mod android;
+mod bridge;
+#[cfg(any(target_os = "android", test))]
+mod connection;
+#[cfg(feature = "snapshot")]
+pub mod devtools;
+mod file_dialog;
+mod fmt;
 #[cfg(target_os = "android")]
 pub use android::run as run_android;
 #[cfg(test)]
@@ -63,24 +63,32 @@ pub struct GuiOptions {
 /// closing the window only hides it).
 pub fn run(opts: GuiOptions) -> Result<(), String> {
     #[cfg(not(target_os = "android"))]
-    { shell::run(opts) }
+    {
+        shell::run(opts)
+    }
     #[cfg(target_os = "android")]
-    { let _ = opts; Err("Use run_android after initializing the Android platform".into()) }
+    {
+        let _ = opts;
+        Err("Use run_android after initializing the Android platform".into())
+    }
 }
 
 /// Used by the supervisor after the application process has exited.
 pub fn show_crash_report(log: &str, path: &str) -> Result<(), String> {
     #[cfg(target_os = "android")]
-    { let _ = (log, path); return Err("Desktop crash supervisor is unavailable on Android".into()); }
+    {
+        let _ = (log, path);
+        return Err("Desktop crash supervisor is unavailable on Android".into());
+    }
     #[cfg(not(target_os = "android"))]
     {
-    use slint::ComponentHandle;
-    // The application may have crashed in its graphics driver. Reporting
-    // must be able to open without initializing GPU rendering again.
-    slint::BackendSelector::new().backend_name("winit".into()).renderer_name("software".into()).select().map_err(|e| e.to_string())?;
-    let window = shell::CrashWindow::new().map_err(|e| e.to_string())?;
-    window.set_log(log.into());
-    window.set_log_path(path.into());
-    window.run().map_err(|e| e.to_string())
+        use slint::ComponentHandle;
+        // The application may have crashed in its graphics driver. Reporting
+        // must be able to open without initializing GPU rendering again.
+        slint::BackendSelector::new().backend_name("winit".into()).renderer_name("software".into()).select().map_err(|e| e.to_string())?;
+        let window = shell::CrashWindow::new().map_err(|e| e.to_string())?;
+        window.set_log(log.into());
+        window.set_log_path(path.into());
+        window.run().map_err(|e| e.to_string())
     }
 }

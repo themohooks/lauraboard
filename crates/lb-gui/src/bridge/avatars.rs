@@ -80,8 +80,10 @@ pub fn pick(c: &mut Ctx) {
     if id.is_empty() {
         return;
     }
-    let Some(path) =
-        crate::file_dialog::FileDialog::new().set_title("Аватар канала").add_filter("Изображения", &["png", "jpg", "jpeg", "webp"]).pick_file()
+    let Some(path) = crate::file_dialog::FileDialog::new()
+        .set_title("Аватар канала")
+        .add_filter("Изображения", &["png", "jpg", "jpeg", "webp"])
+        .pick_file()
     else {
         return;
     };
