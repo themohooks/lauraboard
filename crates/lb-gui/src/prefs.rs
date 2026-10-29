@@ -103,6 +103,8 @@ pub struct UiPrefs {
     pub notify: NotifyPrefs,
     /// Plate designs saved by the user ("my styles").
     pub plate_styles: Vec<lb_core::graphics::PlateStyle>,
+    /// Ask before deleting a graphic element (cleared by "don't remind").
+    pub confirm_graphic_delete: bool,
     pub updates: UpdatePrefs,
     /// Written to disk on change (off for headless tools).
     #[serde(skip)]
@@ -125,6 +127,7 @@ impl Default for UiPrefs {
             close_to_tray: true,
             notify: NotifyPrefs::default(),
             plate_styles: Vec::new(),
+            confirm_graphic_delete: true,
             updates: UpdatePrefs::default(),
             persist: true,
         }

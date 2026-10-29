@@ -992,7 +992,33 @@ fn duplicate(c: &mut Ctx) {
     refresh(c);
 }
 
+/// Delete the selected element, after a confirmation unless it was switched off.
 fn remove(c: &mut Ctx) {
+    let Some(e) = c.gfx.selected.and_then(|i| c.gfx.draft.as_ref()?.elements.get(i)).cloned() else { return };
+    if !c.prefs.confirm_graphic_delete {
+        return remove_now(c);
+    }
+    let id = e.id.clone();
+    c.ask_with_option(
+        "Удалить элемент?",
+        &format!("«{}» будет удалён вместе с правилами показа. Удаление можно отменить.", label(&e)),
+        "Удалить",
+        "Больше не напоминать",
+        move |c, never_again| {
+            if never_again {
+                c.prefs.confirm_graphic_delete = false;
+                c.prefs.save();
+            }
+            // the selection may have changed while the dialog was open
+            if let Some(i) = c.gfx.draft.as_ref().and_then(|d| d.elements.iter().position(|e| e.id == id)) {
+                c.gfx.selected = Some(i);
+                remove_now(c);
+            }
+        },
+    );
+}
+
+fn remove_now(c: &mut Ctx) {
     let Some(i) = c.gfx.selected else { return };
     let Some(e) = c.gfx.draft.as_ref().and_then(|d| d.elements.get(i)).cloned() else { return };
     let rules = c.gfx.draft.as_ref().map(|d| d.rules.iter().filter(|r| r.element == e.id).count()).unwrap_or(0);

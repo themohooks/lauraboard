@@ -71,7 +71,7 @@ pub fn snapshot(out: &Path, section: &str, width: u32, height: u32, scale: f32, 
     window.dispatch_event(WindowEvent::ScaleFactorChanged { scale_factor: scale });
     window.set_size(slint::PhysicalSize::new(width, height));
     let (name, page) = section.split_once(':').unwrap_or((section, ""));
-    ui.set_section(if name == "theme-transition" { "settings" } else { name }.into());
+    ui.set_section(if name == "theme-transition" { "settings" } else if name == "graphics-delete" { "graphics" } else { name }.into());
     ui.set_gallery_page(page.into());
     // No time passes between frames here, so animated properties would keep stale values.
     ui.global::<Theme>().set_animations(false);
@@ -274,6 +274,14 @@ fn demo_overlay(ui: &AppWindow, name: &str) {
     c.set_rows(model(vec![r("main", "Основной канал", true, true, true), r("kids", "Детский", false, false, false)]));
     match name {
         "channels" => c.set_open(true),
+        "graphics-delete" => {
+            let a = ui.global::<App>();
+            a.set_confirm_title("Удалить элемент?".into());
+            a.set_confirm_text("«Текст» будет удалён вместе с правилами показа. Удаление можно отменить.".into());
+            a.set_confirm_action("Удалить".into());
+            a.set_confirm_option("Больше не напоминать".into());
+            a.set_confirm_open(true);
+        }
         "channel-form" => {
             c.set_open(true);
             c.set_form_source("Основной канал".into());
