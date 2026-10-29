@@ -43,7 +43,8 @@ enum Message {
     Ready(String),
     Frame(Result<Vec<u8>, String>),
     Navigate(String),
-    Cookies(serde_json::Value),
+    PollCookies,
+    Cookies(u64, serde_json::Value),
 }
 
 fn output(value: serde_json::Value) {
@@ -224,7 +225,19 @@ fn run() -> Result<(), String> {
     let mut loading_stage = String::from("waiting for page load");
     let mut loaded = false;
     let mut pending = false;
-    let mut cookie_pending = false;
+    let mut cookie_pending: Option<(u64, Instant)> = None;
+    let mut cookie_request = 0_u64;
+    if login {
+        let timer = proxy.clone();
+        std::thread::spawn(move || {
+            loop {
+                if timer.send_event(Message::PollCookies).is_err() {
+                    break;
+                }
+                std::thread::sleep(Duration::from_secs(2));
+            }
+        });
+    }
     let mut closing: Option<Instant> = None;
     event_loop.run(move |event, _, control| {
         *control = ControlFlow::WaitUntil(next);
@@ -241,6 +254,7 @@ fn run() -> Result<(), String> {
                 if login {
                     closing = Some(Instant::now());
                     next = Instant::now();
+                    let _ = proxy.send_event(Message::PollCookies);
                 } else {
                     *control = ControlFlow::Exit;
                 }
@@ -254,8 +268,29 @@ fn run() -> Result<(), String> {
                     snapshot::mute(&view);
                 }
             }
-            Event::UserEvent(Message::Cookies(value)) => {
-                cookie_pending = false;
+            Event::UserEvent(Message::PollCookies) => {
+                if cookie_pending.is_none_or(|(_, started)| started.elapsed() >= Duration::from_secs(6)) {
+                    if let Some((request, _)) = cookie_pending {
+                        output(json!({"cookie_request_timeout": request}));
+                    }
+                    cookie_request += 1;
+                    let request = cookie_request;
+                    cookie_pending = Some((request, Instant::now()));
+                    output(json!({"cookie_request_started": request}));
+                    let proxy = proxy.clone();
+                    if let Err(error) = cookies::read(&view, move |value| {
+                        let _ = proxy.send_event(Message::Cookies(request, value));
+                    }) {
+                        cookie_pending = None;
+                        output(json!({"error":error}));
+                    }
+                }
+            }
+            Event::UserEvent(Message::Cookies(request, value)) => {
+                // A delayed completion must not clear a newer pending request.
+                if cookie_pending.is_some_and(|(pending, _)| pending == request) {
+                    cookie_pending = None;
+                }
                 output(value);
                 if closing.is_some() {
                     *control = ControlFlow::Exit;
@@ -287,19 +322,7 @@ fn run() -> Result<(), String> {
             Event::MainEventsCleared if Instant::now() >= next => {
                 next = Instant::now() + if login { Duration::from_secs(2) } else { Duration::from_millis(33) };
                 *control = ControlFlow::WaitUntil(next);
-                // Cookie storage is available independently of document loading.
-                // WebKit under Xvfb (and sign-in pages with slow subresources)
-                // can delay Finished long after the response sets the cookie.
-                if login && !cookie_pending {
-                    let proxy = proxy.clone();
-                    cookie_pending = true;
-                    if let Err(error) = cookies::read(&view, move |value| {
-                        let _ = proxy.send_event(Message::Cookies(value));
-                    }) {
-                        cookie_pending = false;
-                        output(json!({"error":error}));
-                    }
-                } else if !login && loaded && !pending {
+                if !login && loaded && !pending {
                     pending = true;
                     let proxy = proxy.clone();
                     if ready {
