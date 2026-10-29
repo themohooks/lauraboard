@@ -416,12 +416,39 @@ mod tests {
         assert_eq!((first.width(), first.height()), (64, 48));
         assert_eq!(first.pixel(50, 40).unwrap().alpha(), 0);
         assert!(first.pixel(5, 5).unwrap().alpha().abs_diff(128) <= 1);
-        std::thread::sleep(Duration::from_millis(300));
-        let second = source.frame().unwrap();
-        assert_ne!(first.data(), second.data(), "HTML animation must keep advancing");
+        // WKWebView snapshots complete asynchronously. In particular, Intel
+        // macOS runners can take longer than 300 ms to publish the next frame.
+        // Wait for observable animation progress, while still rejecting a
+        // source which continues returning the same frozen frame.
+        let started = Instant::now();
+        let mut samples = 0;
+        let mut changed = false;
+        let mut failure = None;
+        while started.elapsed() < Duration::from_secs(5) {
+            if let Some(error) = source.error.lock().unwrap().clone() {
+                failure = Some(error);
+                break;
+            }
+            if let Some(frame) = source.frame() {
+                samples += 1;
+                if frame.data() != first.data() {
+                    assert_eq!((frame.width(), frame.height()), (64, 48));
+                    assert_eq!(frame.pixel(50, 40).unwrap().alpha(), 0);
+                    assert!(frame.pixel(5, 5).unwrap().alpha().abs_diff(128) <= 1);
+                    changed = true;
+                    break;
+                }
+            }
+            std::thread::sleep(Duration::from_millis(25));
+        }
         source.shutdown();
         let _ = std::fs::remove_file(html);
         let _ = std::fs::remove_dir(dir);
+        assert!(
+            changed,
+            "HTML animation did not advance within 5 s: samples={samples}, first_pixel={:?}, error={failure:?}",
+            first.pixel(5, 5)
+        );
     }
 
     #[test]
