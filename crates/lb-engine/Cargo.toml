@@ -1,15 +1,17 @@
 [package]
 name = "lb-engine"
-version = "0.2.0"
+version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
 
 [dependencies]
 chrono = { version = "0.4.45", features = ["serde"] }
 image = { version = "0.25.10", default-features = false, features = ["png", "jpeg", "webp"] }
-lb-core = { version = "0.2.0", path = "../lb-core" }
-lb-gfx = { version = "0.2.0", path = "../lb-gfx" }
-lb-media = { version = "0.2.0", path = "../lb-media" }
+lb-core = { workspace = true }
+lb-gfx = { workspace = true }
+lb-media = { workspace = true }
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.154"
 sysinfo = { version = "0.38.4", default-features = false, features = ["system", "disk", "network"] }

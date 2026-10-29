@@ -1,20 +1,22 @@
 [package]
 name = "lauraboard"
-version = "0.2.0"
+version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
 
 [dependencies]
 anyhow = "1.0.104"
 chrono = { version = "0.4.45", features = ["serde"] }
 clap = { version = "4.6.7", features = ["derive", "env"] }
 dirs = { version = "7.0.0", optional = true }
-lb-api = { version = "0.2.0", path = "../lb-api" }
-lb-core = { version = "0.2.0", path = "../lb-core" }
-lb-engine = { version = "0.2.0", path = "../lb-engine" }
-lb-gfx = { version = "0.2.0", path = "../lb-gfx" }
-lb-gui = { version = "0.2.0", path = "../lb-gui", optional = true }
-lb-media = { version = "0.2.0", path = "../lb-media" }
+lb-api = { workspace = true }
+lb-core = { workspace = true }
+lb-engine = { workspace = true }
+lb-gfx = { workspace = true }
+lb-gui = { workspace = true, optional = true }
+lb-media = { workspace = true }
 rfd = { version = "0.17.2", optional = true }
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.154"
@@ -27,10 +29,10 @@ zip = { version = "9.0.5", default-features = false, features = ["deflate"] }
 
 [target."cfg(windows)".dependencies]
 windows-service = "0.8.1"
-windows-sys = { version = "0.61.2", features = ["Win32_System_Console"] }
+windows-sys = { version = "0.61.2", features = ["Win32_System_Console", "Win32_System_Diagnostics_Debug", "Win32_System_Kernel", "Win32_System_LibraryLoader", "Win32_System_Memory", "Win32_System_ProcessStatus", "Win32_System_SystemInformation", "Win32_System_Threading"] }
 
 [build-dependencies]
-lb-winres = { version = "0.2.0", path = "../lb-winres" }
+lb-winres = { workspace = true }
 
 [dev-dependencies]
 tempfile = "3.27.0"

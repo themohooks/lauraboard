@@ -4,6 +4,10 @@ use std::path::Path;
 
 pub const LOG_ENV: &str = "LAURABOARD_CRASH_LOG";
 
+#[cfg(windows)]
+#[path = "crash/windows.rs"]
+mod native;
+
 pub fn supervise(root: &Path, desktop: bool) -> i32 {
     if desktop {
         crate::desktop::detach_console();
@@ -14,25 +18,37 @@ pub fn supervise(root: &Path, desktop: bool) -> i32 {
         std::fs::create_dir_all(&dir)?;
         let path =
             std::path::absolute(dir.join(format!("session-{}-{}.log", chrono::Local::now().format("%Y%m%d-%H%M%S"), std::process::id())))?;
-        std::fs::write(&path, format!("LauraBoard {}\nНачало сеанса: {}\n\n", env!("CARGO_PKG_VERSION"), chrono::Local::now()))?;
+        std::fs::write(
+            &path,
+            format!(
+                "LauraBoard {}\nНачало сеанса: {}\nПлатформа: {} / {}\nПриложение: {}\nПроект: {}\n\n",
+                env!("CARGO_PKG_VERSION"),
+                chrono::Local::now(),
+                std::env::consts::OS,
+                std::env::consts::ARCH,
+                std::env::current_exe()?.display(),
+                std::path::absolute(root)?.display()
+            ),
+        )?;
         let mut cmd = std::process::Command::new(std::env::current_exe()?);
         cmd.args(std::env::args_os().skip(1)).env(LOG_ENV, &path);
-        // A desktop launch must not flash a second console window.
-        #[cfg(windows)]
-        if desktop {
-            use std::os::windows::process::CommandExt;
-            cmd.creation_flags(0x08000000); // CREATE_NO_WINDOW
-        }
         let stderr = std::fs::OpenOptions::new().append(true).open(&path)?;
         let stdout = stderr.try_clone()?;
         // After `detach_console` the inherited stdin is a dead console
         // handle and Windows refuses to start the child (os error 6).
         let stdin = if desktop { std::process::Stdio::null() } else { std::process::Stdio::inherit() };
-        let status = cmd.stdin(stdin).stdout(stdout).stderr(stderr).status()?;
+        cmd.stdin(stdin).stdout(stdout).stderr(stderr);
+        #[cfg(windows)]
+        let status = native::status(&mut cmd, &path, desktop)?;
+        #[cfg(not(windows))]
+        let status = cmd.status()?;
         let code = status.code().unwrap_or(1);
         if !status.success() && code != crate::exit::Code::Cancelled as i32 {
             let mut file = std::fs::OpenOptions::new().append(true).open(&path)?;
             writeln!(file, "\nКритическая ошибка: процесс неожиданно завершился ({status}).")?;
+            #[cfg(windows)]
+            writeln!(file, "Код завершения: 0x{:08X}", code as u32)?;
+            file.sync_data()?;
             let log = String::from_utf8_lossy(&std::fs::read(&path)?).into_owned();
             lb_gui::show_crash_report(&log, &path.display().to_string()).map_err(anyhow::Error::msg)?;
         }

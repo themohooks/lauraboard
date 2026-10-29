@@ -32,6 +32,7 @@ use lb_core::graphics::{
 
 use super::{Ctx, vec_model, with};
 use crate::fmt::KINDS;
+use crate::logic::graphics_preview::edit_preview;
 use crate::logic::placement::{self, ANCHORS, Rect};
 use crate::logic::undo::History;
 use crate::net::Msg;
@@ -56,8 +57,12 @@ pub struct GraphicsState {
     locked: HashSet<String>,
     drag: Option<Drag>,
     items: Rc<VecModel<CanvasItem>>,
-    /// Identifies the latest debounce timer (older ones do nothing).
-    render_seq: u64,
+    /// Identifies the pending throttle timer, including across scope switches.
+    render_scheduled: u64,
+    render_ticket: u64,
+    preview_layer: Option<String>,
+    pending_web: bool,
+    force_render: bool,
     /// A server render is running; `render_again`: the draft changed meanwhile.
     rendering: bool,
     render_again: bool,
@@ -166,10 +171,17 @@ pub fn connect(ui: &AppWindow) {
             if sel != c.gfx.selected {
                 c.gfx.field = 0;
             }
+            let changed = c.gfx.selected != sel;
             c.gfx.selected = sel;
+            if changed {
+                invalidate_layers(c);
+            }
             props(c);
             if let Some(ui) = c.window() {
                 ui.global::<Gfx>().set_selected(i);
+            }
+            if changed {
+                render(c);
             }
         })
     });
@@ -197,7 +209,12 @@ pub fn connect(ui: &AppWindow) {
     g.on_toggle_locked(|i| with(move |c| toggle_flag(c, i as usize, false)));
     g.on_toggle_exclude(|i| with(move |c| toggle_exclude(c, i as usize)));
     g.on_live(|a| with(move |c| live(c, a.as_str())));
-    g.on_render(|| with(render));
+    g.on_render(|| {
+        with(|c| {
+            c.gfx.force_render = true;
+            render(c);
+        })
+    });
     g.on_preview_animation(|| with(preview_animation));
     g.on_rule_edited(|i, f, v| with(move |c| rule_edited(c, i as usize, f.as_str(), v.as_str())));
     g.on_rule_add(|| with(rule_add));
@@ -262,10 +279,17 @@ pub fn reloaded(c: &mut Ctx) {
 /// Select element `i` (as a click on the canvas would).
 #[cfg_attr(not(feature = "snapshot"), allow(dead_code))]
 pub fn select(c: &mut Ctx, i: usize) {
+    let changed = c.gfx.selected != Some(i);
     c.gfx.selected = Some(i);
+    if changed {
+        invalidate_layers(c);
+    }
     props(c);
     if let Some(ui) = c.window() {
         ui.global::<Gfx>().set_selected(i as i32);
+    }
+    if changed {
+        render(c);
     }
 }
 
@@ -346,6 +370,10 @@ pub fn refresh(c: &mut Ctx) {
         c.gfx.selected = None;
     }
     g.set_selected(c.gfx.selected.map(|i| i as i32).unwrap_or(-1));
+    if !has_edit_layer(c) {
+        invalidate_layers(c);
+    }
+    update_preview_target(c);
     g.set_element_names(vec_model(cfg.elements.iter().map(|e| s(format!("{} ({})", label(e), e.id))).collect()));
     rules_rows(c);
     vars_rows(c);
@@ -370,6 +398,7 @@ fn update_item(c: &mut Ctx, index: usize) {
             c.gfx.items.set_row_data(r, it);
         }
     }
+    update_preview_target(c);
 }
 
 fn fmt_num(v: f32) -> String {
@@ -573,6 +602,20 @@ fn props_changed(c: &mut Ctx) {
             uppercase: g.get_s_upper(),
         }
     };
+    if let ElementKind::Image { path } = &e.kind {
+        let next = g.get_p_path().trim().to_string();
+        if *path != next
+            && let Ok(natural) = image::image_dimensions(&next)
+        {
+            let (fw, fh) = frame(c);
+            let region = placement::region_of(c.gfx.draft.as_ref().unwrap(), &e.id, fw, fh);
+            let (w, h) = placement::fit_image_size(natural, placement::rect_in(&e, region));
+            e.placement.width = Some(w);
+            e.placement.height = Some(h);
+            g.set_p_w(s(fmt_num(w)));
+            g.set_p_h(s(fmt_num(h)));
+        }
+    }
     e.kind = match e.kind.clone() {
         ElementKind::Text { style, .. } => {
             ElementKind::Text { text: g.get_p_text().to_string(), style: style_from(&style, &g, &mut color, &mut num) }
@@ -690,6 +733,7 @@ fn pick_image(c: &mut Ctx) {
         dlg = dlg.set_directory(dir);
     }
     let Some(path) = dlg.pick_file() else { return };
+    c.gfx.force_render = true;
     g.set_p_path(s(path.to_string_lossy().to_string()));
     props_changed(c);
 }
@@ -746,8 +790,11 @@ fn drag_move(c: &mut Ctx, i: usize, handle: i32, dx: f32, dy: f32) {
     if let Some(e) = c.gfx.draft.as_ref().and_then(|d| d.elements.get(i)).cloned() {
         pos_fields(c, &e);
     }
-    // keep the rendered frame following the drag (at most one request in flight)
-    render(c);
+    // A ready selection plane follows the pointer locally. The exact server
+    // snapshot is requested on release; no PNG roundtrip per mouse event.
+    if !has_edit_layer(c) || c.gfx.pending_web {
+        schedule_render(c);
+    }
 }
 
 fn drag_end(c: &mut Ctx) {
@@ -905,8 +952,18 @@ fn add(c: &mut Ctx, kind: &str) {
             anchor,
             x,
             y,
-            width: if kind == "web" { Some(640.0) } else { (kind == "avatar").then_some(96.0) },
-            height: (kind == "web").then_some(360.0),
+            width: match kind {
+                "web" => Some(640.0),
+                "image" => Some(320.0),
+                "avatar" => Some(96.0),
+                _ => None,
+            },
+            height: match kind {
+                "web" => Some(360.0),
+                "image" => Some(180.0),
+                "avatar" => Some(96.0),
+                _ => None,
+            },
         },
         opacity: 1.0,
         layer,
@@ -987,12 +1044,56 @@ fn live(c: &mut Ctx, action: &str) {
 
 // ------------------------------------------------------------ render / animation
 
+fn invalidate_layers(c: &mut Ctx) {
+    c.gfx.preview_layer = None;
+    if let Some(ui) = c.window() {
+        ui.global::<Gfx>().set_edit_layered(false);
+    }
+}
+
+fn has_edit_layer(c: &Ctx) -> bool {
+    c.gfx
+        .preview_layer
+        .as_ref()
+        .is_some_and(|id| c.gfx.selected.and_then(|i| c.gfx.draft.as_ref()?.elements.get(i)).is_some_and(|e| &e.id == id))
+}
+
+fn selected_geometry(c: &Ctx) -> Option<(String, Rect)> {
+    let cfg = c.gfx.draft.as_ref()?;
+    let e = cfg.elements.get(c.gfx.selected?)?;
+    let (w, h) = frame(c);
+    Some((e.id.clone(), placement::rect_in(e, placement::region_of(cfg, &e.id, w, h))))
+}
+
+fn update_preview_target(c: &Ctx) {
+    if has_edit_layer(c)
+        && let Some((_, rect)) = selected_geometry(c)
+        && let Some(ui) = c.window()
+    {
+        let g = ui.global::<Gfx>();
+        g.set_edit_x(rect.x);
+        g.set_edit_y(rect.y);
+        g.set_edit_w(rect.w);
+        g.set_edit_h(rect.h);
+    }
+}
+
 fn schedule_render(c: &mut Ctx) {
-    c.gfx.render_seq += 1;
-    let seq = c.gfx.render_seq;
-    slint::Timer::single_shot(Duration::from_millis(150), move || {
+    if c.gfx.render_scheduled != 0 {
+        return;
+    }
+    static NEXT_TIMER: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(1);
+    let ticket = NEXT_TIMER.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+    c.gfx.render_scheduled = ticket;
+    // Leading throttle, not trailing debounce: continuous typing/nudging must
+    // keep updating instead of waiting for the user to stop for 150 ms.
+    slint::Timer::single_shot(Duration::from_millis(33), move || {
         with(move |c| {
-            if c.gfx.render_seq == seq && c.section() == "graphics" {
+            if c.gfx.render_scheduled != ticket {
+                return;
+            }
+            c.gfx.render_scheduled = 0;
+            if c.section() == "graphics" && !(c.gfx.drag.is_some() && has_edit_layer(c) && !c.gfx.pending_web) {
                 render(c);
                 plate_editor::preview(c);
             }
@@ -1030,20 +1131,40 @@ pub fn render(c: &mut Ctx) {
         return;
     }
     let Some(cfg) = c.gfx.draft.clone() else { return };
+    if c.gfx.drag.is_some() && has_edit_layer(c) && !c.gfx.pending_web && !c.gfx.force_render {
+        return;
+    }
     if c.gfx.rendering {
         c.gfx.render_again = true;
         return;
     }
     c.gfx.rendering = true;
+    static NEXT_RENDER: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(1);
+    let ticket = NEXT_RENDER.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+    c.gfx.render_ticket = ticket;
     g.set_rendering(true);
     let ch = c.model.ch();
     let vars = cfg.vars.clone();
+    let refresh = std::mem::take(&mut c.gfx.force_render);
     let width = if c.gfx.drag.is_some() { 640 } else { 1280 };
+    let selected = selected_geometry(c);
+    let scope = c.gfx.scope.clone();
+    let (fw, fh) = frame(c);
+    let atlas_height = if selected.is_some() { (fh * (width as f32).min(fw) / fw).round().max(1.0) as u32 * 3 } else { 0 };
     c.worker.spawn(move |api| {
-        let r = api.post_bytes(&format!("/channels/{ch}/graphics/render"), &json!({ "config": cfg, "vars": vars, "width": width }));
-        let frame = r.as_ref().ok().and_then(|b| png_image(b));
+        let r = api.post_bytes_header(
+            &format!("/channels/{ch}/graphics/render"),
+            &json!({ "config": cfg, "vars": vars, "width": width,
+            "interactive": true, "refresh": refresh, "edit_layer": selected.as_ref().map(|(id, _)| id) }),
+            "x-lb-preview-pending",
+        );
+        let pending = r.as_ref().ok().is_some_and(|(_, header)| header.as_deref() == Some("1"));
+        let frame = r.as_ref().ok().and_then(|(b, _)| edit_preview(b, atlas_height));
         let err = r.err();
         Ok(Msg::Apply(Box::new(move |c: &mut Ctx| {
+            if c.gfx.render_ticket != ticket {
+                return;
+            }
             c.gfx.rendering = false;
             // Publish completed work even when another move is queued. Dropping
             // every intermediate frame starves the canvas until pointer release.
@@ -1051,22 +1172,60 @@ pub fn render(c: &mut Ctx) {
             let Some(ui) = c.window() else { return };
             let g = ui.global::<Gfx>();
             g.set_rendering(false);
-            match frame.as_ref().and_then(to_image) {
+            if c.gfx.scope != scope || c.model.ch() != ch || selected.as_ref().map(|s| &s.0) != selected_geometry(c).as_ref().map(|s| &s.0)
+            {
+                if c.section() == "graphics" {
+                    render(c);
+                }
+                return;
+            }
+            c.gfx.pending_web = pending;
+            match frame.as_ref().and_then(|f| to_image(&f.full)) {
                 Some(img) => {
                     g.set_background(img);
+                    invalidate_layers(c);
+                    if let (Some(preview), Some((id, rect))) = (&frame, &selected) {
+                        if preview.planes.len() == 3 {
+                            g.set_edit_planes(vec_model(preview.planes.iter().filter_map(to_image).collect()));
+                            g.set_edit_base_x(rect.x);
+                            g.set_edit_base_y(rect.y);
+                            g.set_edit_base_w(rect.w);
+                            g.set_edit_base_h(rect.h);
+                            c.gfx.preview_layer = Some(id.clone());
+                            update_preview_target(c);
+                            g.set_edit_layered(true);
+                        }
+                    }
                     g.set_has_background(true);
-                    g.set_bg_note(SharedString::new());
+                    g.set_bg_note(if pending {
+                        "Загрузка первого кадра HTML / SWF…".into()
+                    } else {
+                        SharedString::new()
+                    });
                 }
                 None => {
-                    g.set_bg_note(s(format!(
-                        "Точный рендер недоступен ({}) — показан кадр эфира, рамки элементов рассчитаны приблизительно.",
-                        err.unwrap_or_else(|| "пустой ответ".into())
-                    )));
-                    live_background(c);
+                    let error = err.unwrap_or_else(|| "пустой ответ".into());
+                    if has_edit_layer(c) {
+                        g.set_bg_note(s(format!("Не удалось обновить предпросмотр ({error}) — показана последняя готовая версия.")));
+                    } else {
+                        invalidate_layers(c);
+                        g.set_bg_note(s(format!(
+                            "Точный рендер недоступен ({error}) — показан кадр эфира, рамки элементов рассчитаны приблизительно."
+                        )));
+                        live_background(c);
+                    }
                 }
             }
             if again {
                 render(c);
+            } else if pending {
+                slint::Timer::single_shot(Duration::from_millis(100), move || {
+                    with(move |c| {
+                        if c.gfx.render_ticket == ticket && c.section() == "graphics" {
+                            render(c);
+                        }
+                    });
+                });
             }
         })))
     });

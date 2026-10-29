@@ -402,3 +402,49 @@ async fn editor_checks_the_item() {
     let (st, _) = call(&app, "POST", "/api/v1/channels/main/media/a/edit/frame.jpg?at=5000", None, Some("{}")).await;
     assert_eq!(st, StatusCode::BAD_REQUEST);
 }
+
+#[tokio::test]
+async fn graphics_editor_atlas_preserves_layers_and_legacy_png_requests() {
+    let dir = project(vec![]);
+    let app = app(&dir).await;
+    let element = |id: &str, color: &str, layer: i32| {
+        serde_json::json!({
+            "id": id, "type": "rect", "color": color, "width": 1280, "height": 720, "layer": layer
+        })
+    };
+    let mut config = serde_json::json!({"elements": [element("lower", "#FF0000", 1),
+        element("selected", "#00FF00", 2), element("upper", "#0000FF", 3)]});
+    for interactive in [true, false] {
+        let mut body = serde_json::json!({"config": config, "width": 64});
+        if interactive {
+            body["interactive"] = true.into();
+            body["edit_layer"] = "selected".into();
+        }
+        let response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/api/v1/channels/main/graphics/render")
+                    .header("content-type", "application/json")
+                    .body(Body::from(body.to_string()))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::OK);
+        assert_eq!(response.headers()["x-lb-preview-pending"], "0");
+        let bytes = axum::body::to_bytes(response.into_body(), 1 << 20).await.unwrap();
+        let image = image::load_from_memory(&bytes).unwrap().to_rgba8();
+        if interactive {
+            assert_eq!(image.dimensions(), (64, 108));
+            assert_eq!(image.get_pixel(20, 20).0, [255, 0, 0, 255]);
+            assert_eq!(image.get_pixel(20, 56).0, [0, 255, 0, 255]);
+            assert_eq!(image.get_pixel(20, 92).0, [0, 0, 255, 255]);
+        } else {
+            assert_eq!(image.dimensions(), (64, 36));
+            assert_eq!(image.get_pixel(20, 20).0, [0, 0, 255, 255]);
+        }
+        config["elements"][1]["color"] = "#FFFFFF".into();
+    }
+}

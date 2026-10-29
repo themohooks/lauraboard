@@ -272,7 +272,23 @@ pub fn status_changed(c: &mut Ctx) {
     let codec = if o.video_codec.is_empty() { "—" } else { o.video_codec.as_str() };
     let encoder_text = if o.running { format!("{codec} · {:.1} fps", o.stats.fps) } else { format!("Энкодер {codec}: стоп") };
     let rate = if o.stats.bitrate_kbps > 0.0 { format!("{:.0} кбит/с · ", o.stats.bitrate_kbps) } else { String::new() };
-    let encoder_detail = format!("{rate}{:.2}x · потеряно кадров: {} · перезапусков: {}", o.stats.speed, o.stats.drop_frames, o.restarts);
+    let encoder_detail = format!(
+        "{rate}{:.2}x · пропуски: {} · повторы: {} · отставание: {:.1} с · перезапуски: {}",
+        o.stats.speed,
+        o.stats.sync_drop_frames,
+        o.stats.sync_dup_frames,
+        o.stats.lag_ms as f64 / 1000.0,
+        o.restarts
+    );
+    let stream_text = if !c.model.online {
+        "Нет связи".into()
+    } else if !o.running {
+        "Нет передачи".into()
+    } else if o.stats.packet_telemetry {
+        format!("{:.0} кбит/с", o.stats.bitrate_kbps)
+    } else {
+        "Измерение…".into()
+    };
     let channel_name = match c.model.channel.as_deref() {
         Some(ch) if !s.name.is_empty() => format!("{ch} — {}", s.name),
         Some(ch) => ch.to_string(),
@@ -285,6 +301,13 @@ pub fn status_changed(c: &mut Ctx) {
         encoder_ok: o.running && o.last_error.is_none() && o.problems.is_empty(),
         encoder_text: encoder_text.into(),
         encoder_detail: encoder_detail.into(),
+        stream_text: stream_text.into(),
+        stream_detail: if o.problems.is_empty() {
+            "Битрейт видео и звука · обновление каждую секунду".into()
+        } else {
+            "Ошибка сетевого выхода · кодировщик продолжает работать".into()
+        },
+        stream_ok: c.model.online && o.running && o.problems.is_empty(),
         plan_warnings: s.plan_warnings as i32,
         last_error: s
             .last_error

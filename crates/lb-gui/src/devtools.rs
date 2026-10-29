@@ -243,7 +243,10 @@ fn demo_state(ui: &AppWindow) {
         manual: false,
         encoder_ok: true,
         encoder_text: "h264 · 25.0 fps".into(),
-        encoder_detail: "4500 кбит/с · 1.00x · потеряно кадров: 0 · перезапусков: 0".into(),
+        encoder_detail: "4500 кбит/с · 1.00x · пропуски: 3 · повторы: 2 · отставание: 0.0 с".into(),
+        stream_text: "4500 кбит/с".into(),
+        stream_detail: "Битрейт видео и звука · обновление каждую секунду".into(),
+        stream_ok: true,
         plan_warnings: 2,
         last_error: "".into(),
         clock: "09:28:31".into(),
@@ -326,7 +329,7 @@ fn demo_overlay(ui: &AppWindow, name: &str) {
             let u = ui.global::<crate::shell::Upd>();
             u.set_current("0.1.0".into());
             u.set_phase("available".into());
-            u.set_latest("0.2.0".into());
+            u.set_latest(env!("CARGO_PKG_VERSION").into());
             u.set_notes(
                 "— Скачивание роликов с сайтов в медиатеку\n— Монтаж: обрезка, скрытие логотипа, кадрирование\n— Обновления из программы"
                     .into(),

@@ -158,6 +158,17 @@ class ReleaseTests(unittest.TestCase):
     def test_current_workspace_versions_agree(self):
         self.assertRegex(release.version(), release.VERSION)
 
+    def test_inherited_versions_follow_a_root_only_bump(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            for name in ("lauraboard", "other"):
+                folder = root / "crates" / name
+                folder.mkdir(parents=True)
+                (folder / "Cargo.toml").write_text('[package]\nversion.workspace = true\n')
+            for version in ("1.2.3", "1.2.4"):
+                (root / "Cargo.toml").write_text(f'[workspace.package]\nversion = "{version}"\n')
+                self.assertEqual(release.version(root), version)
+
     def test_tag_must_match_manifest_version(self):
         with mock.patch.dict("os.environ", {"RELEASE_TAG": "v99.0.0"}):
             with self.assertRaisesRegex(ValueError, "must equal"):

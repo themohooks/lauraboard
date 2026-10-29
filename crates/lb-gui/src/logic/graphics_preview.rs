@@ -1,0 +1,58 @@
+//! Decode the three preview planes off the UI thread.
+
+pub struct EditPreview {
+    pub full: crate::net::Frame,
+    pub planes: Vec<crate::net::Frame>,
+}
+
+pub fn edit_preview(bytes: &[u8], atlas_height: u32) -> Option<EditPreview> {
+    let rgba = image::load_from_memory(bytes).ok()?.to_rgba8();
+    let (w, h) = rgba.dimensions();
+    let as_frame = |rgba: image::RgbaImage| crate::net::Frame { width: rgba.width(), height: rgba.height(), rgba: rgba.into_raw() };
+    if h != atlas_height || h % 3 != 0 {
+        return Some(EditPreview { full: as_frame(rgba), planes: Vec::new() });
+    }
+    let height = h / 3;
+    let mut full = image::RgbaImage::new(w, height);
+    let mut planes = Vec::new();
+    for i in 0..3 {
+        let plane = image::imageops::crop_imm(&rgba, 0, height * i, w, height).to_image();
+        image::imageops::overlay(&mut full, &plane, 0, 0);
+        planes.push(as_frame(plane));
+    }
+    Some(EditPreview { full: as_frame(full), planes })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    fn png(image: image::RgbaImage) -> Vec<u8> {
+        let mut out = std::io::Cursor::new(Vec::new());
+        image.write_to(&mut out, image::ImageFormat::Png).unwrap();
+        out.into_inner()
+    }
+    #[test]
+    fn extracts_planes_and_composes_full_fallback_in_paint_order() {
+        let mut atlas = image::RgbaImage::new(2, 6);
+        for x in 0..2 {
+            for y in 0..2 {
+                atlas.put_pixel(x, y, image::Rgba([255, 0, 0, 255]));
+                atlas.put_pixel(x, y + 2, image::Rgba([0, 255, 0, 255]));
+            }
+        }
+        atlas.put_pixel(0, 4, image::Rgba([0, 0, 255, 255]));
+        let preview = edit_preview(&png(atlas), 6).unwrap();
+        assert_eq!(preview.planes.len(), 3);
+        assert_eq!((preview.full.width, preview.full.height), (2, 2));
+        assert_eq!(&preview.full.rgba[..8], &[0, 0, 255, 255, 0, 255, 0, 255]);
+        assert_eq!(&preview.planes[0].rgba[..4], &[255, 0, 0, 255]);
+        assert_eq!(&preview.planes[1].rgba[..4], &[0, 255, 0, 255]);
+    }
+    #[test]
+    fn old_server_single_frame_is_a_valid_fallback_and_invalid_bytes_are_rejected() {
+        let preview = edit_preview(&png(image::RgbaImage::new(2, 2)), 6).unwrap();
+        assert!(preview.planes.is_empty());
+        assert_eq!((preview.full.width, preview.full.height), (2, 2));
+        assert!(edit_preview(b"not an image", 6).is_none());
+    }
+}

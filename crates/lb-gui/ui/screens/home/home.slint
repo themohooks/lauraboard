@@ -99,11 +99,11 @@ export component HomeScreen inherits Page {
                     detail: App.status.last-error != "" ? App.status.last-error : App.status.encoder-detail;
                 }
                 HealthCard {
-                    title: "Подключение";
-                    value: App.online ? "Есть связь" : "Нет связи";
-                    tone: App.online ? StatusTone.success : StatusTone.error;
-                    icon: App.online ? Icons.cloud-done : Icons.cloud-off;
-                    detail: App.api-url + (App.status.outputs != "" ? " → " + App.status.outputs : "");
+                    title: "Поток";
+                    value: App.status.stream-text;
+                    tone: !App.online ? StatusTone.error : App.status.stream-ok ? StatusTone.success : StatusTone.warning;
+                    icon: App.status.stream-ok ? Icons.cloud-done : Icons.cloud-off;
+                    detail: App.status.stream-detail;
                 }
                 HealthCard {
                     title: "План эфира";

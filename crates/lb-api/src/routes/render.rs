@@ -2,6 +2,8 @@
 //! compositor the encoder uses, so editors see the exact result.
 
 use std::collections::HashMap;
+use std::path::PathBuf;
+use std::sync::{Arc, Mutex, OnceLock};
 
 use axum::Json;
 use axum::extract::{Path, State};
@@ -22,6 +24,43 @@ use crate::error::{ApiError, ApiResult};
 /// Largest frame side accepted (guards memory on odd channel settings).
 const MAX_SIDE: u32 = 4096;
 
+struct CachedRenderer {
+    root: PathBuf,
+    width: u32,
+    height: u32,
+    interactive: bool,
+    compositor: Arc<Mutex<Compositor>>,
+}
+
+fn renderer(
+    root: &std::path::Path,
+    width: u32,
+    height: u32,
+    cfg: &GraphicsConfig,
+    interactive: bool,
+    refresh: bool,
+) -> Arc<Mutex<Compositor>> {
+    static CACHE: OnceLock<Mutex<Vec<CachedRenderer>>> = OnceLock::new();
+    let cache = CACHE.get_or_init(Default::default);
+    let mut entries = cache.lock().unwrap_or_else(|e| e.into_inner());
+    if let Some(index) =
+        entries.iter().position(|e| e.root == root && e.width == width && e.height == height && e.interactive == interactive)
+    {
+        let entry = entries.remove(index);
+        if !refresh {
+            let comp = entry.compositor.clone();
+            entries.push(entry);
+            return comp;
+        }
+    }
+    let compositor = Arc::new(Mutex::new(Compositor::new(width, height, cfg.clone(), root)));
+    if entries.len() >= 4 {
+        entries.remove(0);
+    }
+    entries.push(CachedRenderer { root: root.into(), width, height, interactive, compositor: compositor.clone() });
+    compositor
+}
+
 #[derive(Deserialize)]
 pub struct RenderBody {
     /// Configuration to draw (usually an unsaved draft).
@@ -38,6 +77,13 @@ pub struct RenderBody {
     /// Elements to draw; default: every top-level element (not a group child).
     #[serde(default)]
     pub elements: Option<Vec<String>>,
+    /// Interactive atlas for local move/resize; three vertically stacked planes.
+    #[serde(default)]
+    pub edit_layer: Option<String>,
+    #[serde(default)]
+    pub interactive: bool,
+    #[serde(default)]
+    pub refresh: bool,
 }
 
 /// Transparent PNG of the given elements at the channel frame size.
@@ -62,26 +108,46 @@ pub async fn render(State(s): State<AppState>, c: Caller, Path(id): Path<String>
         None => ProgramClock { current: Some((lb_core::media::MediaKind::Program, remaining * 2)), ..Default::default() },
     };
     let next_ms = st.time_to_next_program_ms;
-    let png = tokio::task::spawn_blocking(move || {
+    let (png, pending) = tokio::task::spawn_blocking(move || {
         let active = active_set(&b.config, b.elements.as_deref(), b.t_ms);
-        let mut comp = Compositor::new(w, hgt, b.config, &root);
-        comp.prepare_web(std::time::Duration::from_secs(15))?;
+        let cached = renderer(&root, w, hgt, &b.config, b.interactive, b.refresh);
+        let mut comp = cached.lock().unwrap_or_else(|e| e.into_inner());
+        comp.set_config(b.config);
+        // Editing must never wait for a browser to start or resize. The next
+        // refresh can use its latest frame; exact/animation previews still wait.
+        if !b.interactive {
+            comp.prepare_web(std::time::Duration::from_secs(15))?;
+        }
         let now = chrono::Local::now().naive_local();
-        comp.render(&FrameContext {
+        let ctx = FrameContext {
             now,
             active: &active,
             vars: &vars,
             item_remaining_ms: remaining,
             next_program_ms: next_ms,
             program: Some(&program),
-        });
-        Ok::<_, String>(comp.png_scaled(b.width.unwrap_or(w)))
+        };
+        if let Some(selected) = &b.edit_layer {
+            if let Some(atlas) = comp.png_edit_layers(&ctx, selected, b.width.unwrap_or(w)) {
+                return Ok((Some(atlas), comp.pending_web()));
+            }
+        }
+        comp.render(&ctx);
+        Ok::<_, String>((comp.png_scaled(b.width.unwrap_or(w)), comp.pending_web()))
     })
     .await
     .map_err(|e| ApiError::new(axum::http::StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
-    .map_err(|e| ApiError::bad_request(e))?
-    .ok_or_else(|| ApiError::new(axum::http::StatusCode::INTERNAL_SERVER_ERROR, "render failed"))?;
-    Ok(([(header::CONTENT_TYPE, "image/png"), (header::CACHE_CONTROL, "no-store")], png).into_response())
+    .map_err(|e| ApiError::bad_request(e))?;
+    let png = png.ok_or_else(|| ApiError::new(axum::http::StatusCode::INTERNAL_SERVER_ERROR, "render failed"))?;
+    Ok((
+        [
+            (header::CONTENT_TYPE, "image/png"),
+            (header::CACHE_CONTROL, "no-store"),
+            (header::HeaderName::from_static("x-lb-preview-pending"), if pending { "1" } else { "0" }),
+        ],
+        png,
+    )
+        .into_response())
 }
 
 /// Elements drawn as if shown `t_ms` ago (an hour by default: animations done).

@@ -7,6 +7,7 @@
 //! * [`placement`] — graphics canvas geometry, snapping, resizing
 
 pub mod filter;
+pub mod graphics_preview;
 pub mod mask;
 pub mod period;
 pub mod placement;

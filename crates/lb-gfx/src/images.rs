@@ -44,6 +44,10 @@ impl ImageCache {
             source.mix_audio(cursors.entry(Arc::as_ptr(source) as usize).or_default(), out);
         }
     }
+    /// Snapshot for the live audio pump; mixing must not wait for a render.
+    pub fn audio_sources(&self) -> Vec<Arc<crate::web::WebSource>> {
+        self.web_active.borrow().clone()
+    }
     /// Original image (cached; failures are cached too and logged once).
     pub fn original(&mut self, path: &str) -> Option<Arc<Pixmap>> {
         if let Some(p) = self.originals.get(path) {
@@ -82,6 +86,13 @@ impl ImageCache {
     pub fn clear(&mut self) {
         self.originals.clear();
         self.scaled.clear();
+    }
+
+    pub fn invalidate(&mut self, path: &str, original: bool) {
+        if original {
+            self.originals.remove(path);
+        }
+        self.scaled.retain(|(p, _, _), _| p != path);
     }
 }
 

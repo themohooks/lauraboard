@@ -70,6 +70,40 @@ pub async fn frame(
     Ok(([(header::CONTENT_TYPE, "image/jpeg"), (header::CACHE_CONTROL, "no-store")], out.stdout).into_response())
 }
 
+/// Source waveform, decoded by FFmpeg with the same duration as the video lane.
+pub async fn waveform(State(s): State<AppState>, c: Caller, Path((id, media)): Path<(String, String)>) -> ApiResult<Response> {
+    c.require(Role::Viewer)?;
+    let h = channel(&s, &id)?;
+    let item = h.read(|d| d.library.get(&media).cloned()).ok_or_else(|| ApiError::not_found("media"))?;
+    let req = edit::Request { media, spec: EditSpec::default(), replace: false, title: None };
+    edit::check(&item, h.id(), &req).map_err(ApiError::bad_request)?;
+    if !item.probe.has_audio {
+        return Err(ApiError::not_found("no audio"));
+    }
+    let src = paths::resolve(&h.shared.root, &item.path);
+    static SLOTS: OnceLock<Semaphore> = OnceLock::new();
+    let _slot = SLOTS.get_or_init(|| Semaphore::new(1)).acquire().await.map_err(|_| ApiError::not_found("shutting down"))?;
+    let mut cmd = lb_media::process::command(&s.engine.app.ffmpeg.ffmpeg);
+    let filter = format!(
+        "aformat=channel_layouts=stereo,apad,atrim=duration={},showwavespic=s=1600x96:split_channels=1:colors=0xf3bdc7:scale=sqrt:filter=peak:draw=full",
+        item.duration.ms().max(1) as f64 / 1000.0
+    );
+    cmd.args(["-v", "error", "-i"])
+        .arg(&src)
+        .args(["-filter_complex", &filter, "-frames:v", "1", "-c:v", "png", "-f", "image2pipe", "pipe:1"])
+        .stdin(std::process::Stdio::null())
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped());
+    let out = tokio::time::timeout(TIMEOUT, cmd.output())
+        .await
+        .map_err(|_| ApiError::bad_request("waveform timed out"))?
+        .map_err(|e| ApiError::bad_request(e.to_string()))?;
+    if !out.status.success() || out.stdout.is_empty() {
+        return Err(ApiError::bad_request("could not extract waveform"));
+    }
+    Ok(([(header::CONTENT_TYPE, "image/png"), (header::CACHE_CONTROL, "no-store")], out.stdout).into_response())
+}
+
 #[derive(Deserialize)]
 pub struct RenderBody {
     #[serde(default)]

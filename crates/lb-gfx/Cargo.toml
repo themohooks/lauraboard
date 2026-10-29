@@ -1,15 +1,17 @@
 [package]
 name = "lb-gfx"
-version = "0.2.0"
+version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
 
 [dependencies]
 ab_glyph = "0.2.32"
 chrono = "0.4.45"
 fontdb = "0.24.0"
 image = { version = "0.25.10", default-features = false, features = ["png", "jpeg", "webp"] }
-lb-core = { version = "0.2.0", path = "../lb-core" }
+lb-core = { workspace = true }
 tiny-skia = "0.12.0"
 tracing = "0.1.44"
 base64 = "0.22.1"

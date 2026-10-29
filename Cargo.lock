@@ -3412,7 +3412,7 @@ dependencies = [
 
 [[package]]
 name = "lauraboard"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "anyhow",
  "chrono",
@@ -3447,7 +3447,7 @@ checksum = "20870f649af7073d53e38067b2a84312175d56ea15217e1b15bc83506ec50afb"
 
 [[package]]
 name = "lb-api"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "axum",
  "chrono",
@@ -3468,7 +3468,7 @@ dependencies = [
 
 [[package]]
 name = "lb-core"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "chrono",
  "serde",
@@ -3480,7 +3480,7 @@ dependencies = [
 
 [[package]]
 name = "lb-engine"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "chrono",
  "image",
@@ -3502,7 +3502,7 @@ dependencies = [
 
 [[package]]
 name = "lb-gfx"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "ab_glyph",
  "base64 0.22.1",
@@ -3519,7 +3519,7 @@ dependencies = [
 
 [[package]]
 name = "lb-gui"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "chrono",
  "dirs",
@@ -3542,7 +3542,7 @@ dependencies = [
 
 [[package]]
 name = "lb-installer"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "clap",
  "dirs",
@@ -3561,7 +3561,7 @@ dependencies = [
 
 [[package]]
 name = "lb-media"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "lb-core",
  "serde",
@@ -3573,7 +3573,7 @@ dependencies = [
 
 [[package]]
 name = "lb-webview"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "base64 0.22.1",
  "block2 0.6.2",
@@ -3594,7 +3594,7 @@ dependencies = [
 
 [[package]]
 name = "lb-winres"
-version = "0.2.0"
+version = "0.2.1"
 
 [[package]]
 name = "libappindicator"
@@ -8318,7 +8318,7 @@ checksum = "ec7a2a501ed189703dba8b08142f057e887dfc4b2cc4db2d343ac6376ba3e0b9"
 
 [[package]]
 name = "xtask"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "image",
  "lb-gfx",

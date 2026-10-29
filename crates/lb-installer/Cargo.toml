@@ -1,8 +1,10 @@
 [package]
 name = "lb-installer"
-version = "0.2.0"
+version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
 description = "LauraBoard installer / uninstaller (Slint, Material 3)"
 
 [[bin]]
@@ -29,5 +31,5 @@ windows-sys = { version = "0.61.2", features = ["Win32_Foundation", "Win32_UI_Wi
 snapshot = ["dep:image"]
 
 [build-dependencies]
-lb-winres = { version = "0.2.0", path = "../lb-winres" }
+lb-winres = { workspace = true }
 slint-build = "1.18.1"

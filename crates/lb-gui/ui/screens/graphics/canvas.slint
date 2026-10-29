@@ -168,11 +168,25 @@ export component GfxCanvas inherits Rectangle {
             }
         }
 
-        if Gfx.has-background && Gfx.bg-mode != 2: Image {
+        if Gfx.has-background && Gfx.bg-mode != 2 && (!Gfx.edit-layered || Gfx.anim-playing || Gfx.bg-mode != 0): Image {
             width: 100%;
             height: 100%;
             source: Gfx.anim-playing && Gfx.anim-frames.length > 0 ? Gfx.anim-frames[Gfx.anim-index] : Gfx.background;
             image-fit: fill;
+        }
+
+        if Gfx.edit-layered && Gfx.bg-mode == 0 && !Gfx.anim-playing: Rectangle {
+            x: 0px; y: 0px; width: frame.width; height: frame.height; clip: true;
+            Image { x: 0px; y: 0px; width: frame.width; height: frame.height; source: Gfx.edit-planes[0]; image-fit: fill; }
+            Image {
+                property <float> sx: Gfx.edit-w / max(Gfx.edit-base-w, 1);
+                property <float> sy: Gfx.edit-h / max(Gfx.edit-base-h, 1);
+                x: (Gfx.edit-x - Gfx.edit-base-x * self.sx) * root.scale * 1px;
+                y: (Gfx.edit-y - Gfx.edit-base-y * self.sy) * root.scale * 1px;
+                width: frame.width * self.sx; height: frame.height * self.sy;
+                source: Gfx.edit-planes[1]; image-fit: fill;
+            }
+            Image { x: 0px; y: 0px; width: frame.width; height: frame.height; source: Gfx.edit-planes[2]; image-fit: fill; }
         }
 
         if Gfx.safe-area: Rectangle {

@@ -34,10 +34,13 @@ def run(*args, **kwargs):
 
 
 def version(root=ROOT):
-    app = tomllib.loads((root / "crates/lauraboard/Cargo.toml").read_text("utf-8"))["package"]["version"]
-    if not VERSION.fullmatch(app):
-        raise ValueError(f"Unsupported release version: {app}")
     workspace = tomllib.loads((root / "Cargo.toml").read_text("utf-8"))["workspace"]["package"]["version"]
+    if not isinstance(workspace, str) or not VERSION.fullmatch(workspace):
+        raise ValueError(f"Unsupported workspace version: {workspace}")
+    declared = tomllib.loads((root / "crates/lauraboard/Cargo.toml").read_text("utf-8"))["package"]["version"]
+    app = workspace if isinstance(declared, dict) and declared.get("workspace") is True else declared
+    if not isinstance(app, str) or not VERSION.fullmatch(app):
+        raise ValueError(f"Unsupported release version: {app}")
     for manifest in sorted((root / "crates").glob("*/Cargo.toml")):
         package = tomllib.loads(manifest.read_text("utf-8"))["package"]
         declared = package["version"]

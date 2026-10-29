@@ -301,7 +301,10 @@ pub fn refresh(c: &mut Ctx) {
         enc.push(fact("Кадров в секунду", format!("{:.1}", o.stats.fps)));
         enc.push(fact("Битрейт", format!("{:.0} кбит/с", o.stats.bitrate_kbps)));
         enc.push(fact("Скорость", format!("{:.2}×", o.stats.speed)));
-        enc.push(fact("Потеряно кадров", o.stats.drop_frames.to_string()));
+        enc.push(fact("Пропущено до кодирования", o.stats.sync_drop_frames.to_string()));
+        enc.push(fact("Повторено при синхронизации", o.stats.sync_dup_frames.to_string()));
+        enc.push(fact("Сброшено FFmpeg", o.stats.drop_frames.to_string()));
+        enc.push(fact("Отставание", format!("{:.2} с", o.stats.lag_ms as f64 / 1000.0)));
     }
     enc.push(fact("Перезапусков", o.restarts.to_string()));
     g.set_encoder(vec_model(enc));

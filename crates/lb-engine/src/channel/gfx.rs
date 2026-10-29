@@ -1,17 +1,10 @@
 //! Graphics thread: renders overlay frames and streams them to the encoder
 //! over a local TCP connection.
 //!
-//! The thread paces itself: frames go out at the wall-clock rate, a little
-//! ahead, and never further ahead of the encoder's progress than a couple of
-//! seconds. Socket back-pressure cannot be relied on: Windows loopback
-//! accepts writes without limit and aborts the connection once gigabytes
-//! pile up (the overlay then vanished after ~20 s).
-//!
-//! Frames are timed by their index (`start + n / fps`), not by the moment
-//! they happen to be rendered, so motion (tickers, slides) advances by the
-//! same amount every frame. A panic while rendering one frame is caught:
-//! the thread keeps serving (a dead thread would leave the encoder unable to
-//! connect and restarting forever).
+//! Rendering and transport have independent clocks. A slow render only
+//! freezes the overlay: the video pump repeats the latest complete frame,
+//! and the audio pump reads browser PCM without waiting for the compositor.
+//! There is no render backlog; a single latest-frame slot bounds memory.
 
 use std::collections::HashMap;
 use std::io::Write;
@@ -21,7 +14,7 @@ use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard};
 use std::thread::JoinHandle;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use lb_core::graphics::{self, ActiveGraphic, GfxContext, GraphicsConfig, Manual, ProgramClock};
 use lb_core::rundown::RundownItem;
@@ -56,9 +49,6 @@ pub struct GfxThread {
     handle: Option<JoinHandle<()>>,
 }
 
-/// A frame clock drifting further than this from the wall clock is resynced
-/// (encoder stalled or restarted).
-const MAX_DRIFT_MS: i64 = 750;
 /// Frames are sent this much ahead of the wall clock, so the overlay never
 /// holds the video back.
 const LEAD_MS: i64 = 300;
@@ -106,9 +96,10 @@ impl GfxThread {
         let audio_listener = TcpListener::bind("127.0.0.1:0")?;
         audio_listener.set_nonblocking(true)?;
         let audio_port = audio_listener.local_addr()?.port();
-        let audio = Arc::new(Mutex::new(std::collections::VecDeque::<f32>::new()));
-        let audio_out = audio.clone();
-        let audio_stop = stop.clone();
+        let latest = Arc::new(Mutex::new(LiveFrame { rgba: vec![0; width as usize * height as usize * 4].into(), sources: Vec::new() }));
+        let consumed = Arc::new(AtomicU64::new(0));
+        let consumed2 = consumed.clone();
+        let (audio_latest, audio_stop, audio_consumed) = (latest.clone(), stop.clone(), consumed.clone());
         std::thread::Builder::new().name(format!("gfx-audio-{channel}")).spawn(move || {
             while !audio_stop.load(Ordering::Relaxed) {
                 let Ok((mut stream, _)) = audio_listener.accept() else {
@@ -116,27 +107,37 @@ impl GfxThread {
                     continue;
                 };
                 let _ = stream.set_write_timeout(Some(Duration::from_secs(1)));
-                audio_out.lock().unwrap_or_else(|e| e.into_inner()).clear();
-                let start = std::time::Instant::now();
-                let mut blocks = 0;
+                let _ = stream.set_read_timeout(Some(Duration::from_millis(1)));
+                let start = Instant::now();
+                let mut blocks = 0u64;
+                let mut cursors = HashMap::<usize, u64>::new();
                 while !audio_stop.load(Ordering::Relaxed) {
-                    let mut bytes = Vec::with_capacity(3840);
-                    {
-                        let mut queue = audio_out.lock().unwrap_or_else(|e| e.into_inner());
-                        for _ in 0..960 {
-                            bytes.extend(queue.pop_front().unwrap_or(0.0).clamp(-1.0, 1.0).to_le_bytes());
+                    // Bound audio just like video when the encoder is stalled.
+                    if blocks as f64 * 0.01 > audio_consumed.load(Ordering::Relaxed) as f64 / fps.max(1.0) + MAX_AHEAD_S {
+                        if peer_closed(&stream) {
+                            break;
                         }
+                        std::thread::sleep(Duration::from_millis(10));
+                        continue;
+                    }
+                    let sources = audio_latest.lock().unwrap_or_else(|e| e.into_inner()).sources.clone();
+                    cursors.retain(|key, _| sources.iter().any(|s| Arc::as_ptr(s) as usize == *key));
+                    let mut mixed = [0.0f32; 960];
+                    for source in &sources {
+                        source.mix_audio(cursors.entry(Arc::as_ptr(source) as usize).or_default(), &mut mixed);
+                    }
+                    let mut bytes = Vec::with_capacity(3840);
+                    for sample in mixed {
+                        bytes.extend(sample.clamp(-1.0, 1.0).to_le_bytes());
                     }
                     if stream.write_all(&bytes).is_err() {
                         break;
                     }
                     blocks += 1;
-                    std::thread::sleep((start + Duration::from_millis(blocks * 10)).saturating_duration_since(std::time::Instant::now()));
+                    std::thread::sleep((start + Duration::from_millis(blocks * 10)).saturating_duration_since(Instant::now()));
                 }
             }
         })?;
-        let consumed = Arc::new(AtomicU64::new(0));
-        let consumed2 = consumed.clone();
         let handle = std::thread::Builder::new().name(format!("gfx-{channel}")).spawn(move || {
             let cfg = lock(&shared).cfg.clone();
             let mut comp = Compositor::new(width, height, cfg, &root);
@@ -147,7 +148,21 @@ impl GfxThread {
                 }
                 let Ok(stream) = conn else { continue };
                 tracing::debug!(channel = %channel, "graphics consumer connected");
-                serve(&shared, &mut comp, &mut version, stream, fps, &stop2, &consumed2, &channel, &audio);
+                let connected = AtomicBool::new(true);
+                std::thread::scope(|scope| {
+                    let renderer = std::thread::Builder::new().name(format!("gfx-render-{channel}")).spawn_scoped(scope, || {
+                        render_loop(&shared, &mut comp, &mut version, &latest, fps, &stop2, &connected, &channel);
+                    });
+                    if let Err(e) = renderer {
+                        tracing::error!(channel = %channel, "could not start graphics renderer: {e}");
+                        return;
+                    }
+                    serve(&latest, stream, fps, &stop2, &consumed2, &channel);
+                    connected.store(false, Ordering::Relaxed);
+                });
+                let mut frame = latest.lock().unwrap_or_else(|e| e.into_inner());
+                frame.rgba = vec![0; width as usize * height as usize * 4].into();
+                frame.sources.clear();
             }
         })?;
         Ok(GfxThread { port, audio_port, consumed, stop, handle: Some(handle) })
@@ -170,54 +185,35 @@ impl Drop for GfxThread {
     }
 }
 
+/// Only completed frames cross this lock; it is never held during rendering,
+/// browser IO, mixing or socket writes.
+struct LiveFrame {
+    rgba: Arc<[u8]>,
+    sources: Vec<Arc<lb_gfx::web::WebSource>>,
+}
+
 #[allow(clippy::too_many_arguments)]
-fn serve(
+fn render_loop(
     shared: &SharedGfx,
     comp: &mut Compositor,
     version: &mut u64,
-    mut stream: TcpStream,
+    latest: &Mutex<LiveFrame>,
     fps: f64,
     stop: &AtomicBool,
-    consumed: &AtomicU64,
+    connected: &AtomicBool,
     channel: &str,
-    audio: &Mutex<std::collections::VecDeque<f32>>,
 ) {
-    let _ = stream.set_nodelay(true);
-    let frame_ms = 1000.0 / fps.max(1.0);
-    let max_ahead = (fps * MAX_AHEAD_S).ceil() as u64;
-    let mut start = now();
-    let mut n: u64 = 0;
-    // frames written on this connection (`n` restarts on a resync)
-    let mut sent: u64 = 0;
+    let period = Duration::from_secs_f64(1.0 / fps.max(1.0));
     let mut failing = false;
-    loop {
-        // the encoder is behind (slower than real time, or stalled): wait
-        // rather than queue frames in the socket
-        while sent > consumed.load(Ordering::Relaxed) + max_ahead {
-            if stop.load(Ordering::Relaxed) {
-                return;
-            }
-            std::thread::sleep(Duration::from_millis(10));
-        }
-        if stop.load(Ordering::Relaxed) {
-            return;
-        }
-        let mut at = lb_core::add_ms(start, (n as f64 * frame_ms).round() as i64);
-        let ahead = diff_ms(at, now());
-        if ahead > LEAD_MS {
-            std::thread::sleep(Duration::from_millis((ahead - LEAD_MS) as u64));
-        } else if ahead < -MAX_DRIFT_MS {
-            start = now();
-            n = 0;
-            at = start;
-        }
-        n += 1;
-        sent += 1;
+    let mut slow_since = Instant::now();
+    while !stop.load(Ordering::Relaxed) && connected.load(Ordering::Relaxed) {
+        let started = Instant::now();
+        let at = lb_core::add_ms(now(), LEAD_MS);
         let rendered = catch_unwind(AssertUnwindSafe(|| render_frame(shared, comp, version, at)));
-        let frame: &[u8] = match rendered {
+        let sources = match rendered {
             Ok(()) => {
                 failing = false;
-                comp.last_frame()
+                comp.audio_sources()
             }
             Err(e) => {
                 if !failing {
@@ -225,23 +221,66 @@ fn serve(
                     tracing::error!(channel = %channel, "graphics frame failed: {}", msg.unwrap_or_default());
                 }
                 failing = true;
-                comp.clear()
+                comp.clear();
+                Vec::new()
             }
         };
-        if let Err(e) = stream.write_all(frame) {
+        let rgba: Arc<[u8]> = comp.last_frame().into();
+        *latest.lock().unwrap_or_else(|e| e.into_inner()) = LiveFrame { rgba, sources };
+        let elapsed = started.elapsed();
+        if elapsed > period && slow_since.elapsed() >= Duration::from_secs(5) {
+            tracing::warn!(channel = %channel, render_ms = elapsed.as_millis() as u64,
+                budget_ms = period.as_millis() as u64, "graphics rendering is slow; repeating latest overlay without blocking playout");
+            slow_since = Instant::now();
+        }
+        // Drop missed render deadlines instead of queuing obsolete work.
+        std::thread::sleep(period.saturating_sub(started.elapsed()));
+    }
+}
+
+fn serve(latest: &Mutex<LiveFrame>, mut stream: TcpStream, fps: f64, stop: &AtomicBool, consumed: &AtomicU64, channel: &str) {
+    let _ = stream.set_nodelay(true);
+    let _ = stream.set_write_timeout(Some(Duration::from_secs(1)));
+    let _ = stream.set_read_timeout(Some(Duration::from_millis(1)));
+    let fps = fps.max(1.0);
+    let max_ahead = (fps * MAX_AHEAD_S).ceil() as u64;
+    let start = Instant::now();
+    let mut sent = 0u64;
+    loop {
+        if stop.load(Ordering::Relaxed) {
+            return;
+        }
+        if sent > consumed.load(Ordering::Relaxed).saturating_add(max_ahead) {
+            if peer_closed(&stream) {
+                return;
+            }
+            std::thread::sleep(Duration::from_millis(10));
+            continue;
+        }
+        // Rawvideo timestamps are frame indices. Never reset this clock after
+        // a delay: that leaves the overlay permanently behind the main input.
+        let due = start + Duration::from_secs_f64(sent as f64 / fps);
+        let wait = due.saturating_duration_since(Instant::now() + Duration::from_millis(LEAD_MS as u64));
+        if !wait.is_zero() {
+            std::thread::sleep(wait.min(Duration::from_millis(10)));
+            continue;
+        }
+        let frame = latest.lock().unwrap_or_else(|e| e.into_inner()).rgba.clone();
+        if let Err(e) = stream.write_all(&frame) {
             tracing::warn!(channel = %channel, "graphics consumer gone: {e}");
             return;
         }
-        let samples = (((sent as f64 * 48000.0 / fps).round() - ((sent - 1) as f64 * 48000.0 / fps).round()) as usize) * 2;
-        let mut mixed = vec![0.0; samples];
-        if !failing {
-            comp.mix_audio(&mut mixed);
-        }
-        let mut queue = audio.lock().unwrap_or_else(|e| e.into_inner());
-        queue.extend(mixed);
-        while queue.len() > 48000 {
-            queue.pop_front();
-        }
+        sent += 1;
+    }
+}
+
+/// A dead encoder cannot advance progress. Detect EOF even while the
+/// progress limit prevents further writes, so its replacement can connect.
+fn peer_closed(stream: &TcpStream) -> bool {
+    match stream.peek(&mut [0u8; 1]) {
+        Ok(0) => true,
+        Ok(_) => false,
+        Err(e) => !matches!(e.kind(), std::io::ErrorKind::WouldBlock | std::io::ErrorKind::TimedOut | std::io::ErrorKind::Interrupted),
     }
 }
 
@@ -267,4 +306,219 @@ fn render_frame(shared: &SharedGfx, comp: &mut Compositor, version: &mut u64, at
         next_program_ms: next_ms,
         program: program.as_ref(),
     });
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::io::Read;
+
+    struct StopOnDrop<'a>(&'a AtomicBool);
+    impl Drop for StopOnDrop<'_> {
+        fn drop(&mut self) {
+            self.0.store(true, Ordering::Relaxed);
+        }
+    }
+
+    #[tokio::test]
+    #[ignore = "requires FFmpeg with libx264"]
+    async fn ffmpeg_keeps_encoding_when_graphics_rendering_blocks() {
+        use lb_core::config::{AudioFormat, EncoderConfig, VideoFormat};
+        use lb_media::args::encoder::{EncodeJob, GfxInput, encoder_args};
+        use tokio::io::{AsyncBufReadExt, BufReader};
+
+        let shared = Arc::new(Mutex::new(GfxState::default()));
+        let video = VideoFormat::default();
+        let audio = AudioFormat::default();
+        let encoder = EncoderConfig::default();
+        let mut gfx =
+            GfxThread::spawn(shared.clone(), video.width, video.height, video.fps, PathBuf::from("."), "test-ffmpeg".into()).unwrap();
+        let mut args = encoder_args(&EncodeJob {
+            channel: "test",
+            video: &video,
+            audio: &audio,
+            encoder: &encoder,
+            video_codec: "libx264",
+            outputs: &[],
+            record_feed: None,
+            preview: None,
+            gfx: Some(GfxInput { port: gfx.port, audio_port: gfx.audio_port, fps: video.fps }),
+            loglevel: "error",
+        });
+        // Exercise the production overlay/audio graph and codec settings with
+        // paced synthetic main A/V instead of the MPEG-TS stdin decoder.
+        let begin = args.iter().position(|a| a == "-fflags").unwrap();
+        let end = args.iter().position(|a| a == "pipe:0").unwrap() + 1;
+        args.splice(
+            begin..end,
+            ["-re", "-f", "lavfi", "-i", "testsrc2=size=1280x720:rate=25[out0];sine=frequency=440:sample_rate=48000[out1]"]
+                .map(str::to_string),
+        );
+        let output = args.iter().position(|a| a == "-flags").unwrap();
+        args.truncate(output);
+        args.extend(["-t", "6", "-f", "null", "-"].map(str::to_string));
+        let mut child = lb_media::process::command("ffmpeg")
+            .args(args)
+            .stdin(std::process::Stdio::null())
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::piped())
+            .spawn()
+            .unwrap();
+        let stderr = child.stderr.take().unwrap();
+        let consumed = gfx.consumed.clone();
+        let (ready, started) = tokio::sync::oneshot::channel();
+        let monitor = tokio::spawn(async move {
+            let mut ready = Some(ready);
+            let mut lines = BufReader::new(stderr).lines();
+            let mut parser = lb_media::progress::ProgressParser::default();
+            let mut frames = 0;
+            let mut updates = Vec::new();
+            let mut errors = Vec::new();
+            while let Some(line) = lines.next_line().await.unwrap() {
+                if let Some(stats) = parser.feed(&line) {
+                    frames = stats.frame;
+                    consumed.store(frames, Ordering::Relaxed);
+                    if frames > 5 {
+                        updates.push(Instant::now());
+                        if let Some(ready) = ready.take() {
+                            let _ = ready.send(());
+                        }
+                    }
+                } else if !lb_media::progress::ProgressParser::is_progress_line(&line) {
+                    errors.push(line);
+                }
+            }
+            (frames, updates, errors)
+        });
+        tokio::time::timeout(Duration::from_secs(10), started).await.unwrap().unwrap();
+        let blocked = tokio::task::spawn_blocking(move || {
+            let _guard = shared.lock().unwrap();
+            std::thread::sleep(Duration::from_secs(3));
+        });
+        let status = tokio::time::timeout(Duration::from_secs(20), child.wait()).await.unwrap().unwrap();
+        blocked.await.unwrap();
+        let (frames, updates, errors) = monitor.await.unwrap();
+        gfx.shutdown();
+        gfx.handle.take().unwrap().join().unwrap();
+        assert!(status.success(), "{errors:?}");
+        assert!(frames >= 145, "only {frames} frames in six seconds");
+        assert!(
+            updates.windows(2).all(|pair| pair[1].duration_since(pair[0]) < Duration::from_secs(2)),
+            "encoder progress stalled while rendering was blocked"
+        );
+    }
+
+    #[test]
+    fn blocked_renderer_does_not_starve_video_or_audio_transport() {
+        let shared = Arc::new(Mutex::new(GfxState::default()));
+        let mut gfx = GfxThread::spawn(shared.clone(), 4, 4, 25.0, PathBuf::from("."), "test-blocked".into()).unwrap();
+        let mut video = TcpStream::connect(("127.0.0.1", gfx.port)).unwrap();
+        let mut audio = TcpStream::connect(("127.0.0.1", gfx.audio_port)).unwrap();
+        video.set_read_timeout(Some(Duration::from_secs(3))).unwrap();
+        audio.set_read_timeout(Some(Duration::from_secs(3))).unwrap();
+        video.read_exact(&mut [0u8; 64]).unwrap();
+        // Simulate a render that cannot complete for over one second. The
+        // old shared render/write loop could not deliver either stream here.
+        let blocked = shared.lock().unwrap();
+        let start = Instant::now();
+        for i in 1..36 {
+            video.read_exact(&mut [0u8; 64]).unwrap();
+            gfx.consumed.store(i + 1, Ordering::Relaxed);
+            audio.read_exact(&mut [0u8; 3840]).unwrap();
+        }
+        assert!(start.elapsed() < Duration::from_secs(3));
+        drop(blocked);
+        video.read_exact(&mut [0u8; 64]).unwrap();
+        gfx.shutdown();
+        gfx.handle.take().unwrap().join().unwrap();
+    }
+
+    #[test]
+    fn video_keeps_its_cadence_without_new_renders_and_picks_up_latest_frame() {
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let mut reader = TcpStream::connect(listener.local_addr().unwrap()).unwrap();
+        reader.set_read_timeout(Some(Duration::from_secs(3))).unwrap();
+        let (stream, _) = listener.accept().unwrap();
+        let latest = Arc::new(Mutex::new(LiveFrame { rgba: vec![1; 16].into(), sources: Vec::new() }));
+        let stop = Arc::new(AtomicBool::new(false));
+        let consumed = Arc::new(AtomicU64::new(0));
+        std::thread::scope(|scope| {
+            let _halt = StopOnDrop(&stop);
+            scope.spawn(|| serve(&latest, stream, 25.0, &stop, &consumed, "test"));
+            let start = Instant::now();
+            // No renderer publishes for more than a second: transport must
+            // still supply 25 fps, repeating the last completed frame.
+            for i in 0..40 {
+                let mut frame = [0u8; 16];
+                reader.read_exact(&mut frame).unwrap();
+                assert_eq!(frame, [1; 16]);
+                consumed.store(i + 1, Ordering::Relaxed);
+            }
+            assert!(start.elapsed() < Duration::from_secs(3));
+            latest.lock().unwrap().rgba = vec![2; 16].into();
+            let mut updated = false;
+            for i in 40..55 {
+                let mut frame = [0u8; 16];
+                reader.read_exact(&mut frame).unwrap();
+                consumed.store(i + 1, Ordering::Relaxed);
+                if frame == [2; 16] {
+                    updated = true;
+                    break;
+                }
+            }
+            stop.store(true, Ordering::Relaxed);
+            assert!(updated, "a new render must replace the repeated frame without restarting the encoder");
+        });
+    }
+
+    #[test]
+    fn stalled_consumer_has_bounded_backlog_and_recovers_without_resetting_timestamps() {
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let mut reader = TcpStream::connect(listener.local_addr().unwrap()).unwrap();
+        reader.set_read_timeout(Some(Duration::from_secs(3))).unwrap();
+        let (stream, _) = listener.accept().unwrap();
+        let latest = Mutex::new(LiveFrame { rgba: vec![7; 4].into(), sources: Vec::new() });
+        let stop = AtomicBool::new(false);
+        let consumed = AtomicU64::new(0);
+        std::thread::scope(|scope| {
+            let _halt = StopOnDrop(&stop);
+            scope.spawn(|| serve(&latest, stream, 10.0, &stop, &consumed, "test"));
+            for _ in 0..26 {
+                reader.read_exact(&mut [0u8; 4]).unwrap();
+            }
+            reader.set_read_timeout(Some(Duration::from_millis(100))).unwrap();
+            let err = reader.read_exact(&mut [0u8; 4]).unwrap_err();
+            assert!(matches!(err.kind(), std::io::ErrorKind::WouldBlock | std::io::ErrorKind::TimedOut));
+            consumed.store(26, Ordering::Relaxed);
+            reader.set_read_timeout(Some(Duration::from_secs(2))).unwrap();
+            let mut frame = [0u8; 4];
+            reader.read_exact(&mut frame).unwrap();
+            stop.store(true, Ordering::Relaxed);
+            assert_eq!(frame, [7; 4]);
+        });
+    }
+
+    #[test]
+    fn disconnected_encoder_is_detected_while_waiting_for_progress() {
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let mut reader = TcpStream::connect(listener.local_addr().unwrap()).unwrap();
+        reader.set_read_timeout(Some(Duration::from_secs(3))).unwrap();
+        let (stream, _) = listener.accept().unwrap();
+        let latest = Mutex::new(LiveFrame { rgba: vec![0; 4].into(), sources: Vec::new() });
+        let stop = AtomicBool::new(false);
+        let consumed = AtomicU64::new(0);
+        let (tx, rx) = std::sync::mpsc::channel();
+        std::thread::scope(|scope| {
+            let _halt = StopOnDrop(&stop);
+            scope.spawn(|| {
+                serve(&latest, stream, 10.0, &stop, &consumed, "test");
+                tx.send(()).unwrap();
+            });
+            for _ in 0..26 {
+                reader.read_exact(&mut [0u8; 4]).unwrap();
+            }
+            drop(reader);
+            rx.recv_timeout(Duration::from_secs(1)).expect("closed encoder must not leave the listener stuck behind its progress limit");
+        });
+    }
 }

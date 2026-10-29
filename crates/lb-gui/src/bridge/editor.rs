@@ -112,6 +112,69 @@ fn fill(c: &mut Ctx, m: &MediaItem) {
     g.set_has_frame(false);
     g.set_frame_error(SharedString::new());
     frame(c);
+    timeline_media(c, m.probe.has_audio);
+}
+
+/// Fetch source thumbnails independently of edited preview frames.
+fn timeline_media(c: &mut Ctx, has_audio: bool) {
+    let Some(ui) = c.window() else { return };
+    let Some(media) = c.ed.media.clone() else { return };
+    let g = ui.global::<Ved>();
+    g.set_thumbnails(Rc::new(VecModel::<Image>::default()).into());
+    g.set_has_waveform(false);
+    g.set_audio_status(if has_audio { "Загрузка звуковой волны…" } else { "Нет звуковой дорожки" }.into());
+    let ch = c.model.ch();
+    let duration = c.ed.duration;
+    let api = c.worker.api().patient(40);
+    for i in 0..8 {
+        let (api, media, ch) = (api.clone(), media.clone(), ch.clone());
+        c.worker.spawn(move |_| {
+            let at = duration * i / 8;
+            let img = api
+                .post_bytes(&format!("/channels/{ch}/media/{media}/edit/frame.jpg?at={at}&w=160"), &EditSpec::default())
+                .ok()
+                .and_then(|b| decode_jpeg(&b));
+            Ok(Msg::Apply(Box::new(move |c: &mut Ctx| {
+                if c.ed.media.as_deref() != Some(media.as_str()) {
+                    return;
+                }
+                let Some(ui) = c.window() else { return };
+                let g = ui.global::<Ved>();
+                let mut images: Vec<Image> = g.get_thumbnails().iter().collect();
+                images.resize(8, Image::default());
+                if let Some(f) = img {
+                    images[i as usize] = Image::from_rgba8(SharedPixelBuffer::<Rgba8Pixel>::clone_from_slice(&f.rgba, f.width, f.height));
+                }
+                g.set_thumbnails(Rc::new(VecModel::from(images)).into());
+            })))
+        });
+    }
+    if !has_audio {
+        return;
+    }
+    c.worker.spawn(move |_| {
+        let img = api
+            .get_bytes(&format!("/channels/{ch}/media/{media}/edit/waveform.png"))
+            .ok()
+            .and_then(|b| image::load_from_memory(&b).ok())
+            .map(|img| {
+                let rgba = img.to_rgba8();
+                crate::net::Frame { width: rgba.width(), height: rgba.height(), rgba: rgba.into_raw() }
+            });
+        Ok(Msg::Apply(Box::new(move |c: &mut Ctx| {
+            if c.ed.media.as_deref() != Some(media.as_str()) {
+                return;
+            }
+            let Some(ui) = c.window() else { return };
+            let g = ui.global::<Ved>();
+            if let Some(f) = img {
+                g.set_waveform(Image::from_rgba8(SharedPixelBuffer::<Rgba8Pixel>::clone_from_slice(&f.rgba, f.width, f.height)));
+                g.set_has_waveform(true);
+            } else {
+                g.set_audio_status("Звуковая волна недоступна".into());
+            }
+        })))
+    });
 }
 
 fn row(r: &Region, dur: i64) -> EditRegion {
