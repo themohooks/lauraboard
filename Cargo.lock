@@ -3505,7 +3505,7 @@ name = "lb-gfx"
 version = "0.2.1"
 dependencies = [
  "ab_glyph",
- "base64 0.22.1",
+ "base64 0.23.1",
  "chrono",
  "fontdb",
  "image",
@@ -3575,7 +3575,7 @@ dependencies = [
 name = "lb-webview"
 version = "0.2.1"
 dependencies = [
- "base64 0.22.1",
+ "base64 0.23.1",
  "block2 0.6.2",
  "cairo-rs",
  "gtk",
