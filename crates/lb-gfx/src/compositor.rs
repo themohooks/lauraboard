@@ -101,7 +101,12 @@ impl Compositor {
     }
 
     pub fn pending_web(&self) -> bool {
-        self.sprites.images.audio_sources().iter().any(|s| s.is_pending())
+        self.sprites.images.substituted() || self.sprites.images.audio_sources().iter().any(|s| s.is_pending())
+    }
+
+    /// Editor renders: web pages are not reloaded for every size of a box being resized.
+    pub fn set_editing(&self, on: bool) {
+        self.sprites.images.set_editing(on);
     }
 
     pub fn width(&self) -> u32 {

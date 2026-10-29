@@ -113,6 +113,7 @@ pub async fn render(State(s): State<AppState>, c: Caller, Path(id): Path<String>
         let cached = renderer(&root, w, hgt, &b.config, b.interactive, b.refresh);
         let mut comp = cached.lock().unwrap_or_else(|e| e.into_inner());
         comp.set_config(b.config);
+        comp.set_editing(b.interactive);
         // Editing must never wait for a browser to start or resize. The next
         // refresh can use its latest frame; exact/animation previews still wait.
         if !b.interactive {

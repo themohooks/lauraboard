@@ -10,13 +10,35 @@ pub struct ImageCache {
     root: PathBuf,
     web_cursors: std::cell::RefCell<HashMap<usize, u64>>,
     web_active: std::cell::RefCell<Vec<Arc<crate::web::WebSource>>>,
+    /// Editor mode: web pages follow box resizing without reloading.
+    editing: std::cell::Cell<bool>,
+    /// A web page was drawn scaled from another size this frame.
+    substituted: std::cell::Cell<bool>,
     originals: HashMap<String, Option<Arc<Pixmap>>>,
     scaled: HashMap<(String, u32, u32), Arc<Pixmap>>,
 }
 
 impl ImageCache {
+    pub fn set_editing(&self, on: bool) {
+        self.editing.set(on);
+    }
+
+    /// Whether a web page was drawn scaled from another size (the exact one is still starting).
+    pub fn substituted(&self) -> bool {
+        self.substituted.get()
+    }
+
     pub fn web(&self, path: &str, w: u32, h: u32) -> Arc<crate::web::WebSource> {
-        let source = crate::web::WebSource::get(&lb_core::project::paths::resolve(&self.root, path), w, h);
+        let full = lb_core::project::paths::resolve(&self.root, path);
+        let source = if self.editing.get() {
+            let (source, substitute) = crate::web::WebSource::get_editing(&full, w, h);
+            if substitute {
+                self.substituted.set(true);
+            }
+            source
+        } else {
+            crate::web::WebSource::get(&full, w, h)
+        };
         let mut active = self.web_active.borrow_mut();
         if !active.iter().any(|s| Arc::ptr_eq(s, &source)) {
             active.push(source.clone());
@@ -27,6 +49,8 @@ impl ImageCache {
         ImageCache {
             web_cursors: Default::default(),
             web_active: Default::default(),
+            editing: Default::default(),
+            substituted: Default::default(),
             root: root.to_path_buf(),
             originals: HashMap::new(),
             scaled: HashMap::new(),
@@ -35,6 +59,7 @@ impl ImageCache {
 
     pub fn begin_frame(&self) {
         self.web_active.borrow_mut().clear();
+        self.substituted.set(false);
     }
     pub fn mix_audio(&self, out: &mut [f32]) {
         let active = self.web_active.borrow();
@@ -82,6 +107,18 @@ impl ImageCache {
         Some(pm)
     }
 
+    /// `pm` stretched to (w, h) (a web page captured at another size).
+    pub fn fit(pm: &Arc<Pixmap>, w: u32, h: u32) -> Arc<Pixmap> {
+        if pm.width() == w && pm.height() == h {
+            return pm.clone();
+        }
+        let Some(mut out) = Pixmap::new(w.max(1), h.max(1)) else { return pm.clone() };
+        let t = Transform::from_scale(w as f32 / pm.width() as f32, h as f32 / pm.height() as f32);
+        let paint = PixmapPaint { quality: tiny_skia::FilterQuality::Bilinear, ..Default::default() };
+        out.draw_pixmap(0, 0, Pixmap::as_ref(pm), &paint, t, None);
+        Arc::new(out)
+    }
+
     /// Forget everything (e.g. after graphics configuration changes).
     pub fn clear(&mut self) {
         self.originals.clear();
@@ -115,6 +152,14 @@ fn load(path: &Path) -> Option<Pixmap> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn fit_stretches_to_the_requested_size() {
+        let pm = Arc::new(Pixmap::new(10, 5).unwrap());
+        let out = ImageCache::fit(&pm, 30, 20);
+        assert_eq!((out.width(), out.height()), (30, 20));
+        assert!(Arc::ptr_eq(&ImageCache::fit(&pm, 10, 5), &pm));
+    }
 
     #[test]
     fn keeps_colour_of_semi_transparent_png() {

@@ -91,7 +91,7 @@ impl SpriteFactory {
                 if crate::web::is_web(path) {
                     let w = el.placement.width.unwrap_or(640.0).clamp(1.0, 4096.0) as u32;
                     let h = el.placement.height.unwrap_or(360.0).clamp(1.0, 4096.0) as u32;
-                    return self.images.web(path, w, h).frame().map(Sprite::plain);
+                    return self.images.web(path, w, h).frame().map(|f| Sprite::plain(ImageCache::fit(&f, w, h)));
                 }
                 let orig = self.images.original(path)?;
                 let (w, h) = fit_size(&el.placement, orig.width() as f32, orig.height() as f32);

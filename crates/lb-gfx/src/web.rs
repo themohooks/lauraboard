@@ -37,6 +37,7 @@ pub struct WebSource {
     stop: Arc<AtomicBool>,
     created: Instant,
     finished: Arc<AtomicBool>,
+    size: (u32, u32),
 }
 
 impl Drop for WebSource {
@@ -46,6 +47,10 @@ impl Drop for WebSource {
 }
 
 type Key = (PathBuf, u32, u32);
+/// Per path, the size the editor asked for last and since when.
+static WANTED: OnceLock<Mutex<HashMap<PathBuf, ((u32, u32), Instant)>>> = OnceLock::new();
+/// How long a size must stay unchanged before a source of that size starts.
+const SETTLE: Duration = Duration::from_millis(250);
 static SOURCES: OnceLock<Mutex<HashMap<Key, Arc<WebSource>>>> = OnceLock::new();
 
 impl WebSource {
@@ -68,6 +73,7 @@ impl WebSource {
             stop: Arc::new(AtomicBool::new(false)),
             created: Instant::now(),
             finished: Arc::new(AtomicBool::new(false)),
+            size: (key.1, key.2),
         });
         let (frame, error, used, stop) = (source.frame.clone(), source.error.clone(), source.used.clone(), source.stop.clone());
         let (path, w, h) = key.clone();
@@ -83,6 +89,50 @@ impl WebSource {
         });
         sources.insert(key, source.clone());
         source
+    }
+
+    /// Size the page is rendered at.
+    pub fn size(&self) -> (u32, u32) {
+        self.size
+    }
+
+    /// Source for the editor while a box is dragged or resized: the page is
+    /// not reloaded for every size on the way. Until the size has stayed the
+    /// same for [`SETTLE`], the frame of the source already running is used
+    /// (the caller scales it); then a source of the exact size is started,
+    /// and replaces it once it has a frame. The flag is true while a
+    /// substitute is returned.
+    pub fn get_editing(path: &Path, w: u32, h: u32) -> (Arc<Self>, bool) {
+        let (w, h) = (w.clamp(1, 4096), h.clamp(1, 4096));
+        let ready = |s: &Arc<WebSource>| s.frame.lock().unwrap_or_else(|e| e.into_inner()).is_some();
+        let old = {
+            let sources = SOURCES.get_or_init(Default::default).lock().unwrap_or_else(|e| e.into_inner());
+            if let Some(s) = sources.get(&(path.to_path_buf(), w, h))
+                && ready(s)
+            {
+                *s.used.lock().unwrap_or_else(|e| e.into_inner()) = Instant::now();
+                return (s.clone(), false);
+            }
+            sources
+                .iter()
+                .filter(|(k, s)| k.0 == path && !s.stop.load(Ordering::Relaxed) && ready(s))
+                .max_by_key(|(_, s)| *s.used.lock().unwrap_or_else(|e| e.into_inner()))
+                .map(|(_, s)| s.clone())
+        };
+        let Some(old) = old else { return (Self::get(path, w, h), false) };
+        let settled = {
+            let mut wanted = WANTED.get_or_init(Default::default).lock().unwrap_or_else(|e| e.into_inner());
+            let entry = wanted.entry(path.to_path_buf()).or_insert(((w, h), Instant::now()));
+            if entry.0 != (w, h) {
+                *entry = ((w, h), Instant::now());
+            }
+            entry.1.elapsed() >= SETTLE
+        };
+        *old.used.lock().unwrap_or_else(|e| e.into_inner()) = Instant::now();
+        if settled {
+            Self::get(path, w, h);
+        }
+        (old, true)
     }
 
     pub fn mix_audio(&self, cursor: &mut u64, out: &mut [f32]) {
@@ -343,6 +393,7 @@ mod tests {
             stop: Default::default(),
             created: Instant::now(),
             finished: Default::default(),
+            size: (1, 1),
         };
         for _ in 0..2 {
             let mut cursor = 0;
@@ -351,6 +402,31 @@ mod tests {
             assert_eq!(out, [0.25, -0.25, 0.0, 0.0]);
             assert_eq!(cursor, 12);
         }
+    }
+
+    #[test]
+    fn resizing_in_the_editor_reuses_the_running_page() {
+        let path = PathBuf::from("resize-test-page.html");
+        let source = Arc::new(WebSource {
+            frame: Arc::new(Mutex::new(Some(Arc::new(Pixmap::new(100, 50).unwrap())))),
+            audio: Default::default(),
+            error: Default::default(),
+            used: Arc::new(Mutex::new(Instant::now())),
+            stop: Default::default(),
+            created: Instant::now(),
+            finished: Default::default(),
+            size: (100, 50),
+        });
+        SOURCES.get_or_init(Default::default).lock().unwrap().insert((path.clone(), 100, 50), source.clone());
+        let (same, substitute) = WebSource::get_editing(&path, 100, 50);
+        assert!(Arc::ptr_eq(&same, &source) && !substitute);
+        // sizes on the way: the running page is used, nothing new starts
+        for w in [120, 140, 160] {
+            let (got, substitute) = WebSource::get_editing(&path, w, 50);
+            assert!(Arc::ptr_eq(&got, &source) && substitute);
+        }
+        let sources = SOURCES.get().unwrap().lock().unwrap();
+        assert_eq!(sources.keys().filter(|k| k.0 == path).count(), 1);
     }
 
     #[test]
@@ -363,6 +439,7 @@ mod tests {
             stop: Default::default(),
             created: Instant::now(),
             finished: Default::default(),
+            size: (1, 1),
         };
         assert!(source.is_pending());
         *source.error.lock().unwrap() = Some("failed".into());
