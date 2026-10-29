@@ -34,8 +34,15 @@ try {
     }
     Push-Location $repo
     try {
-        & $x build --manifest-path crates/lb-android/Cargo.toml --platform android --arch arm64 --format apk --debug
-        if ($LASTEXITCODE) { throw 'Android debug build failed' }
+        & $x build --manifest-path crates/lb-android/Cargo.toml --platform android --arch arm64 --format apk --debug 2>&1 |
+            Tee-Object -Variable buildOutput
+        if ($LASTEXITCODE -and (($buildOutput -join "`n") -notmatch 'failed to locate key id compileSdkVersion')) {
+            throw 'Android debug build failed'
+        }
+        # xbuild's internal resource packer cannot serialize compileSdkVersion
+        # against its API 27 resource table. Package with the installed SDK so
+        # the final manifest can target 35 and explicitly permit LAN HTTP.
+        & (Join-Path $PSScriptRoot 'package-debug.ps1') -Repo $repo -Sdk $Sdk -NdkBin $bin
         $apk = Join-Path $repo 'target/x/debug/android/lb-android.apk'
         if (!(Test-Path -LiteralPath $apk)) { throw "APK not produced: $apk" }
         Write-Host "APK: $apk"

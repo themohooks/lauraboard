@@ -5,8 +5,8 @@ android:
     compile_sdk_version: 35
     sdk:
       min_sdk_version: 26
-      # xbuild's manifest model has no usesCleartextTraffic attribute.
-      # API 27 keeps LAN HTTP enabled for this experimental debug client.
+      # Native xbuild stage only. package-debug.ps1 uses AndroidManifest.xml
+      # for the final SDK 35 APK with explicit LAN HTTP support.
       target_sdk_version: 27
     uses_permission:
       - name: android.permission.INTERNET
