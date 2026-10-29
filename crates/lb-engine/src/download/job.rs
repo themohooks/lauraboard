@@ -170,13 +170,33 @@ async fn fetch(
     ctl: &JobCtl,
     progress: impl Fn(f32, &str),
 ) -> Result<Done, String> {
+    match fetch_once(tools, url, quality, dir, stem, ctl, &progress, false).await {
+        Err(e) if info::is_format_error(&e) => {
+            remove_partial(dir, stem);
+            fetch_once(tools, url, quality, dir, stem, ctl, &progress, true).await
+        }
+        r => r,
+    }
+}
+
+#[allow(clippy::too_many_arguments)]
+async fn fetch_once(
+    tools: &Tools,
+    url: &str,
+    quality: &str,
+    dir: &Path,
+    stem: &str,
+    ctl: &JobCtl,
+    progress: &impl Fn(f32, &str),
+    fallback: bool,
+) -> Result<Done, String> {
     if !info::is_web_link(url) || !info::is_quality(quality) {
         return Err("bad request".into());
     }
     let mut cmd = tool::command(&tools.ytdlp);
     base_args(&mut cmd);
     cmd.args(&tools.login);
-    cmd.args(info::format_args(quality));
+    cmd.args(if fallback { info::fallback_args(quality) } else { info::format_args(quality) });
     cmd.args(["--newline", "--progress", "--no-mtime", "--no-part"]);
     cmd.arg("--progress-template").arg(format!(
         "download:{PROGRESS} %(progress.downloaded_bytes)s %(progress.total_bytes)s %(progress.total_bytes_estimate)s %(info.format_id)s %(progress.speed)s"

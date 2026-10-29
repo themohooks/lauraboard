@@ -182,14 +182,33 @@ pub fn parse(v: &Value, url: &str) -> Result<LinkInfo, String> {
 pub fn format_args(quality: &str) -> Vec<String> {
     let v = |a: &[&str]| a.iter().map(|s| s.to_string()).collect::<Vec<_>>();
     if quality == "audio" {
-        return v(&["-f", "ba/b", "-x", "--audio-format", "m4a"]);
+        return v(&["-f", "ba/b/bv*", "-x", "--audio-format", "m4a"]);
     }
     let height = quality.strip_prefix('h').and_then(|h| h.parse::<u32>().ok());
     let sort = match height {
         Some(h) => format!("res:{h},fps,vcodec:h264,acodec:aac"),
         None => "res,fps,vcodec:h264,acodec:aac".into(),
     };
-    v(&["-f", "bv*+ba/b", "-S", &sort, "--merge-output-format", "mp4/mkv"])
+    // a video-only or single-stream result is better than "format not available"
+    v(&["-f", "bv*+ba/b/bv*/ba", "-S", &sort, "--merge-output-format", "mp4/mkv"])
+}
+
+/// Arguments for the second attempt after "Requested format is not
+/// available": no format selection (yt-dlp's own default) and the other
+/// YouTube clients, which often expose formats the default one hides.
+pub fn fallback_args(quality: &str) -> Vec<String> {
+    let mut a = vec!["--extractor-args".to_string(), "youtube:player_client=default,tv,web_safari,mweb".to_string()];
+    if quality == "audio" {
+        a.extend(["-x", "--audio-format", "m4a"].map(String::from));
+    } else {
+        a.extend(["--merge-output-format", "mp4/mkv"].map(String::from));
+    }
+    a
+}
+
+/// Whether yt-dlp failed because no format matched.
+pub fn is_format_error(message: &str) -> bool {
+    message.contains("Requested format is not available")
 }
 
 /// A valid quality id (the rest of the request goes to yt-dlp as is).
@@ -258,7 +277,8 @@ mod tests {
 
     #[test]
     fn quality_arguments() {
-        assert_eq!(format_args("audio")[..2], ["-f", "ba/b"]);
+        assert_eq!(format_args("audio")[..2], ["-f", "ba/b/bv*"]);
+        assert!(is_format_error("ERROR: Requested format is not available. Use --list-formats"));
         let a = format_args("h720");
         assert!(a.contains(&"res:720,fps,vcodec:h264,acodec:aac".to_string()));
         assert!(is_quality("h1080") && is_quality("best") && is_quality("audio"));
