@@ -1147,9 +1147,12 @@ pub fn render(c: &mut Ctx) {
     let vars = cfg.vars.clone();
     let refresh = std::mem::take(&mut c.gfx.force_render);
     let width = if c.gfx.drag.is_some() { 640 } else { 1280 };
-    let selected = selected_geometry(c);
     let scope = c.gfx.scope.clone();
     let (fw, fh) = frame(c);
+    let requested_geometry = selected_geometry(c);
+    // Off-frame pixels are absent from the atlas. Request full renders while
+    // moving such an element so returning it to the frame restores its content.
+    let selected = requested_geometry.clone().filter(|(_, rect)| crate::logic::graphics_preview::can_transform_locally(*rect, fw, fh));
     let atlas_height = if selected.is_some() { (fh * (width as f32).min(fw) / fw).round().max(1.0) as u32 * 3 } else { 0 };
     c.worker.spawn(move |api| {
         let r = api.post_bytes_header(
@@ -1172,7 +1175,9 @@ pub fn render(c: &mut Ctx) {
             let Some(ui) = c.window() else { return };
             let g = ui.global::<Gfx>();
             g.set_rendering(false);
-            if c.gfx.scope != scope || c.model.ch() != ch || selected.as_ref().map(|s| &s.0) != selected_geometry(c).as_ref().map(|s| &s.0)
+            if c.gfx.scope != scope
+                || c.model.ch() != ch
+                || requested_geometry.as_ref().map(|s| &s.0) != selected_geometry(c).as_ref().map(|s| &s.0)
             {
                 if c.section() == "graphics" {
                     render(c);
