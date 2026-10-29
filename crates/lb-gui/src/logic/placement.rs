@@ -103,6 +103,14 @@ pub fn rect_in(e: &Element, region: Rect) -> Rect {
     Rect { x: region.x + (region.w - w) * fx + dx, y: region.y + (region.h - h) * fy + dy, w, h }
 }
 
+/// Give a newly selected raster image explicit dimensions shared by the
+/// selection box and server renderer, without changing its aspect ratio.
+pub fn fit_image_size(natural: (u32, u32), bounds: Rect) -> (f32, f32) {
+    let (w, h) = (natural.0.max(1) as f32, natural.1.max(1) as f32);
+    let scale = (bounds.w.max(1.0) / w).min(bounds.h.max(1.0) / h);
+    ((w * scale).floor().max(1.0), (h * scale).floor().max(1.0))
+}
+
 /// Region an element is placed in: the box of the group listing it as a
 /// child (groups nest, at most 8 deep like the compositor), else the frame.
 pub fn region_of(cfg: &GraphicsConfig, id: &str, frame_w: f32, frame_h: f32) -> Rect {
@@ -206,6 +214,29 @@ pub fn valid_color(s: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn selected_images_fit_their_canvas_box() {
+        let bounds = Rect { x: 0.0, y: 0.0, w: 320.0, h: 180.0 };
+        assert_eq!(fit_image_size((1200, 1200), bounds), (180.0, 180.0));
+        assert_eq!(fit_image_size((1920, 1080), bounds), (320.0, 180.0));
+        assert_eq!(fit_image_size((600, 1200), bounds), (90.0, 180.0));
+        assert_eq!(fit_image_size((2400, 600), bounds), (320.0, 80.0));
+        let mut e: Element = serde_json::from_value(serde_json::json!({
+            "id": "image", "type": "image", "path": "portrait.png",
+            "placement": { "anchor": "top_right", "x": 60.0, "y": 50.0 }
+        }))
+        .unwrap();
+        let frame = Rect { w: 1280.0, h: 720.0, ..Default::default() };
+        let before = rect_in(&e, frame);
+        let (w, h) = fit_image_size((600, 1200), before);
+        e.placement.width = Some(w);
+        e.placement.height = Some(h);
+        let after = rect_in(&e, frame);
+        assert_eq!((after.w, after.h), (90.0, 180.0));
+        assert_eq!(after.x + after.w, before.x + before.w);
+        assert_eq!(after.y, before.y);
+    }
 
     fn rect_el(anchor: Anchor, x: f32, y: f32) -> Element {
         serde_json::from_value(serde_json::json!({

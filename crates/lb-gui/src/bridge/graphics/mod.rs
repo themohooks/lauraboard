@@ -573,6 +573,20 @@ fn props_changed(c: &mut Ctx) {
             uppercase: g.get_s_upper(),
         }
     };
+    if let ElementKind::Image { path } = &e.kind {
+        let next = g.get_p_path().trim().to_string();
+        if *path != next
+            && let Ok(natural) = image::image_dimensions(&next)
+        {
+            let (fw, fh) = frame(c);
+            let region = placement::region_of(c.gfx.draft.as_ref().unwrap(), &e.id, fw, fh);
+            let (w, h) = placement::fit_image_size(natural, placement::rect_in(&e, region));
+            e.placement.width = Some(w);
+            e.placement.height = Some(h);
+            g.set_p_w(s(fmt_num(w)));
+            g.set_p_h(s(fmt_num(h)));
+        }
+    }
     e.kind = match e.kind.clone() {
         ElementKind::Text { style, .. } => {
             ElementKind::Text { text: g.get_p_text().to_string(), style: style_from(&style, &g, &mut color, &mut num) }
@@ -905,8 +919,18 @@ fn add(c: &mut Ctx, kind: &str) {
             anchor,
             x,
             y,
-            width: if kind == "web" { Some(640.0) } else { (kind == "avatar").then_some(96.0) },
-            height: (kind == "web").then_some(360.0),
+            width: match kind {
+                "web" => Some(640.0),
+                "image" => Some(320.0),
+                "avatar" => Some(96.0),
+                _ => None,
+            },
+            height: match kind {
+                "web" => Some(360.0),
+                "image" => Some(180.0),
+                "avatar" => Some(96.0),
+                _ => None,
+            },
         },
         opacity: 1.0,
         layer,
