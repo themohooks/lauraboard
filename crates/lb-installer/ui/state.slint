@@ -22,6 +22,7 @@ export global Setup {
     in property <bool> ffmpeg-checking;
 
     // location
+    in-out property <bool> all-users;          // false: only the current user
     in-out property <string> install-dir;
     in property <string> dir-error;           // blocks "Next"
     in property <string> dir-note;
@@ -53,6 +54,7 @@ export global Setup {
 
     callback check-ffmpeg();
     callback dir-edited(string);
+    callback scope-changed();
     callback project-edited(string);
     callback browse-dir();
     callback browse-project();

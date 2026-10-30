@@ -41,7 +41,7 @@ pub fn run(out: &Path) -> Result<(), String> {
     s.set_installed_dir(r"C:\Users\operator\AppData\Local\Programs\LauraBoard".into());
 
     type Prep = fn(&Setup);
-    let shots: [(&str, Prep); 10] = [
+    let shots: [(&str, Prep); 11] = [
         ("welcome", |s| {
             s.set_mode(SetupMode::Install);
             s.set_page(SetupPage::Welcome);
@@ -59,8 +59,14 @@ pub fn run(out: &Path) -> Result<(), String> {
             s.set_install_dir("LauraBoard".into());
             s.set_dir_error("Нужен полный путь".into());
         }),
-        ("options", |s| {
+        ("location-all-users", |s| {
             s.set_dir_error("".into());
+            s.set_all_users(true);
+            s.set_install_dir(r"C:\Program Files\LauraBoard".into());
+        }),
+        ("options", |s| {
+            s.set_all_users(false);
+            s.set_install_dir(r"C:\Users\operator\AppData\Local\Programs\LauraBoard".into());
             s.set_page(SetupPage::Options);
         }),
         ("progress", |s| {

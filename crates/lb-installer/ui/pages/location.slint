@@ -9,10 +9,39 @@ import { StatusChip, StatusTone } from "@m3/components/indicators.slint";
 import { TextField } from "@m3/components/text-field.slint";
 import { Setup } from "../state.slint";
 import { WizardPage } from "../parts/page.slint";
+import { ScopeRow } from "../parts/scope-row.slint";
 
 export component LocationPage inherits WizardPage {
     title: "Папка установки";
-    text: "Программа ставится только для вашей учётной записи — права администратора не нужны.";
+    text: "Для кого ставится программа и в какую папку.";
+
+    Card {
+        card-style: low;
+        inset: Theme.sp2;
+        gap: 0;
+        ScopeRow {
+            icon: Icons.person;
+            title: "Только для меня";
+            text: "Права администратора не нужны. Ярлыки и команда lauraboard — только в вашей учётной записи.";
+            checked: !Setup.all-users;
+            clicked => {
+                Setup.all-users = false;
+                Setup.scope-changed();
+            }
+        }
+        ScopeRow {
+            icon: Icons.group;
+            title: "Для всех пользователей компьютера";
+            text: Setup.windows
+                ? "Нужны права администратора (Windows спросит разрешение). Папка в Program Files, ярлыки и PATH — общие."
+                : "Нужны права root (запустите установщик через sudo). Папка в /opt, значок в меню и команда lauraboard — для всех.";
+            checked: Setup.all-users;
+            clicked => {
+                Setup.all-users = true;
+                Setup.scope-changed();
+            }
+        }
+    }
 
     HorizontalLayout {
         spacing: Theme.sp2;

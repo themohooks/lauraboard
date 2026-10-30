@@ -28,6 +28,10 @@ pub fn install(opts: &Options, report: Report) -> Result<Outcome, String> {
     if let Some(prev) = &previous {
         crate::uninstall::remove_integration(prev);
         remove_old_copies(prev);
+        // switching between "for me" and "for everyone": the old receipt goes
+        if prev.all_users != opts.all_users {
+            prev.delete();
+        }
     }
 
     report(0.02, "Копирование файлов");
@@ -39,7 +43,16 @@ pub fn install(opts: &Options, report: Report) -> Result<Outcome, String> {
 
     let binary = dir.join(&manifest.binary);
     let icon = dir.join(&manifest.icon);
-    let mut receipt = Receipt { version: manifest.version.clone(), dir: dir.clone(), files, ..Receipt::default() };
+    let mut receipt = Receipt {
+        version: manifest.version.clone(),
+        dir: dir.clone(),
+        files,
+        all_users: opts.all_users,
+        menu_shortcut: Some(opts.menu_shortcut),
+        desktop_shortcut: Some(opts.desktop_shortcut),
+        add_to_path: Some(opts.add_to_path),
+        ..Receipt::default()
+    };
     let mut warnings = Vec::new();
     let mut note = |r: Result<Vec<std::path::PathBuf>, String>, extras: &mut Vec<_>| match r {
         Ok(paths) => extras.extend(paths),
@@ -48,13 +61,13 @@ pub fn install(opts: &Options, report: Report) -> Result<Outcome, String> {
 
     report(0.72, "Ярлыки");
     if opts.menu_shortcut {
-        note(platform::menu_shortcut(&binary, &icon), &mut receipt.extras);
+        note(platform::menu_shortcut(&binary, &icon, opts.all_users), &mut receipt.extras);
     }
     if opts.desktop_shortcut {
-        note(platform::desktop_shortcut(&binary, &icon), &mut receipt.extras);
+        note(platform::desktop_shortcut(&binary, &icon, opts.all_users), &mut receipt.extras);
     }
     if opts.add_to_path {
-        let change = platform::add_to_path(&dir, &binary).map(|c| {
+        let change = platform::add_to_path(&dir, &binary, opts.all_users).map(|c| {
             receipt.path_entry = c.entry;
             c.extras
         });
@@ -68,6 +81,7 @@ pub fn install(opts: &Options, report: Report) -> Result<Outcome, String> {
         binary: &binary,
         uninstaller: &dir.join(&manifest.uninstaller),
         size: manifest.size,
+        all_users: opts.all_users,
     };
     receipt.registered = platform::register(&reg).unwrap_or_else(|e| {
         warnings.push(e);

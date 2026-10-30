@@ -1,0 +1,79 @@
+// One choice of a radio group: radio, title, description. The whole row
+// selects it.
+
+import { Theme } from "@m3/theme/tokens.slint";
+import { Icon } from "@m3/components/icon.slint";
+import { Label } from "@m3/components/label.slint";
+import { Radio } from "@m3/components/checkbox.slint";
+import { StateLayer } from "@m3/components/state-layer.slint";
+
+export component ScopeRow inherits Rectangle {
+    in property <image> icon;
+    in property <string> title;
+    in property <string> text;
+    in property <bool> checked;
+    callback clicked();
+
+    min-height: Theme.row-height-tall;
+    border-radius: Theme.radius-s;
+    accessible-role: radio-button;
+    accessible-label: title;
+    accessible-description: text;
+    accessible-checked: checked;
+    accessible-checkable: true;
+    accessible-action-default => {
+        root.clicked();
+    }
+
+    StateLayer {
+        hovered: touch.has-hover;
+        pressed: touch.pressed;
+        border-radius: root.border-radius;
+    }
+
+    touch := TouchArea {
+        clicked => {
+            root.clicked();
+        }
+    }
+
+    HorizontalLayout {
+        padding-left: Theme.sp1;
+        padding-right: Theme.sp3;
+        padding-top: Theme.sp1;
+        padding-bottom: Theme.sp1;
+        spacing: Theme.sp2;
+        VerticalLayout {
+            alignment: center;
+            Radio {
+                checked: root.checked;
+                clicked => {
+                    root.clicked();
+                }
+            }
+        }
+        VerticalLayout {
+            alignment: center;
+            Icon {
+                source: root.icon;
+                tint: Theme.color.on-surface-variant;
+            }
+        }
+        VerticalLayout {
+            horizontal-stretch: 1;
+            alignment: center;
+            spacing: 2px;
+            Label {
+                text: root.title;
+                type-style: Theme.body-large;
+            }
+            Label {
+                text: root.text;
+                type-style: Theme.body-medium;
+                color: Theme.color.on-surface-variant;
+                wrap: word-wrap;
+                overflow: clip;
+            }
+        }
+    }
+}

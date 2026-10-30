@@ -5,7 +5,13 @@
 //!   removes what the installation created.
 //!
 //! The wizard uses the operator GUI's Material 3 components; `--silent`
-//! does the same without a window (for scripts and deployment).
+//! does the same without a window (for scripts and deployment). `--update`
+//! is how the application updates itself: it starts the new installer and
+//! quits, the installer waits for it, installs with the same choices and
+//! opens the new version.
+//!
+//! An installation for all users needs administrator rights: this program
+//! then starts itself once more elevated and lets that copy do the work.
 
 #![cfg_attr(windows, windows_subsystem = "windows")]
 
@@ -21,6 +27,7 @@ mod snapshot;
 mod ui;
 mod uninstall;
 
+use std::ffi::OsString;
 use std::path::PathBuf;
 use std::process::ExitCode;
 
@@ -38,9 +45,24 @@ struct Args {
     /// No window: use the defaults and the options below.
     #[arg(long)]
     silent: bool,
-    /// Install folder (default: per-user programs folder).
+    /// Install folder (default: per-user programs folder, or Program Files
+    /// with --all-users).
     #[arg(long)]
     dir: Option<PathBuf>,
+    /// Install for every user of the computer (needs administrator rights).
+    #[arg(long)]
+    all_users: bool,
+    /// Update the installed copy with the same choices: progress only, then
+    /// the new version opens.
+    #[arg(long)]
+    update: bool,
+    /// Wait for this process (the application being updated) to exit.
+    #[arg(long, value_name = "PID")]
+    wait: Option<u32>,
+    /// Wizard: start installing at once with the options given (used by the
+    /// copy started with administrator rights).
+    #[arg(long, hide = true)]
+    resume: bool,
     /// No Start menu / applications menu entry.
     #[arg(long)]
     no_menu: bool,
@@ -73,6 +95,9 @@ struct Args {
     snapshot: Option<PathBuf>,
 }
 
+/// How long an update waits for the application to quit.
+pub const WAIT_FOR_APP: std::time::Duration = std::time::Duration::from_secs(60);
+
 fn main() -> ExitCode {
     platform::attach_console();
     let args = Args::parse();
@@ -86,7 +111,13 @@ fn main() -> ExitCode {
             }
         };
     }
-    let result = if args.silent { silent(&args) } else { wizard(&args) };
+    let result = if needs_elevation(&args) && !platform::elevated() {
+        elevated(&args)
+    } else if args.silent {
+        silent(&args)
+    } else {
+        wizard(&args)
+    };
     match result {
         Ok(()) => ExitCode::SUCCESS,
         Err(e) => {
@@ -99,11 +130,73 @@ fn main() -> ExitCode {
     }
 }
 
+fn removing(args: &Args) -> bool {
+    args.uninstall || !payload::present()
+}
+
+/// The wizard asks for rights itself once "for all users" is chosen; this
+/// is for work that starts right away.
+fn needs_elevation(args: &Args) -> bool {
+    if removing(args) {
+        return Receipt::load().is_some_and(|r| r.all_users);
+    }
+    (args.silent || args.update || args.resume) && options(args).all_users
+}
+
+/// Run the same command elevated. Silent mode waits for it (scripts get its
+/// exit code); a failed update brings the old version back.
+fn elevated(args: &Args) -> Result<(), String> {
+    let own: Vec<OsString> = std::env::args_os().skip(1).collect();
+    match platform::elevate(&own, args.silent) {
+        Ok(Some(0) | None) => Ok(()),
+        Ok(Some(code)) => Err(format!("установка завершилась с кодом {code}")),
+        Err(e) => {
+            if args.update
+                && let Some(r) = Receipt::load()
+                && let Ok(m) = payload::manifest()
+            {
+                let _ = platform::launch(&r.dir.join(m.binary));
+            }
+            Err(e)
+        }
+    }
+}
+
+/// Defaults (or the installed copy's choices) plus the command line.
+fn options(args: &Args) -> Options {
+    let mut opts = Options::new(Receipt::load().as_ref());
+    if args.all_users && !opts.all_users {
+        opts.all_users = true;
+        opts.dir = options::default_dir(true);
+    }
+    if let Some(dir) = &args.dir {
+        opts.dir = dir.clone();
+    }
+    opts.menu_shortcut &= !args.no_menu;
+    opts.desktop_shortcut &= !args.no_desktop;
+    opts.add_to_path &= !args.no_path;
+    if args.project.is_some() {
+        opts.project = args.project.clone();
+    }
+    if args.no_project {
+        opts.project = None;
+    }
+    opts.demo = args.demo;
+    opts
+}
+
 fn wizard(args: &Args) -> Result<(), String> {
-    let mode = if args.uninstall || !payload::present() {
+    let mode = if removing(args) {
         ui::Mode::Uninstall(Receipt::load())
     } else {
-        ui::Mode::Install { manifest: payload::manifest()?, existing: Receipt::load() }
+        let run = if args.update {
+            ui::Run::Update(args.wait)
+        } else if args.resume {
+            ui::Run::Now
+        } else {
+            ui::Run::Wizard
+        };
+        ui::Mode::Install { manifest: payload::manifest()?, existing: Receipt::load(), opts: options(args), run }
     };
     ui::run(mode)
 }
@@ -116,26 +209,19 @@ fn silent(args: &Args) -> Result<(), String> {
             last = step.to_string();
         }
     };
-    let warnings = if args.uninstall || !payload::present() {
+    let warnings = if removing(args) {
         let r = Receipt::load().ok_or("LauraBoard не установлен")?;
         let data = if args.remove_data { project::remembered() } else { None };
         uninstall::uninstall(&r, args.forget_settings, data.as_deref(), &mut report)?
     } else {
-        let mut opts = Options::new(Receipt::load().as_ref());
-        if let Some(dir) = &args.dir {
-            opts.dir = dir.clone();
+        if let Some(pid) = args.wait {
+            platform::wait_exit(pid, WAIT_FOR_APP);
         }
-        opts.menu_shortcut &= !args.no_menu;
-        opts.desktop_shortcut &= !args.no_desktop;
-        opts.add_to_path &= !args.no_path;
-        if args.project.is_some() {
-            opts.project = args.project.clone();
+        let outcome = install::install(&options(args), &mut report)?;
+        if args.update {
+            let _ = platform::launch(&outcome.binary);
         }
-        if args.no_project {
-            opts.project = None;
-        }
-        opts.demo = args.demo;
-        install::install(&opts, &mut report)?.warnings
+        outcome.warnings
     };
     for w in warnings {
         eprintln!("предупреждение: {w}");

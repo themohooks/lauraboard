@@ -32,7 +32,9 @@ export component OptionsPage inherits WizardPage {
         OptionRow {
             icon: Icons.input;
             title: "Команда lauraboard в терминале";
-            text: Setup.windows ? "Папка программы добавляется в PATH пользователя" : "Ссылка в ~/.local/bin";
+            text: Setup.windows
+                ? (Setup.all-users ? "Папка программы добавляется в системный PATH" : "Папка программы добавляется в PATH пользователя")
+                : (Setup.all-users ? "Ссылка в /usr/local/bin" : "Ссылка в ~/.local/bin");
             checked <=> Setup.add-to-path;
         }
     }

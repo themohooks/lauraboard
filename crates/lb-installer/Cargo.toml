@@ -24,7 +24,7 @@ zip = { version = "9.0.5", default-features = false, features = ["deflate"] }
 [target.'cfg(windows)'.dependencies]
 mslnk = "0.1.8"
 winreg = "0.56.0"
-windows-sys = { version = "0.61.2", features = ["Win32_Foundation", "Win32_UI_WindowsAndMessaging", "Win32_System_Console"] }
+windows-sys = { version = "0.61.2", features = ["Win32_Foundation", "Win32_UI_WindowsAndMessaging", "Win32_UI_Shell", "Win32_System_Console", "Win32_System_Threading"] }
 
 [features]
 # Headless PNG snapshots of every page (`--snapshot <dir>`).

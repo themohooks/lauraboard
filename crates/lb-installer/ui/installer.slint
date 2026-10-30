@@ -72,7 +72,7 @@ export component InstallerWindow inherits Window {
                 { title: "Удаление", state: root.state(1) },
                 { title: "Готово", state: root.state(2) },
             ];
-            footnote: installing ? "Для текущего пользователя, без прав администратора" : "";
+            footnote: !installing ? "" : Setup.all-users ? "Для всех пользователей, с правами администратора" : "Для текущего пользователя, без прав администратора";
         }
 
         VerticalLayout {

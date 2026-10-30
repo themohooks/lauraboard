@@ -31,6 +31,8 @@ pub struct Registration<'a> {
     pub binary: &'a std::path::Path,
     pub uninstaller: &'a std::path::Path,
     pub size: u64,
+    /// HKLM instead of HKCU.
+    pub all_users: bool,
 }
 
 pub const APP_NAME: &str = "LauraBoard";

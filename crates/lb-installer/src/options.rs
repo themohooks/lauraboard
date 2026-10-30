@@ -1,5 +1,6 @@
 //! What to install and where (the choices of the wizard or the command line).
 
+use std::ffi::OsString;
 use std::path::PathBuf;
 
 use crate::receipt::Receipt;
@@ -7,6 +8,8 @@ use crate::receipt::Receipt;
 #[derive(Debug, Clone)]
 pub struct Options {
     pub dir: PathBuf,
+    /// For every user of the computer (needs administrator / root rights).
+    pub all_users: bool,
     /// Start menu (Windows) / applications menu (Linux) entry.
     pub menu_shortcut: bool,
     pub desktop_shortcut: bool,
@@ -19,24 +22,50 @@ pub struct Options {
 }
 
 impl Options {
-    /// Defaults; an update keeps the directory and leaves projects alone.
+    /// Defaults; an update keeps the folder, the scope and the integration
+    /// chosen before, and leaves projects alone.
     pub fn new(existing: Option<&Receipt>) -> Self {
+        let kept = |pick: fn(&Receipt) -> Option<bool>| existing.and_then(pick).unwrap_or(true);
+        let all_users = existing.is_some_and(|r| r.all_users);
         Options {
-            dir: existing.map(|r| r.dir.clone()).unwrap_or_else(default_dir),
-            menu_shortcut: true,
-            desktop_shortcut: true,
-            add_to_path: true,
+            dir: existing.map(|r| r.dir.clone()).unwrap_or_else(|| default_dir(all_users)),
+            all_users,
+            menu_shortcut: kept(|r| r.menu_shortcut),
+            desktop_shortcut: kept(|r| r.desktop_shortcut),
+            add_to_path: kept(|r| r.add_to_path),
             project: existing.is_none().then(default_project),
             demo: false,
         }
     }
 }
 
+impl Options {
+    /// The same choices as command-line options, for the copy started with
+    /// administrator rights (`--resume` / `--silent`).
+    pub fn to_args(&self) -> Vec<OsString> {
+        let mut a: Vec<OsString> = vec!["--dir".into(), self.dir.clone().into()];
+        let flags = [
+            (self.all_users, "--all-users"),
+            (!self.menu_shortcut, "--no-menu"),
+            (!self.desktop_shortcut, "--no-desktop"),
+            (!self.add_to_path, "--no-path"),
+            (self.project.is_none(), "--no-project"),
+            (self.demo, "--demo"),
+        ];
+        a.extend(flags.into_iter().filter(|(on, _)| *on).map(|(_, f)| f.into()));
+        if let Some(p) = &self.project {
+            a.extend(["--project".into(), p.clone().into()]);
+        }
+        a
+    }
+}
+
 /// Per-user location, no administrator rights needed:
-/// `%LOCALAPPDATA%\Programs\LauraBoard` or `~/.local/share/lauraboard`.
-pub fn default_dir() -> PathBuf {
-    let base = dirs::data_local_dir().unwrap_or_else(|| PathBuf::from("."));
-    if cfg!(windows) { base.join("Programs").join("LauraBoard") } else { base.join("lauraboard") }
+/// `%LOCALAPPDATA%\Programs\LauraBoard` or `~/.local/share/lauraboard`;
+/// for all users `%ProgramFiles%\LauraBoard` or `/opt/lauraboard`.
+pub fn default_dir(all_users: bool) -> PathBuf {
+    let base = crate::platform::programs_dir(all_users).unwrap_or_else(|| PathBuf::from("."));
+    base.join(if cfg!(windows) { "LauraBoard" } else { "lauraboard" })
 }
 
 /// Same default as the application uses: `<Documents>/LauraBoard`.

@@ -15,10 +15,10 @@ pub fn remove_integration(r: &Receipt) {
         let _ = std::fs::remove_file(p);
     }
     if let Some(entry) = &r.path_entry {
-        let _ = platform::remove_from_path(entry);
+        let _ = platform::remove_from_path(entry, r.all_users);
     }
     if r.registered {
-        platform::unregister();
+        platform::unregister(r.all_users);
     }
 }
 
@@ -86,7 +86,7 @@ pub fn uninstall(r: &Receipt, forget_settings: bool, remove_data: Option<&Path>,
 
     report(0.3, "Удаление файлов");
     let busy = remove_files(&r.dir, &r.files);
-    Receipt::delete();
+    r.delete();
     if forget_settings && let Some(cfg) = config_dir() {
         for name in ["gui.json", "desktop.json"] {
             let _ = std::fs::remove_file(cfg.join(name));

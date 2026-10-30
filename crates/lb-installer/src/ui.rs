@@ -15,8 +15,21 @@ use crate::{ffmpeg, install, platform, uninstall};
 slint::include_modules!();
 
 pub enum Mode {
-    Install { manifest: Manifest, existing: Option<Receipt> },
+    Install { manifest: Manifest, existing: Option<Receipt>, opts: Options, run: Run },
     Uninstall(Option<Receipt>),
+}
+
+/// How an installation starts.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum Run {
+    /// Page by page.
+    Wizard,
+    /// Straight to the progress page (the copy started with administrator
+    /// rights), ending on "Готово".
+    Now,
+    /// Update from the application: wait for that process to exit, install,
+    /// open the new version and close. Stays open only on a failure.
+    Update(Option<u32>),
 }
 
 pub fn run(mode: Mode) -> Result<(), String> {
@@ -27,14 +40,19 @@ pub fn run(mode: Mode) -> Result<(), String> {
     // what "Готово" launches
     let launch_target: Arc<Mutex<Option<PathBuf>>> = Arc::default();
     let busy = Arc::new(AtomicBool::new(false));
+    let run = match &mode {
+        Mode::Install { run, .. } => *run,
+        Mode::Uninstall(_) => Run::Wizard,
+    };
 
     match &mode {
-        Mode::Install { manifest, existing } => {
-            let opts = Options::new(existing.as_ref());
+        Mode::Install { manifest, existing, opts, .. } => {
+            let opts = opts.clone();
             s.set_mode(SetupMode::Install);
             s.set_version(manifest.version.as_str().into());
             s.set_installed_version(existing.as_ref().map(|r| r.version.as_str()).unwrap_or("").into());
             s.set_size_text(format!("≈ {} МБ", manifest.size.div_ceil(1024 * 1024)).into());
+            s.set_all_users(opts.all_users);
             s.set_install_dir(opts.dir.display().to_string().into());
             s.set_menu_shortcut(opts.menu_shortcut);
             s.set_desktop_shortcut(opts.desktop_shortcut);
@@ -66,6 +84,20 @@ pub fn run(mode: Mode) -> Result<(), String> {
         move |_| {
             if let Some(w) = w.upgrade() {
                 check_dir(&w.global::<Setup>(), &binary);
+            }
+        }
+    });
+    s.on_scope_changed({
+        let w = window.as_weak();
+        let binary = binary.clone();
+        move || {
+            let Some(w) = w.upgrade() else { return };
+            let s = w.global::<Setup>();
+            // the default folder follows the choice; one typed by hand stays
+            let all = s.get_all_users();
+            if Path::new(s.get_install_dir().trim()) == options::default_dir(!all) {
+                s.set_install_dir(options::default_dir(all).display().to_string().into());
+                check_dir(&s, &binary);
             }
         }
     });
@@ -121,6 +153,20 @@ pub fn run(mode: Mode) -> Result<(), String> {
         move || {
             let Some(win) = w.upgrade() else { return };
             let s = win.global::<Setup>();
+            if s.get_mode() == SetupMode::Install && s.get_all_users() && !platform::elevated() {
+                // the elevated copy installs; this window is no longer needed
+                let mut args = vec!["--resume".into()];
+                args.extend(read_options(&s).to_args());
+                match platform::elevate(&args, false) {
+                    Ok(_) => {
+                        let _ = slint::quit_event_loop();
+                    }
+                    Err(e) => {
+                        rfd::MessageDialog::new().set_level(rfd::MessageLevel::Warning).set_title("LauraBoard").set_description(&e).show();
+                    }
+                }
+                return;
+            }
             busy.store(true, Ordering::Relaxed);
             s.set_progress(0.0);
             s.set_indeterminate(false);
@@ -153,6 +199,10 @@ pub fn run(mode: Mode) -> Result<(), String> {
                         }
                     });
                 };
+                if let Run::Update(Some(pid)) = run {
+                    report(-1.0, "Ожидание закрытия LauraBoard");
+                    platform::wait_exit(pid, crate::WAIT_FOR_APP);
+                }
                 let result = match job {
                     Job::Install(opts) => install::install(&opts, &mut report).map(|o| (Some(o.binary), o.warnings)),
                     Job::Uninstall(r, forget, data) => uninstall::uninstall(&r, forget, data.as_deref(), &mut report).map(|w| (None, w)),
@@ -162,6 +212,12 @@ pub fn run(mode: Mode) -> Result<(), String> {
                     let Some(w) = w.upgrade() else { return };
                     let s = w.global::<Setup>();
                     match result {
+                        // an update reopens the program straight away
+                        Ok((Some(binary), _)) if matches!(run, Run::Update(_)) => {
+                            let _ = platform::launch(&binary);
+                            let _ = slint::quit_event_loop();
+                            return;
+                        }
                         Ok((binary, warnings)) => {
                             *launch_target.lock().unwrap() = binary;
                             s.set_success(true);
@@ -197,6 +253,9 @@ pub fn run(mode: Mode) -> Result<(), String> {
         if busy.load(Ordering::Relaxed) { slint::CloseRequestResponse::KeepWindowShown } else { slint::CloseRequestResponse::HideWindow }
     });
 
+    if run != Run::Wizard {
+        s.invoke_start();
+    }
     window.run().map_err(|e| e.to_string())
 }
 
@@ -209,6 +268,7 @@ enum Job {
 fn read_options(s: &Setup) -> Options {
     Options {
         dir: PathBuf::from(s.get_install_dir().trim()),
+        all_users: s.get_all_users(),
         menu_shortcut: s.get_menu_shortcut(),
         desktop_shortcut: s.get_desktop_shortcut(),
         add_to_path: s.get_add_to_path(),
