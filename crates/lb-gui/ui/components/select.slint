@@ -8,6 +8,23 @@ import { Icon } from "icon.slint";
 import { Label } from "label.slint";
 import { Interactive } from "interactive.slint";
 
+component SelectItem inherits Interactive {
+    in property <string> text;
+    in property <bool> current;
+
+    radius: 0;
+    focusable: false;
+    background: root.current ? Theme.color.secondary-container : transparent;
+    accessible-role: list-item;
+    accessible-label: root.text;
+    Label {
+        x: Theme.sp3;
+        width: parent.width - 2 * Theme.sp3;
+        text: root.text;
+        color: root.current ? Theme.color.on-secondary-container : Theme.color.on-surface;
+    }
+}
+
 export component Select inherits VerticalLayout {
     in property <string> label;
     in property <[string]> options;
@@ -20,6 +37,7 @@ export component Select inherits VerticalLayout {
 
     property <string> current: current-index >= 0 && current-index < options.length ? options[current-index] : "";
     property <length> item-height: Theme.row-height;
+    property <bool> long: root.options.length * root.item-height > 320px;
 
     function choose(i: int) {
         if i >= 0 && i < root.options.length && i != root.current-index {
@@ -122,38 +140,43 @@ export component Select inherits VerticalLayout {
                 }
                 opacity: appeared ? 1 : 0;
                 y: appeared ? 0 : -6px;
+                // an explicit y drops the implicit size: give it back
+                width: parent.width;
+                height: parent.height;
                 animate opacity, y { duration: Theme.motion-medium; easing: ease-out; }
                 background: Theme.color.surface-container;
                 border-radius: Theme.radius-xs;
                 drop-shadow-blur: 8px;
                 drop-shadow-offset-y: 3px;
                 drop-shadow-color: Theme.color.shadow.with-alpha(Theme.dark ? 0.5 : 0.2);
-                list := ScrollView {
+                // a short list is a plain column: a ScrollView keeps a gutter
+                // for its scrollbar and clips the last item even when off
+                if !root.long: VerticalLayout {
+                    padding-top: 8px;
+                    padding-bottom: 8px;
+                    for opt[i] in root.options: SelectItem {
+                        text: opt;
+                        height: root.item-height;
+                        current: i == root.current-index;
+                        clicked => {
+                            root.choose(i);
+                            popup.close();
+                        }
+                    }
+                }
+                if root.long: list := ScrollView {
                     y: 8px;
                     height: parent.height - 16px;
-                    // a short list fits whole: no scrollbar (it also took width
-                    // from the items, from rounding of the density-scaled height)
-                    vertical-scrollbar-policy: root.options.length * root.item-height > 320px ? as-needed : always-off;
                     horizontal-scrollbar-policy: always-off;
-                    content-width: self.visible-width;
                     VerticalLayout {
                         width: list.visible-width;
-                        for opt[i] in root.options: Interactive {
+                        for opt[i] in root.options: SelectItem {
+                            text: opt;
                             height: root.item-height;
-                            radius: 0;
-                            focusable: false;
-                            background: i == root.current-index ? Theme.color.secondary-container : transparent;
-                            accessible-role: list-item;
-                            accessible-label: opt;
+                            current: i == root.current-index;
                             clicked => {
                                 root.choose(i);
                                 popup.close();
-                            }
-                            Label {
-                                x: Theme.sp3;
-                                width: parent.width - 2 * Theme.sp3;
-                                text: opt;
-                                color: i == root.current-index ? Theme.color.on-secondary-container : Theme.color.on-surface;
                             }
                         }
                     }
