@@ -180,6 +180,15 @@ export component PropertiesPanel inherits Rectangle {
                     supporting: "%H — часы, %M — минуты, %S — секунды, %d — день, %m — месяц, %Y — год. Например: %H:%M → 18:15, %d.%m.%Y → 22.10.2026";
                     mono: true;
                 }
+                if Gfx.p-kind == 2: Select {
+                    label: "Часовой пояс";
+                    options: Gfx.tz-names;
+                    current-index <=> Gfx.p-tz;
+                    container-color: Theme.color.surface-container-low;
+                    selected => {
+                        Gfx.props-changed();
+                    }
+                }
                 if Gfx.p-kind == 3: HorizontalLayout {
                     spacing: Theme.sp2;
                     Select {

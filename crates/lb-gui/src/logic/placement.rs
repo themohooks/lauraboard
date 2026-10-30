@@ -59,7 +59,7 @@ fn natural_size(e: &Element, region: Rect) -> (f32, f32) {
     match &e.kind {
         ElementKind::Text { text, style } => text_box(text, style),
         ElementKind::Ticker { style, width, .. } => (width.unwrap_or(region.w - 2.0 * e.placement.x).max(1.0), text_box("x", style).1),
-        ElementKind::Clock { format, style } => text_box(&format.replace("%H", "00").replace("%M", "00").replace("%S", "00"), style),
+        ElementKind::Clock { format, style, .. } => text_box(&format.replace("%H", "00").replace("%M", "00").replace("%S", "00"), style),
         ElementKind::Countdown { style, prefix, .. } => text_box(&format!("{prefix}00:00:00"), style),
         ElementKind::Rect { width, height, .. } | ElementKind::Progress { width, height, .. } => (*width, *height),
         ElementKind::Plate { fields, width, min_width, padding_x, padding_y, spacing, shape, .. } => {

@@ -409,6 +409,29 @@ fn opt_num(v: Option<f32>) -> String {
     v.map(fmt_num).unwrap_or_default()
 }
 
+/// Clock time zones offered for an element with zone `cur`: "" (local time),
+/// the curated list, and `cur` itself when it is not in that list.
+fn zone_ids(cur: Option<&str>) -> Vec<String> {
+    let mut v: Vec<String> = std::iter::once(String::new())
+        .chain(lb_core::graphics::CLOCK_ZONES.iter().map(|(n, _)| n.to_string()))
+        .collect();
+    if let Some(c) = cur.filter(|c| !c.is_empty() && !v.iter().any(|z| z == c)) {
+        v.push(c.to_string());
+    }
+    v
+}
+
+fn zone_label(id: &str) -> String {
+    if id.is_empty() {
+        return "Местное время компьютера".into();
+    }
+    let name = lb_core::graphics::CLOCK_ZONES.iter().find(|(n, _)| *n == id).map_or(id, |(_, l)| l);
+    match lb_core::graphics::zone_offset(id) {
+        o if o.is_empty() => format!("{name} (неизвестный пояс)"),
+        o => format!("{name} (UTC{o})"),
+    }
+}
+
 /// Property fields of the selected element.
 fn props(c: &mut Ctx) {
     let Some(ui) = c.window() else { return };
@@ -436,8 +459,11 @@ fn props(c: &mut Ctx) {
             g.set_p_twidth(s(opt_num(*width)));
             Some(style.clone())
         }
-        ElementKind::Clock { format, style } => {
+        ElementKind::Clock { format, style, tz } => {
             g.set_p_format(s(format.clone()));
+            let zones = zone_ids(tz.as_deref());
+            g.set_tz_names(vec_model(zones.iter().map(|z| s(zone_label(z))).collect()));
+            g.set_p_tz(zones.iter().position(|z| *z == tz.clone().unwrap_or_default()).unwrap_or(0) as i32);
             Some(style.clone())
         }
         ElementKind::Countdown { target, style, prefix, exclude, format } => {
@@ -630,9 +656,11 @@ fn props_changed(c: &mut Ctx) {
             },
             style: style_from(&style, &g, &mut color, &mut num),
         },
-        ElementKind::Clock { style, .. } => {
-            ElementKind::Clock { format: g.get_p_format().to_string(), style: style_from(&style, &g, &mut color, &mut num) }
-        }
+        ElementKind::Clock { style, tz, .. } => ElementKind::Clock {
+            format: g.get_p_format().to_string(),
+            style: style_from(&style, &g, &mut color, &mut num),
+            tz: zone_ids(tz.as_deref()).get(g.get_p_tz().max(0) as usize).cloned().filter(|z| !z.is_empty()),
+        },
         ElementKind::Countdown { style, exclude, .. } => ElementKind::Countdown {
             target: TARGETS.get(g.get_p_target().max(0) as usize).copied().unwrap_or_default(),
             prefix: g.get_p_prefix().to_string(),
@@ -893,7 +921,7 @@ fn add(c: &mut Ctx, kind: &str) {
             50.0,
         ),
         "clock" => {
-            (ElementKind::Clock { format: "%H:%M".into(), style: style.clone() }, "Часы", lb_core::graphics::Anchor::TopRight, 60.0, 50.0)
+            (ElementKind::Clock { format: "%H:%M".into(), style: style.clone(), tz: None }, "Часы", lb_core::graphics::Anchor::TopRight, 60.0, 50.0)
         }
         "countdown" => (
             ElementKind::Countdown {

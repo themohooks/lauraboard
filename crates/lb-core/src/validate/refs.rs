@@ -196,6 +196,11 @@ fn graphics_doc(g: &crate::graphics::GraphicsConfig, loc: &str, r: &mut Report) 
         {
             r.warn(format!("{loc}/{}", e.id), format!("invalid clock format '{format}'"));
         }
+        if let ElementKind::Clock { tz: Some(tz), .. } = &e.kind
+            && !crate::graphics::valid_zone(tz)
+        {
+            r.warn(format!("{loc}/{}", e.id), format!("unknown time zone '{tz}', local time is shown"));
+        }
         if let ElementKind::Group { children } = &e.kind {
             for c in children.iter().filter(|c| g.element(c).is_none()) {
                 r.error(format!("{loc}/{}", e.id), format!("unknown child element '{c}'"));

@@ -101,8 +101,8 @@ impl SpriteFactory {
                 let s = render_template(text, ctx.vars);
                 self.text(&el.id, style, &s).map(Sprite::plain)
             }
-            ElementKind::Clock { format, style } => {
-                let s = format_time(ctx.now, format)?;
+            ElementKind::Clock { format, style, tz } => {
+                let s = format_time(lb_core::graphics::clock_time(ctx.now, tz.as_deref()), format)?;
                 self.text(&el.id, style, &s).map(Sprite::plain)
             }
             ElementKind::Countdown { target, style, prefix, exclude, format } => {

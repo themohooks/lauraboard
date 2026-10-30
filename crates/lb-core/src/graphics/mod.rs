@@ -8,6 +8,7 @@
 //! * [`eval`] — visibility evaluation for the current moment
 //! * [`template`] — `{placeholder}` text templates
 //! * [`program`] — timing of the programme on air (countdown, progress bar)
+//! * [`timezone`] — time zone of a clock
 //! * [`scene`] — a scene's own graphics merged in while it is on air
 
 mod config;
@@ -18,6 +19,7 @@ mod program;
 mod scene;
 mod shape;
 mod template;
+mod timezone;
 
 pub use config::*;
 pub use eval::*;
@@ -27,6 +29,7 @@ pub use program::*;
 pub use scene::*;
 pub use shape::*;
 pub use template::*;
+pub use timezone::*;
 
 #[cfg(test)]
 mod tests;

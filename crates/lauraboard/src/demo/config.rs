@@ -213,7 +213,7 @@ fn graphics(ch: &mut ChannelData) {
     logo.opacity = 0.85;
     let clock = el(
         "clock",
-        ElementKind::Clock { format: "%H:%M".into(), style: style(30.0) },
+        ElementKind::Clock { format: "%H:%M".into(), style: style(30.0), tz: None },
         Placement { anchor: Anchor::TopLeft, x: 30.0, y: 30.0, width: None, height: None },
         10,
     );

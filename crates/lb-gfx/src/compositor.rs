@@ -628,6 +628,7 @@ mod tests {
             kind: ElementKind::Clock {
                 format: "%H:%M".into(),
                 style: TextStyle { background: Some("#000000".into()), ..Default::default() },
+                tz: None,
             },
             placement: Placement::default(),
             opacity: 1.0,

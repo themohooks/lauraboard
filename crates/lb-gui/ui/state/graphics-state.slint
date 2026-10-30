@@ -193,6 +193,9 @@ export global Gfx {
     in-out property <string> p-speed;
     in-out property <string> p-twidth;
     in-out property <string> p-format;
+    // clock time zone: index into `tz-names` (0 = local time)
+    in-out property <int> p-tz;
+    in property <[string]> tz-names;
     // countdown: 0 item, 1 next programme, 2 end of the programme
     in-out property <int> p-target;
     in-out property <string> p-prefix;
