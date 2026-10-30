@@ -17,8 +17,13 @@ pub struct PollTarget {
     pub fps: f64,
 }
 
+/// The newest preview frame not yet shown. One slot, not a queue: a full
+/// frame is megabytes, and a busy window must skip frames, not pile them up.
+type PreviewSlot = Arc<Mutex<Option<Msg>>>;
+
 pub struct Poller {
     pub target: Arc<Mutex<PollTarget>>,
+    preview: PreviewSlot,
     stop: Arc<AtomicBool>,
 }
 
@@ -34,8 +39,9 @@ pub fn decode_jpeg(bytes: &[u8]) -> Option<Frame> {
 }
 
 /// Separate loop for the live picture: much faster than the status poll,
-/// and an unchanged frame is neither decoded nor sent to the window.
-fn spawn_preview(api: Api, tx: std::sync::mpsc::Sender<Msg>, wake: Wake, target: Arc<Mutex<PollTarget>>, stop: Arc<AtomicBool>) {
+/// and an unchanged frame is neither decoded nor sent to the window. While
+/// the window has not taken the last frame, nothing is fetched.
+fn spawn_preview(api: Api, slot: PreviewSlot, wake: Wake, target: Arc<Mutex<PollTarget>>, stop: Arc<AtomicBool>) {
     std::thread::spawn(move || {
         let mut last: Vec<u8> = Vec::new();
         let mut last_channel = None;
@@ -50,11 +56,13 @@ fn spawn_preview(api: Api, tx: std::sync::mpsc::Sender<Msg>, wake: Wake, target:
                 last.clear();
                 last_channel = Some((channel.clone(), revision));
             }
-            match channel.filter(|_| wanted) {
+            let waiting = slot.lock().unwrap_or_else(|e| e.into_inner()).is_some();
+            match channel.filter(|_| wanted && !waiting) {
                 Some(ch) => match api.get_bytes(&format!("/channels/{ch}/preview.jpg")) {
                     Ok(bytes) if bytes != last => {
                         if let Some(img) = decode_jpeg(&bytes) {
-                            let _ = tx.send(Msg::ForChannel(ch.clone(), revision, Box::new(Msg::Preview(img))));
+                            let msg = Msg::ForChannel(ch.clone(), revision, Box::new(Msg::Preview(img)));
+                            *slot.lock().unwrap_or_else(|e| e.into_inner()) = Some(msg);
                             wake();
                         }
                         last = bytes;
@@ -63,6 +71,7 @@ fn spawn_preview(api: Api, tx: std::sync::mpsc::Sender<Msg>, wake: Wake, target:
                     // no frame yet / offline: back off
                     Err(_) => pause = Duration::from_secs(1),
                 },
+                None if waiting => {}
                 None => pause = Duration::from_millis(300),
             }
             std::thread::sleep(pause.saturating_sub(started.elapsed()));
@@ -74,7 +83,8 @@ impl Poller {
     pub fn start(api: Api, tx: std::sync::mpsc::Sender<Msg>, wake: Wake) -> Self {
         let target = Arc::new(Mutex::new(PollTarget { channel: None, preview: true, revision: 0, fps: 15.0 }));
         let stop = Arc::new(AtomicBool::new(false));
-        spawn_preview(api.clone(), tx.clone(), wake.clone(), target.clone(), stop.clone());
+        let preview = PreviewSlot::default();
+        spawn_preview(api.clone(), preview.clone(), wake.clone(), target.clone(), stop.clone());
         let (t2, s2) = (target.clone(), stop.clone());
         std::thread::spawn(move || {
             let mut last_rundown = Instant::now() - Duration::from_secs(60);
@@ -136,7 +146,12 @@ impl Poller {
                 std::thread::sleep(Duration::from_millis(if ok { 500 } else { 2000 }));
             }
         });
-        Poller { target, stop }
+        Poller { target, preview, stop }
+    }
+
+    /// The preview frame waiting to be shown (lets the next one be fetched).
+    pub fn take_preview(&self) -> Option<Msg> {
+        self.preview.lock().unwrap_or_else(|e| e.into_inner()).take()
     }
 
     pub fn channel(&self) -> Option<String> {

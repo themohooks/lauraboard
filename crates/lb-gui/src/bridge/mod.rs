@@ -295,6 +295,9 @@ impl Ctx {
         while let Ok(m) = self.rx.try_recv() {
             self.apply(m);
         }
+        if let Some(m) = self.poller.take_preview() {
+            self.apply(m);
+        }
     }
 
     fn apply(&mut self, m: Msg) {
