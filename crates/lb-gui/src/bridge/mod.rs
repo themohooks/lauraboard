@@ -681,6 +681,22 @@ pub fn vec_model<T: Clone + 'static>(v: Vec<T>) -> slint::ModelRc<T> {
     slint::ModelRc::new(slint::VecModel::from(v))
 }
 
+/// Replace the rows of `current` in place when their number is the same
+/// (rows are not recreated: an open context menu or focus survives), else
+/// a new model.
+pub fn same_rows<T: Clone + PartialEq + 'static>(current: slint::ModelRc<T>, rows: Vec<T>) -> slint::ModelRc<T> {
+    use slint::Model;
+    if current.row_count() != rows.len() || rows.is_empty() {
+        return vec_model(rows);
+    }
+    for (i, r) in rows.into_iter().enumerate() {
+        if current.row_data(i).as_ref() != Some(&r) {
+            current.set_row_data(i, r);
+        }
+    }
+    current
+}
+
 /// JSON command helper.
 pub fn cmd(name: &str) -> Value {
     json!({ "cmd": name })

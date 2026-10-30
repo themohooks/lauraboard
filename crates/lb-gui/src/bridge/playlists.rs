@@ -6,7 +6,7 @@ use slint::{ComponentHandle, SharedString};
 use lb_core::media::{Library, MediaKind};
 use lb_core::playlist::{Playlist, PlaylistEntry};
 
-use super::{Ctx, thumbs, vec_model, with};
+use super::{Ctx, same_rows, thumbs, vec_model, with};
 use crate::fmt::{KINDS, hms, kind_id};
 use crate::logic::filter::has_problem;
 use crate::logic::undo::History;
@@ -343,7 +343,7 @@ pub fn rows_changed(c: &mut Ctx) {
     g.set_name(p.name.clone().into());
     g.set_looped(p.looped);
     g.set_shuffle(p.shuffle);
-    g.set_entries(vec_model(rows));
+    g.set_entries(same_rows(g.get_entries(), rows));
     g.set_summary(
         format!(
             "{} элементов ({} включено) · {}{}",
