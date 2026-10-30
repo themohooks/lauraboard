@@ -33,7 +33,8 @@ export component EntryRowView inherits ListRow {
     }
     right-clicked(p) => {
         Pl.entry-action(entry.index, "select");
-        menu.open-at(p.x, p.y);
+        // the menu sits at the end of the row's layout while p is row-local
+        menu.open-at(p.x - menu.x, p.y - menu.y);
     }
 
     // drag handle
@@ -160,11 +161,14 @@ export component EntryRowView inherits ListRow {
             { id: "up", text: "Переместить выше", icon: Icons.arrow-upward, has-icon: true, enabled: root.draggable, shortcut: "Alt+↑" },
             { id: "down", text: "Переместить ниже", icon: Icons.arrow-downward, has-icon: true, enabled: root.draggable, shortcut: "Alt+↓" },
             { id: "top", text: "В начало", icon: Icons.vertical-align-top, has-icon: true, enabled: root.draggable },
+            { id: "bottom", text: "В конец", icon: Icons.arrow-downward, has-icon: true, enabled: root.draggable },
             { id: "duplicate", text: "Дублировать", icon: Icons.content-copy, has-icon: true, enabled: true, divider: true },
             { id: "pin", text: root.entry.pinned ? "Открепить" : "Закрепить", icon: Icons.push-pin, has-icon: true, enabled: true },
             { id: "disable", text: root.entry.disabled ? "Включить" : "Выключить", icon: Icons.visibility-off, has-icon: true, enabled: true },
             { id: "queue", text: "В очередь эфира", icon: Icons.queue-music, has-icon: true, enabled: !root.entry.missing, divider: true },
-            { id: "props", text: "Свойства", icon: Icons.tune, has-icon: true, enabled: true },
+            { id: "play-now", text: "Показать сейчас…", icon: Icons.play-arrow, has-icon: true, enabled: !root.entry.missing },
+            { id: "props", text: "Свойства в плейлисте", icon: Icons.tune, has-icon: true, enabled: true, divider: true },
+            { id: "video-edit", text: "Монтаж…", icon: Icons.movie, has-icon: true, enabled: !root.entry.missing && root.entry.kind != "image" && root.entry.kind != "stream" },
             { id: "remove", text: "Удалить из плейлиста", icon: Icons.delete, has-icon: true, enabled: true, danger: true, divider: true, shortcut: "Del" },
         ];
         activated(id) => {

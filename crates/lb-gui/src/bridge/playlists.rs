@@ -191,6 +191,20 @@ fn entry_action(c: &mut Ctx, i: usize, action: &str) {
             let media = c.pl.draft.as_ref().map(|p| p.entries[i].media.clone()).unwrap_or_default();
             c.command(serde_json::json!({ "cmd": "queue", "media": media }));
         }
+        "play-now" => {
+            let media = c.pl.draft.as_ref().map(|p| p.entries[i].media.clone()).unwrap_or_default();
+            let title = entry_title(c, i);
+            c.ask(
+                "Показать сейчас?",
+                &format!("Текущий элемент будет прерван, в эфир пойдёт «{title}»."),
+                "Показать сейчас",
+                move |c| c.command(serde_json::json!({ "cmd": "play_now", "media": media })),
+            );
+        }
+        "video-edit" => {
+            let media = c.pl.draft.as_ref().map(|p| p.entries[i].media.clone()).unwrap_or_default();
+            super::editor::open(c, &media);
+        }
         "remove" => {
             let title = entry_title(c, i);
             mutate(c, |p| {
