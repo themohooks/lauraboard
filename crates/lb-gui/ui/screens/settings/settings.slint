@@ -13,6 +13,7 @@ import { SegmentedButton } from "../../components/segmented-button.slint";
 import { Slider } from "../../components/slider.slint";
 import { Switch } from "../../components/switch.slint";
 import { Button, ButtonVariant } from "../../components/button.slint";
+import { Interactive } from "../../components/interactive.slint";
 import { StatusChip, StatusTone } from "../../components/indicators.slint";
 import { Page, PageHeader } from "../../shell/page.slint";
 import { Settings } from "../../state/settings-state.slint";
@@ -103,23 +104,95 @@ component ScalePreset inherits Button {
     }
 }
 
-export component SettingsScreen inherits Page {
-    sv := ScrollView {
+export struct SettingsCategory {
+    title: string,
+    icon: image,
+}
+
+// Category list on the left of the settings page.
+component CategoryNav inherits VerticalLayout {
+    in-out property <int> current;
+    property <[SettingsCategory]> items: [
+        { title: "Оформление", icon: Icons.palette },
+        { title: "Предпросмотр и сеть", icon: Icons.lan },
+        { title: "Уведомления", icon: Icons.notifications },
+        { title: "Обновления", icon: Icons.upgrade },
+        { title: "Подключение", icon: Icons.cloud-done },
+        { title: "Горячие клавиши", icon: Icons.keyboard },
+        { title: "О программе", icon: Icons.info },
+    ];
+    width: 232px;
+    spacing: 2px;
+    alignment: start;
+    accessible-role: tab-list;
+    accessible-label: "Категории настроек";
+    for item[i] in root.items: Interactive {
+        height: Theme.dense(36px, 40px);
+        radius: Theme.radius-full;
+        background: i == root.current ? Theme.color.secondary-container : transparent;
+        state-tint: i == root.current ? Theme.color.on-secondary-container : Theme.color.on-surface-variant;
+        accessible-role: tab;
+        accessible-label: item.title;
+        accessible-checked: i == root.current;
+        accessible-action-default => {
+            self.clicked();
+        }
+        clicked => {
+            root.current = i;
+        }
         HorizontalLayout {
-            width: sv.visible-width;
-            alignment: center;
+            padding-left: 12px;
+            padding-right: 12px;
+            spacing: 12px;
             VerticalLayout {
-                width: min(sv.visible-width, 880px);
-                padding: Theme.sp4;
-                spacing: Theme.sp3;
-                alignment: start;
-
-                PageHeader {
-                    title: "Настройки";
-                    subtitle: "Интерфейс и параметры предпросмотра выбранного канала";
+                alignment: center;
+                Icon {
+                    width: Theme.icon-size;
+                    height: Theme.icon-size;
+                    source: item.icon;
+                    tint: i == root.current ? Theme.color.on-secondary-container : Theme.color.on-surface-variant;
                 }
+            }
+            Label {
+                horizontal-stretch: 1;
+                text: item.title;
+                type-style: Theme.label-large;
+                color: i == root.current ? Theme.color.on-secondary-container : Theme.color.on-surface-variant;
+                vertical-alignment: center;
+                overflow: elide;
+            }
+        }
+    }
+}
 
-                Card {
+export component SettingsScreen inherits Page {
+    // index into the CategoryNav list
+    property <int> category: 0;
+    VerticalLayout {
+        padding: Theme.sp4;
+        spacing: Theme.sp2;
+        PageHeader {
+            vertical-stretch: 0;
+            title: "Настройки";
+            subtitle: "Интерфейс и параметры предпросмотра выбранного канала";
+        }
+        HorizontalLayout {
+            vertical-stretch: 1;
+            spacing: Theme.sp4;
+            CategoryNav {
+                current <=> root.category;
+            }
+            sv := ScrollView {
+                horizontal-stretch: 1;
+                HorizontalLayout {
+                    width: sv.visible-width;
+                    alignment: start;
+                    VerticalLayout {
+                        width: min(sv.visible-width, 880px);
+                        spacing: Theme.sp3;
+                        alignment: start;
+
+                if root.category == 3: Card {
                     card-style: CardStyle.low;
                     CardHeader {
                         title: "Обновления";
@@ -212,8 +285,7 @@ export component SettingsScreen inherits Page {
                         }
                     }
                 }
-
-                Card {
+                if root.category == 1: Card {
                     card-style: CardStyle.low;
                     CardHeader { title: "Частота кадров предпросмотра"; subtitle: "Пресеты и синхронизация с монитором. Частота выходного видео сохраняется."; }
                     Select { label: "Режим"; options: Settings.preview-options; current-index <=> Settings.preview-preset;
@@ -226,7 +298,7 @@ export component SettingsScreen inherits Page {
                     Label { text: "Изменение частоты источника перезапускает кодировщик. Режимы монитора автоматически учитывают экран, на котором находится окно."; wrap: word-wrap; color: Theme.color.on-surface-variant; }
                     Button { text: "Применить"; clicked => { Settings.preview-save(); } }
                 }
-                Card {
+                if root.category == 1: Card {
                     card-style: CardStyle.low;
                     CardHeader { title: "Ретрансляция в локальную сеть"; subtitle: "Эфир выбранного канала в HLS (m3u8). У каждого канала должен быть свой свободный порт."; }
                     Switch { text: "Раздавать эфир по локальной сети"; checked <=> Settings.hls-enabled; enabled: Settings.hls-can-edit; }
@@ -235,7 +307,7 @@ export component SettingsScreen inherits Page {
                     Label { text: "На другом устройстве замените адрес на IP компьютера вещания. Поток доступен без пароля всем устройствам, имеющим доступ к этому порту."; wrap: word-wrap; color: Theme.color.on-surface-variant; }
                     Button { text: "Применить"; enabled: Settings.hls-can-edit; clicked => { Settings.hls-save(); } }
                 }
-                Card {
+                if root.category == 0: Card {
                     card-style: CardStyle.low;
                     gap: Theme.sp4;
                     CardHeader {
@@ -344,8 +416,7 @@ export component SettingsScreen inherits Page {
                         }
                     }
                 }
-
-                Card {
+                if root.category == 2: Card {
                     card-style: CardStyle.low;
                     CardHeader {
                         title: "Уведомления";
@@ -399,8 +470,7 @@ export component SettingsScreen inherits Page {
                         }
                     }
                 }
-
-                Card {
+                if root.category == 0: Card {
                     card-style: CardStyle.low;
                     CardHeader {
                         title: "Компоновка";
@@ -433,8 +503,7 @@ export component SettingsScreen inherits Page {
                         wrap: word-wrap;
                     }
                 }
-
-                Card {
+                if root.category == 4: Card {
                     card-style: CardStyle.low;
                     CardHeader {
                         title: "Подключение";
@@ -453,8 +522,7 @@ export component SettingsScreen inherits Page {
                         wrap: word-wrap;
                     }
                 }
-
-                Card {
+                if root.category == 5: Card {
                     card-style: CardStyle.low;
                     gap: Theme.sp2;
                     CardHeader {
@@ -469,8 +537,7 @@ export component SettingsScreen inherits Page {
                     Key { keys: "F11"; action: "Монитор эфира на весь экран"; }
                     Key { keys: "Esc"; action: "Закрыть диалог или панель"; }
                 }
-
-                Card {
+                if root.category == 6: Card {
                     card-style: CardStyle.low;
                     CardHeader {
                         title: "О программе";
@@ -487,6 +554,8 @@ export component SettingsScreen inherits Page {
                         AboutSlint {
                             preferred-height: 120px;
                         }
+                    }
+                }
                     }
                 }
             }
