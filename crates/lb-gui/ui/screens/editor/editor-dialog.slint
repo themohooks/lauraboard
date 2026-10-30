@@ -17,6 +17,13 @@ import { RegionPanel, PicturePanel, AudioPanel } from "panels.slint";
 
 export component EditorDialog inherits Dialog {
     property <int> tab: 0;
+    property <bool> audio: Ved.has-audio;
+    changed audio => {
+        if !self.audio && self.tab == 2 {
+            self.tab = 1;
+            Ved.audio-track = false;
+        }
+    }
     open: Ved.open;
     title: "Монтаж: " + Ved.media-title;
     dialog-width: 1120px;
@@ -38,7 +45,8 @@ export component EditorDialog inherits Dialog {
             width: 330px;
             spacing: Theme.sp3;
             SegmentedButton {
-                segments: [{ text: "Области" }, { text: "Видео" }, { text: "Звук" }];
+                // no sound in the file: no "Звук" tab
+                segments: Ved.has-audio ? [{ text: "Области" }, { text: "Видео" }, { text: "Звук" }] : [{ text: "Области" }, { text: "Видео" }];
                 selected: root.tab;
                 changed(i) => {
                     root.tab = i;
@@ -55,7 +63,7 @@ export component EditorDialog inherits Dialog {
                     alignment: start;
                     if root.tab == 0: RegionPanel { }
                     if root.tab == 1: PicturePanel { }
-                    if root.tab == 2: AudioPanel { }
+                    if root.tab == 2 && Ved.has-audio: AudioPanel { }
                 }
             }
         }

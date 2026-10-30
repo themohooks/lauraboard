@@ -13,14 +13,15 @@ export component EditorTimeline inherits VerticalLayout {
     HorizontalLayout {
         spacing: Theme.sp2;
         Button { text: "V1 · Видео"; variant: Ved.audio-track ? ButtonVariant.text : ButtonVariant.tonal; clicked => { Ved.audio-track = false; } }
-        Button { text: "A1 · Звук"; enabled: Ved.has-audio; variant: Ved.audio-track ? ButtonVariant.tonal : ButtonVariant.text; clicked => { Ved.audio-track = true; } }
+        // a video without sound has no A1 track at all
+        if Ved.has-audio: Button { text: "A1 · Звук"; variant: Ved.audio-track ? ButtonVariant.tonal : ButtonVariant.text; clicked => { Ved.audio-track = true; } }
     }
     function go(ms: float) {
         Ved.position-ms = clamp(ms, 0, Ved.duration-ms);
         Ved.seek(Ved.position-ms);
     }
     board := Rectangle {
-        height: 192px;
+        height: Ved.has-audio ? 192px : 112px;
         background: #24272e;
         border-width: 1px; border-color: #444a57;
         clip: true;
@@ -37,9 +38,9 @@ export component EditorTimeline inherits VerticalLayout {
             }
         }
         Label { x: 6px; y: 32px; width: 40px; height: 70px; text: "V1"; mono: true; color: #b9cfff; }
-        Label { x: 6px; y: 110px; width: 40px; height: 70px; text: "A1"; mono: true; color: #ffc0c8; }
+        if Ved.has-audio: Label { x: 6px; y: 110px; width: 40px; height: 70px; text: "A1"; mono: true; color: #ffc0c8; }
         lanes := Rectangle {
-            x: 48px; width: board.usable; height: 192px; clip: true;
+            x: 48px; width: board.usable; height: board.height; clip: true;
             Rectangle { y: 30px; height: 76px; background: #3e5785;
                 Rectangle { x: 0px; y: 0px; height: 24px; background: #536fa1;
                     Label { x: 8px; width: parent.width - 16px; height: 24px; text: Ved.media-title; color: #eef3ff; type-style: Theme.label-small; }
@@ -50,7 +51,7 @@ export component EditorTimeline inherits VerticalLayout {
                 }
                 if Ved.thumbnails.length == 0: Label { x: 8px; y: 25px; height: 50px; text: "Загрузка кадров…"; color: #cbd8f0; type-style: Theme.label-small; }
             }
-            Rectangle { y: 110px; height: 76px; background: #743b49;
+            if Ved.has-audio: Rectangle { y: 110px; height: 76px; background: #743b49;
                 Rectangle { x: 0px; y: 0px; height: 24px; background: #914453;
                     Label { x: 8px; width: parent.width - 16px; height: 24px; text: Ved.mute ? "Звук выключен" : "Звук · " + Ved.media-title; color: #ffe6eb; type-style: Theme.label-small; }
                 }
@@ -60,7 +61,7 @@ export component EditorTimeline inherits VerticalLayout {
             for i in (board.ticks * 5 + 1): Rectangle {
                 x: lanes.width * i / (board.ticks * 5);
                 y: mod(i, 5) == 0 ? 22px : 26px;
-                width: 1px; height: mod(i, 5) == 0 ? 164px : 4px; background: #ffffff18;
+                width: 1px; height: mod(i, 5) == 0 ? board.height - 28px : 4px; background: #ffffff18;
             }
             for i in (board.ticks + 1): Label {
                 x: clamp(lanes.width * i / board.ticks - 32px, 0px, lanes.width - 68px);
@@ -68,7 +69,7 @@ export component EditorTimeline inherits VerticalLayout {
                 text: Ved.clock(board.span * i / board.ticks);
                 mono: true; type-style: Theme.label-small; color: #bfc5d1;
             }
-            for track in [0, 1]: Rectangle {
+            for track in Ved.has-audio ? [0, 1] : [0]: Rectangle {
                 y: track == 0 ? 30px : 110px; height: 76px;
                 Rectangle { x: 0px; width: lanes.width * (track == 0 ? Ved.start-ms : Ved.audio-start-ms) / board.span; height: 76px; background: #11141dcc; }
                 Rectangle { x: lanes.width * (track == 0 ? Ved.end-ms : Ved.audio-end-ms) / board.span; width: lanes.width - self.x; height: 76px; background: #11141dcc; }
@@ -80,7 +81,7 @@ export component EditorTimeline inherits VerticalLayout {
             }
             Rectangle {
                 x: clamp(lanes.width * Ved.position-ms / board.span, 0px, lanes.width - 2px);
-                y: 0px; width: 2px; height: 186px; background: #f5f7ff;
+                y: 0px; width: 2px; height: board.height - 6px; background: #f5f7ff;
                 Rectangle { x: -4px; y: 0px; width: 10px; height: 12px; background: #f5f7ff; border-radius: 2px; }
             }
             for handle in [0, 1, 2, 3]: Rectangle {
