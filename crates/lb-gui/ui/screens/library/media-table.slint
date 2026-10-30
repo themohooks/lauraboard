@@ -183,7 +183,8 @@ component Tile inherits Interactive {
             kind: root.item.kind;
             source: root.item.thumb;
             has-image: root.item.has-thumb;
-            duration: root.item.duration;
+            // a still image has no running time to show
+            duration: root.item.kind == "image" ? "" : root.item.duration;
             problem: root.item.problem != "";
         }
         Label {
