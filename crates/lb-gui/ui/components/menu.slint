@@ -17,6 +17,8 @@ export struct MenuEntry {
     enabled: bool,
     // thin divider above this entry
     divider: bool,
+    // small chip after the text ("НЕСТАБИЛЬНО")
+    badge: string,
 }
 
 export component Menu {
@@ -98,6 +100,21 @@ export component Menu {
                                 type-style: Theme.label-large;
                                 color: !e.enabled ? Theme.color.on-surface.with-alpha(Theme.disabled-content)
                                     : e.danger ? Theme.color.error : Theme.color.on-surface;
+                            }
+                            if e.badge != "": VerticalLayout {
+                                alignment: center;
+                                Rectangle {
+                                    height: 18px;
+                                    width: badge-text.preferred-width + 12px;
+                                    border-radius: 9px;
+                                    background: Theme.color.error-container;
+                                    badge-text := Label {
+                                        text: e.badge;
+                                        type-style: Theme.label-small;
+                                        color: Theme.color.on-error-container;
+                                        horizontal-alignment: center;
+                                    }
+                                }
                             }
                             if e.shortcut != "": Label {
                                 text: e.shortcut;
