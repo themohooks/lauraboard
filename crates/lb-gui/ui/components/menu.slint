@@ -21,6 +21,12 @@ export struct MenuEntry {
     badge: string,
 }
 
+// Size of the window, set by the app: menus stay inside it.
+export global MenuBounds {
+    in-out property <length> width: 100000px;
+    in-out property <length> height: 100000px;
+}
+
 export component Menu {
     in property <[MenuEntry]> entries;
     in property <length> menu-width: 240px;
@@ -39,11 +45,14 @@ export component Menu {
     width: 0;
     height: 0;
 
+    // flipped to the left of / above the point when there is no room
     popup := PopupWindow {
-        x: root.px;
-        y: root.py;
+        x: root.absolute-position.x + root.px + root.menu-width + 8px > MenuBounds.width
+            ? max(8px - root.absolute-position.x, root.px - root.menu-width) : root.px;
+        y: root.absolute-position.y + root.py + content.preferred-height + 8px > MenuBounds.height
+            ? max(8px - root.absolute-position.y, root.py - content.preferred-height) : root.py;
         width: root.menu-width;
-        Rectangle {
+        content := Rectangle {
             // created on every show(): fade in from init. No `y` here: an
             // explicit position drops the popup's implicit height (no
             // background, entries outside the popup and not clickable).

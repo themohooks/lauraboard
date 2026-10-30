@@ -9,6 +9,7 @@ import { NavRail } from "components/nav-rail.slint";
 import { Snackbar } from "components/snackbar.slint";
 import { ConfirmDialog } from "components/dialog.slint";
 import { TooltipLayer } from "components/tooltip.slint";
+import { MenuBounds } from "components/menu.slint";
 import { App } from "state/app-state.slint";
 import { Pl } from "state/playlists-state.slint";
 import { Grid } from "state/schedule-state.slint";
@@ -99,6 +100,10 @@ export component AppWindow inherits Window {
     changed width => {
         self.narrow = self.width < 1200px;
         App.narrow = self.narrow;
+        MenuBounds.width = self.width;
+    }
+    changed height => {
+        MenuBounds.height = self.height;
     }
 
     title: "LauraBoard — управление эфиром";
@@ -343,6 +348,8 @@ export component AppWindow inherits Window {
     init => {
         self.narrow = self.width < 1200px;
         App.narrow = self.narrow;
+        MenuBounds.width = self.width;
+        MenuBounds.height = self.height;
         Theme.density = self.density;
         keys.focus();
     }
