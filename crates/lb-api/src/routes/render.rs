@@ -9,11 +9,11 @@ use axum::Json;
 use axum::extract::{Path, State};
 use axum::http::header;
 use axum::response::{IntoResponse, Response};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 use lb_core::Ms;
 use lb_core::config::Role;
-use lb_core::graphics::{ActiveGraphic, ElementKind, GraphicsConfig, ProgramClock};
+use lb_core::graphics::{GraphicsConfig, ProgramClock};
 use lb_gfx::{Compositor, FrameContext};
 
 use super::channel;
@@ -86,20 +86,27 @@ pub struct RenderBody {
     pub refresh: bool,
 }
 
-/// Transparent PNG of the given elements at the channel frame size.
-pub async fn render(State(s): State<AppState>, c: Caller, Path(id): Path<String>, Json(b): Json<RenderBody>) -> ApiResult<Response> {
-    c.require(Role::Viewer)?;
-    let h = channel(&s, &id)?;
-    let root = h.shared.root.clone();
+/// What the preview draws besides the configuration: template variables
+/// and the clocks of the air. Also served on its own
+/// (`GET /graphics/live`), so an operator GUI on the same computer can draw
+/// drafts itself with the same compositor.
+#[derive(Serialize)]
+pub struct Live {
+    pub width: u32,
+    pub height: u32,
+    pub vars: HashMap<String, String>,
+    pub remaining_ms: Ms,
+    pub next_program_ms: Option<Ms>,
+    pub program: ProgramClock,
+}
+
+fn live(h: &lb_engine::channel::ChannelHandle, extra: &HashMap<String, String>) -> Live {
     let st = h.status();
-    let (w, hgt, vars) = h.read(|d| {
+    let (width, height, vars) = h.read(|d| {
         let on_air = st.on_air.as_ref().map(|o| &o.item);
-        let vars = lb_engine::channel::vars::build(d, on_air, st.next.as_ref(), st.next_program.as_ref(), &b.vars);
+        let vars = lb_engine::channel::vars::build(d, on_air, st.next.as_ref(), st.next_program.as_ref(), extra);
         (d.config.video.width, d.config.video.height, vars)
     });
-    if w == 0 || hgt == 0 || w > MAX_SIDE || hgt > MAX_SIDE {
-        return Err(ApiError::bad_request(format!("unsupported frame size {w}x{hgt}")));
-    }
     let remaining = st.on_air.as_ref().map(|o| o.remaining_ms).unwrap_or(60_000);
     // the editor preview: the programme of the item on air as aired so far
     // (half a minute shown when nothing is on air)
@@ -107,9 +114,27 @@ pub async fn render(State(s): State<AppState>, c: Caller, Path(id): Path<String>
         Some(p) => p.clone(),
         None => ProgramClock { current: Some((lb_core::media::MediaKind::Program, remaining * 2)), ..Default::default() },
     };
-    let next_ms = st.time_to_next_program_ms;
+    Live { width, height, vars, remaining_ms: remaining, next_program_ms: st.time_to_next_program_ms, program }
+}
+
+/// Variables and clocks of the air for a local preview.
+pub async fn live_state(State(s): State<AppState>, c: Caller, Path(id): Path<String>) -> ApiResult<Json<Live>> {
+    c.require(Role::Viewer)?;
+    let h = channel(&s, &id)?;
+    Ok(Json(live(&h, &HashMap::new())))
+}
+
+/// Transparent PNG of the given elements at the channel frame size.
+pub async fn render(State(s): State<AppState>, c: Caller, Path(id): Path<String>, Json(b): Json<RenderBody>) -> ApiResult<Response> {
+    c.require(Role::Viewer)?;
+    let h = channel(&s, &id)?;
+    let root = h.shared.root.clone();
+    let Live { width: w, height: hgt, vars, remaining_ms: remaining, next_program_ms: next_ms, program } = live(&h, &b.vars);
+    if w == 0 || hgt == 0 || w > MAX_SIDE || hgt > MAX_SIDE {
+        return Err(ApiError::bad_request(format!("unsupported frame size {w}x{hgt}")));
+    }
     let (png, pending) = tokio::task::spawn_blocking(move || {
-        let active = active_set(&b.config, b.elements.as_deref(), b.t_ms);
+        let active = lb_gfx::preview::active_set(&b.config, b.elements.as_deref(), b.t_ms);
         let cached = renderer(&root, w, hgt, &b.config, b.interactive, b.refresh);
         let mut comp = cached.lock().unwrap_or_else(|e| e.into_inner());
         comp.set_config(b.config);
@@ -149,35 +174,4 @@ pub async fn render(State(s): State<AppState>, c: Caller, Path(id): Path<String>
         png,
     )
         .into_response())
-}
-
-/// Elements drawn as if shown `t_ms` ago (an hour by default: animations done).
-fn active_set(cfg: &GraphicsConfig, only: Option<&[String]>, t_ms: Option<Ms>) -> Vec<ActiveGraphic> {
-    let children: Vec<&str> = cfg
-        .elements
-        .iter()
-        .filter_map(|e| match &e.kind {
-            ElementKind::Group { children } => Some(children.iter().map(String::as_str)),
-            _ => None,
-        })
-        .flatten()
-        .collect();
-    let mut v: Vec<ActiveGraphic> = cfg
-        .elements
-        .iter()
-        .filter(|e| match only {
-            Some(ids) => ids.contains(&e.id),
-            None => !children.contains(&e.id.as_str()),
-        })
-        .map(|e| ActiveGraphic {
-            element: e.id.clone(),
-            layer: e.layer,
-            rule: None,
-            priority: 0,
-            shown_ms: t_ms.unwrap_or(3_600_000).max(0),
-            hide_in_ms: None,
-        })
-        .collect();
-    v.sort_by_key(|a| a.layer);
-    v
 }

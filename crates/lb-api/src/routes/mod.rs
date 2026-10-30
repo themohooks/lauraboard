@@ -86,6 +86,7 @@ pub fn router(state: AppState) -> Router {
         .route("/rules", get(config::get_rules).put(config::put_rules))
         .route("/graphics", get(config::get_graphics).put(config::put_graphics))
         .route("/graphics/render", post(render::render))
+        .route("/graphics/live", get(render::live_state))
         .route("/fonts", get(fonts::list).post(fonts::add))
         .route("/graphics/backgrounds", get(backgrounds::plates))
         .route("/graphics/backgrounds/{file}", get(backgrounds::plate_file))

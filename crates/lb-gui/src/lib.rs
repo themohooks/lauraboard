@@ -44,6 +44,9 @@ pub struct GuiOptions {
     pub channel: Option<String>,
     /// The engine runs inside this process: quitting stops the broadcast.
     pub embedded_engine: bool,
+    /// Project folder when the server runs on this computer: graphics drafts
+    /// are then drawn here, without a server round trip per edit.
+    pub project: Option<std::path::PathBuf>,
 }
 
 /// Open the main window (blocks until the user quits; with a tray icon

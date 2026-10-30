@@ -10,6 +10,7 @@
 //! * [`images`] — image loading and scaled caching
 //! * [`layout`] — anchors and placement maths
 //! * [`anim`] — in/out animation curves
+//! * [`preview`] — what an editor preview of a draft shows
 //! * [`color`] — colour parsing
 //! * [`backdrops`] — ready-made backgrounds and plate textures
 
@@ -22,6 +23,7 @@ pub mod fonts;
 pub mod images;
 pub mod layout;
 pub mod plate;
+pub mod preview;
 pub mod shape;
 pub mod text;
 pub mod web;

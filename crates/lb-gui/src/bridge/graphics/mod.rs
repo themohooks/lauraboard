@@ -12,6 +12,7 @@
 mod design;
 mod fonts;
 mod layers;
+mod local;
 pub(crate) mod plate_editor;
 pub mod scope;
 mod textures;
@@ -77,9 +78,16 @@ pub struct GraphicsState {
     layer_ids: Vec<i32>,
     /// Scene whose own graphics are edited (`None`: the channel's).
     pub(crate) scope: Option<String>,
+    /// Drafts drawn in this process when the project is on this computer.
+    local: local::LocalRender,
 }
 
 impl GraphicsState {
+    /// `project`: the project folder when the server runs on this computer.
+    pub fn new(project: Option<PathBuf>) -> Self {
+        GraphicsState { local: local::LocalRender::new(project), ..Default::default() }
+    }
+
     pub fn dirty(&self) -> bool {
         self.draft.is_some() && self.draft != self.saved
     }
@@ -1193,6 +1201,14 @@ pub fn render(c: &mut Ctx) {
         return;
     }
     let Some(cfg) = c.gfx.draft.clone() else { return };
+    if c.gfx.force_render {
+        // files may have changed under the same names: fresh caches
+        local::reset(c);
+    }
+    if local::render(c, &cfg) {
+        c.gfx.force_render = false;
+        return;
+    }
     if c.gfx.drag.is_some() && has_edit_layer(c) && !c.gfx.pending_web && !c.gfx.force_render {
         return;
     }

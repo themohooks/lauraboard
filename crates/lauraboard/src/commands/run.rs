@@ -63,6 +63,8 @@ pub fn gui(ctx: &Ctx, connect: Option<String>) -> Result<()> {
     // the next start from a shortcut opens the same project
     crate::desktop::remember(&ctx.root);
     let mut embedded_engine = false;
+    // a server of this project runs here: graphics drafts are drawn locally
+    let local_project = connect.is_none().then(|| ctx.root.clone());
     let (base, token) = match connect {
         Some(url) => (url, ctx.token.clone()),
         None => {
@@ -83,6 +85,6 @@ pub fn gui(ctx: &Ctx, connect: Option<String>) -> Result<()> {
             (base, token)
         }
     };
-    lb_gui::run(lb_gui::GuiOptions { base_url: base, token, channel: ctx.channel.clone(), embedded_engine })
+    lb_gui::run(lb_gui::GuiOptions { base_url: base, token, channel: ctx.channel.clone(), embedded_engine, project: local_project })
         .map_err(|e| anyhow::anyhow!("GUI error: {e}"))
 }

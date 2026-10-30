@@ -43,6 +43,8 @@ pub struct Compositor {
     /// shows), so the text keeps moving across item changes.
     tickers: HashMap<String, (WallTime, bool)>,
     live: bool,
+    /// Editor preview: tickers stand at the start of their text.
+    editing: bool,
     visibility: HashMap<String, Visibility>,
 }
 
@@ -64,6 +66,7 @@ impl Compositor {
             out: vec![0; (width.max(1) * height.max(1) * 4) as usize],
             tickers: HashMap::new(),
             live: false,
+            editing: false,
             visibility: HashMap::new(),
         }
     }
@@ -104,8 +107,10 @@ impl Compositor {
         self.sprites.images.substituted() || self.sprites.images.audio_sources().iter().any(|s| s.is_pending())
     }
 
-    /// Editor renders: web pages are not reloaded for every size of a box being resized.
-    pub fn set_editing(&self, on: bool) {
+    /// Editor renders: web pages are not reloaded for every size of a box
+    /// being resized, tickers show the start of their text.
+    pub fn set_editing(&mut self, on: bool) {
+        self.editing = on;
         self.sprites.images.set_editing(on);
     }
 
@@ -323,7 +328,7 @@ impl Compositor {
                 let origin = self.tickers.entry(el.id.clone()).or_insert((lb_core::add_ms(ctx.now, -shown.max(0)), true));
                 origin.1 = true;
                 let scrolled = lb_core::diff_ms(ctx.now, origin.0).max(0);
-                let offset = ((scrolled as f64 / 1000.0) * *speed as f64) % cycle as f64;
+                let offset = if self.editing { band_w as f64 } else { ((scrolled as f64 / 1000.0) * *speed as f64) % cycle as f64 };
                 // sub-pixel position: whole-pixel steps alternate between
                 // two distances per frame and look jerky
                 let sx = band_w as f64 - offset;

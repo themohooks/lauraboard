@@ -161,7 +161,7 @@ pub fn start(ui: &AppWindow, opts: &GuiOptions, prefs: UiPrefs) {
         ed: Default::default(),
         grid: Default::default(),
         rules: Default::default(),
-        gfx: Default::default(),
+        gfx: graphics::GraphicsState::new(opts.project.clone()),
         log: Default::default(),
         stats: Default::default(),
         settings: Default::default(),
@@ -707,7 +707,7 @@ mod tests {
         let ui = AppWindow::new().unwrap();
         start(
             &ui,
-            &GuiOptions { base_url: "http://127.0.0.1:1".into(), token: None, channel: None, embedded_engine: false },
+            &GuiOptions { base_url: "http://127.0.0.1:1".into(), token: None, channel: None, embedded_engine: false, project: None },
             UiPrefs { persist: false, ..Default::default() },
         );
         with(|c| {

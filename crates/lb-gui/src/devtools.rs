@@ -88,6 +88,7 @@ pub fn snapshot(out: &Path, section: &str, width: u32, height: u32, scale: f32, 
                 token: std::env::var("LB_TOKEN").ok(),
                 channel: None,
                 embedded_engine: false,
+                project: std::env::var_os("LB_SNAPSHOT_PROJECT").map(Into::into),
             };
             let prefs = crate::prefs::UiPrefs { section: name.to_string(), persist: false, ..Default::default() };
             crate::bridge::start(&ui, &opts, prefs);

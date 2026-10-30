@@ -3537,6 +3537,7 @@ dependencies = [
  "image",
  "ksni",
  "lb-core",
+ "lb-gfx",
  "pollster",
  "rfd",
  "serde",
