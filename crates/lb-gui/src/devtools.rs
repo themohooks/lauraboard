@@ -71,7 +71,16 @@ pub fn snapshot(out: &Path, section: &str, width: u32, height: u32, scale: f32, 
     window.dispatch_event(WindowEvent::ScaleFactorChanged { scale_factor: scale });
     window.set_size(slint::PhysicalSize::new(width, height));
     let (name, page) = section.split_once(':').unwrap_or((section, ""));
-    ui.set_section(if name == "theme-transition" { "settings" } else if name == "graphics-delete" { "graphics" } else { name }.into());
+    ui.set_section(
+        if name == "theme-transition" {
+            "settings"
+        } else if name == "graphics-delete" {
+            "graphics"
+        } else {
+            name
+        }
+        .into(),
+    );
     ui.set_gallery_page(page.into());
     // No time passes between frames here, so animated properties would keep stale values.
     ui.global::<Theme>().set_animations(false);

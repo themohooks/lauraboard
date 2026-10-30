@@ -420,9 +420,8 @@ fn opt_num(v: Option<f32>) -> String {
 /// Clock time zones offered for an element with zone `cur`: "" (local time),
 /// the curated list, and `cur` itself when it is not in that list.
 fn zone_ids(cur: Option<&str>) -> Vec<String> {
-    let mut v: Vec<String> = std::iter::once(String::new())
-        .chain(lb_core::graphics::CLOCK_ZONES.iter().map(|(n, _)| n.to_string()))
-        .collect();
+    let mut v: Vec<String> =
+        std::iter::once(String::new()).chain(lb_core::graphics::CLOCK_ZONES.iter().map(|(n, _)| n.to_string())).collect();
     if let Some(c) = cur.filter(|c| !c.is_empty() && !v.iter().any(|z| z == c)) {
         v.push(c.to_string());
     }
@@ -928,9 +927,13 @@ fn add(c: &mut Ctx, kind: &str) {
             60.0,
             50.0,
         ),
-        "clock" => {
-            (ElementKind::Clock { format: "%H:%M".into(), style: style.clone(), tz: None }, "Часы", lb_core::graphics::Anchor::TopRight, 60.0, 50.0)
-        }
+        "clock" => (
+            ElementKind::Clock { format: "%H:%M".into(), style: style.clone(), tz: None },
+            "Часы",
+            lb_core::graphics::Anchor::TopRight,
+            60.0,
+            50.0,
+        ),
         "countdown" => (
             ElementKind::Countdown {
                 target: CountdownTarget::NextProgram,
@@ -1278,7 +1281,10 @@ pub fn render(c: &mut Ctx) {
                             g.set_edit_stretch(!c.gfx.draft.as_ref().is_some_and(|d| {
                                 d.elements.iter().any(|e| {
                                     &e.id == id
-                                        && matches!(e.kind, ElementKind::Text { .. } | ElementKind::Clock { .. } | ElementKind::Countdown { .. })
+                                        && matches!(
+                                            e.kind,
+                                            ElementKind::Text { .. } | ElementKind::Clock { .. } | ElementKind::Countdown { .. }
+                                        )
                                 })
                             }));
                             c.gfx.preview_layer = Some(id.clone());

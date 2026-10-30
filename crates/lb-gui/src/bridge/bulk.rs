@@ -142,15 +142,20 @@ pub fn bulk(c: &mut Ctx, action: &str, arg: i32) {
         "folder" => {
             let path = folders::option_path(c, arg);
             let label = if path.is_empty() { "верхний уровень".to_string() } else { format!("«{path}»") };
-            c.confirm("Переместить в папку?", &format!("Будет перемещено в {label}: {what}."), "Переместить", move |c| {
-                let body = json!({ "op": "move", "path": path, "ids": ids });
-                c.change(move |api| {
-                    api.post(&format!("/channels/{ch}/media/folders"), &body)?;
-                    Ok(format!("Перемещено в {label}: {n}"))
-                });
-                c.lib.checked.clear();
-                update_checks(c);
-            });
+            c.confirm(
+                "Переместить в папку?",
+                &format!("Будет перемещено в {label}: {what}."),
+                "Переместить",
+                move |c| {
+                    let body = json!({ "op": "move", "path": path, "ids": ids });
+                    c.change(move |api| {
+                        api.post(&format!("/channels/{ch}/media/folders"), &body)?;
+                        Ok(format!("Перемещено в {label}: {n}"))
+                    });
+                    c.lib.checked.clear();
+                    update_checks(c);
+                },
+            );
         }
         "kind" => {
             let Some((k, name)) = KINDS.get(arg as usize).copied().zip(KIND_NAMES.get(arg as usize)) else { return };
@@ -212,7 +217,9 @@ pub fn set_category(c: &mut Ctx, cat: String) {
 pub fn category_entries(c: &Ctx) -> slint::ModelRc<MenuEntry> {
     let mut v: Vec<MenuEntry> =
         c.lib.categories.iter().map(|k| MenuEntry { id: k.into(), text: k.into(), enabled: true, ..Default::default() }).collect();
-    v.push(MenuEntry { id: "".into(), text: "Без категории".into(), enabled: true, divider: !v.is_empty(), ..Default::default() });
+    v.push(MenuEntry {
+        id: "".into(), text: "Без категории".into(), enabled: true, divider: !v.is_empty(), ..Default::default()
+    });
     vec_model(v)
 }
 

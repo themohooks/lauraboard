@@ -253,9 +253,12 @@ fn queue_action(c: &mut Ctx, uid: &str, action: &str) {
             );
         }
         "queue-again" => c.command(json!({ "cmd": "queue", "media": it.media })),
-        "skip" => c.ask("Пропустить текущий элемент?", &format!("«{}» будет остановлен, в эфир пойдёт следующий.", it.title), "Пропустить", |c| {
-            c.command(cmd("skip"))
-        }),
+        "skip" => c.ask(
+            "Пропустить текущий элемент?",
+            &format!("«{}» будет остановлен, в эфир пойдёт следующий.", it.title),
+            "Пропустить",
+            |c| c.command(cmd("skip")),
+        ),
         "restart" => c.ask("Начать заново?", &format!("«{}» начнётся с начала.", it.title), "Начать заново", |c| c.command(cmd("restart"))),
         "video-edit" => super::editor::open(c, &it.media),
         _ => {}
