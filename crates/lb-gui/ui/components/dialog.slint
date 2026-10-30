@@ -73,6 +73,8 @@ export component Dialog inherits Rectangle {
             width: parent.width;
             height: parent.height;
             horizontal-scrollbar-policy: always-off;
+            // rounding makes a fitting body a pixel taller than the card
+            vertical-scrollbar-policy: body.preferred-height > card.height + 2px ? as-needed : always-off;
         body := VerticalLayout {
             width: scroll.visible-width;
             height: self.preferred-height;
