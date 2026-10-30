@@ -92,6 +92,7 @@
 {"cmd": "manual", "enabled": true}
 {"cmd": "play_now", "media": "breaking-news"}
 {"cmd": "queue", "media": "promo-1"}
+{"cmd": "play_item", "uid": "<uid элемента рундауна>"}
 {"cmd": "clear_queue"}
 {"cmd": "ad_break", "ad_break": "regular", "now": false}
 {"cmd": "graphic", "element": "logo", "action": "hide"}

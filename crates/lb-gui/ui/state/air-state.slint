@@ -35,6 +35,8 @@ export struct NextInfo {
 // One row of the queue / rundown.
 export struct QueueRow {
     uid: string,
+    // library media id ("" for gaps / slates)
+    media: string,
     start: string,
     end: string,
     duration: string,
@@ -76,6 +78,8 @@ export global Air {
     in property <string> detail-title;
     in property <string> detail-text;
     callback inspect-queue(string);
+    // queue row context menu: uid, action (play-item, queue-again, skip, restart, video-edit, details)
+    callback queue-action(string, string);
     in property <NowInfo> now;
     in property <NextInfo> next;
     in property <image> next-thumb;

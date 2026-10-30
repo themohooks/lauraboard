@@ -30,6 +30,8 @@ pub enum Command {
     Manual { enabled: bool },
     /// Interrupt and play a media item now.
     PlayNow { media: String },
+    /// Start a planned (or queued) rundown item now, ahead of its time.
+    PlayItem { uid: String },
     /// Queue a media item to play after the current one.
     Queue { media: String },
     /// Clear the manual queue.

@@ -424,6 +424,7 @@ fn model<T: Clone + 'static>(v: Vec<T>) -> slint::ModelRc<T> {
 fn row(start: &str, dur: &str, title: &str, kind: &str, block: &str) -> QueueRow {
     QueueRow {
         uid: format!("{start}-{title}").into(),
+        media: title.into(),
         start: start.into(),
         end: "".into(),
         duration: dur.into(),

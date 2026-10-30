@@ -98,6 +98,24 @@ impl Runtime {
                 self.start_item(item, 0).await;
                 Ok("playing".into())
             }
+            Command::PlayItem { uid } => {
+                self.require_running()?;
+                if self.on_air.as_ref().is_some_and(|o| o.item.uid == uid) {
+                    return Err("the item is already on air".into());
+                }
+                let mut item = match self.sched.queue.iter().position(|i| i.uid == uid) {
+                    Some(p) => self.sched.queue.remove(p),
+                    None => self.sched.rundown.items.iter().position(|i| i.uid == uid).map(|p| self.sched.rundown.items.remove(p)),
+                }
+                .ok_or("the item is no longer in the rundown")?;
+                item.start = now();
+                self.interrupt_current("interrupted: an item started early");
+                if !self.start_item(item, 0).await {
+                    self.start_next().await;
+                    return Err("could not start the item".into());
+                }
+                Ok("started early".into())
+            }
             Command::Queue { media } => {
                 let item = {
                     let data = self.shared.data.read().unwrap_or_else(|e| e.into_inner());

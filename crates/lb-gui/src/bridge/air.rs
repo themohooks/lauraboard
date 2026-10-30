@@ -21,6 +21,7 @@ fn strings(v: impl IntoIterator<Item = String>) -> ModelRc<SharedString> {
 pub fn connect(ui: &AppWindow) {
     let a = ui.global::<Air>();
     a.on_inspect_queue(|uid| with(move |c| inspect_queue(c, uid.as_str())));
+    a.on_queue_action(|uid, action| with(move |c| queue_action(c, uid.as_str(), action.as_str())));
     a.on_transport(|action| with(move |c| transport(c, action.as_str())));
     a.on_search_media(|_| with(media_results));
     a.on_play_now(|id| {
@@ -233,6 +234,34 @@ fn is_scene(m: &crate::model::Model, it: &RundownItem) -> bool {
     !it.media.is_empty() && m.library.iter().any(|x| x.id == it.media && x.is_scene())
 }
 
+/// Context menu of a queue row.
+fn queue_action(c: &mut Ctx, uid: &str, action: &str) {
+    let Some(it) = c.model.rundown.items.iter().find(|it| it.uid == uid).cloned() else { return };
+    match action {
+        "details" => inspect_queue(c, uid),
+        "play-item" => {
+            let uid = it.uid.clone();
+            c.ask(
+                "Запустить досрочно?",
+                &format!(
+                    "Текущий элемент будет прерван, сейчас в эфир пойдёт «{}» (по плану в {}). План эфира пересчитается.",
+                    it.title,
+                    it.start.format("%H:%M:%S")
+                ),
+                "Запустить",
+                move |c| c.command(json!({ "cmd": "play_item", "uid": uid })),
+            );
+        }
+        "queue-again" => c.command(json!({ "cmd": "queue", "media": it.media })),
+        "skip" => c.ask("Пропустить текущий элемент?", &format!("«{}» будет остановлен, в эфир пойдёт следующий.", it.title), "Пропустить", |c| {
+            c.command(cmd("skip"))
+        }),
+        "restart" => c.ask("Начать заново?", &format!("«{}» начнётся с начала.", it.title), "Начать заново", |c| c.command(cmd("restart"))),
+        "video-edit" => super::editor::open(c, &it.media),
+        _ => {}
+    }
+}
+
 fn inspect_queue(c: &mut Ctx, uid: &str) {
     let Some(it) = c.model.rundown.items.iter().find(|it| it.uid == uid) else { return };
     let Some(ui) = c.window() else { return };
@@ -286,6 +315,7 @@ pub fn queue_row(it: &RundownItem, why: Option<String>, block_start: bool, curre
     }
     QueueRow {
         uid: it.uid.clone().into(),
+        media: it.media.clone().into(),
         start: it.start.format("%H:%M:%S").to_string().into(),
         end: it.end().format("%H:%M:%S").to_string().into(),
         duration: hms(it.duration_ms).into(),

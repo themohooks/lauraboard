@@ -7,7 +7,8 @@ import { Label } from "../../components/label.slint";
 import { Icon } from "../../components/icon.slint";
 import { ListRow } from "../../components/list-row.slint";
 import { Kinds } from "../../components/indicators.slint";
-import { QueueRow } from "../../state/air-state.slint";
+import { Menu } from "../../components/menu.slint";
+import { Air, QueueRow } from "../../state/air-state.slint";
 
 export component QueueRowView inherits ListRow {
     in property <QueueRow> item;
@@ -18,6 +19,10 @@ export component QueueRowView inherits ListRow {
     accent: Theme.status.live;
     divider: item.block-start;
     accessible-label: item.start + " " + item.title;
+    right-clicked(p) => {
+        // the menu sits at the end of the row's layout while p is row-local
+        menu.open-at(p.x - menu.x, p.y - menu.y);
+    }
 
     Label {
         width: 64px;
@@ -67,5 +72,24 @@ export component QueueRowView inherits ListRow {
         type-style: Theme.body-small;
         horizontal-alignment: right;
         color: Theme.color.on-surface-variant;
+    }
+
+    menu := Menu {
+        menu-width: 260px;
+        entries: root.item.current ? [
+            { id: "skip", text: "Пропустить…", icon: Icons.skip-next, has-icon: true, enabled: true },
+            { id: "restart", text: "Начать заново…", icon: Icons.replay, has-icon: true, enabled: root.item.media != "" },
+            { id: "queue-again", text: "Повторить после текущего", icon: Icons.queue-music, has-icon: true, enabled: root.item.media != "", divider: true },
+            { id: "video-edit", text: "Монтаж…", icon: Icons.movie, has-icon: true, enabled: root.item.media != "" && root.item.kind != "image" && root.item.kind != "stream" },
+            { id: "details", text: "Подробности", icon: Icons.info, has-icon: true, enabled: true, divider: true },
+        ] : [
+            { id: "play-item", text: "Запустить досрочно…", icon: Icons.play-arrow, has-icon: true, enabled: root.item.kind != "gap" },
+            { id: "queue-again", text: "Добавить в очередь после текущего", icon: Icons.queue-music, has-icon: true, enabled: root.item.media != "", divider: true },
+            { id: "video-edit", text: "Монтаж…", icon: Icons.movie, has-icon: true, enabled: root.item.media != "" && root.item.kind != "image" && root.item.kind != "stream" },
+            { id: "details", text: "Подробности", icon: Icons.info, has-icon: true, enabled: true, divider: true },
+        ];
+        activated(id) => {
+            Air.queue-action(root.item.uid, id);
+        }
     }
 }
