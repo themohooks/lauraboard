@@ -19,6 +19,15 @@ export component SideSheet inherits Rectangle {
     background: Theme.color.surface-container-low;
     clip: true;
 
+    // the sheet is opaque: clicks and scrolling on its empty parts must not
+    // reach the list underneath
+    TouchArea {
+        mouse-cursor: default;
+        scroll-event(e) => {
+            accept
+        }
+    }
+
     Rectangle {
         x: 0;
         width: 1px;
