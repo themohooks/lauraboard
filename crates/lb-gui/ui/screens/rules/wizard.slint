@@ -60,7 +60,8 @@ export component RuleWizard inherits Dialog {
     if Rules.wizard-step == 2: ConditionsSection { }
     if Rules.wizard-step == 3: LimitsSection { }
     Label {
-        text: Rules.problems.length > 0 ? Rules.problems[0] : "";
+        // nothing is chosen on the first step yet: checks start from "Что"
+        text: Rules.wizard-step > 0 && Rules.problems.length > 0 ? Rules.problems[0] : "";
         type-style: Theme.body-small;
         color: Theme.color.error;
         wrap: word-wrap;

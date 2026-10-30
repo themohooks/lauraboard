@@ -98,6 +98,11 @@ pub fn problems(set: &RuleSet, i: usize, categories: &HashSet<String>) -> Vec<St
         _ => {}
     }
     match &r.action {
+        InsertAction::AdBreak { ad_break } if ad_break.trim().is_empty() => out.push(if set.ad_breaks.is_empty() {
+            "Не выбран рекламный блок: сначала создайте его на вкладке «Рекламные блоки»".into()
+        } else {
+            "Не выбран рекламный блок".into()
+        }),
         InsertAction::AdBreak { ad_break } if !set.ad_breaks.iter().any(|b| &b.id == ad_break) => {
             out.push(format!("Рекламный блок «{ad_break}» не найден"))
         }
