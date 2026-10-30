@@ -14,6 +14,7 @@
 pub mod air;
 pub mod archive;
 pub mod avatars;
+mod bulk;
 pub mod channels;
 pub mod download;
 pub mod editor;
@@ -630,6 +631,14 @@ impl Ctx {
         g.set_confirm_action(action_label.into());
         g.set_confirm_danger(true);
         g.set_confirm_open(true);
+    }
+
+    /// [`Ctx::ask`] for an action that is not destructive (a plain button).
+    pub fn confirm(&mut self, title: &str, text: &str, action_label: &str, action: impl FnOnce(&mut Ctx) + 'static) {
+        self.ask(title, text, action_label, action);
+        if let Some(ui) = self.window() {
+            ui.global::<App>().set_confirm_danger(false);
+        }
     }
 
     /// [`Ctx::ask`] with a checkbox; the action gets its state.

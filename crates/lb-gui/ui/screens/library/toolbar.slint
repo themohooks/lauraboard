@@ -133,6 +133,8 @@ export component LibraryToolbar inherits VerticalLayout {
                         container-color: Theme.color.secondary-container;
                         selected(i, _) => {
                             Lib.bulk("playlist", i);
+                            // a pick, not a state: the select shows its placeholder again
+                            self.current-index = -1;
                         }
                     }
                 }
@@ -145,6 +147,7 @@ export component LibraryToolbar inherits VerticalLayout {
                         container-color: Theme.color.secondary-container;
                         selected(i, _) => {
                             Lib.bulk("folder", i);
+                            self.current-index = -1;
                         }
                     }
                 }
@@ -170,13 +173,48 @@ export component LibraryToolbar inherits VerticalLayout {
                             more-menu.open-at(more.width - more-menu.menu-width, more.height);
                         }
                         more-menu := Menu {
-                            menu-width: 200px;
+                            menu-width: 260px;
                             entries: [
-                                { id: "enable", text: "Включить", icon: Icons.check-circle, has-icon: true, enabled: true },
-                                { id: "disable", text: "Выключить", icon: Icons.close, has-icon: true, enabled: true },
+                                { id: "select-shown", text: "Выбрать все показанные", icon: Icons.select-all, has-icon: true, enabled: true },
+                                { id: "invert", text: "Инвертировать выбор", icon: Icons.deselect, has-icon: true, enabled: true },
+                                { id: "open-playlist", text: "В открытый плейлист", icon: Icons.playlist-add, has-icon: true, enabled: true, divider: true },
+                                { id: "kind", text: "Сменить тип…", icon: Icons.tune, has-icon: true, enabled: true },
+                                { id: "category", text: "Сменить категорию…", icon: Icons.filter-list, has-icon: true, enabled: true },
+                                { id: "enable", text: "Включить", icon: Icons.visibility, has-icon: true, enabled: true, divider: true },
+                                { id: "disable", text: "Выключить", icon: Icons.visibility-off, has-icon: true, enabled: true },
+                                { id: "reset-trim", text: "Сбросить обрезку", icon: Icons.replay, has-icon: true, enabled: true, divider: true },
+                                { id: "reset-volume", text: "Сбросить громкость (0 дБ)", icon: Icons.music-note, has-icon: true, enabled: true },
                             ];
                             activated(id) => {
-                                Lib.bulk(id, 0);
+                                if id == "kind" {
+                                    kind-menu.open-at(more.width - kind-menu.menu-width, more.height);
+                                } else if id == "category" {
+                                    cat-menu.open-at(more.width - cat-menu.menu-width, more.height);
+                                } else {
+                                    Lib.bulk(id, 0);
+                                }
+                            }
+                        }
+                        kind-menu := Menu {
+                            menu-width: 220px;
+                            entries: [
+                                { id: "0", text: "Передача", enabled: true },
+                                { id: "1", text: "Заставка", enabled: true },
+                                { id: "2", text: "Реклама", enabled: true },
+                                { id: "3", text: "Анонс", enabled: true },
+                                { id: "4", text: "Заполнение", enabled: true },
+                                { id: "5", text: "Изображение", enabled: true },
+                                { id: "6", text: "Поток", enabled: true },
+                            ];
+                            activated(id) => {
+                                Lib.bulk("kind", id.to-float());
+                            }
+                        }
+                        cat-menu := Menu {
+                            menu-width: 240px;
+                            entries: Lib.bulk-categories;
+                            activated(id) => {
+                                Lib.bulk-category(id);
                             }
                         }
                     }

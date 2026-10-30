@@ -1,5 +1,7 @@
 // Data contract of the Media library screen (src/bridge/library.rs).
 
+import { MenuEntry } from "../components/menu.slint";
+
 export struct MediaRow {
     // position in the filtered list
     row: int,
@@ -63,6 +65,8 @@ export global Lib {
     in property <int> checked-count;
     in-out property <int> focused: -1;
     in property <[string]> playlists;
+    // bulk "Категория" menu: library categories, then "Без категории"
+    in property <[MenuEntry]> bulk-categories;
 
     // folders: tree, selected folder ("" = whole library), and the list
     // offered by selects (index 0 = top level)
@@ -152,6 +156,8 @@ export global Lib {
     // "playlist" (arg = playlist index), "queue", "enable", "disable", "kind" (arg = kind),
     // "folder" (arg = index in folder-options), "delete"
     callback bulk(string, int);
+    // bulk category: the category name ("" = none)
+    callback bulk-category(string);
     callback browse-import(bool);
     callback do-import();
     callback check-files();

@@ -1,5 +1,5 @@
 //! Media library: filtered / sorted table and tiles, multi-select with
-//! bulk actions, metadata editing, import (copying into the channel's
+//! bulk actions ([`super::bulk`]), metadata editing, import (copying into the channel's
 //! storage as a background job) and file check. Folders: [`super::folders`].
 
 use std::collections::HashSet;
@@ -9,7 +9,6 @@ use serde_json::{Value, json};
 use slint::{ComponentHandle, Model, SharedString, VecModel};
 
 use lb_core::media::{MediaItem, MediaKind};
-use lb_core::playlist::PlaylistEntry;
 
 use super::folders;
 use super::{Ctx, thumbs, vec_model, with};
@@ -22,11 +21,11 @@ use crate::shell::{AppWindow, Lib, MediaEdit, MediaRow, TileLine};
 pub struct LibraryState {
     pub loaded: bool,
     /// Library indices in display order.
-    shown: Vec<usize>,
+    pub(super) shown: Vec<usize>,
     pub checked: HashSet<String>,
     columns: usize,
     rows: Rc<VecModel<MediaRow>>,
-    categories: Vec<String>,
+    pub(super) categories: Vec<String>,
     edit_id: Option<String>,
     /// Explicit folders from the server (empty ones included).
     pub folders: Vec<String>,
@@ -81,7 +80,8 @@ pub fn connect(ui: &AppWindow) {
     g.on_validate_edit(|| with(validate_edit));
     g.on_save_edit(|| with(save_edit));
     g.on_row_action(|row, a| with(move |c| row_action(c, row, a.as_str())));
-    g.on_bulk(|a, arg| with(move |c| bulk(c, a.as_str(), arg)));
+    g.on_bulk(|a, arg| with(move |c| super::bulk::bulk(c, a.as_str(), arg)));
+    g.on_bulk_category(|cat| with(move |c| super::bulk::set_category(c, cat.to_string())));
     g.on_browse_import(|folder| {
         with(move |c| {
             let d = rfd::FileDialog::new();
@@ -113,7 +113,7 @@ fn id_at(c: &Ctx, row: i32) -> Option<String> {
     Some(c.model.library.get(i)?.id.clone())
 }
 
-fn item(c: &Ctx, id: &str) -> Option<MediaItem> {
+pub(super) fn item(c: &Ctx, id: &str) -> Option<MediaItem> {
     c.model.library.iter().find(|m| m.id == id).cloned()
 }
 
@@ -190,6 +190,7 @@ pub fn refresh(c: &mut Ctx) {
         .into(),
     );
     g.set_categories(vec_model(cats.into_iter().map(SharedString::from).collect()));
+    g.set_bulk_categories(super::bulk::category_entries(c));
     g.set_category_index(cat_idx as i32);
     g.set_playlists(vec_model(
         c.model.playlists.iter().map(|p| SharedString::from(if p.name.is_empty() { p.id.clone() } else { p.name.clone() })).collect(),
@@ -225,7 +226,7 @@ fn lines(c: &mut Ctx) {
     g.set_lines(vec_model(lines));
 }
 
-fn update_checks(c: &mut Ctx) {
+pub(super) fn update_checks(c: &mut Ctx) {
     for r in 0..c.lib.rows.row_count() {
         if let Some(mut row) = c.lib.rows.row_data(r) {
             let on = c.lib.checked.contains(row.id.as_str());
@@ -391,7 +392,7 @@ fn row_action(c: &mut Ctx, row: i32, action: &str) {
     }
 }
 
-fn delete_ids(c: &mut Ctx, ids: Vec<String>) {
+pub(super) fn delete_ids(c: &mut Ctx, ids: Vec<String>) {
     let ch = c.model.ch();
     let n = ids.len();
     c.change(move |api| {
@@ -401,92 +402,6 @@ fn delete_ids(c: &mut Ctx, ids: Vec<String>) {
         Ok(format!("Удалено: {n}"))
     });
     c.lib.checked.clear();
-}
-
-fn bulk(c: &mut Ctx, action: &str, arg: i32) {
-    let ids: Vec<String> = c.lib.shown.iter().map(|&i| c.model.library[i].id.clone()).filter(|id| c.lib.checked.contains(id)).collect();
-    if ids.is_empty() {
-        return;
-    }
-    let ch = c.model.ch();
-    match action {
-        "playlist" => {
-            let Some(mut p) = c.model.playlists.get(arg as usize).cloned() else { return };
-            let n = ids.len();
-            p.entries.extend(ids.into_iter().map(PlaylistEntry::new));
-            let name = if p.name.is_empty() { p.id.clone() } else { p.name.clone() };
-            c.change(move |api| {
-                api.put(&format!("/channels/{ch}/playlists/{}", p.id), &p)?;
-                Ok(format!("Добавлено в «{name}»: {n}"))
-            });
-            c.lib.checked.clear();
-        }
-        "queue" => {
-            c.worker.spawn(move |api| {
-                for id in &ids {
-                    api.post(&format!("/channels/{ch}/command"), &json!({ "cmd": "queue", "media": id }))?;
-                }
-                Ok(Msg::Done(format!("В очереди: {}", ids.len())))
-            });
-        }
-        "enable" | "disable" => {
-            let on = action == "enable";
-            let items: Vec<MediaItem> = ids
-                .iter()
-                .filter_map(|id| item(c, id))
-                .map(|mut m| {
-                    m.enabled = on;
-                    m
-                })
-                .collect();
-            c.change(move |api| {
-                for m in &items {
-                    api.put(&format!("/channels/{ch}/media/{}", m.id), m)?;
-                }
-                Ok(format!("{}: {}", if on { "Включено" } else { "Выключено" }, items.len()))
-            });
-        }
-        "folder" => {
-            let path = folders::option_path(c, arg);
-            let n = ids.len();
-            let body = json!({ "op": "move", "path": path, "ids": ids });
-            let label = if path.is_empty() { "верхний уровень".to_string() } else { format!("«{path}»") };
-            c.change(move |api| {
-                api.post(&format!("/channels/{ch}/media/folders"), &body)?;
-                Ok(format!("Перемещено в {label}: {n}"))
-            });
-            c.lib.checked.clear();
-        }
-        "kind" => {
-            let Some(k) = KINDS.get(arg as usize).copied() else { return };
-            let items: Vec<MediaItem> = ids
-                .iter()
-                .filter_map(|id| item(c, id))
-                .map(|mut m| {
-                    m.kind = k;
-                    m
-                })
-                .collect();
-            c.change(move |api| {
-                for m in &items {
-                    api.put(&format!("/channels/{ch}/media/{}", m.id), m)?;
-                }
-                Ok(format!("Тип изменён: {}", items.len()))
-            });
-        }
-        "delete" => {
-            let n = ids.len();
-            c.ask(
-                "Удалить выбранные ролики?",
-                &format!(
-                    "Из медиатеки будет удалено элементов: {n}. Копии в хранилище канала удаляются, остальные файлы на диске останутся."
-                ),
-                "Удалить",
-                move |c| delete_ids(c, ids),
-            );
-        }
-        _ => {}
-    }
 }
 
 /// Extensions offered by the file picker (the server probes the rest).
@@ -605,7 +520,7 @@ pub fn apply_prefs(c: &mut Ctx) {
 
 pub fn shortcut(c: &mut Ctx, name: &str) {
     if name == "delete" && !c.lib.checked.is_empty() {
-        bulk(c, "delete", 0);
+        super::bulk::bulk(c, "delete", 0);
     }
 }
 
