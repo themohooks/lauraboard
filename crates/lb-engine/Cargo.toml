@@ -14,7 +14,7 @@ lb-gfx = { workspace = true }
 lb-media = { workspace = true }
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.154"
-sysinfo = { version = "0.38.4", default-features = false, features = ["system", "disk", "network"] }
+sysinfo = { version = "0.39.6", default-features = false, features = ["system", "disk", "network"] }
 thiserror = "2.0.21"
 tokio = { version = "1.54.1", features = ["full"] }
 tracing = "0.1.44"
