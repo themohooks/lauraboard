@@ -14,7 +14,7 @@ image = { version = "0.25.10", default-features = false, features = ["png", "jpe
 lb-core = { workspace = true }
 tiny-skia = "0.12.0"
 tracing = "0.1.44"
-base64 = "0.22.1"
+base64 = "0.23.1"
 serde_json = "1.0.154"
 url = "2.5.8"
 percent-encoding = "2.3.2"
